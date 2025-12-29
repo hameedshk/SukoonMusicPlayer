@@ -1,0 +1,219 @@
+# .claudeignore for Android/Kotlin Project (Sukoon Music Player)
+# Optimized to reduce token usage while keeping Claude focused on your source code
+
+# ==========================================
+# ANDROID BUILD OUTPUTS - CRITICAL TO EXCLUDE
+# ==========================================
+# These can be MASSIVE (100k+ files) and will destroy your token budget
+
+# Gradle build outputs
+build/
+app/build/
+*/build/
+.gradle/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Android Studio generated
+*.iml
+*.iws
+*.ipr
+out/
+.idea/gradle.xml
+.idea/misc.xml
+
+# APK and AAB files (compiled apps)
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Compiled class files
+*.class
+
+# Android Profiler
+captures/
+
+# IntelliJ
+*.iml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/dataSources.ids
+.idea/dataSources.local.xml
+.idea/sqlDataSources.xml
+.idea/dynamic.xml
+.idea/uiDesigner.xml
+.idea/assetWizardSettings.xml
+.idea/gradle.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/deploymentTargetDropDown.xml
+
+# ==========================================
+# GRADLE & DEPENDENCIES
+# ==========================================
+.gradle/
+gradle/
+gradlew
+gradlew.bat
+gradle-wrapper.jar
+gradle-wrapper.properties
+
+# Local Gradle properties (contains sensitive data)
+local.properties
+
+# Proguard/R8 outputs
+proguard/
+mapping.txt
+seeds.txt
+usage.txt
+
+# ==========================================
+# ANDROID GENERATED FILES
+# ==========================================
+# R files and BuildConfig (auto-generated)
+**/R.java
+**/BuildConfig.java
+**/Manifest.java
+
+# Generated resource files
+app/src/main/res/values/public.xml
+
+# ==========================================
+# GIT & VERSION CONTROL
+# ==========================================
+.git/
+.gitignore
+.gitattributes
+
+# ==========================================
+# RESOURCES THAT DON'T NEED AI REVIEW
+# ==========================================
+# Images, icons, media (unless you specifically need Claude to analyze them)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.9.png
+*.svg
+*.ico
+
+# Audio/Video files
+*.mp3
+*.mp4
+*.wav
+*.m4a
+*.aac
+*.flac
+*.ogg
+
+# ==========================================
+# DATABASE & CACHE
+# ==========================================
+*.db
+*.sqlite
+*.db-shm
+*.db-wal
+*.realm
+
+# ==========================================
+# DOCUMENTATION (Optional - uncomment if you want Claude to read docs)
+# ==========================================
+# README.md
+# CHANGELOG.md
+# docs/
+
+# ==========================================
+# LOGS & TEMPORARY FILES
+# ==========================================
+*.log
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Android Lint
+lint/
+*.lint
+
+# Logcat files
+logcat.txt
+
+# ==========================================
+# EXTERNAL LIBRARIES (if vendored)
+# ==========================================
+libs/*.jar
+libs/*.aar
+
+# ==========================================
+# TESTING & COVERAGE
+# ==========================================
+.externalNativeBuild/
+.cxx/
+obj/
+
+# Test reports
+test-results/
+androidTest-results/
+coverage/
+
+# ==========================================
+# ANDROID NDK (if you're not using native code)
+# ==========================================
+*.so
+*.a
+jni/
+jniLibs/
+
+# ==========================================
+# KEYSTORE FILES - SECURITY CRITICAL
+# ==========================================
+*.jks
+*.keystore
+key.properties
+release/
+
+# ==========================================
+# MISC
+# ==========================================
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+
+# Navigation component SafeArgs generated files
+**/NavArgs.kt
+**/NavDirections.kt
+
+# Hilt generated files (if using Hilt)
+**/*_Hilt*.kt
+**/*_Hilt*.java
+
+# Data Binding generated files
+**/databinding/
+**/DataBindingInfo.java
+
+# ==========================================
+# KEEP THESE - CLAUDE SHOULD READ THEM
+# ==========================================
+# Your actual source code (DO NOT EXCLUDE):
+# - app/src/main/java/**/*.kt
+# - app/src/main/res/layout/*.xml
+# - app/src/main/res/values/*.xml
+# - AndroidManifest.xml
+# - build.gradle.kts / build.gradle
+# - Domain layer models
+# - UI layer (screens, components)
+# - Database schemas (Room entities)

@@ -1,0 +1,288 @@
+package com.sukoon.music.di
+
+import android.content.Context
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.room.Room
+import com.sukoon.music.data.local.SukoonDatabase
+import com.sukoon.music.data.local.dao.EqualizerPresetDao
+import com.sukoon.music.data.local.dao.LyricsDao
+import com.sukoon.music.data.local.dao.PlaylistDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedDao
+import com.sukoon.music.data.local.dao.SearchHistoryDao
+import com.sukoon.music.data.local.dao.SongDao
+import com.sukoon.music.data.remote.LyricsApi
+import com.sukoon.music.data.repository.AudioEffectRepositoryImpl
+import com.sukoon.music.data.repository.PlaybackRepositoryImpl
+import com.sukoon.music.data.repository.SearchHistoryRepositoryImpl
+import com.sukoon.music.data.repository.SongRepositoryImpl
+import com.sukoon.music.data.service.AlbumArtLoader
+import com.sukoon.music.data.source.MediaStoreScanner
+import com.sukoon.music.domain.repository.AudioEffectRepository
+import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.domain.repository.SearchHistoryRepository
+import com.sukoon.music.domain.repository.SongRepository
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
+import javax.inject.Qualifier
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object AppModule {
+
+    // REMOVED: ExoPlayer singleton - it must live exclusively in MusicPlaybackService
+    // as per CLAUDE.md critical requirements. Creating it as a singleton violates
+    // the architecture where ExoPlayer lifecycle must be tied to the service lifecycle.
+
+    @Provides
+    @Singleton
+    fun provideAlbumArtLoader(
+        @ApplicationContext context: Context
+    ): AlbumArtLoader {
+        return AlbumArtLoader(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSukoonDatabase(
+        @ApplicationContext context: Context
+    ): SukoonDatabase {
+        return Room.databaseBuilder(
+            context,
+            SukoonDatabase::class.java,
+            SukoonDatabase.DATABASE_NAME
+        )
+        .addMigrations(
+            SukoonDatabase.MIGRATION_2_3,
+            SukoonDatabase.MIGRATION_3_4,
+            SukoonDatabase.MIGRATION_4_5,
+            SukoonDatabase.MIGRATION_5_6,
+            SukoonDatabase.MIGRATION_6_7,
+            SukoonDatabase.MIGRATION_7_8
+        )
+        .fallbackToDestructiveMigration() // Allow DB reset if migration fails
+        .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSongDao(database: SukoonDatabase) = database.songDao()
+
+    @Provides
+    @Singleton
+    fun provideLyricsDao(database: SukoonDatabase) = database.lyricsDao()
+
+    @Provides
+    @Singleton
+    fun provideRecentlyPlayedDao(database: SukoonDatabase) = database.recentlyPlayedDao()
+
+    @Provides
+    @Singleton
+    fun providePlaylistDao(database: SukoonDatabase) = database.playlistDao()
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryDao(database: SukoonDatabase) = database.searchHistoryDao()
+
+    @Provides
+    @Singleton
+    fun provideEqualizerPresetDao(database: SukoonDatabase) = database.equalizerPresetDao()
+
+    @Provides
+    @Singleton
+    fun provideDeletedPlaylistDao(database: SukoonDatabase) = database.deletedPlaylistDao()
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("User-Agent", "Sukoon Music Player/1.0.0 (Android)")
+                    .build()
+                chain.proceed(request)
+            }
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideLyricsApi(okHttpClient: OkHttpClient): LyricsApi {
+        return Retrofit.Builder()
+            .baseUrl(LyricsApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(LyricsApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    @ApplicationScope
+    fun provideApplicationScope(): CoroutineScope {
+        return CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    }
+
+    @UnstableApi
+    @Provides
+    @Singleton
+    fun providePlaybackRepository(
+        @ApplicationContext context: Context,
+        @ApplicationScope scope: CoroutineScope,
+        songRepository: SongRepository,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
+    ): PlaybackRepository {
+        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager)
+    }
+
+    @Provides
+    @Singleton
+    fun provideMediaStoreScanner(
+        @ApplicationContext context: Context
+    ): MediaStoreScanner {
+        return MediaStoreScanner(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSongRepository(
+        songDao: SongDao,
+        recentlyPlayedDao: RecentlyPlayedDao,
+        mediaStoreScanner: MediaStoreScanner,
+        @ApplicationScope scope: CoroutineScope
+    ): SongRepository {
+        return SongRepositoryImpl(songDao, recentlyPlayedDao, mediaStoreScanner, scope)
+    }
+
+    @Provides
+    @Singleton
+    fun provideOfflineLyricsScanner(
+        @ApplicationContext context: Context
+    ): com.sukoon.music.data.lyrics.OfflineLyricsScanner {
+        return com.sukoon.music.data.lyrics.OfflineLyricsScanner(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideId3LyricsExtractor(
+        @ApplicationContext context: Context
+    ): com.sukoon.music.data.lyrics.Id3LyricsExtractor {
+        return com.sukoon.music.data.lyrics.Id3LyricsExtractor(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideLyricsRepository(
+        lyricsDao: LyricsDao,
+        lyricsApi: LyricsApi,
+        offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
+        id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor
+    ): com.sukoon.music.domain.repository.LyricsRepository {
+        return com.sukoon.music.data.repository.LyricsRepositoryImpl(
+            lyricsDao,
+            lyricsApi,
+            offlineLyricsScanner,
+            id3LyricsExtractor
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun providePlaylistRepository(
+        playlistDao: PlaylistDao,
+        songDao: SongDao,
+        deletedPlaylistDao: com.sukoon.music.data.local.dao.DeletedPlaylistDao,
+        @ApplicationScope scope: CoroutineScope
+    ): com.sukoon.music.domain.repository.PlaylistRepository {
+        return com.sukoon.music.data.repository.PlaylistRepositoryImpl(playlistDao, songDao, deletedPlaylistDao, scope)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSearchHistoryRepository(
+        searchHistoryDao: SearchHistoryDao
+    ): SearchHistoryRepository {
+        return SearchHistoryRepositoryImpl(searchHistoryDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAudioEffectRepository(
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+        equalizerPresetDao: EqualizerPresetDao
+    ): AudioEffectRepository {
+        return AudioEffectRepositoryImpl(preferencesManager, equalizerPresetDao)
+    }
+
+    @Provides
+    @Singleton
+    fun providePreferencesManager(
+        @ApplicationContext context: Context
+    ): com.sukoon.music.data.preferences.PreferencesManager {
+        return com.sukoon.music.data.preferences.PreferencesManager(context)
+    }
+
+    @Provides
+    @Singleton
+    fun provideImageLoader(
+        @ApplicationContext context: Context
+    ): coil.ImageLoader {
+        return coil.ImageLoader.Builder(context)
+            .crossfade(true)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideSettingsRepository(
+        @ApplicationContext context: Context,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+        database: SukoonDatabase,
+        imageLoader: coil.ImageLoader
+    ): com.sukoon.music.domain.repository.SettingsRepository {
+        return com.sukoon.music.data.repository.SettingsRepositoryImpl(
+            context,
+            preferencesManager,
+            database,
+            imageLoader
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideAdMobManager(
+        @ApplicationContext context: Context
+    ): com.sukoon.music.data.ads.AdMobManager {
+        val adMobManager = com.sukoon.music.data.ads.AdMobManager(context)
+        // Initialize AdMob on app startup
+        adMobManager.initialize()
+        return adMobManager
+    }
+}
+
+/**
+ * Qualifier annotation for application-scoped CoroutineScope.
+ * This scope survives the entire application lifecycle.
+ */
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class ApplicationScope

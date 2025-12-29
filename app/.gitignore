@@ -1,0 +1,26 @@
+# IDE - Android Studio / IntelliJ
+.idea/
+*.iml
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+cmake-build-*/
+
+# Build output
+build/
+*/build/
+
+# Kotlin
+bin/
+gen/
+
+# macOS
+.DS_Store
+
+# Secrets (Add any specific keys or secret files here)
+google-services.json
+
+# Kotlin compiler session files
+.kotlin/

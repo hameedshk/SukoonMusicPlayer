@@ -1,0 +1,123 @@
+package com.sukoon.music.domain.repository
+
+import com.sukoon.music.domain.model.PlaybackState
+import com.sukoon.music.domain.model.RepeatMode
+import com.sukoon.music.domain.model.Song
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * Repository interface for playback control operations.
+ * This is the single point of interaction between UI and the MediaController.
+ *
+ * All playback state must be observed through [playbackState] StateFlow.
+ * UI must never access ExoPlayer or MediaController directly.
+ */
+interface PlaybackRepository {
+
+    /**
+     * Reactive playback state observable by UI.
+     * Updates automatically when playback state changes.
+     */
+    val playbackState: StateFlow<PlaybackState>
+
+    // Transport Controls
+
+    /**
+     * Start or resume playback.
+     */
+    suspend fun play()
+
+    /**
+     * Pause playback.
+     */
+    suspend fun pause()
+
+    /**
+     * Toggle between play and pause.
+     */
+    suspend fun playPause()
+
+    /**
+     * Seek to a specific position in the current track.
+     * @param positionMs Position in milliseconds
+     */
+    suspend fun seekTo(positionMs: Long)
+
+    /**
+     * Skip to the next track in the queue.
+     */
+    suspend fun seekToNext()
+
+    /**
+     * Skip to the previous track in the queue.
+     */
+    suspend fun seekToPrevious()
+
+    // Queue Management
+
+    /**
+     * Play a single song immediately.
+     * Clears the current queue and plays the specified song.
+     * @param song Song to play
+     */
+    suspend fun playSong(song: Song)
+
+    /**
+     * Play a queue of songs starting at a specific index.
+     * @param songs List of songs to queue
+     * @param startIndex Index of the song to start playing (default: 0)
+     */
+    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0)
+
+    /**
+     * Add a song to the end of the current queue.
+     * @param song Song to add
+     */
+    suspend fun addToQueue(song: Song)
+
+    /**
+     * Remove a song from the queue at the specified index.
+     * @param index Index of the song to remove
+     */
+    suspend fun removeFromQueue(index: Int)
+
+    /**
+     * Jump to a specific index in the queue.
+     * @param index Index of the song to jump to
+     */
+    suspend fun seekToQueueIndex(index: Int)
+
+    // Playback Configuration
+
+    /**
+     * Set the repeat mode.
+     * @param mode Repeat mode (OFF, ONE, ALL)
+     */
+    suspend fun setRepeatMode(mode: RepeatMode)
+
+    /**
+     * Enable or disable shuffle mode.
+     * @param enabled True to enable shuffle, false to disable
+     */
+    suspend fun setShuffleEnabled(enabled: Boolean)
+
+    /**
+     * Set playback speed multiplier.
+     * @param speed Playback speed (0.5x to 2.0x typically)
+     */
+    suspend fun setPlaybackSpeed(speed: Float)
+
+    // Lifecycle
+
+    /**
+     * Connect to the MediaSessionService.
+     * Must be called before any other operations.
+     */
+    suspend fun connect()
+
+    /**
+     * Disconnect from the MediaSessionService.
+     * Releases all resources.
+     */
+    fun disconnect()
+}
