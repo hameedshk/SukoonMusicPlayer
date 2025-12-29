@@ -65,7 +65,27 @@ data class UserPreferences(
     /**
      * Enable audio normalization (ReplayGain).
      */
-    val audioNormalizationEnabled: Boolean = false
+    val audioNormalizationEnabled: Boolean = false,
+
+    /**
+     * Set of folder paths to be excluded from library scan.
+     */
+    val excludedFolderPaths: Set<String> = emptySet(),
+
+    /**
+     * Preferred sort mode for folders.
+     */
+    val folderSortMode: FolderSortMode = FolderSortMode.NAME_ASC,
+
+    /**
+     * Minimum duration in seconds for audio files to be included in library.
+     */
+    val minimumAudioDuration: Int = 30,
+
+    /**
+     * Whether to show all audio files including those in hidden folders.
+     */
+    val showAllAudioFiles: Boolean = false
 )
 
 /**

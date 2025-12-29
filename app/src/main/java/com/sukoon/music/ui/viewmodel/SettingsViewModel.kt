@@ -166,6 +166,34 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Set minimum audio duration in seconds.
+     */
+    fun setMinimumAudioDuration(seconds: Int) {
+        viewModelScope.launch {
+            settingsRepository.setMinimumAudioDuration(seconds)
+        }
+    }
+
+    /**
+     * Toggle show all audio files setting.
+     */
+    fun toggleShowAllAudioFiles() {
+        viewModelScope.launch {
+            val currentValue = userPreferences.value.showAllAudioFiles
+            settingsRepository.setShowAllAudioFiles(!currentValue)
+        }
+    }
+
+    /**
+     * Trigger a rescan of the media library.
+     */
+    fun rescanLibrary() {
+        viewModelScope.launch {
+            songRepository.scanLocalMusic()
+        }
+    }
+
+    /**
      * Load storage usage statistics.
      */
     fun loadStorageStats() {

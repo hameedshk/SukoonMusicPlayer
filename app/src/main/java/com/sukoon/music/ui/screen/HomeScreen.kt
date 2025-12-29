@@ -4,15 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Close
@@ -22,15 +17,11 @@ import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -55,48 +46,18 @@ import com.sukoon.music.domain.model.Playlist
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.BannerAdView
+import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.SukoonOrange
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
-import com.sukoon.music.ui.theme.SpacingSmall
-import com.sukoon.music.ui.theme.SpacingXLarge
-import com.sukoon.music.ui.theme.DarkCard
-import com.sukoon.music.ui.theme.DarkCardElevated
 import com.sukoon.music.ui.theme.ActionButtonShape
 import com.sukoon.music.ui.theme.PillShape
-import com.sukoon.music.ui.theme.TextPrimary
-import com.sukoon.music.ui.theme.TextSecondary
-import com.sukoon.music.ui.theme.MiniPlayerAlbumArtSize
-import com.sukoon.music.ui.theme.MiniPlayerHeight
-import com.sukoon.music.ui.theme.MiniPlayerShape
-import com.sukoon.music.ui.theme.LastAddedCardWidth
-import com.sukoon.music.ui.theme.LastAddedCardHeight
-import com.sukoon.music.ui.util.accentColor
-import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
-import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
 /**
  * Home Screen - Main entry point of the app.
- *
- * Features:
- * - Scan button to discover local music
- * - Progress indicator during scanning
- * - Song list with play action
- * - Bottom playback controls (mini player)
- * - Navigation to Search, Liked Songs, Albums, and Settings
- *
- * Follows Material 3 design with Spotify-inspired dark theme.
- *
- * @param onNavigateToNowPlaying Callback to navigate to Now Playing screen
- * @param onNavigateToSearch Callback to navigate to Search screen
- * @param onNavigateToLikedSongs Callback to navigate to Liked Songs screen
- * @param onNavigateToAlbums Callback to navigate to Albums screen
- * @param onNavigateToArtists Callback to navigate to Artists screen
- * @param onNavigateToSettings Callback to navigate to Settings screen
- * @param viewModel ViewModel for home screen state and actions
  */
 @Composable
 fun HomeScreen(
@@ -117,10 +78,8 @@ fun HomeScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val adMobManager = viewModel.adMobManager
 
-    // Tab selection state
     var selectedTab by remember { mutableStateOf("For you") }
 
-    // Handle tab selection - navigates for Playlist and Folders, changes content for others
     val handleTabSelection: (String) -> Unit = { tab ->
         when (tab) {
             "Playlist" -> onNavigateToPlaylists()
@@ -129,10 +88,8 @@ fun HomeScreen(
         }
     }
 
-    // Permission handling
     val permissionState = rememberAudioPermissionState(
         onPermissionGranted = {
-            // Auto-scan when permission is granted
             viewModel.scanLocalMusic()
         }
     )
@@ -145,7 +102,6 @@ fun HomeScreen(
                     onGlobalSearchClick = onNavigateToSearch,
                     onSettingsClick = onNavigateToSettings
                 )
-                // Global Tabs - always visible
                 TabPills(
                     selectedTab = selectedTab,
                     onTabSelected = handleTabSelection
@@ -154,9 +110,8 @@ fun HomeScreen(
         },
         bottomBar = {
             Column {
-                // Redesigned Mini Player
                 if (playbackState.currentSong != null) {
-                    RedesignedMiniPlayer(
+                    MiniPlayer(
                         playbackState = playbackState,
                         onPlayPauseClick = { viewModel.playPause() },
                         onNextClick = { viewModel.seekToNext() },
@@ -164,7 +119,6 @@ fun HomeScreen(
                     )
                 }
 
-                // Global Banner Ad - always visible
                 BannerAdView(
                     adMobManager = adMobManager,
                     modifier = Modifier.fillMaxWidth()
@@ -178,11 +132,9 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             when {
-                // Show scan progress
                 scanState is ScanState.Scanning -> {
                     ScanProgressView(scanState as ScanState.Scanning)
                 }
-                // Show empty state
                 songs.isEmpty() -> {
                     EmptyState(
                         scanState = scanState,
@@ -196,7 +148,6 @@ fun HomeScreen(
                         }
                     )
                 }
-                // Show content based on selected tab
                 else -> {
                     when (selectedTab) {
                         "For you" -> {
@@ -245,46 +196,6 @@ fun HomeScreen(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun HomeTopBar(
-    onScanClick: () -> Unit,
-    onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit
-) {
-    TopAppBar(
-        title = {
-            Text(
-                text = "Sukoon Music",
-                style = MaterialTheme.typography.headlineMedium
-            )
-        },
-        actions = {
-            IconButton(onClick = onSearchClick) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search"
-                )
-            }
-            IconButton(onClick = onScanClick) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = "Scan for music"
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings"
-                )
-            }
-        },
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    )
 }
 
 @Composable
@@ -396,9 +307,6 @@ private fun EmptyState(
     }
 }
 
-/**
- * "For you" tab content - shows personalized content with widget banner, action buttons, last added, and all songs.
- */
 @Composable
 private fun ForYouContent(
     songs: List<Song>,
@@ -416,12 +324,7 @@ private fun ForYouContent(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        // Widget Banner
-        item {
-            WidgetBanner(onClick = { /* TODO: Open widget configuration */ })
-        }
-
-        // Action Button Grid (2x2)
+        item { WidgetBanner(onClick = { /* TODO: Open widget configuration */ }) }
         item {
             ActionButtonGrid(
                 onShuffleClick = onShuffleAllClick,
@@ -430,8 +333,6 @@ private fun ForYouContent(
                 onSettingsClick = onSettingsClick
             )
         }
-
-        // Last Added Section
         if (songs.isNotEmpty()) {
             item {
                 LastAddedSection(
@@ -443,8 +344,6 @@ private fun ForYouContent(
                 )
             }
         }
-
-        // "All Songs" header
         item {
             Text(
                 text = "All Songs",
@@ -452,8 +351,6 @@ private fun ForYouContent(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp)
             )
         }
-
-        // Song List
         items(
             items = songs,
             key = { it.id }
@@ -466,131 +363,6 @@ private fun ForYouContent(
                 isPlaying = isPlaying,
                 onClick = { onSongClick(song, index) },
                 onLikeClick = { onLikeClick(song) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun RecentlyPlayedGrid(
-    songs: List<Song>,
-    onSongClick: (Song) -> Unit
-) {
-    // Take only the first 6 songs for the 2x3 grid
-    val gridSongs = songs.take(6)
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    ) {
-        // First row (3 items)
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            gridSongs.take(3).forEach { song ->
-                RecentlyPlayedItem(
-                    song = song,
-                    onClick = { onSongClick(song) },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-            // Fill empty slots if less than 3 songs
-            repeat(3 - minOf(gridSongs.size, 3)) {
-                Spacer(modifier = Modifier.weight(1f))
-            }
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Second row (3 items)
-        if (gridSongs.size > 3) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                gridSongs.drop(3).take(3).forEach { song ->
-                    RecentlyPlayedItem(
-                        song = song,
-                        onClick = { onSongClick(song) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                // Fill empty slots if less than 6 songs total
-                repeat(6 - gridSongs.size) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentlyPlayedItem(
-    song: Song,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier
-            .height(56.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(4.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Album Art
-            Card(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surface),
-                    contentAlignment = Alignment.Center
-                ) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        error = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Song Title
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-                fontWeight = FontWeight.Medium
             )
         }
     }
@@ -610,7 +382,6 @@ private fun SongItem(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Album art
         Box(
             modifier = Modifier
                 .size(56.dp)
@@ -642,7 +413,6 @@ private fun SongItem(
 
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Song details
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -665,7 +435,6 @@ private fun SongItem(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Like button
         IconButton(onClick = onLikeClick) {
             Icon(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -676,200 +445,6 @@ private fun SongItem(
     }
 }
 
-@Composable
-private fun MiniPlayer(
-    playbackState: PlaybackState,
-    onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onPreviousClick: () -> Unit,
-    onClick: () -> Unit
-) {
-    // Extract colors from album art for dynamic theming
-    val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
-    val accentColor = palette.accentColor
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Album art
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface),
-                contentAlignment = Alignment.Center
-            ) {
-                if (playbackState.currentSong?.albumArtUri != null) {
-                    SubcomposeAsyncImage(
-                        model = playbackState.currentSong.albumArtUri,
-                        contentDescription = "Album Art",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        error = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Song info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = playbackState.currentSong?.title ?: "No song",
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = playbackState.currentSong?.artist ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Playback controls
-            IconButton(onClick = onPreviousClick) {
-                Icon(
-                    imageVector = Icons.Default.SkipPrevious,
-                    contentDescription = "Previous",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            IconButton(
-                onClick = onPlayPauseClick,
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(accentColor, CircleShape)
-            ) {
-                Icon(
-                    imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                    tint = androidx.compose.ui.graphics.Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-
-            IconButton(onClick = onNextClick) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next",
-                    modifier = Modifier.size(28.dp)
-                )
-            }
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HomeScreenPreview() {
-    SukoonMusicPlayerTheme {
-        // Preview requires theme setup
-        Surface(modifier = Modifier.fillMaxSize()) {
-            EmptyState(
-                scanState = ScanState.Idle,
-                hasPermission = false,
-                onScanClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun SongItemPreview() {
-    SukoonMusicPlayerTheme {
-        Surface {
-            SongItem(
-                song = Song(
-                    id = 1,
-                    title = "Test Song",
-                    artist = "Test Artist",
-                    album = "Test Album",
-                    duration = 180000,
-                    uri = "",
-                    albumArtUri = null,
-                    dateAdded = 0,
-                    isLiked = false
-                ),
-                isPlaying = false,
-                onClick = {},
-                onLikeClick = {}
-            )
-        }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun MiniPlayerPreview() {
-    SukoonMusicPlayerTheme {
-        MiniPlayer(
-            playbackState = PlaybackState(
-                isPlaying = true,
-                currentSong = Song(
-                    id = 1,
-                    title = "Test Song",
-                    artist = "Test Artist",
-                    album = "Test Album",
-                    duration = 180000,
-                    uri = "",
-                    albumArtUri = null,
-                    dateAdded = 0,
-                    isLiked = false
-                )
-            ),
-            onPlayPauseClick = {},
-            onNextClick = {},
-            onPreviousClick = {},
-            onClick = {}
-        )
-    }
-}
-
-// ============================================================================
-// REDESIGNED COMPONENTS (New Design)
-// ============================================================================
-
-/**
- * Redesigned top bar with SukoonMusic logo and action icons.
- */
 @Composable
 private fun RedesignedTopBar(
     onPremiumClick: () -> Unit,
@@ -883,7 +458,6 @@ private fun RedesignedTopBar(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Sukoon Music Logo
         Text(
             text = "Sukoon Music",
             style = MaterialTheme.typography.headlineMedium,
@@ -891,21 +465,17 @@ private fun RedesignedTopBar(
             color = SukoonOrange
         )
 
-        // Action Icons Row
         Row(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Premium/Diamond Icon
             IconButton(onClick = onPremiumClick) {
                 Icon(
-                    imageVector = Icons.Default.Star, // Using Star for premium
+                    imageVector = Icons.Default.Star,
                     contentDescription = "Premium",
                     tint = SukoonOrange
                 )
             }
-
-            // Global Search Icon
             IconButton(onClick = onGlobalSearchClick) {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -913,8 +483,6 @@ private fun RedesignedTopBar(
                     tint = MaterialTheme.colorScheme.onBackground
                 )
             }
-
-            // Settings Icon
             IconButton(onClick = onSettingsClick) {
                 Icon(
                     imageVector = Icons.Default.Settings,
@@ -926,9 +494,6 @@ private fun RedesignedTopBar(
     }
 }
 
-/**
- * Horizontal scrollable tab pills (For you, Songs, Playlist, Folders).
- */
 @Composable
 private fun TabPills(
     selectedTab: String,
@@ -936,7 +501,7 @@ private fun TabPills(
 ) {
     val tabs = listOf("For you", "Songs", "Playlist", "Folders")
 
-    androidx.compose.foundation.lazy.LazyRow(
+    LazyRow(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
@@ -972,9 +537,6 @@ private fun TabPills(
     }
 }
 
-/**
- * Widget promotion banner.
- */
 @Composable
 private fun WidgetBanner(
     onClick: () -> Unit
@@ -999,7 +561,7 @@ private fun WidgetBanner(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Album, // Using Album as grid icon
+                    imageVector = Icons.Default.Album,
                     contentDescription = null,
                     tint = SukoonOrange,
                     modifier = Modifier.size(24.dp)
@@ -1020,9 +582,6 @@ private fun WidgetBanner(
     }
 }
 
-/**
- * 2x2 Action button grid (Shuffle, Play, Scan, Settings).
- */
 @Composable
 private fun ActionButtonGrid(
     onShuffleClick: () -> Unit,
@@ -1036,7 +595,6 @@ private fun ActionButtonGrid(
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
         verticalArrangement = Arrangement.spacedBy(SpacingMedium)
     ) {
-        // First Row: Shuffle, Play
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
@@ -1054,8 +612,6 @@ private fun ActionButtonGrid(
                 modifier = Modifier.weight(1f)
             )
         }
-
-        // Second Row: Scan music, Settings
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
@@ -1076,9 +632,6 @@ private fun ActionButtonGrid(
     }
 }
 
-/**
- * Individual action button.
- */
 @Composable
 private fun ActionButton(
     text: String,
@@ -1116,9 +669,6 @@ private fun ActionButton(
     }
 }
 
-/**
- * "Last Added" section with horizontal scrolling song cards.
- */
 @Composable
 private fun LastAddedSection(
     songs: List<Song>,
@@ -1129,7 +679,6 @@ private fun LastAddedSection(
             .fillMaxWidth()
             .padding(vertical = SpacingMedium)
     ) {
-        // Section Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1154,8 +703,7 @@ private fun LastAddedSection(
 
         Spacer(modifier = Modifier.height(SpacingMedium))
 
-        // Horizontal scrolling song cards
-        androidx.compose.foundation.lazy.LazyRow(
+        LazyRow(
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = SpacingLarge),
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
@@ -1170,9 +718,6 @@ private fun LastAddedSection(
     }
 }
 
-/**
- * Individual card for Last Added section.
- */
 @Composable
 private fun LastAddedCard(
     song: Song,
@@ -1189,7 +734,6 @@ private fun LastAddedCard(
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Album art or music note icon
             if (song.albumArtUri != null) {
                 SubcomposeAsyncImage(
                     model = song.albumArtUri,
@@ -1224,7 +768,6 @@ private fun LastAddedCard(
                     }
                 )
             } else {
-                // No album art - show music note
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -1238,7 +781,6 @@ private fun LastAddedCard(
                 }
             }
 
-            // Play button overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1275,129 +817,6 @@ private fun LastAddedCard(
     }
 }
 
-/**
- * Redesigned Mini Player with larger, centered play button.
- */
-@Composable
-private fun RedesignedMiniPlayer(
-    playbackState: PlaybackState,
-    onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onClick: () -> Unit
-) {
-    val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
-    val accentColor = palette.accentColor
-
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(MiniPlayerHeight)
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
-            .clickable(onClick = onClick),
-        shape = MiniPlayerShape,
-        color = DarkCard
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(SpacingMedium),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            // Album Art (56dp)
-            if (playbackState.currentSong != null) {
-                SubcomposeAsyncImage(
-                    model = playbackState.currentSong.albumArtUri,
-                    contentDescription = "Album Art",
-                    modifier = Modifier
-                        .size(MiniPlayerAlbumArtSize)
-                        .clip(RoundedCornerShape(8.dp)),
-                    contentScale = ContentScale.Crop,
-                    error = {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(DarkCardElevated),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = TextSecondary,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                    }
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(MiniPlayerAlbumArtSize)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkCardElevated),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(28.dp)
-                    )
-                }
-            }
-
-            // Song Info (Title + Artist)
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = playbackState.currentSong?.title ?: "No song playing",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = playbackState.currentSong?.artist ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Large Play/Pause Button (48dp, centered)
-            IconButton(
-                onClick = onPlayPauseClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                    tint = accentColor,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-
-            // Next Button
-            IconButton(
-                onClick = onNextClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next",
-                    tint = TextPrimary
-                )
-            }
-        }
-    }
-}
-
-/**
- * "Songs" tab content - shows all songs in alphabetical order with search.
- */
 @Composable
 private fun SongsContent(
     songs: List<Song>,
@@ -1407,7 +826,6 @@ private fun SongsContent(
 ) {
     var searchQuery by remember { mutableStateOf("") }
 
-    // Sort songs alphabetically and filter by search query
     val filteredSongs = remember(songs, searchQuery) {
         songs
             .sortedBy { it.title.lowercase() }
@@ -1420,7 +838,6 @@ private fun SongsContent(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search Bar
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1472,7 +889,6 @@ private fun SongsContent(
             }
         }
 
-        // Songs List
         if (filteredSongs.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -1508,9 +924,6 @@ private fun SongsContent(
     }
 }
 
-/**
- * "Folders" tab content - placeholder for future implementation.
- */
 @Composable
 private fun FoldersPlaceholder() {
     Box(
@@ -1541,276 +954,16 @@ private fun FoldersPlaceholder() {
     }
 }
 
-/**
- * Playlist card component used in the playlists grid.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+@Preview(showBackground = true)
 @Composable
-private fun PlaylistCard(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-    onRenameClick: () -> Unit = {}
-) {
-    var showMenu by remember { mutableStateOf(false) }
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.9f),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Cover Image
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (playlist.coverImageUri != null) {
-                    SubcomposeAsyncImage(
-                        model = playlist.coverImageUri,
-                        contentDescription = "Playlist cover",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp)
-                            )
-                        },
-                        error = {
-                            DefaultPlaylistCover()
-                        }
-                    )
-                } else {
-                    DefaultPlaylistCover()
-                }
-
-                // Options menu button
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(4.dp)
-                ) {
-                    IconButton(
-                        onClick = { showMenu = true }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options",
-                            tint = androidx.compose.ui.graphics.Color.White
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text("Rename") },
-                            onClick = {
-                                onRenameClick()
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("Delete") },
-                            onClick = {
-                                onDeleteClick()
-                                showMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Playlist Info
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                Text(
-                    text = playlist.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${playlist.songCount} songs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-    }
-}
-
-/**
- * Default playlist cover when no album art is available.
- */
-@Composable
-private fun DefaultPlaylistCover() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * Song selection dialog for adding songs to a playlist.
- * Shows all available songs with checkboxes for multi-selection.
- */
-@Composable
-fun SongSelectionDialog(
-    songs: List<Song>,
-    onDismiss: () -> Unit,
-    onConfirm: (List<Long>) -> Unit,
-    viewModel: HomeViewModel = hiltViewModel()
-) {
-    var selectedSongIds by remember { mutableStateOf(setOf<Long>()) }
-    var searchQuery by remember { mutableStateOf("") }
-
-    // Filter songs by search query
-    val filteredSongs = remember(songs, searchQuery) {
-        songs.filter { song ->
-            searchQuery.isEmpty() ||
-            song.title.contains(searchQuery, ignoreCase = true) ||
-            song.artist.contains(searchQuery, ignoreCase = true) ||
-            song.album.contains(searchQuery, ignoreCase = true)
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = "Add Songs to Playlist",
-                style = MaterialTheme.typography.headlineSmall
+private fun HomeScreenPreview() {
+    SukoonMusicPlayerTheme {
+        Surface(modifier = Modifier.fillMaxSize()) {
+            EmptyState(
+                scanState = ScanState.Idle,
+                hasPermission = false,
+                onScanClick = {}
             )
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                // Search bar
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Search songs...") },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "Search")
-                    },
-                    trailingIcon = {
-                        if (searchQuery.isNotEmpty()) {
-                            IconButton(onClick = { searchQuery = "" }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear")
-                            }
-                        }
-                    },
-                    singleLine = true
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Selected count
-                Text(
-                    text = "${selectedSongIds.size} songs selected",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Song list with checkboxes
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 400.dp)
-                ) {
-                    items(
-                        items = filteredSongs,
-                        key = { it.id }
-                    ) { song ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedSongIds = if (selectedSongIds.contains(song.id)) {
-                                        selectedSongIds - song.id
-                                    } else {
-                                        selectedSongIds + song.id
-                                    }
-                                }
-                                .padding(vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Checkbox(
-                                checked = selectedSongIds.contains(song.id),
-                                onCheckedChange = { checked ->
-                                    selectedSongIds = if (checked) {
-                                        selectedSongIds + song.id
-                                    } else {
-                                        selectedSongIds - song.id
-                                    }
-                                }
-                            )
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = song.title,
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                                Text(
-                                    text = song.artist,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    onConfirm(selectedSongIds.toList())
-                },
-                enabled = selectedSongIds.isNotEmpty()
-            ) {
-                Text("Add to Playlist")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
         }
-    )
+    }
 }

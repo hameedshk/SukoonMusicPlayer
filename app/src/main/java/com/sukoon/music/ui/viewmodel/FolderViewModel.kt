@@ -1,38 +1,38 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.Folder
+import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
+import com.sukoon.music.ui.components.FolderViewMode
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * ViewModel for Folders screen.
- *
- * Responsibilities:
- * - Expose folder list from SongRepository
- * - Provide playback actions for entire folders
- * - Observe current playback state for UI highlighting
- *
- * Follows the architecture established by AlbumsViewModel and ArtistsViewModel.
  */
 @HiltViewModel
 class FolderViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository,
+    private val preferencesManager: PreferencesManager,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    /**
-     * All folders grouped from song library.
-     * Updates reactively when songs are added/removed or metadata changes.
-     */
     val folders: StateFlow<List<Folder>> = songRepository.getAllFolders()
         .stateIn(
             scope = viewModelScope,
@@ -40,60 +40,136 @@ class FolderViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
-    /**
-     * Current playback state for UI feedback.
-     * Used to highlight currently playing folder.
-     */
+    val sortMode: StateFlow<FolderSortMode> = preferencesManager.userPreferencesFlow
+        .map { it.folderSortMode }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = FolderSortMode.NAME_ASC
+        )
+
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
-    /**
-     * Play all songs in a folder from the beginning.
-     * Clears current queue and starts folder playback.
-     *
-     * @param folderId The unique ID of the folder to play
-     */
+    private val _folderViewMode = MutableStateFlow(FolderViewMode.DIRECTORIES)
+    val folderViewMode: StateFlow<FolderViewMode> = _folderViewMode.asStateFlow()
+
+    val hiddenFolders: StateFlow<List<Folder>> = songRepository.getExcludedFolders()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    private val _selectedFolderForPlaylist = MutableStateFlow<Long?>(null)
+    val selectedFolderForPlaylist: StateFlow<Long?> = _selectedFolderForPlaylist.asStateFlow()
+
+    private val _deleteResult = MutableStateFlow<DeleteHelper.DeleteResult?>(null)
+    val deleteResult: StateFlow<DeleteHelper.DeleteResult?> = _deleteResult.asStateFlow()
+
+    fun setFolderViewMode(mode: FolderViewMode) {
+        _folderViewMode.value = mode
+    }
+
+    fun unhideFolder(folderId: Long) {
+        viewModelScope.launch {
+            val folder = hiddenFolders.value.find { it.id == folderId }
+            folder?.let {
+                preferencesManager.removeExcludedFolderPath(it.path)
+            }
+        }
+    }
+
+    fun deleteFolder(folderId: Long) {
+        viewModelScope.launch {
+            val songs = songRepository.getSongsByFolderId(folderId)
+                .stateIn(viewModelScope)
+                .value
+
+            if (songs.isEmpty()) {
+                _deleteResult.value = DeleteHelper.DeleteResult.Success
+                return@launch
+            }
+
+            val result = DeleteHelper.deleteSongs(context, songs)
+            _deleteResult.value = result
+        }
+    }
+
+    fun clearDeleteResult() {
+        _deleteResult.value = null
+    }
+
+    fun showAddToPlaylistDialog(folderId: Long) {
+        _selectedFolderForPlaylist.value = folderId
+    }
+
+    fun dismissPlaylistDialog() {
+        _selectedFolderForPlaylist.value = null
+    }
+
+    fun addFolderToPlaylist(folderId: Long, playlistId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByFolderId(folderId)
+                .stateIn(viewModelScope)
+                .value
+                .forEach { song ->
+                    songRepository.addSongToPlaylist(playlistId, song.id)
+                }
+            dismissPlaylistDialog()
+        }
+    }
+
     fun playFolder(folderId: Long) {
         viewModelScope.launch {
-            // Get all songs in the folder
             songRepository.getSongsByFolderId(folderId)
                 .stateIn(viewModelScope)
                 .value
                 .takeIf { it.isNotEmpty() }
-                ?.let { folderSongs ->
-                    // Play queue from the beginning
-                    playbackRepository.playQueue(folderSongs, startIndex = 0)
-                }
+                ?.let { playbackRepository.playQueue(it, 0) }
         }
     }
 
-    /**
-     * Shuffle and play all songs in a folder.
-     * Randomizes song order before playback.
-     *
-     * @param folderId The unique ID of the folder to shuffle
-     */
     fun shuffleFolder(folderId: Long) {
         viewModelScope.launch {
-            // Get all songs in the folder
             songRepository.getSongsByFolderId(folderId)
                 .stateIn(viewModelScope)
                 .value
                 .takeIf { it.isNotEmpty() }
-                ?.let { folderSongs ->
-                    // Shuffle the songs and play queue
-                    val shuffledSongs = folderSongs.shuffled()
-                    playbackRepository.playQueue(shuffledSongs, startIndex = 0)
-                }
+                ?.let { playbackRepository.playQueue(it.shuffled(), 0) }
         }
     }
 
-    /**
-     * Navigate to folder detail screen.
-     * (Navigation logic handled by composable, this is a placeholder for future actions)
-     */
-    fun onFolderClick(folderId: Long) {
-        // Navigation is handled by the screen composable
-        // This method is reserved for future folder-specific actions
-        // (e.g., analytics tracking, pre-loading folder metadata)
+    fun addToQueue(folderId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByFolderId(folderId)
+                .stateIn(viewModelScope)
+                .value
+                .takeIf { it.isNotEmpty() }
+                ?.let { playbackRepository.addToQueue(it) }
+        }
+    }
+
+    fun playNext(folderId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByFolderId(folderId)
+                .stateIn(viewModelScope)
+                .value
+                .takeIf { it.isNotEmpty() }
+                ?.let { playbackRepository.playNext(it) }
+        }
+    }
+
+    fun excludeFolder(folderId: Long) {
+        viewModelScope.launch {
+            folders.value.find { it.id == folderId }?.let {
+                preferencesManager.addExcludedFolderPath(it.path)
+            }
+        }
+    }
+
+    fun setSortMode(mode: FolderSortMode) {
+        viewModelScope.launch {
+            preferencesManager.setFolderSortMode(mode)
+        }
     }
 }

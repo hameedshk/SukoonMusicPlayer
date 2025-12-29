@@ -106,4 +106,9 @@ sealed class Routes(val route: String) {
     data object FolderDetail : Routes("folder/{folderId}") {
         fun createRoute(folderId: Long) = "folder/$folderId"
     }
+
+    /**
+     * Excluded Folders screen - Manage folders excluded from the music library.
+     */
+    data object ExcludedFolders : Routes("excluded_folders")
 }

@@ -77,6 +77,14 @@ class SettingsRepositoryImpl @Inject constructor(
         preferencesManager.setAudioNormalizationEnabled(enabled)
     }
 
+    override suspend fun setMinimumAudioDuration(seconds: Int) {
+        preferencesManager.setMinimumAudioDuration(seconds)
+    }
+
+    override suspend fun setShowAllAudioFiles(enabled: Boolean) {
+        preferencesManager.setShowAllAudioFiles(enabled)
+    }
+
     override suspend fun getStorageStats(): StorageStats = withContext(Dispatchers.IO) {
         val databaseSize = getDatabaseSize()
         val cacheSize = getCacheSize()

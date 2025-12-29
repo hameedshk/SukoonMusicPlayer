@@ -12,6 +12,7 @@ import com.sukoon.music.ui.screen.AlbumsScreen
 import com.sukoon.music.ui.screen.ArtistDetailScreen
 import com.sukoon.music.ui.screen.ArtistsScreen
 import com.sukoon.music.ui.screen.EqualizerScreen
+import com.sukoon.music.ui.screen.ExcludedFoldersScreen
 import com.sukoon.music.ui.screen.FolderDetailScreen
 import com.sukoon.music.ui.screen.FoldersScreen
 import com.sukoon.music.ui.screen.HomeScreen
@@ -186,6 +187,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToEqualizer = {
                     navController.navigate(Routes.Equalizer.route)
+                },
+                onNavigateToExcludedFolders = {
+                    navController.navigate(Routes.ExcludedFolders.route)
                 }
             )
         }
@@ -264,6 +268,9 @@ fun SukoonNavHost(
                 onNavigateToFolder = { folderId ->
                     navController.navigate(Routes.FolderDetail.createRoute(folderId))
                 },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
+                },
                 onBackClick = {
                     navController.navigateUp()
                 }
@@ -280,6 +287,15 @@ fun SukoonNavHost(
             val folderId = backStackEntry.arguments?.getLong("folderId") ?: return@composable
             FolderDetailScreen(
                 folderId = folderId,
+                onBackClick = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // Excluded Folders Screen - Manage hidden folders
+        composable(route = Routes.ExcludedFolders.route) {
+            ExcludedFoldersScreen(
                 onBackClick = {
                     navController.navigateUp()
                 }

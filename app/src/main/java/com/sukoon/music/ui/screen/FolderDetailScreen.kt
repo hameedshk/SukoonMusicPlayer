@@ -53,6 +53,13 @@ fun FolderDetailScreen(
     val songs by viewModel.folderSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
+    // Handle case where folder is deleted or excluded while viewing
+    LaunchedEffect(folder) {
+        if (folder == null && folderId != 0L) {
+            onBackClick()
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(

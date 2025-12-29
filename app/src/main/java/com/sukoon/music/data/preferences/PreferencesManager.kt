@@ -7,9 +7,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
+import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -39,6 +41,10 @@ class PreferencesManager @Inject constructor(
 
         // Library
         private val KEY_SCAN_ON_STARTUP = booleanPreferencesKey("scan_on_startup")
+        private val KEY_EXCLUDED_FOLDER_PATHS = stringSetPreferencesKey("excluded_folder_paths")
+        private val KEY_FOLDER_SORT_MODE = stringPreferencesKey("folder_sort_mode")
+        private val KEY_MINIMUM_AUDIO_DURATION = intPreferencesKey("minimum_audio_duration_seconds")
+        private val KEY_SHOW_ALL_AUDIO_FILES = booleanPreferencesKey("show_all_audio_files")
 
         // Playback
         private val KEY_SHOW_NOTIFICATIONS = booleanPreferencesKey("show_notification_controls")
@@ -77,6 +83,10 @@ class PreferencesManager @Inject constructor(
                 theme = parseTheme(preferences[KEY_THEME]),
                 // Library
                 scanOnStartup = preferences[KEY_SCAN_ON_STARTUP] ?: false,
+                excludedFolderPaths = preferences[KEY_EXCLUDED_FOLDER_PATHS] ?: emptySet(),
+                folderSortMode = parseFolderSortMode(preferences[KEY_FOLDER_SORT_MODE]),
+                minimumAudioDuration = preferences[KEY_MINIMUM_AUDIO_DURATION] ?: 30,
+                showAllAudioFiles = preferences[KEY_SHOW_ALL_AUDIO_FILES] ?: false,
                 // Playback
                 showNotificationControls = preferences[KEY_SHOW_NOTIFICATIONS] ?: true,
                 gaplessPlaybackEnabled = preferences[KEY_GAPLESS_PLAYBACK] ?: true,
@@ -200,6 +210,62 @@ class PreferencesManager @Inject constructor(
     }
 
     /**
+     * Update excluded folder paths.
+     */
+    suspend fun setExcludedFolderPaths(paths: Set<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_EXCLUDED_FOLDER_PATHS] = paths
+        }
+    }
+
+    /**
+     * Add a folder path to the exclusion list.
+     */
+    suspend fun addExcludedFolderPath(path: String) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[KEY_EXCLUDED_FOLDER_PATHS] ?: emptySet()
+            preferences[KEY_EXCLUDED_FOLDER_PATHS] = current + path
+        }
+    }
+
+    /**
+     * Remove a folder path from the exclusion list.
+     */
+    suspend fun removeExcludedFolderPath(path: String) {
+        context.dataStore.edit { preferences ->
+            val current = preferences[KEY_EXCLUDED_FOLDER_PATHS] ?: emptySet()
+            preferences[KEY_EXCLUDED_FOLDER_PATHS] = current - path
+        }
+    }
+
+    /**
+     * Update folder sort mode.
+     */
+    suspend fun setFolderSortMode(mode: FolderSortMode) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_FOLDER_SORT_MODE] = mode.name
+        }
+    }
+
+    /**
+     * Update minimum audio duration in seconds.
+     */
+    suspend fun setMinimumAudioDuration(seconds: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_MINIMUM_AUDIO_DURATION] = seconds
+        }
+    }
+
+    /**
+     * Update whether to show all audio files.
+     */
+    suspend fun setShowAllAudioFiles(show: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SHOW_ALL_AUDIO_FILES] = show
+        }
+    }
+
+    /**
      * Clear all preferences (reset to defaults).
      * Used for logout or factory reset.
      */
@@ -230,6 +296,18 @@ class PreferencesManager @Inject constructor(
             qualityString?.let { AudioQuality.valueOf(it) } ?: AudioQuality.HIGH
         } catch (e: IllegalArgumentException) {
             AudioQuality.HIGH
+        }
+    }
+
+    /**
+     * Parse folder sort mode string from DataStore.
+     * Returns NAME_ASC as default if parsing fails.
+     */
+    private fun parseFolderSortMode(modeString: String?): FolderSortMode {
+        return try {
+            modeString?.let { FolderSortMode.valueOf(it) } ?: FolderSortMode.NAME_ASC
+        } catch (e: IllegalArgumentException) {
+            FolderSortMode.NAME_ASC
         }
     }
 

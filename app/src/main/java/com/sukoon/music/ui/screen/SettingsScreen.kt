@@ -38,6 +38,7 @@ import com.sukoon.music.ui.viewmodel.SettingsViewModel
  * - Private Session toggle
  * - Theme selection (Light/Dark/System)
  * - Scan on startup toggle
+ * - Library & Folders management
  * - Storage statistics
  * - Clear cache/database operations
  * - App information
@@ -48,6 +49,7 @@ import com.sukoon.music.ui.viewmodel.SettingsViewModel
 fun SettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToEqualizer: () -> Unit = {},
+    onNavigateToExcludedFolders: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
@@ -65,6 +67,8 @@ fun SettingsScreen(
     var showClearDatabaseDialog by remember { mutableStateOf(false) }
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showMinDurationDialog by remember { mutableStateOf(false) }
+    var showRescanDialog by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -213,8 +217,8 @@ fun SettingsScreen(
                 )
             }
 
-            // Library Section
-            item { SettingsSectionHeader(title = "Library") }
+            // Library & Folders Section
+            item { SettingsSectionHeader(title = "Library & Folders") }
 
             item {
                 SettingsSwitchItem(
@@ -223,6 +227,43 @@ fun SettingsScreen(
                     description = "Automatically scan for new music when app opens",
                     checked = userPreferences.scanOnStartup,
                     onCheckedChange = { viewModel.toggleScanOnStartup() }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Timer,
+                    title = "Minimum Audio Duration",
+                    description = "${userPreferences.minimumAudioDuration} seconds",
+                    onClick = { showMinDurationDialog = true }
+                )
+            }
+
+            item {
+                SettingsSwitchItem(
+                    icon = Icons.Default.Visibility,
+                    title = "Show All Audio Files",
+                    description = "Show hidden files and short clips",
+                    checked = userPreferences.showAllAudioFiles,
+                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.FolderOff,
+                    title = "Manage Excluded Folders",
+                    description = "${userPreferences.excludedFolderPaths.size} folder(s) excluded",
+                    onClick = onNavigateToExcludedFolders
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Search,
+                    title = "Rescan Library",
+                    description = "Manually search for new music files",
+                    onClick = { showRescanDialog = true }
                 )
             }
 
@@ -416,6 +457,30 @@ fun SettingsScreen(
             )
         }
 
+        if (showMinDurationDialog) {
+            MinimumDurationDialog(
+                currentDuration = userPreferences.minimumAudioDuration,
+                onDismiss = { showMinDurationDialog = false },
+                onConfirm = { duration ->
+                    viewModel.setMinimumAudioDuration(duration)
+                    showMinDurationDialog = false
+                }
+            )
+        }
+
+        if (showRescanDialog) {
+            ConfirmationDialog(
+                title = "Rescan Library?",
+                message = "This will scan your device for new music files. It may take a moment.",
+                icon = Icons.Default.Search,
+                onDismiss = { showRescanDialog = false },
+                onConfirm = {
+                    viewModel.rescanLibrary()
+                    showRescanDialog = false
+                }
+            )
+        }
+
         if (showLogoutDialog) {
             ConfirmationDialog(
                 title = "Logout?",
@@ -430,6 +495,48 @@ fun SettingsScreen(
             )
         }
     }
+}
+
+@Composable
+private fun MinimumDurationDialog(
+    currentDuration: Int,
+    onDismiss: () -> Unit,
+    onConfirm: (Int) -> Unit
+) {
+    var duration by remember { mutableStateOf(currentDuration) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Minimum Audio Duration") },
+        text = {
+            Column {
+                Text("Exclude files shorter than: $duration seconds")
+                Spacer(Modifier.height(16.dp))
+                Slider(
+                    value = duration.toFloat(),
+                    onValueChange = { duration = it.toInt() },
+                    valueRange = 0f..120f,
+                    steps = 11
+                )
+                Text(
+                    text = "Useful for hiding ringtones, notification sounds, and short voice notes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(duration) }) {
+                Text("Apply")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable

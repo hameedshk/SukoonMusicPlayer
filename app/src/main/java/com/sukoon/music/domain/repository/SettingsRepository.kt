@@ -85,6 +85,18 @@ interface SettingsRepository {
     suspend fun setAudioNormalizationEnabled(enabled: Boolean)
 
     /**
+     * Update minimum audio duration setting.
+     * @param seconds Minimum duration in seconds
+     */
+    suspend fun setMinimumAudioDuration(seconds: Int)
+
+    /**
+     * Update show all audio files setting.
+     * @param enabled True to show all audio files including hidden ones
+     */
+    suspend fun setShowAllAudioFiles(enabled: Boolean)
+
+    /**
      * Get storage usage statistics.
      *
      * @return Pair of (database size in bytes, cache size in bytes)

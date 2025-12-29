@@ -2,7 +2,6 @@ package com.sukoon.music.di
 
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.ExoPlayer
 import androidx.room.Room
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
@@ -42,10 +41,6 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    // REMOVED: ExoPlayer singleton - it must live exclusively in MusicPlaybackService
-    // as per CLAUDE.md critical requirements. Creating it as a singleton violates
-    // the architecture where ExoPlayer lifecycle must be tied to the service lifecycle.
-
     @Provides
     @Singleton
     fun provideAlbumArtLoader(
@@ -72,7 +67,7 @@ object AppModule {
             SukoonDatabase.MIGRATION_6_7,
             SukoonDatabase.MIGRATION_7_8
         )
-        .fallbackToDestructiveMigration() // Allow DB reset if migration fails
+        .fallbackToDestructiveMigration()
         .build()
     }
 
@@ -167,10 +162,12 @@ object AppModule {
     fun provideSongRepository(
         songDao: SongDao,
         recentlyPlayedDao: RecentlyPlayedDao,
+        playlistDao: PlaylistDao,
         mediaStoreScanner: MediaStoreScanner,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
         @ApplicationScope scope: CoroutineScope
     ): SongRepository {
-        return SongRepositoryImpl(songDao, recentlyPlayedDao, mediaStoreScanner, scope)
+        return SongRepositoryImpl(songDao, recentlyPlayedDao, playlistDao, mediaStoreScanner, preferencesManager, scope)
     }
 
     @Provides
@@ -273,16 +270,11 @@ object AppModule {
         @ApplicationContext context: Context
     ): com.sukoon.music.data.ads.AdMobManager {
         val adMobManager = com.sukoon.music.data.ads.AdMobManager(context)
-        // Initialize AdMob on app startup
         adMobManager.initialize()
         return adMobManager
     }
 }
 
-/**
- * Qualifier annotation for application-scoped CoroutineScope.
- * This scope survives the entire application lifecycle.
- */
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
 annotation class ApplicationScope

@@ -287,6 +287,26 @@ class PlaybackRepositoryImpl @Inject constructor(
         mediaController?.addMediaItem(song.toMediaItem())
     }
 
+    override suspend fun addToQueue(songs: List<Song>) {
+        mediaController?.addMediaItems(songs.map { it.toMediaItem() })
+    }
+
+    override suspend fun playNext(song: Song) {
+        mediaController?.let { controller ->
+            val currentIndex = controller.currentMediaItemIndex
+            val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
+            controller.addMediaItem(insertIndex, song.toMediaItem())
+        }
+    }
+
+    override suspend fun playNext(songs: List<Song>) {
+        mediaController?.let { controller ->
+            val currentIndex = controller.currentMediaItemIndex
+            val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
+            controller.addMediaItems(insertIndex, songs.map { it.toMediaItem() })
+        }
+    }
+
     override suspend fun removeFromQueue(index: Int) {
         mediaController?.removeMediaItem(index)
     }
