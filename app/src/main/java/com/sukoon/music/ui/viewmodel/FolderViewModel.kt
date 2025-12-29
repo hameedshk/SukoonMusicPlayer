@@ -3,6 +3,7 @@ package com.sukoon.music.ui.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.Folder
@@ -30,6 +31,7 @@ class FolderViewModel @Inject constructor(
     private val songRepository: SongRepository,
     val playbackRepository: PlaybackRepository,
     private val preferencesManager: PreferencesManager,
+    val adMobManager: AdMobManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 

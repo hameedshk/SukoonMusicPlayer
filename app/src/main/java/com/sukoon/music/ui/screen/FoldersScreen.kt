@@ -21,7 +21,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.FolderSortMode
@@ -29,6 +28,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Folders Screen - Displays local music folders with enhanced management.
@@ -46,8 +46,7 @@ fun FoldersScreen(
     onNavigateToNowPlaying: () -> Unit,
     onBackClick: () -> Unit,
     viewModel: FolderViewModel = hiltViewModel(),
-    playlistViewModel: PlaylistViewModel = hiltViewModel(),
-    adMobManager: AdMobManager = hiltViewModel()
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val hiddenFolders by viewModel.hiddenFolders.collectAsStateWithLifecycle()
@@ -61,13 +60,13 @@ fun FoldersScreen(
 
     var showDeleteConfirmation by remember { mutableStateOf<Folder?>(null) }
     var folderToDeleteId by remember { mutableStateOf<Long?>(null) }
+    val scope = rememberCoroutineScope()
 
     // SAF delete permission launcher
     val deletePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // Deletion approved by user - repository will update automatically via MediaStore callbacks if implemented
             viewModel.clearDeleteResult()
         } else {
             viewModel.clearDeleteResult()
@@ -86,7 +85,6 @@ fun FoldersScreen(
                 viewModel.clearDeleteResult()
             }
             is DeleteHelper.DeleteResult.Error -> {
-                // Potential snackbar implementation
                 viewModel.clearDeleteResult()
             }
             null -> {}
@@ -168,15 +166,23 @@ fun FoldersScreen(
             if (playbackState.currentSong != null) {
                 MiniPlayer(
                     playbackState = playbackState,
-                    onPlayPauseClick = { viewModel.playbackRepository.playPause() },
-                    onNextClick = { viewModel.playbackRepository.seekToNext() },
+                    onPlayPauseClick = { 
+                        scope.launch {
+                            viewModel.playbackRepository.playPause()
+                        }
+                    },
+                    onNextClick = { 
+                        scope.launch {
+                            viewModel.playbackRepository.seekToNext()
+                        }
+                    },
                     onClick = onNavigateToNowPlaying
                 )
             }
 
             // Ad banner
             BannerAdView(
-                adMobManager = adMobManager,
+                adMobManager = viewModel.adMobManager,
                 modifier = Modifier.fillMaxWidth()
             )
         }
