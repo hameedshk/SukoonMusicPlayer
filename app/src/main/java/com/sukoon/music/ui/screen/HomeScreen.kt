@@ -46,8 +46,16 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Playlist
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.domain.model.SmartPlaylist
+import com.sukoon.music.domain.model.SmartPlaylistType
+import com.sukoon.music.domain.model.Folder
+import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.ui.components.BannerAdView
 import com.sukoon.music.ui.components.MiniPlayer
+import com.sukoon.music.ui.components.FolderViewMode
+import com.sukoon.music.ui.components.CategoryPillRow
+import com.sukoon.music.ui.components.FolderContextHeader
+import com.sukoon.music.ui.components.FolderRow
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.SukoonOrange
@@ -56,6 +64,37 @@ import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.ActionButtonShape
 import com.sukoon.music.ui.theme.PillShape
 import com.sukoon.music.ui.viewmodel.HomeViewModel
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 /**
  * Home Screen - Main entry point of the app.
@@ -71,7 +110,12 @@ fun HomeScreen(
     onNavigateToSongs: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToFolders: () -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    onNavigateToPlaylistDetail: (Long) -> Unit = {},
+    onNavigateToSmartPlaylist: (com.sukoon.music.domain.model.SmartPlaylistType) -> Unit = {},
+    onNavigateToFolderDetail: (Long) -> Unit = {},
+    viewModel: HomeViewModel = hiltViewModel(),
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
+    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel = hiltViewModel()
 ) {
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
@@ -79,14 +123,21 @@ fun HomeScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val adMobManager = viewModel.adMobManager
 
+    // Playlists state
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val smartPlaylists by playlistViewModel.smartPlaylists.collectAsStateWithLifecycle()
+    val availableSongs by playlistViewModel.availableSongs.collectAsStateWithLifecycle()
+
+    // Folders state
+    val folders by folderViewModel.folders.collectAsStateWithLifecycle()
+    val hiddenFolders by folderViewModel.hiddenFolders.collectAsStateWithLifecycle()
+    val folderViewMode by folderViewModel.folderViewMode.collectAsStateWithLifecycle()
+    val folderSortMode by folderViewModel.sortMode.collectAsStateWithLifecycle()
+
     var selectedTab by remember { mutableStateOf("For you") }
 
     val handleTabSelection: (String) -> Unit = { tab ->
-        when (tab) {
-            "Playlist" -> onNavigateToPlaylists()
-            "Folders" -> onNavigateToFolders()
-            else -> selectedTab = tab
-        }
+        selectedTab = tab
     }
 
     val permissionState = rememberAudioPermissionState(
@@ -189,8 +240,27 @@ fun HomeScreen(
                                 }
                             )
                         }
+                        "Playlist" -> {
+                            PlaylistsContent(
+                                playlists = playlists,
+                                smartPlaylists = smartPlaylists,
+                                availableSongs = availableSongs,
+                                playbackState = playbackState,
+                                onPlaylistClick = onNavigateToPlaylistDetail,
+                                onSmartPlaylistClick = onNavigateToSmartPlaylist,
+                                playlistViewModel = playlistViewModel
+                            )
+                        }
                         "Folders" -> {
-                            FoldersPlaceholder()
+                            FoldersContent(
+                                folders = folders,
+                                hiddenFolders = hiddenFolders,
+                                folderViewMode = folderViewMode,
+                                sortMode = folderSortMode,
+                                playbackState = playbackState,
+                                onFolderClick = onNavigateToFolderDetail,
+                                folderViewModel = folderViewModel
+                            )
                         }
                     }
                 }
@@ -925,34 +995,850 @@ private fun SongsContent(
     }
 }
 
+/**
+ * Playlists Content - Displays smart playlists and user playlists inline within HomeScreen.
+ */
 @Composable
-private fun FoldersPlaceholder() {
+private fun PlaylistsContent(
+    playlists: List<Playlist>,
+    smartPlaylists: List<SmartPlaylist>,
+    availableSongs: List<Song>,
+    playbackState: PlaybackState,
+    onPlaylistClick: (Long) -> Unit,
+    onSmartPlaylistClick: (SmartPlaylistType) -> Unit,
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel
+) {
+    var showCreateDialog by remember { mutableStateOf(false) }
+    var playlistFilter by remember { mutableStateOf<Boolean?>(null) }
+    var newPlaylistId by remember { mutableStateOf<Long?>(null) }
+    var showAddSongsDialog by remember { mutableStateOf(false) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Filter Chips Section
+        item {
+            PlaylistFilterChips(
+                selectedFilter = playlistFilter,
+                onFilterChange = { playlistFilter = it }
+            )
+        }
+
+        // Smart Playlists Section (show only if filter allows)
+        if (playlistFilter == null || playlistFilter == true) {
+            item {
+                SmartPlaylistsSection(
+                    smartPlaylists = smartPlaylists,
+                    onSmartPlaylistClick = onSmartPlaylistClick
+                )
+            }
+        }
+
+        // Actions and User Playlists (show only if filter allows)
+        if (playlistFilter == null || playlistFilter == false) {
+            item {
+                PlaylistActionsSection(
+                    playlistCount = playlists.size,
+                    onCreateClick = { showCreateDialog = true }
+                )
+            }
+
+            // User Playlists Grid
+            if (playlists.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "My playlists (${playlists.size})",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+
+                items(
+                    items = playlists.chunked(2),
+                    key = { row -> row.first().id }
+                ) { rowPlaylists ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowPlaylists.forEach { playlist ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                PlaylistCard(
+                                    playlist = playlist,
+                                    onClick = { onPlaylistClick(playlist.id) },
+                                    onDeleteClick = { playlistToDelete = playlist }
+                                )
+                            }
+                        }
+                        if (rowPlaylists.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            } else {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No playlists yet. Create your first playlist!",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Create Playlist Dialog
+    if (showCreateDialog) {
+        CreatePlaylistDialog(
+            onDismiss = { showCreateDialog = false },
+            onConfirm = { name, description ->
+                playlistViewModel.createPlaylist(name, description) { playlistId ->
+                    newPlaylistId = playlistId
+                    playlistViewModel.loadPlaylist(playlistId)
+                    showAddSongsDialog = true
+                }
+                showCreateDialog = false
+            }
+        )
+    }
+
+    // Add Songs Dialog
+    if (showAddSongsDialog && newPlaylistId != null) {
+        AddSongsToNewPlaylistDialog(
+            availableSongs = availableSongs,
+            onDismiss = {
+                showAddSongsDialog = false
+                newPlaylistId?.let { onPlaylistClick(it) }
+                newPlaylistId = null
+            },
+            onAddSongs = { selectedSongs ->
+                selectedSongs.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(newPlaylistId!!, song.id)
+                }
+                showAddSongsDialog = false
+                newPlaylistId?.let { onPlaylistClick(it) }
+                newPlaylistId = null
+            }
+        )
+    }
+
+    // Delete Confirmation
+    playlistToDelete?.let { playlist ->
+        DeletePlaylistConfirmationDialog(
+            playlistName = playlist.name,
+            onDismiss = { playlistToDelete = null },
+            onConfirm = {
+                playlistViewModel.deletePlaylist(playlist.id)
+                playlistToDelete = null
+            }
+        )
+    }
+}
+
+/**
+ * Folders Content - Displays music folders with management options inline within HomeScreen.
+ */
+@Composable
+private fun FoldersContent(
+    folders: List<Folder>,
+    hiddenFolders: List<Folder>,
+    folderViewMode: FolderViewMode,
+    sortMode: FolderSortMode,
+    playbackState: PlaybackState,
+    onFolderClick: (Long) -> Unit,
+    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel
+) {
+    var showDeleteConfirmation by remember { mutableStateOf<Folder?>(null) }
+    var folderToDeleteId by remember { mutableStateOf<Long?>(null) }
+
+    val displayFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) {
+        folders
+    } else {
+        hiddenFolders
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Category pill row
+        CategoryPillRow(
+            itemCount = displayFolders.size,
+            itemLabel = if (displayFolders.size == 1) "folder" else "folders",
+            sortOptions = FolderSortMode.entries,
+            currentSortMode = sortMode,
+            onSortModeChanged = { folderViewModel.setSortMode(it) },
+            sortModeToDisplayName = { it.toDisplayName() },
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
+
+        // Context header
+        FolderContextHeader(
+            selectedMode = folderViewMode,
+            onModeChanged = { folderViewModel.setFolderViewMode(it) },
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
+
+        // Folder list or empty state
+        Box(modifier = Modifier.weight(1f)) {
+            if (displayFolders.isEmpty()) {
+                EmptyFoldersState(
+                    isHiddenView = folderViewMode == FolderViewMode.HIDDEN
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(displayFolders, key = { it.id }) { folder ->
+                        FolderRow(
+                            folder = folder,
+                            isHidden = folderViewMode == FolderViewMode.HIDDEN,
+                            onFolderClick = { onFolderClick(folder.id) },
+                            onPlay = { folderViewModel.playFolder(folder.id) },
+                            onPlayNext = { folderViewModel.playNext(folder.id) },
+                            onAddToQueue = { folderViewModel.addToQueue(folder.id) },
+                            onAddToPlaylist = { folderViewModel.showAddToPlaylistDialog(folder.id) },
+                            onHide = { folderViewModel.excludeFolder(folder.id) },
+                            onUnhide = { folderViewModel.unhideFolder(folder.id) },
+                            onDelete = {
+                                showDeleteConfirmation = folder
+                                folderToDeleteId = folder.id
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete confirmation dialog
+    showDeleteConfirmation?.let { folder ->
+        DeleteFolderConfirmationDialog(
+            folder = folder,
+            onConfirm = {
+                folderToDeleteId?.let { folderViewModel.deleteFolder(it) }
+                showDeleteConfirmation = null
+                folderToDeleteId = null
+            },
+            onDismiss = {
+                showDeleteConfirmation = null
+                folderToDeleteId = null
+            }
+        )
+    }
+}
+
+// Supporting Functions for PlaylistsContent
+
+@Composable
+private fun PlaylistFilterChips(
+    selectedFilter: Boolean?,
+    onFilterChange: (Boolean?) -> Unit
+) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        item {
+            FilterChip(
+                selected = selectedFilter == null,
+                onClick = { onFilterChange(null) },
+                label = { Text("All") }
+            )
+        }
+        item {
+            FilterChip(
+                selected = selectedFilter == true,
+                onClick = { onFilterChange(true) },
+                label = { Text("Smart Playlists") },
+                leadingIcon = if (selectedFilter == true) {
+                    { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
+                } else null
+            )
+        }
+        item {
+            FilterChip(
+                selected = selectedFilter == false,
+                onClick = { onFilterChange(false) },
+                label = { Text("My Playlists") },
+                leadingIcon = if (selectedFilter == false) {
+                    { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
+                } else null
+            )
+        }
+    }
+}
+
+@Composable
+private fun SmartPlaylistsSection(
+    smartPlaylists: List<SmartPlaylist>,
+    onSmartPlaylistClick: (SmartPlaylistType) -> Unit
+) {
+    Column {
+        Text(
+            text = "4 playlists",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        val rows = smartPlaylists.chunked(2)
+        rows.forEach { rowPlaylists ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                rowPlaylists.forEach { smartPlaylist ->
+                    Box(modifier = Modifier.weight(1f)) {
+                        SmartPlaylistCard(
+                            smartPlaylist = smartPlaylist,
+                            onClick = { onSmartPlaylistClick(smartPlaylist.type) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SmartPlaylistCard(
+    smartPlaylist: SmartPlaylist,
+    onClick: () -> Unit
+) {
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(100.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = smartPlaylist.title,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "${smartPlaylist.songCount} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            Icon(
+                imageVector = getSmartPlaylistIcon(smartPlaylist.type),
+                contentDescription = null,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(12.dp)
+                    .size(32.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+            )
+        }
+    }
+}
+
+private fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
+    return when (type) {
+        SmartPlaylistType.MY_FAVOURITE -> Icons.Default.Favorite
+        SmartPlaylistType.LAST_ADDED -> Icons.Default.Add
+        SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
+        SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
+    }
+}
+
+@Composable
+private fun PlaylistActionsSection(
+    playlistCount: Int,
+    onCreateClick: () -> Unit
+) {
+    Column {
+        Text(
+            text = "My playlists ($playlistCount)",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        Surface(
+            onClick = onCreateClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+            color = Color.Transparent
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Create new playlist",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaylistCard(
+    playlist: Playlist,
+    onClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(0.9f),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (playlist.coverImageUri != null) {
+                    SubcomposeAsyncImage(
+                        model = playlist.coverImageUri,
+                        contentDescription = "Playlist cover",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = { DefaultPlaylistCover() }
+                    )
+                } else {
+                    DefaultPlaylistCover()
+                }
+
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = "Options",
+                            tint = Color.White
+                        )
+                    }
+
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            onClick = {
+                                onDeleteClick()
+                                showMenu = false
+                            }
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = playlist.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "${playlist.songCount} songs",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DefaultPlaylistCover() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AddSongsToNewPlaylistDialog(
+    availableSongs: List<Song>,
+    onDismiss: () -> Unit,
+    onAddSongs: (List<Song>) -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedSongs by remember { mutableStateOf(setOf<Long>()) }
+
+    val filteredSongs = remember(availableSongs, searchQuery) {
+        if (searchQuery.isBlank()) {
+            availableSongs
+        } else {
+            availableSongs.filter { song ->
+                song.title.contains(searchQuery, ignoreCase = true) ||
+                song.artist.contains(searchQuery, ignoreCase = true) ||
+                song.album.contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.8f)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Add Songs to Playlist",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (selectedSongs.isNotEmpty()) {
+                        Text(
+                            text = "${selectedSongs.size} selected",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    placeholder = { Text("Search songs...") },
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (filteredSongs.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (searchQuery.isBlank()) "No songs available" else "No songs found",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        )
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        itemsIndexed(
+                            items = filteredSongs,
+                            key = { _, song -> song.id }
+                        ) { _, song ->
+                            val isSelected = selectedSongs.contains(song.id)
+
+                            Surface(
+                                onClick = {
+                                    selectedSongs = if (isSelected) {
+                                        selectedSongs - song.id
+                                    } else {
+                                        selectedSongs + song.id
+                                    }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                color = if (isSelected) {
+                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                } else {
+                                    Color.Transparent
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Checkbox(
+                                        checked = isSelected,
+                                        onCheckedChange = null
+                                    )
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Box(
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (song.albumArtUri != null) {
+                                            SubcomposeAsyncImage(
+                                                model = song.albumArtUri,
+                                                contentDescription = "Album art",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop,
+                                                error = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.MusicNote,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(24.dp),
+                                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    )
+                                                }
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.MusicNote,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(24.dp),
+                                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
+                                    Column(
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Text(
+                                            text = song.title,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = song.artist,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Skip")
+                    }
+
+                    Button(
+                        onClick = {
+                            val songsToAdd = availableSongs.filter { it.id in selectedSongs }
+                            onAddSongs(songsToAdd)
+                        },
+                        enabled = selectedSongs.isNotEmpty(),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            if (selectedSongs.isEmpty()) "Add" else "Add (${selectedSongs.size})"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Supporting Functions for FoldersContent
+
+@Composable
+private fun EmptyFoldersState(
+    isHiddenView: Boolean = false
+) {
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(SpacingMedium)
+            verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.Folder,
+                imageVector = if (isHiddenView) Icons.Default.VisibilityOff else Icons.Default.Folder,
                 contentDescription = null,
                 modifier = Modifier.size(64.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "Folders",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = "Coming soon",
-                style = MaterialTheme.typography.bodyMedium,
+                text = if (isHiddenView) "No hidden folders" else "No folders found",
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = if (isHiddenView)
+                    "Folders you hide will appear here"
+                else
+                    "Scan your media library to see your music folders",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
         }
     }
+}
+
+@Composable
+private fun DeleteFolderConfirmationDialog(
+    folder: Folder,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = { Text("Delete folder?") },
+        text = {
+            Column {
+                Text("This will permanently delete ${folder.songCount} songs from your device:")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = folder.path,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "This action cannot be undone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+private fun FolderSortMode.toDisplayName(): String = when (this) {
+    FolderSortMode.NAME_ASC -> "Name (A-Z)"
+    FolderSortMode.NAME_DESC -> "Name (Z-A)"
+    FolderSortMode.TRACK_COUNT -> "Most Songs"
+    FolderSortMode.RECENTLY_MODIFIED -> "Recently Added"
+    FolderSortMode.DURATION -> "Total Duration"
 }
 
 @Preview(showBackground = true)
