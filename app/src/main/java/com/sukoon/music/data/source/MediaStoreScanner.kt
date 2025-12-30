@@ -79,7 +79,7 @@ class MediaStoreScanner @Inject constructor(
         val contentResolver: ContentResolver = context.contentResolver
 
         // MediaStore projection (columns to retrieve)
-        val projection = arrayOf(
+        val projection = mutableListOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
@@ -87,8 +87,14 @@ class MediaStoreScanner @Inject constructor(
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATA,  // File path
             MediaStore.Audio.Media.ALBUM_ID,
-            MediaStore.Audio.Media.DATE_ADDED
-        )
+            MediaStore.Audio.Media.DATE_ADDED,
+            MediaStore.Audio.Media.SIZE,
+            MediaStore.Audio.Media.YEAR
+        ).apply {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                add(MediaStore.Audio.Media.GENRE)
+            }
+        }.toTypedArray()
 
         // Selection criteria: Only music files
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} = 1"
@@ -113,6 +119,11 @@ class MediaStoreScanner @Inject constructor(
             val dataColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATA)
             val albumIdColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val dateAddedColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.SIZE)
+            val yearColumn = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
+            val genreColumn = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                cursor.getColumnIndex(MediaStore.Audio.Media.GENRE)
+            } else -1
 
             var scannedCount = 0
 
@@ -126,6 +137,19 @@ class MediaStoreScanner @Inject constructor(
                 val data = cursor.getString(dataColumn) ?: continue  // Skip if no file path
                 val albumId = cursor.getLong(albumIdColumn)
                 val dateAdded = cursor.getLong(dateAddedColumn)
+                val size = cursor.getLong(sizeColumn)
+                val year = cursor.getInt(yearColumn)
+                
+                val rawGenre = if (genreColumn != -1) {
+                    cursor.getString(genreColumn)
+                } else null
+
+                val genre = rawGenre?.takeIf { it.isNotBlank() }?.let { name ->
+                    // Normalize to Title Case for consistent grouping
+                    name.split(" ").filter { it.isNotBlank() }.joinToString(" ") { word ->
+                        word.lowercase().replaceFirstChar { it.uppercase() }
+                    }
+                } ?: "Unknown Genre"
 
                 // Build content URI for the audio file
                 val uri = ContentUris.withAppendedId(
@@ -150,7 +174,10 @@ class MediaStoreScanner @Inject constructor(
                     albumArtUri = albumArtUri,
                     dateAdded = dateAdded,
                     isLiked = false,  // Default to not liked
-                    folderPath = folderPath
+                    folderPath = folderPath,
+                    genre = genre,
+                    year = year,
+                    size = size
                 )
 
                 songs.add(songEntity)

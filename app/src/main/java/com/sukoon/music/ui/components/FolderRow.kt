@@ -29,6 +29,7 @@ import com.sukoon.music.domain.model.Folder
  * - Trailing: Three-dot menu button
  * - Context Menu with various actions
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FolderRow(
     folder: Folder,
@@ -46,8 +47,9 @@ fun FolderRow(
     var showMenu by remember { mutableStateOf(false) }
 
     Surface(
-        onClick = onFolderClick,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onFolderClick),
         color = Color.Transparent
     ) {
         Row(

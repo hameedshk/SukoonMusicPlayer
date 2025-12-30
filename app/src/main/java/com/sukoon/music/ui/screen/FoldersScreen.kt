@@ -221,11 +221,11 @@ private fun FolderList(
     folders: List<Folder>,
     isHiddenView: Boolean,
     onFolderClick: (Long) -> Unit,
-    onPlay: (Long) -> Unit,
-    onPlayNext: (Long) -> Unit,
-    onAddToQueue: (Long) -> Unit,
+    onPlay: (String) -> Unit,
+    onPlayNext: (String) -> Unit,
+    onAddToQueue: (String) -> Unit,
     onAddToPlaylist: (Long) -> Unit,
-    onHide: (Long) -> Unit,
+    onHide: (String) -> Unit,
     onUnhide: (Long) -> Unit,
     onDelete: (Long) -> Unit
 ) {
@@ -237,11 +237,11 @@ private fun FolderList(
                 folder = folder,
                 isHidden = isHiddenView,
                 onFolderClick = { onFolderClick(folder.id) },
-                onPlay = { onPlay(folder.id) },
-                onPlayNext = { onPlayNext(folder.id) },
-                onAddToQueue = { onAddToQueue(folder.id) },
+                onPlay = { onPlay(folder.path) },
+                onPlayNext = { onPlayNext(folder.path) },
+                onAddToQueue = { onAddToQueue(folder.path) },
                 onAddToPlaylist = { onAddToPlaylist(folder.id) },
-                onHide = { onHide(folder.id) },
+                onHide = { onHide(folder.path) },
                 onUnhide = { onUnhide(folder.id) },
                 onDelete = { onDelete(folder.id) }
             )

@@ -237,7 +237,7 @@ private fun LikedSongsHeader(songCount: Int) {
             modifier = Modifier
                 .size(120.dp)
                 .background(
-                    color = Color(0xFF1DB954).copy(alpha = 0.2f),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
                     shape = RoundedCornerShape(12.dp)
                 ),
             contentAlignment = Alignment.Center
@@ -246,7 +246,7 @@ private fun LikedSongsHeader(songCount: Int) {
                 imageVector = Icons.Default.Favorite,
                 contentDescription = null,
                 modifier = Modifier.size(60.dp),
-                tint = Color(0xFF1DB954)
+                tint = MaterialTheme.colorScheme.primary
             )
         }
 
@@ -283,7 +283,7 @@ private fun PlayControlButtons(
             onClick = onPlayAll,
             modifier = Modifier.weight(1f),
             colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF1DB954)
+                containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
             Icon(Icons.Default.PlayArrow, "Play All", Modifier.size(20.dp))
@@ -373,7 +373,7 @@ private fun FilterMenu(
                             onClick = onClear,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Clear Filter", color = Color(0xFF1DB954))
+                            Text("Clear Filter", color = MaterialTheme.colorScheme.primary)
                         }
                         HorizontalDivider()
                     }
@@ -394,7 +394,7 @@ private fun FilterMenu(
                                 Icon(
                                     Icons.Default.Check,
                                     null,
-                                    tint = Color(0xFF1DB954),
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -434,7 +434,7 @@ private fun SortModeMenu(
                             Icon(
                                 Icons.Default.Check,
                                 null,
-                                tint = Color(0xFF1DB954),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -544,7 +544,7 @@ private fun LikedSongItem(
                 Icon(
                     imageVector = Icons.Default.Favorite,
                     contentDescription = "Unlike",
-                    tint = Color(0xFF1DB954),
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(24.dp)
                 )
             }

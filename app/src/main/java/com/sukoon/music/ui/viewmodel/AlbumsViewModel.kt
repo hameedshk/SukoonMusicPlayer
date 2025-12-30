@@ -7,21 +7,20 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AlbumSortMode {
+    ALBUM_NAME,
+    ARTIST_NAME,
+    SONG_COUNT,
+    YEAR,
+    RANDOM
+}
+
 /**
  * ViewModel for Albums screen.
- *
- * Responsibilities:
- * - Expose album list from SongRepository
- * - Provide playback actions for entire albums
- * - Observe current playback state for UI highlighting
- *
- * Follows the architecture established by HomeViewModel and LikedSongsViewModel.
  */
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
@@ -29,71 +28,133 @@ class AlbumsViewModel @Inject constructor(
     private val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
-    /**
-     * All albums grouped from song library.
-     * Updates reactively when songs are added/removed or metadata changes.
-     */
-    val albums: StateFlow<List<Album>> = songRepository.getAllAlbums()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _sortMode = MutableStateFlow(AlbumSortMode.ALBUM_NAME)
+    val sortMode: StateFlow<AlbumSortMode> = _sortMode.asStateFlow()
+
+    private val _isAscending = MutableStateFlow(true)
+    val isAscending: StateFlow<Boolean> = _isAscending.asStateFlow()
+
+    private val _selectedAlbumIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedAlbumIds: StateFlow<Set<Long>> = _selectedAlbumIds.asStateFlow()
+
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
 
     /**
-     * Current playback state for UI feedback.
-     * Used to highlight currently playing album.
+     * All albums grouped from song library, filtered and sorted.
      */
+    val albums: StateFlow<List<Album>> = combine(
+        songRepository.getAllAlbums(),
+        _searchQuery,
+        _sortMode,
+        _isAscending
+    ) { allAlbums, query, sort, ascending ->
+        var filtered = if (query.isBlank()) {
+            allAlbums
+        } else {
+            allAlbums.filter { 
+                it.title.contains(query, ignoreCase = true) || 
+                it.artist.contains(query, ignoreCase = true) 
+            }
+        }
+
+        filtered = when (sort) {
+            AlbumSortMode.ALBUM_NAME -> if (ascending) filtered.sortedBy { it.title.lowercase() } else filtered.sortedByDescending { it.title.lowercase() }
+            AlbumSortMode.ARTIST_NAME -> if (ascending) filtered.sortedBy { it.artist.lowercase() } else filtered.sortedByDescending { it.artist.lowercase() }
+            AlbumSortMode.SONG_COUNT -> if (ascending) filtered.sortedBy { it.songCount } else filtered.sortedByDescending { it.songCount }
+            AlbumSortMode.YEAR -> if (ascending) filtered.sortedBy { it.year ?: 0 } else filtered.sortedByDescending { it.year ?: 0 }
+            AlbumSortMode.RANDOM -> filtered.shuffled()
+        }
+
+        filtered
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    /**
+     * Recently played albums - for now using a subset of all albums as placeholder
+     * In a real app, this would come from a dedicated "recent" repository.
+     */
+    val recentlyPlayedAlbums: StateFlow<List<Album>> = songRepository.getAllAlbums()
+        .map { it.take(5) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
-    /**
-     * Play all songs in an album from the beginning.
-     * Clears current queue and starts album playback.
-     *
-     * @param albumId The unique ID of the album to play
-     */
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setSortMode(mode: AlbumSortMode) {
+        _sortMode.value = mode
+    }
+
+    fun setAscending(ascending: Boolean) {
+        _isAscending.value = ascending
+    }
+
+    fun toggleSelectionMode(enabled: Boolean) {
+        _isSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedAlbumIds.value = emptySet()
+        }
+    }
+
+    fun toggleAlbumSelection(albumId: Long) {
+        val current = _selectedAlbumIds.value
+        _selectedAlbumIds.value = if (current.contains(albumId)) {
+            current - albumId
+        } else {
+            current + albumId
+        }
+    }
+
+    fun selectAllAlbums() {
+        _selectedAlbumIds.value = albums.value.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedAlbumIds.value = emptySet()
+    }
+
     fun playAlbum(albumId: Long) {
         viewModelScope.launch {
-            // Get all songs in the album
             songRepository.getSongsByAlbumId(albumId)
-                .stateIn(viewModelScope)
-                .value
-                .takeIf { it.isNotEmpty() }
-                ?.let { albumSongs ->
-                    // Play queue from the beginning
+                .firstOrNull()?.let { albumSongs ->
+                    playbackRepository.setShuffleEnabled(false)
                     playbackRepository.playQueue(albumSongs, startIndex = 0)
                 }
         }
     }
 
-    /**
-     * Shuffle and play all songs in an album.
-     * Randomizes song order before playback.
-     *
-     * @param albumId The unique ID of the album to shuffle
-     */
     fun shuffleAlbum(albumId: Long) {
         viewModelScope.launch {
-            // Get all songs in the album
             songRepository.getSongsByAlbumId(albumId)
-                .stateIn(viewModelScope)
-                .value
-                .takeIf { it.isNotEmpty() }
-                ?.let { albumSongs ->
-                    // Shuffle the songs and play queue
-                    val shuffledSongs = albumSongs.shuffled()
-                    playbackRepository.playQueue(shuffledSongs, startIndex = 0)
+                .firstOrNull()?.let { albumSongs ->
+                    playbackRepository.setShuffleEnabled(true)
+                    playbackRepository.playQueue(albumSongs, startIndex = 0)
                 }
         }
     }
 
-    /**
-     * Navigate to album detail screen.
-     * (Navigation logic handled by composable, this is a placeholder for future actions)
-     */
-    fun onAlbumClick(albumId: Long) {
-        // Navigation is handled by the screen composable
-        // This method is reserved for future album-specific actions
-        // (e.g., analytics tracking, pre-loading album art)
+    fun playSelectedAlbums() {
+        val ids = _selectedAlbumIds.value
+        if (ids.isEmpty()) return
+        
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.setShuffleEnabled(false)
+                playbackRepository.playQueue(allSelectedSongs, startIndex = 0)
+                toggleSelectionMode(false)
+            }
+        }
     }
 }

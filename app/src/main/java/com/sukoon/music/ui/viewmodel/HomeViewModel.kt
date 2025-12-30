@@ -20,15 +20,6 @@ import javax.inject.Inject
 
 /**
  * ViewModel for the Home Screen.
- *
- * Responsibilities:
- * - Expose song list from SongRepository
- * - Expose scan state for UI feedback
- * - Expose playback state for player controls
- * - Expose lyrics state for Now Playing screen
- * - Handle user actions (scan, play, pause, seek, lyrics)
- *
- * Follows MVVM architecture with StateFlow for reactive UI updates.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -37,6 +28,14 @@ class HomeViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {
+
+    // Tab State Management
+    private val _selectedTab = MutableStateFlow("For you")
+    val selectedTab: StateFlow<String> = _selectedTab.asStateFlow()
+
+    fun setSelectedTab(tab: String) {
+        _selectedTab.value = tab
+    }
 
     // Song List State
     val songs: StateFlow<List<Song>> = songRepository.getAllSongs()
@@ -66,48 +65,30 @@ class HomeViewModel @Inject constructor(
 
     // User Actions
 
-    /**
-     * Trigger MediaStore scan to discover local audio files.
-     * Only call on explicit user action (foreground, user-initiated).
-     */
     fun scanLocalMusic() {
         viewModelScope.launch {
             songRepository.scanLocalMusic()
         }
     }
 
-    /**
-     * Play a specific song.
-     * Sets it as the current media item and starts playback.
-     */
     fun playSong(song: Song) {
         viewModelScope.launch {
             playbackRepository.playSong(song)
         }
     }
 
-    /**
-     * Toggle play/pause state.
-     */
     fun playPause() {
         viewModelScope.launch {
             playbackRepository.playPause()
         }
     }
 
-    /**
-     * Play the entire song queue starting from a specific index.
-     */
     fun playQueue(songs: List<Song>, startIndex: Int = 0) {
         viewModelScope.launch {
             playbackRepository.playQueue(songs, startIndex)
         }
     }
 
-    /**
-     * Shuffle and play all songs in the library.
-     * Enables shuffle mode and starts playback from the beginning.
-     */
     fun shuffleAll() {
         viewModelScope.launch {
             val allSongs = songs.value
@@ -118,10 +99,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Play all songs in the library from the beginning.
-     * Disables shuffle mode and starts sequential playback.
-     */
     fun playAll() {
         viewModelScope.launch {
             val allSongs = songs.value
@@ -132,45 +109,30 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Seek to next track in queue.
-     */
     fun seekToNext() {
         viewModelScope.launch {
             playbackRepository.seekToNext()
         }
     }
 
-    /**
-     * Seek to previous track in queue.
-     */
     fun seekToPrevious() {
         viewModelScope.launch {
             playbackRepository.seekToPrevious()
         }
     }
 
-    /**
-     * Seek to a specific position in the current track.
-     */
     fun seekTo(positionMs: Long) {
         viewModelScope.launch {
             playbackRepository.seekTo(positionMs)
         }
     }
 
-    /**
-     * Toggle like status for a song.
-     */
     fun toggleLike(songId: Long, currentLikeStatus: Boolean) {
         viewModelScope.launch {
             songRepository.updateLikeStatus(songId, !currentLikeStatus)
         }
     }
 
-    /**
-     * Toggle shuffle mode on/off.
-     */
     fun toggleShuffle() {
         viewModelScope.launch {
             val currentState = playbackState.value.shuffleEnabled
@@ -178,9 +140,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Cycle through repeat modes: OFF -> ALL -> ONE -> OFF
-     */
     fun toggleRepeat() {
         viewModelScope.launch {
             val currentMode = playbackState.value.repeatMode
@@ -193,10 +152,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Fetch lyrics for a song from LRCLIB.
-     * Checks cache first, then fetches from API if needed.
-     */
     fun fetchLyrics(song: Song) {
         viewModelScope.launch {
             lyricsRepository.getLyrics(
@@ -205,30 +160,22 @@ class HomeViewModel @Inject constructor(
                 artist = song.artist,
                 title = song.title,
                 album = song.album,
-                duration = (song.duration / 1000).toInt() // Convert ms to seconds
+                duration = (song.duration / 1000).toInt()
             ).collect { state ->
                 _lyricsState.value = state
             }
         }
     }
 
-    /**
-     * Update manual sync offset for lyrics.
-     * Used when lyrics drift out of sync with playback.
-     */
     fun updateLyricsSyncOffset(trackId: Long, offsetMs: Long) {
         viewModelScope.launch {
             lyricsRepository.updateSyncOffset(trackId, offsetMs)
-            // Refetch lyrics to apply new offset
             playbackState.value.currentSong?.let { song ->
                 fetchLyrics(song)
             }
         }
     }
 
-    /**
-     * Clear cached lyrics for a track (force refresh).
-     */
     fun clearLyrics(trackId: Long) {
         viewModelScope.launch {
             lyricsRepository.clearLyrics(trackId)
@@ -236,27 +183,24 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Add a song to the end of the current queue.
-     */
     fun addToQueue(song: Song) {
         viewModelScope.launch {
             playbackRepository.addToQueue(song)
         }
     }
 
-    /**
-     * Remove a song from the queue at the specified index.
-     */
+    fun playNext(song: Song) {
+        viewModelScope.launch {
+            playbackRepository.playNext(song)
+        }
+    }
+
     fun removeFromQueue(index: Int) {
         viewModelScope.launch {
             playbackRepository.removeFromQueue(index)
         }
     }
 
-    /**
-     * Jump to a specific song in the queue.
-     */
     fun jumpToQueueIndex(index: Int) {
         viewModelScope.launch {
             playbackRepository.seekToQueueIndex(index)

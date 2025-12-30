@@ -1,10 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <!--
+        Most colors are defined in the Material 3 theme system (Compose).
+        See: app/src/main/java/com/sukoon/music/ui/theme/Color.kt
+             app/src/main/java/com/sukoon/music/ui/theme/Theme.kt
+
+        Use MaterialTheme.colorScheme in Compose UI.
+
+        The colors below are for XML layouts only (like native ads).
+        They follow the dark theme color scheme.
+    -->
+
+    <!-- Dark theme colors for XML layouts -->
+    <color name="colorPrimary">#FFFF5722</color>
+    <color name="colorOnPrimary">#FF000000</color>
+    <color name="colorSurface">#FF1E1E1E</color>
+    <color name="colorSurfaceContainer">#FF2A2A2A</color>
+    <color name="colorSurfaceContainerHigh">#FF2F2F2F</color>
+    <color name="colorOnSurface">#FFFFFFFF</color>
+    <color name="colorOnSurfaceVariant">#FFB3B3B3</color>
 </resources>

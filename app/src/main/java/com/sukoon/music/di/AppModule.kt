@@ -5,20 +5,25 @@ import androidx.media3.common.util.UnstableApi
 import androidx.room.Room
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
+import com.sukoon.music.data.local.dao.GenreCoverDao
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.dao.PlaylistDao
+import com.sukoon.music.data.local.dao.QueueDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SearchHistoryDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.remote.LyricsApi
 import com.sukoon.music.data.repository.AudioEffectRepositoryImpl
 import com.sukoon.music.data.repository.PlaybackRepositoryImpl
+import com.sukoon.music.data.repository.QueueRepositoryImpl
 import com.sukoon.music.data.repository.SearchHistoryRepositoryImpl
 import com.sukoon.music.data.repository.SongRepositoryImpl
 import com.sukoon.music.data.service.AlbumArtLoader
 import com.sukoon.music.data.source.MediaStoreScanner
 import com.sukoon.music.domain.repository.AudioEffectRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.domain.repository.QueueRepository
 import com.sukoon.music.domain.repository.SearchHistoryRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.Module
@@ -65,7 +70,12 @@ object AppModule {
             SukoonDatabase.MIGRATION_4_5,
             SukoonDatabase.MIGRATION_5_6,
             SukoonDatabase.MIGRATION_6_7,
-            SukoonDatabase.MIGRATION_7_8
+            SukoonDatabase.MIGRATION_7_8,
+            SukoonDatabase.MIGRATION_8_9,
+            SukoonDatabase.MIGRATION_9_10,
+            SukoonDatabase.MIGRATION_10_11,
+            SukoonDatabase.MIGRATION_11_12,
+            SukoonDatabase.MIGRATION_12_13
         )
         .fallbackToDestructiveMigration()
         .build()
@@ -85,6 +95,10 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideRecentlyPlayedArtistDao(database: SukoonDatabase) = database.recentlyPlayedArtistDao()
+
+    @Provides
+    @Singleton
     fun providePlaylistDao(database: SukoonDatabase) = database.playlistDao()
 
     @Provides
@@ -98,6 +112,14 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDeletedPlaylistDao(database: SukoonDatabase) = database.deletedPlaylistDao()
+
+    @Provides
+    @Singleton
+    fun provideQueueDao(database: SukoonDatabase) = database.queueDao()
+
+    @Provides
+    @Singleton
+    fun provideGenreCoverDao(database: SukoonDatabase) = database.genreCoverDao()
 
     @Provides
     @Singleton
@@ -144,9 +166,10 @@ object AppModule {
         @ApplicationContext context: Context,
         @ApplicationScope scope: CoroutineScope,
         songRepository: SongRepository,
-        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+        queueRepository: QueueRepository
     ): PlaybackRepository {
-        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager)
+        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository)
     }
 
     @Provides
@@ -162,12 +185,23 @@ object AppModule {
     fun provideSongRepository(
         songDao: SongDao,
         recentlyPlayedDao: RecentlyPlayedDao,
+        recentlyPlayedArtistDao: RecentlyPlayedArtistDao,
         playlistDao: PlaylistDao,
+        genreCoverDao: GenreCoverDao,
         mediaStoreScanner: MediaStoreScanner,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
         @ApplicationScope scope: CoroutineScope
     ): SongRepository {
-        return SongRepositoryImpl(songDao, recentlyPlayedDao, playlistDao, mediaStoreScanner, preferencesManager, scope)
+        return SongRepositoryImpl(
+            songDao, 
+            recentlyPlayedDao, 
+            recentlyPlayedArtistDao, 
+            playlistDao, 
+            genreCoverDao,
+            mediaStoreScanner, 
+            preferencesManager, 
+            scope
+        )
     }
 
     @Provides
@@ -211,6 +245,16 @@ object AppModule {
         @ApplicationScope scope: CoroutineScope
     ): com.sukoon.music.domain.repository.PlaylistRepository {
         return com.sukoon.music.data.repository.PlaylistRepositoryImpl(playlistDao, songDao, deletedPlaylistDao, scope)
+    }
+
+    @Provides
+    @Singleton
+    fun provideQueueRepository(
+        queueDao: QueueDao,
+        songDao: SongDao,
+        @ApplicationScope scope: CoroutineScope
+    ): QueueRepository {
+        return QueueRepositoryImpl(queueDao, songDao, scope)
     }
 
     @Provides

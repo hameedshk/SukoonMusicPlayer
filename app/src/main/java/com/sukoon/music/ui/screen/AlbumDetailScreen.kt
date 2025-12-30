@@ -1,17 +1,20 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -19,29 +22,27 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.BannerAdView
+import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+// SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
 
 /**
  * Album Detail Screen - Shows songs in a specific album.
- *
- * Features:
- * - Album header with cover art and metadata
- * - Play All and Shuffle buttons
- * - List of songs with like functionality
- * - Empty state when no songs (shouldn't happen, but defensive)
- * - Song playback on tap
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AlbumDetailScreen(
     albumId: Long,
     onBackClick: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     // Load album data
@@ -56,7 +57,7 @@ fun AlbumDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(album?.title ?: "Album") },
+                title = { },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -65,11 +66,33 @@ fun AlbumDetailScreen(
                         )
                     }
                 },
+                actions = {
+                    IconButton(onClick = { /* TODO: Search in album */ }) {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = Color.Transparent
                 )
             )
-        }
+        },
+        bottomBar = {
+            Column {
+                if (playbackState.currentSong != null) {
+                    MiniPlayer(
+                        playbackState = playbackState,
+                        onPlayPauseClick = { viewModel.playPause() },
+                        onNextClick = { viewModel.seekToNext() },
+                        onClick = onNavigateToNowPlaying
+                    )
+                }
+                BannerAdView(
+                    adMobManager = viewModel.adMobManager,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         if (album != null) {
             AlbumDetailContent(
@@ -112,6 +135,62 @@ private fun AlbumDetailContent(
             )
         }
 
+        // Stats Header (e.g. "1 song")
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "${album.songCount} song${if (album.songCount > 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Row {
+                    IconButton(onClick = { /* TODO: Sort album songs */ }) {
+                        Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                    }
+                    IconButton(onClick = { /* TODO: View mode */ }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
+                    }
+                }
+            }
+        }
+
+        // Play/Shuffle Buttons Row
+        item {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onShuffle,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Shuffle", color = MaterialTheme.colorScheme.onSurface)
+                }
+                Button(
+                    onClick = onPlayAll,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.PlayCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Play", color = MaterialTheme.colorScheme.onSurface)
+                }
+            }
+        }
+
         // Song List
         if (songs.isEmpty()) {
             item {
@@ -122,12 +201,11 @@ private fun AlbumDetailContent(
                 items = songs,
                 key = { _, song -> song.id }
             ) { index, song ->
-                AlbumSongItem(
+                AlbumSongItemRow(
                     song = song,
-                    index = index + 1,
                     isCurrentlyPlaying = song.id == currentSongId,
                     onClick = { onSongClick(song) },
-                    onLikeClick = { onToggleLike(song.id, song.isLiked) }
+                    onToggleLike = { onToggleLike(song.id, song.isLiked) }
                 )
             }
         }
@@ -143,12 +221,12 @@ private fun AlbumHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
+            .padding(top = 8.dp, bottom = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Album Cover
         Card(
-            modifier = Modifier.size(200.dp),
+            modifier = Modifier.size(220.dp),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -164,11 +242,6 @@ private fun AlbumHeader(
                         contentDescription = "Album cover",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        loading = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp)
-                            )
-                        },
                         error = {
                             Icon(
                                 imageVector = Icons.Default.Album,
@@ -189,7 +262,7 @@ private fun AlbumHeader(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Album Title
         Text(
@@ -200,234 +273,78 @@ private fun AlbumHeader(
             color = MaterialTheme.colorScheme.onBackground
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Artist
         Text(
             text = album.artist,
             style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f)
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Metadata (Songs • Duration)
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "${album.songCount} songs",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-            Text(
-                text = " • ",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-            Text(
-                text = album.formattedDuration(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-            )
-        }
-
-        if (album.year != null) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = album.year.toString(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Action Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-        ) {
-            // Play All Button
-            Button(
-                onClick = onPlayAll,
-                enabled = album.songCount > 0,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Play All")
-            }
-
-            // Shuffle Button
-            OutlinedButton(
-                onClick = onShuffle,
-                enabled = album.songCount > 0,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Shuffle")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
     }
 }
 
 @Composable
-private fun AlbumSongItem(
+private fun AlbumSongItemRow(
     song: Song,
-    index: Int,
     isCurrentlyPlaying: Boolean,
     onClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onToggleLike: () -> Unit
 ) {
-    Surface(
-        onClick = onClick,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        color = if (isCurrentlyPlaying) {
-            MaterialTheme.colorScheme.surfaceVariant
-        } else {
-            Color.Transparent
-        }
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Dash or Playing Indicator
+        if (isCurrentlyPlaying) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+        } else {
+            Text(
+                text = "-",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Song Info
+        Column(
+            modifier = Modifier.weight(1f)
         ) {
-            // Track Number or Playing Indicator
-            Box(
-                modifier = Modifier.width(32.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isCurrentlyPlaying) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Now playing",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                } else {
-                    Text(
-                        text = index.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center
-                    )
-                }
-            }
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
 
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Album Art (smaller, from song metadata)
-            Card(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (song.albumArtUri != null) {
-                        SubcomposeAsyncImage(
-                            model = song.albumArtUri,
-                            contentDescription = "Album art",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            loading = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            },
-                            error = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Song Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isCurrentlyPlaying) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    }
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Like Button
-            IconButton(
-                onClick = onLikeClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = if (song.isLiked) {
-                        Icons.Default.Favorite
-                    } else {
-                        Icons.Default.FavoriteBorder
-                    },
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) {
-                        Color(0xFF1DB954) // Spotify green
-                    } else {
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                    },
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+        // More options button
+        IconButton(onClick = { /* TODO: Song options */ }) {
+            Icon(
+                imageVector = Icons.Default.MoreHoriz,
+                contentDescription = "More",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -452,13 +369,6 @@ private fun EmptyAlbumState() {
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "This shouldn't happen. Try rescanning your library.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            textAlign = TextAlign.Center
-        )
     }
 }
 
@@ -468,7 +378,8 @@ private fun AlbumDetailScreenPreview() {
     SukoonMusicPlayerTheme(darkTheme = true) {
         AlbumDetailScreen(
             albumId = 1,
-            onBackClick = {}
+            onBackClick = {},
+            onNavigateToNowPlaying = {}
         )
     }
 }

@@ -321,8 +321,8 @@ private fun FilterAndSortSection(
                 }
             },
             colors = FilterChipDefaults.filterChipColors(
-                selectedContainerColor = Color(0xFF1DB954),
-                selectedLabelColor = Color.White
+                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
             )
         )
 
@@ -375,7 +375,7 @@ private fun SortModeMenu(
                             Icon(
                                 imageVector = Icons.Default.Check,
                                 contentDescription = null,
-                                tint = Color(0xFF1DB954),
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -522,7 +522,7 @@ private fun SearchResultItem(
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) Color(0xFF1DB954) else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.size(24.dp)
                 )
             }

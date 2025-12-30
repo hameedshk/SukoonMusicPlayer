@@ -1,0 +1,43 @@
+# 1. BUILD & GENERATED FILES (Highest token savings)
+/build/
+/.gradle/
+/captures/
+local.properties
+*.iml
+.idea/
+
+# 2. BINARY & NON-TEXT ASSETS (Gemini cannot "read" these as code)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.svg
+*.pdf
+*.jar
+*.aar
+/assets/
+/res/drawable*/
+/res/raw/
+
+# 3. VERSION CONTROL & LOGS
+/.git/
+/.svn/
+*.log
+
+# 4. LARGE EXTERNAL LIBRARIES & CACHES
+/node_modules/
+/.cxx/
+/externalNativeBuild/
+
+# 5. SENSITIVE DATA (Security Best Practice)
+apikeys.xml
+google-services.json
+*.keystore
+*.jks
+secrets.properties
+
+# 6. TESTING (Optional: Exclude if not working on tests)
+# Only use these if you are focus exclusively on features, not testing
+/app/src/test/
+/app/src/androidTest/

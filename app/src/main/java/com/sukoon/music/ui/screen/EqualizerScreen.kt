@@ -152,7 +152,7 @@ fun EqualizerScreen(
                                                 Icon(
                                                     Icons.Default.Check,
                                                     null,
-                                                    tint = Color(0xFF1DB954)
+                                                    tint = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }

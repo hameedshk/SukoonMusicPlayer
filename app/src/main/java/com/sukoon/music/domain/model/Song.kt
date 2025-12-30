@@ -7,9 +7,14 @@ data class Song(
     val album: String,
     val duration: Long,
     val uri: String,
+    val path: String = "",
+    val playCount: Int = 0,
+    val year: Int = 0,
+    val size: Long = 0,
     val albumArtUri: String? = null,
     val dateAdded: Long = 0,
-    val isLiked: Boolean = false
+    val isLiked: Boolean = false,
+    val genre: String = "Unknown Genre"
 ) {
     /**
      * Format duration as readable string (e.g., "3:45" or "1:23:45").

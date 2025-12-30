@@ -225,7 +225,7 @@ private fun ArtistHeader(
                 modifier = Modifier.weight(1f),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF1DB954)
+                    containerColor = MaterialTheme.colorScheme.primary
                 )
             ) {
                 Icon(
@@ -323,7 +323,7 @@ private fun SongItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                color = if (isCurrentSong) Color(0xFF1DB954) else MaterialTheme.colorScheme.onSurface
+                color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
         },
         supportingContent = {
@@ -339,7 +339,7 @@ private fun SongItem(
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
                     contentDescription = "Playing",
-                    tint = Color(0xFF1DB954)
+                    tint = MaterialTheme.colorScheme.primary
                 )
             } else {
                 Box(
@@ -359,7 +359,7 @@ private fun SongItem(
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) Color(0xFF1DB954) else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         },

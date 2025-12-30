@@ -8,88 +8,67 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
  * ViewModel for Album Detail screen.
- *
- * Responsibilities:
- * - Load specific album by ID
- * - Load songs in the album
- * - Provide playback actions (play, shuffle, play song)
- * - Handle like/unlike songs
  */
 @HiltViewModel
 class AlbumDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    private val playbackRepository: PlaybackRepository,
+    val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {
 
-    private var currentAlbumId: Long = -1
+    private val _albumId = MutableStateFlow<Long>(-1)
 
-    /**
-     * Current album being displayed.
-     * Updated when loadAlbum() is called.
-     */
-    private var _album: StateFlow<Album?> = songRepository.getAlbumById(-1)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val album: StateFlow<Album?> = _albumId
+        .flatMapLatest { id ->
+            if (id == -1L) flowOf(null)
+            else songRepository.getAlbumById(id)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
-    val album: StateFlow<Album?> get() = _album
 
-    /**
-     * Songs in the current album.
-     * Updated when loadAlbum() is called.
-     */
-    private var _albumSongs: StateFlow<List<Song>> = songRepository.getSongsByAlbumId(-1)
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val albumSongs: StateFlow<List<Song>> = _albumId
+        .flatMapLatest { id ->
+            if (id == -1L) flowOf(emptyList())
+            else songRepository.getSongsByAlbumId(id)
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    val albumSongs: StateFlow<List<Song>> get() = _albumSongs
 
-    /**
-     * Current playback state for UI feedback.
-     */
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
-    /**
-     * Load album and its songs by ID.
-     * Call this from LaunchedEffect when screen opens.
-     *
-     * @param albumId The unique ID of the album
-     */
     fun loadAlbum(albumId: Long) {
-        if (currentAlbumId == albumId) return // Already loaded
+        _albumId.value = albumId
+    }
 
-        currentAlbumId = albumId
+    fun playPause() {
+        viewModelScope.launch {
+            playbackRepository.playPause()
+        }
+    }
 
-        _album = songRepository.getAlbumById(albumId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null
-            )
-
-        _albumSongs = songRepository.getSongsByAlbumId(albumId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+    fun seekToNext() {
+        viewModelScope.launch {
+            playbackRepository.seekToNext()
+        }
     }
 
     /**
      * Play all songs in the album from the beginning.
-     *
-     * @param albumSongs List of songs to play
      */
     fun playAlbum(albumSongs: List<Song>) {
         if (albumSongs.isEmpty()) return
@@ -100,23 +79,17 @@ class AlbumDetailViewModel @Inject constructor(
 
     /**
      * Shuffle and play all songs in the album.
-     *
-     * @param albumSongs List of songs to shuffle and play
      */
     fun shuffleAlbum(albumSongs: List<Song>) {
         if (albumSongs.isEmpty()) return
         viewModelScope.launch {
-            val shuffledSongs = albumSongs.shuffled()
-            playbackRepository.playQueue(shuffledSongs, startIndex = 0)
+            playbackRepository.setShuffleEnabled(true)
+            playbackRepository.playQueue(albumSongs, startIndex = 0)
         }
     }
 
     /**
      * Play a specific song from the album.
-     * Sets the queue to all album songs.
-     *
-     * @param song The song to play
-     * @param albumSongs The full album song list for queue context
      */
     fun playSong(song: Song, albumSongs: List<Song>) {
         viewModelScope.launch {
@@ -129,9 +102,6 @@ class AlbumDetailViewModel @Inject constructor(
 
     /**
      * Toggle like status of a song.
-     *
-     * @param songId The unique ID of the song
-     * @param isLiked Current like status (will be toggled)
      */
     fun toggleLike(songId: Long, isLiked: Boolean) {
         viewModelScope.launch {

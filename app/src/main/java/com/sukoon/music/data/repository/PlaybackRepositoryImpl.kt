@@ -43,7 +43,8 @@ class PlaybackRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     @ApplicationScope private val scope: CoroutineScope,
     private val songRepository: com.sukoon.music.domain.repository.SongRepository,
-    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
+    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+    private val queueRepository: com.sukoon.music.domain.repository.QueueRepository
 ) : PlaybackRepository {
 
     // State Management
@@ -60,6 +61,11 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     // Recently Played Tracking
     private var lastLoggedSongId: Long? = null
+
+    // Queue Auto-Save Tracking
+    private var queueAutoSaveJob: Job? = null
+    private var lastSavedQueue: List<Song> = emptyList()
+    private var currentSavedQueueId: Long? = null
 
     // Player Listener
     private val playerListener = object : Player.Listener {
@@ -163,6 +169,11 @@ class PlaybackRepositoryImpl @Inject constructor(
                 // Register listener after successful connection
                 mediaController?.addListener(playerListener)
                 updatePlaybackState()
+
+                // Restore last queue on app launch if queue is empty
+                if (mediaController?.mediaItemCount == 0) {
+                    restoreLastQueue()
+                }
             } catch (e: Exception) {
                 _playbackState.update {
                     it.copy(error = "Failed to connect to playback service: ${e.message}")
@@ -171,6 +182,27 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
 
         connectionJob?.join()
+    }
+
+    /**
+     * Restore the last saved queue on app launch.
+     */
+    private fun restoreLastQueue() {
+        scope.launch {
+            try {
+                val currentQueue = queueRepository.getCurrentQueueWithSongs()
+                if (currentQueue != null && currentQueue.songs.isNotEmpty()) {
+                    // Restore the queue to playback
+                    val mediaItems = currentQueue.songs.map { it.toMediaItem() }
+                    mediaController?.setMediaItems(mediaItems)
+                    currentSavedQueueId = currentQueue.queue.id
+                    lastSavedQueue = currentQueue.songs
+                    updatePlaybackState()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("PlaybackRepository", "Failed to restore queue", e)
+            }
+        }
     }
 
     override fun disconnect() {
@@ -192,6 +224,11 @@ class PlaybackRepositoryImpl @Inject constructor(
             controller.getMediaItemAt(i).toSong()?.let { queue.add(it) }
         }
 
+        // Auto-save queue if it has changed
+        if (queue != lastSavedQueue && queue.isNotEmpty()) {
+            autoSaveQueue(queue)
+        }
+
         _playbackState.update { currentState ->
             currentState.copy(
                 isPlaying = controller.isPlaying,
@@ -207,11 +244,45 @@ class PlaybackRepositoryImpl @Inject constructor(
                 // Queue state
                 queue = queue,
                 currentQueueIndex = controller.currentMediaItemIndex,
+                currentQueueId = currentSavedQueueId,
+                currentQueueName = if (currentSavedQueueId != null) "Current Queue" else null,
+                queueTimestamp = System.currentTimeMillis(),
 
                 // Audio focus state
                 pausedByAudioFocusLoss = pausedByAudioFocusLoss,
                 pausedByNoisyAudio = pausedByNoisyAudio
             )
+        }
+    }
+
+    /**
+     * Auto-save the current queue to the database.
+     * Debounces rapid queue changes to avoid excessive database writes.
+     */
+    private fun autoSaveQueue(queue: List<Song>) {
+        // Cancel any pending auto-save
+        queueAutoSaveJob?.cancel()
+
+        // Schedule new auto-save after a short delay (debounce)
+        queueAutoSaveJob = scope.launch {
+            kotlinx.coroutines.delay(2000) // 2 second debounce
+            try {
+                // Check if user has enabled queue auto-save in preferences
+                preferencesManager.userPreferencesFlow.collect { prefs ->
+                    // Save the queue
+                    currentSavedQueueId = queueRepository.saveCurrentPlaybackQueue(
+                        name = "Current Queue",
+                        songs = queue,
+                        markAsCurrent = true
+                    )
+                    lastSavedQueue = queue
+                    // Cancel collection after first emit
+                    return@collect
+                }
+            } catch (e: Exception) {
+                // Log error but don't crash - queue saving is not critical
+                android.util.Log.e("PlaybackRepository", "Failed to auto-save queue", e)
+            }
         }
     }
 
@@ -300,6 +371,14 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun playNext(songs: List<Song>) {
+        mediaController?.let { controller ->
+            val currentIndex = controller.currentMediaItemIndex
+            val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
+            controller.addMediaItems(insertIndex, songs.map { it.toMediaItem() })
+        }
+    }
+
+    override suspend fun addToQueueNext(songs: List<Song>) {
         mediaController?.let { controller ->
             val currentIndex = controller.currentMediaItemIndex
             val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1

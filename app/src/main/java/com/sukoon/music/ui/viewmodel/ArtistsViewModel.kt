@@ -1,99 +1,213 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class ArtistSortMode {
+    ARTIST_NAME,
+    ALBUM_COUNT,
+    SONG_COUNT,
+    RANDOM
+}
+
 /**
  * ViewModel for Artists screen.
- *
- * Responsibilities:
- * - Expose artist list from SongRepository
- * - Provide playback actions for entire artist discography
- * - Observe current playback state for UI highlighting
- *
- * Follows the architecture established by AlbumsViewModel.
  */
 @HiltViewModel
 class ArtistsViewModel @Inject constructor(
-    private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val songRepository: SongRepository,
+    private val playbackRepository: PlaybackRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
-    /**
-     * All artists grouped from song library.
-     * Updates reactively when songs are added/removed or metadata changes.
-     */
-    val artists: StateFlow<List<Artist>> = songRepository.getAllArtists()
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _sortMode = MutableStateFlow(ArtistSortMode.ARTIST_NAME)
+    val sortMode: StateFlow<ArtistSortMode> = _sortMode.asStateFlow()
+
+    private val _isAscending = MutableStateFlow(true)
+    val isAscending: StateFlow<Boolean> = _isAscending.asStateFlow()
+
+    private val _selectedArtistIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedArtistIds: StateFlow<Set<Long>> = _selectedArtistIds.asStateFlow()
+
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
+
+    private val _showAddToPlaylistArtistId = MutableStateFlow<Long?>(null)
+    val showAddToPlaylistArtistId: StateFlow<Long?> = _showAddToPlaylistArtistId.asStateFlow()
+
+    private val _deleteResult = MutableStateFlow<DeleteHelper.DeleteResult?>(null)
+    val deleteResult: StateFlow<DeleteHelper.DeleteResult?> = _deleteResult.asStateFlow()
 
     /**
-     * Current playback state for UI feedback.
-     * Used to highlight currently playing artist.
+     * All artists filtered and sorted.
      */
+    val artists: StateFlow<List<Artist>> = combine(
+        songRepository.getAllArtists(),
+        _searchQuery,
+        _sortMode,
+        _isAscending
+    ) { allArtists, query, sort, ascending ->
+        var filtered = if (query.isBlank()) {
+            allArtists
+        } else {
+            allArtists.filter { it.name.contains(query, ignoreCase = true) }
+        }
+
+        filtered = when (sort) {
+            ArtistSortMode.ARTIST_NAME -> if (ascending) filtered.sortedBy { it.name.lowercase() } else filtered.sortedByDescending { it.name.lowercase() }
+            ArtistSortMode.ALBUM_COUNT -> if (ascending) filtered.sortedBy { it.albumCount } else filtered.sortedByDescending { it.albumCount }
+            ArtistSortMode.SONG_COUNT -> if (ascending) filtered.sortedBy { it.songCount } else filtered.sortedByDescending { it.songCount }
+            ArtistSortMode.RANDOM -> filtered.shuffled()
+        }
+
+        filtered
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    /**
+     * Recently played artists from repository.
+     */
+    val recentlyPlayedArtists: StateFlow<List<Artist>> = songRepository.getRecentlyPlayedArtists()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
-    /**
-     * Play all songs by an artist from the beginning.
-     * Clears current queue and starts artist playback.
-     *
-     * @param artistId The unique ID of the artist to play
-     */
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setSortMode(mode: ArtistSortMode) {
+        _sortMode.value = mode
+    }
+
+    fun setAscending(ascending: Boolean) {
+        _isAscending.value = ascending
+    }
+
+    fun toggleSelectionMode(enabled: Boolean) {
+        _isSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedArtistIds.value = emptySet()
+        }
+    }
+
+    fun toggleArtistSelection(artistId: Long) {
+        val current = _selectedArtistIds.value
+        _selectedArtistIds.value = if (current.contains(artistId)) {
+            current - artistId
+        } else {
+            current + artistId
+        }
+    }
+
+    fun selectAllArtists() {
+        _selectedArtistIds.value = artists.value.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedArtistIds.value = emptySet()
+    }
+
     fun playArtist(artistId: Long) {
         viewModelScope.launch {
-            // Get all songs by the artist
             songRepository.getSongsByArtistId(artistId)
-                .stateIn(viewModelScope)
-                .value
-                .takeIf { it.isNotEmpty() }
-                ?.let { artistSongs ->
-                    // Play queue from the beginning
+                .firstOrNull()?.let { artistSongs ->
                     playbackRepository.playQueue(artistSongs, startIndex = 0)
+                    logArtistInteraction(artistId)
                 }
         }
     }
 
-    /**
-     * Shuffle and play all songs by an artist.
-     * Randomizes song order before playback.
-     *
-     * @param artistId The unique ID of the artist to shuffle
-     */
+    fun playArtistNext(artistId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByArtistId(artistId)
+                .firstOrNull()?.let { artistSongs ->
+                    playbackRepository.playNext(artistSongs)
+                }
+        }
+    }
+
+    fun addArtistToQueue(artistId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByArtistId(artistId)
+                .firstOrNull()?.let { artistSongs ->
+                    playbackRepository.addToQueue(artistSongs)
+                }
+        }
+    }
+
+    fun showAddToPlaylistDialog(artistId: Long?) {
+        _showAddToPlaylistArtistId.value = artistId
+    }
+
+    fun logArtistInteraction(artistId: Long) {
+        val artist = artists.value.find { it.id == artistId }
+        artist?.let {
+            viewModelScope.launch {
+                songRepository.logArtistPlay(it.name)
+            }
+        }
+    }
+
     fun shuffleArtist(artistId: Long) {
         viewModelScope.launch {
-            // Get all songs by the artist
             songRepository.getSongsByArtistId(artistId)
-                .stateIn(viewModelScope)
-                .value
-                .takeIf { it.isNotEmpty() }
-                ?.let { artistSongs ->
-                    // Shuffle the songs and play queue
-                    val shuffledSongs = artistSongs.shuffled()
-                    playbackRepository.playQueue(shuffledSongs, startIndex = 0)
+                .firstOrNull()?.let { artistSongs ->
+                    playbackRepository.setShuffleEnabled(true)
+                    playbackRepository.playQueue(artistSongs, startIndex = 0)
+                    logArtistInteraction(artistId)
                 }
         }
     }
 
-    /**
-     * Navigate to artist detail screen.
-     * (Navigation logic handled by composable, this is a placeholder for future actions)
-     */
-    fun onArtistClick(artistId: Long) {
-        // Navigation is handled by the screen composable
-        // This method is reserved for future artist-specific actions
-        // (e.g., analytics tracking, pre-loading artist info)
+    fun playSelectedArtists() {
+        val ids = _selectedArtistIds.value
+        if (ids.isEmpty()) return
+        
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByArtistId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.playQueue(allSelectedSongs, startIndex = 0)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    fun deleteArtist(artistId: Long) {
+        viewModelScope.launch {
+            val songs = songRepository.getSongsByArtistId(artistId)
+                .firstOrNull() ?: emptyList()
+
+            if (songs.isEmpty()) {
+                _deleteResult.value = DeleteHelper.DeleteResult.Success
+                return@launch
+            }
+
+            val result = DeleteHelper.deleteSongs(context, songs)
+            _deleteResult.value = result
+        }
+    }
+
+    fun clearDeleteResult() {
+        _deleteResult.value = null
     }
 }

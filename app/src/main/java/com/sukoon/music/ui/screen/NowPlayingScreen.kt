@@ -57,6 +57,7 @@ import kotlinx.coroutines.isActive
 @Composable
 fun NowPlayingScreen(
     onBackClick: () -> Unit,
+    onNavigateToQueue: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -94,6 +95,15 @@ fun NowPlayingScreen(
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = "Back"
+                            )
+                        }
+                    },
+                    actions = {
+                        // Queue button
+                        IconButton(onClick = onNavigateToQueue) {
+                            Icon(
+                                imageVector = Icons.Default.QueueMusic,
+                                contentDescription = "View Queue"
                             )
                         }
                     },
@@ -404,7 +414,7 @@ private fun PlaybackControlsSection(
             Icon(
                 imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                tint = Color.Black,
+                tint = MaterialTheme.colorScheme.onPrimary,
                 modifier = Modifier.size(40.dp)
             )
         }
@@ -905,7 +915,7 @@ private fun formatDuration(durationMs: Long): String {
     return String.format("%02d:%02d", minutes, seconds)
 }
 
-@Preview(showBackground = true, backgroundColor = 0xFF121212)
+@Preview(showBackground = true)
 @Composable
 private fun NowPlayingScreenPreview() {
     SukoonMusicPlayerTheme(darkTheme = true) {
@@ -928,7 +938,7 @@ private fun NowPlayingScreenPreview() {
                     isLiked = true
                 )
             ),
-            accentColor = Color(0xFF1DB954), // Preview with Spotify green
+            accentColor = MaterialTheme.colorScheme.primary, // Preview with theme primary color
             onPlayPauseClick = {},
             onNextClick = {},
             onPreviousClick = {},

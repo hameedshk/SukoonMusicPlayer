@@ -94,6 +94,12 @@ interface PlaybackRepository {
     suspend fun playNext(songs: List<Song>)
 
     /**
+     * Add multiple songs to play immediately after the current song.
+     * @param songs List of songs to play next
+     */
+    suspend fun addToQueueNext(songs: List<Song>)
+
+    /**
      * Remove a song from the queue at the specified index.
      * @param index Index of the song to remove
      */

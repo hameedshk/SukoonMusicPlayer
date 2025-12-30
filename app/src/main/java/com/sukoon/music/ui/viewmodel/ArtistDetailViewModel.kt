@@ -11,6 +11,8 @@ import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -105,6 +107,21 @@ class ArtistDetailViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
+
+        viewModelScope.launch {
+            _artist.filterNotNull().first().let { artist ->
+                logArtistInteraction(artist.id, artist.name)
+            }
+        }
+    }
+
+    /**
+     * Log artist interaction to tracking.
+     */
+    private fun logArtistInteraction(artistId: Long, artistName: String) {
+        viewModelScope.launch {
+            songRepository.logArtistPlay(artistName)
+        }
     }
 
     /**

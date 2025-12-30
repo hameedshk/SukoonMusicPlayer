@@ -1,9 +1,14 @@
 package com.sukoon.music.data.repository
 
+import com.sukoon.music.data.local.dao.GenreCoverDao
 import com.sukoon.music.data.local.dao.PlaylistDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SongDao
+import com.sukoon.music.data.local.entity.GenreCoverEntity
 import com.sukoon.music.data.local.entity.PlaylistSongCrossRef
+import com.sukoon.music.data.local.entity.RecentlyPlayedArtistEntity
+import com.sukoon.music.data.local.entity.RecentlyPlayedEntity
 import com.sukoon.music.data.local.entity.SongEntity
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.source.MediaStoreScanner
@@ -11,6 +16,7 @@ import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.FolderSortMode
+import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.UserPreferences
@@ -22,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
@@ -35,7 +42,9 @@ import javax.inject.Singleton
 class SongRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
     private val recentlyPlayedDao: RecentlyPlayedDao,
+    private val recentlyPlayedArtistDao: RecentlyPlayedArtistDao,
     private val playlistDao: PlaylistDao,
+    private val genreCoverDao: GenreCoverDao,
     private val mediaStoreScanner: MediaStoreScanner,
     private val preferencesManager: PreferencesManager,
     @ApplicationScope private val scope: CoroutineScope
@@ -121,11 +130,12 @@ class SongRepositoryImpl @Inject constructor(
     // Recently Played
 
     override fun getRecentlyPlayed(): Flow<List<Song>> {
-        return recentlyPlayedDao.getRecentlyPlayed().map { recentlyPlayedEntities ->
-            val songIds = recentlyPlayedEntities.map { it.songId }
-            songIds.mapNotNull { songId ->
-                songDao.getSongById(songId)?.toSong()
-            }
+        return combine(
+            recentlyPlayedDao.getRecentlyPlayed(),
+            getAllSongs()
+        ) { history, allSongs ->
+            val songMap = allSongs.associateBy { it.id }
+            history.mapNotNull { songMap[it.songId] }
         }
     }
 
@@ -230,6 +240,99 @@ class SongRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getRecentlyPlayedArtists(): Flow<List<Artist>> {
+        return combine(
+            recentlyPlayedArtistDao.getRecentlyPlayedArtists(),
+            songDao.getAllSongs()
+        ) { history, allSongs ->
+            val artistGroups = allSongs.groupBy { it.artist }
+            history.mapNotNull { record ->
+                artistGroups[record.artistName]?.let { songs ->
+                    createArtistFromSongs(record.artistName, songs)
+                }
+            }
+        }
+    }
+
+    override suspend fun logArtistPlay(artistName: String) {
+        withContext(Dispatchers.IO) {
+            recentlyPlayedArtistDao.logArtistPlay(
+                RecentlyPlayedArtistEntity(artistName, System.currentTimeMillis())
+            )
+        }
+    }
+
+    override fun getAllGenres(): Flow<List<Genre>> {
+        return songDao.getAllSongs().map { entities ->
+            entities
+                .groupBy { it.genre }
+                .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
+                .sortedBy { it.name.lowercase() }
+        }
+    }
+
+    override fun getGenreById(genreId: Long): Flow<Genre?> {
+        return songDao.getAllSongs().map { entities ->
+            entities
+                .groupBy { it.genre }
+                .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
+                .find { it.id == genreId }
+        }
+    }
+
+    override fun getGenreByName(genreName: String): Flow<Genre?> {
+        return songDao.getAllSongs().map { entities ->
+            entities
+                .groupBy { it.genre }
+                .map { (name, songs) -> createGenreFromSongs(name, songs) }
+                .find { it.name.equals(genreName, ignoreCase = true) }
+        }
+    }
+
+    override fun getSongsByGenreId(genreId: Long): Flow<List<Song>> {
+        return songDao.getAllSongs().map { entities ->
+            val genres = entities.groupBy { it.genre }
+            val targetGenreName = genres.keys.find { Genre.generateId(it) == genreId }
+
+            if (targetGenreName != null) {
+                entities
+                    .filter { it.genre == targetGenreName }
+                    .map { it.toSong() }
+                    .sortedBy { it.title.lowercase() }
+            } else {
+                emptyList()
+            }
+        }
+    }
+
+    override suspend fun updateGenreTags(oldGenre: String, newGenre: String) {
+        withContext(Dispatchers.IO) {
+            val songs = songDao.getAllSongs().first()
+            val songsToUpdate = songs.filter { it.genre.equals(oldGenre, ignoreCase = true) }
+            songsToUpdate.forEach { song ->
+                songDao.updateSong(song.copy(genre = newGenre))
+            }
+        }
+    }
+
+    override suspend fun setGenreCover(genreId: Long, artworkUri: String) {
+        withContext(Dispatchers.IO) {
+            genreCoverDao.upsert(GenreCoverEntity(genreId, artworkUri))
+        }
+    }
+
+    override suspend fun getGenreCover(genreId: Long): String? {
+        return withContext(Dispatchers.IO) {
+            genreCoverDao.getByGenreId(genreId)?.customArtworkUri
+        }
+    }
+
+    override suspend fun removeGenreCover(genreId: Long) {
+        withContext(Dispatchers.IO) {
+            genreCoverDao.delete(genreId)
+        }
+    }
+
     // ============================================
     // FOLDERS
     // ============================================
@@ -325,9 +428,14 @@ class SongRepositoryImpl @Inject constructor(
             album = album,
             duration = duration,
             uri = uri,
+            path = folderPath ?: "",
+            playCount = playCount,
+            year = year,
+            size = size,
             albumArtUri = albumArtUri,
             dateAdded = dateAdded,
-            isLiked = isLiked
+            isLiked = isLiked,
+            genre = genre
         )
     }
 
@@ -354,6 +462,17 @@ class SongRepositoryImpl @Inject constructor(
             artworkUri = songs.firstOrNull()?.albumArtUri,
             songIds = songs.map { it.id },
             albumIds = albums.keys.map { it.hashCode().toLong() }
+        )
+    }
+
+    private fun createGenreFromSongs(genreName: String, songs: List<SongEntity>): Genre {
+        return Genre(
+            id = Genre.generateId(genreName),
+            name = genreName,
+            songCount = songs.size,
+            totalDuration = songs.sumOf { it.duration },
+            artworkUri = songs.firstOrNull()?.albumArtUri,
+            songIds = songs.map { it.id }
         )
     }
 
@@ -396,9 +515,21 @@ class SongRepositoryImpl @Inject constructor(
 
     // --- Smart Playlists ---
 
-    override fun getLastAddedSongs(): Flow<List<Song>> = getAllSongs()
-    override fun getMostPlayedSongs(): Flow<List<Song>> = getAllSongs() // Placeholder
+    override fun getLastAddedSongs(): Flow<List<Song>> = getAllSongs().map { it.take(50) }
+
+    override fun getMostPlayedSongs(): Flow<List<Song>> {
+        return combine(
+            recentlyPlayedDao.getMostPlayed(),
+            getAllSongs()
+        ) { history, allSongs ->
+            val songMap = allSongs.associateBy { it.id }
+            history.mapNotNull { songMap[it.songId] }
+        }
+    }
+
     override fun getLikedSongsCount(): Flow<Int> = songDao.getLikedSongsCount()
-    override fun getRecentlyPlayedCount(): Flow<Int> = songDao.getLikedSongsCount() // Placeholder
-    override fun getMostPlayedCount(): Flow<Int> = songDao.getLikedSongsCount() // Placeholder
+
+    override fun getRecentlyPlayedCount(): Flow<Int> = recentlyPlayedDao.getRecentlyPlayedCount()
+
+    override fun getMostPlayedCount(): Flow<Int> = recentlyPlayedDao.getMostPlayedCount()
 }

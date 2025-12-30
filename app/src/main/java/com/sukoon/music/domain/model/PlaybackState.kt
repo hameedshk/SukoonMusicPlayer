@@ -28,6 +28,24 @@ data class PlaybackState(
     val currentQueueIndex: Int = -1,
 
     /**
+     * Name of the currently active saved queue.
+     * Null if the queue hasn't been saved or is a temporary queue.
+     */
+    val currentQueueName: String? = null,
+
+    /**
+     * ID of the currently active saved queue.
+     * Null if the queue hasn't been saved or is a temporary queue.
+     */
+    val currentQueueId: Long? = null,
+
+    /**
+     * Timestamp when the current queue was last modified.
+     * Used for tracking queue history and auto-save timing.
+     */
+    val queueTimestamp: Long = 0L,
+
+    /**
      * Indicates if playback was paused due to audio focus loss.
      * When true, playback should NOT auto-resume even after regaining focus.
      * Only explicit user action (play button) should resume.

@@ -2,29 +2,14 @@ package com.sukoon.music.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.sukoon.music.ui.screen.AlbumDetailScreen
-import com.sukoon.music.ui.screen.AlbumsScreen
-import com.sukoon.music.ui.screen.ArtistDetailScreen
-import com.sukoon.music.ui.screen.ArtistsScreen
-import com.sukoon.music.ui.screen.EqualizerScreen
-import com.sukoon.music.ui.screen.ExcludedFoldersScreen
-import com.sukoon.music.ui.screen.FolderDetailScreen
-import com.sukoon.music.ui.screen.FoldersScreen
-import com.sukoon.music.ui.screen.HomeScreen
-import com.sukoon.music.ui.screen.LikedSongsScreen
-import com.sukoon.music.ui.screen.NowPlayingScreen
-import com.sukoon.music.ui.screen.PlaylistDetailScreen
-import com.sukoon.music.ui.screen.PlaylistsScreen
-import com.sukoon.music.ui.screen.RestorePlaylistScreen
-import com.sukoon.music.ui.screen.SearchScreen
-import com.sukoon.music.ui.screen.SettingsScreen
-import com.sukoon.music.ui.screen.SmartPlaylistDetailScreen
-import com.sukoon.music.ui.screen.SongsScreen
+import com.sukoon.music.ui.screen.*
+import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
 /**
  * Main navigation graph for Sukoon Music app.
@@ -74,6 +59,24 @@ fun SukoonNavHost(
                 },
                 onNavigateToFolders = {
                     navController.navigate(Routes.Folders.route)
+                },
+                onNavigateToGenres = {
+                    navController.navigate(Routes.Genres.route)
+                },
+                onNavigateToPlaylistDetail = { playlistId ->
+                    navController.navigate(Routes.PlaylistDetail.createRoute(playlistId))
+                },
+                onNavigateToSmartPlaylist = { smartPlaylistType ->
+                    navController.navigate(Routes.SmartPlaylistDetail.createRoute(smartPlaylistType.name))
+                },
+                onNavigateToFolderDetail = { folderId ->
+                    navController.navigate(Routes.FolderDetail.createRoute(folderId))
+                },
+                onNavigateToAlbumDetail = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToGenreDetail = { genreId ->
+                    navController.navigate(Routes.GenreDetail.createRoute(genreId))
                 }
             )
         }
@@ -83,6 +86,9 @@ fun SukoonNavHost(
             NowPlayingScreen(
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToQueue = {
+                    navController.navigate(Routes.Queue.route)
                 }
             )
         }
@@ -227,19 +233,27 @@ fun SukoonNavHost(
                 albumId = albumId,
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
                 }
             )
         }
 
         // Artists Screen - All artists
         composable(route = Routes.Artists.route) {
+            val playlistViewModel: PlaylistViewModel = hiltViewModel()
             ArtistsScreen(
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },
                 onBackClick = {
                     navController.navigateUp()
-                }
+                },
+                onShowEditTagsDialog = { /* Placeholder */ },
+                onShowChangeCoverDialog = { /* Placeholder */ },
+                onShowDeleteConfirmDialog = { /* Placeholder */ },
+                playlistViewModel = playlistViewModel
             )
         }
 
@@ -258,6 +272,37 @@ fun SukoonNavHost(
                 },
                 onNavigateToAlbum = { albumId ->
                     navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                }
+            )
+        }
+
+        // Genres Screen - All genres
+        composable(route = Routes.Genres.route) {
+            GenresScreen(
+                onNavigateToGenre = { genreId ->
+                    navController.navigate(Routes.GenreDetail.createRoute(genreId))
+                },
+                onBackClick = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // Genre Detail Screen - Songs in a genre
+        composable(
+            route = Routes.GenreDetail.route,
+            arguments = listOf(
+                navArgument(Routes.ARG_GENRE_ID) { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val genreId = backStackEntry.arguments?.getLong(Routes.ARG_GENRE_ID) ?: return@composable
+            GenreDetailScreen(
+                genreId = genreId,
+                onBackClick = {
+                    navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
                 }
             )
         }
@@ -298,6 +343,18 @@ fun SukoonNavHost(
             ExcludedFoldersScreen(
                 onBackClick = {
                     navController.navigateUp()
+                }
+            )
+        }
+
+        // Queue Screen - Current and saved queues
+        composable(route = Routes.Queue.route) {
+            QueueScreen(
+                onBackClick = {
+                    navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
                 }
             )
         }

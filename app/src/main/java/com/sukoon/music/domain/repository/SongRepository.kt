@@ -2,6 +2,7 @@ package com.sukoon.music.domain.repository
 
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
+import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.Song
 import kotlinx.coroutines.flow.Flow
@@ -97,6 +98,56 @@ interface SongRepository {
      * Get all albums by a specific artist.
      */
     fun getAlbumsByArtistId(artistId: Long): Flow<List<Album>>
+
+    /**
+     * Get recently played artists.
+     */
+    fun getRecentlyPlayedArtists(): Flow<List<Artist>>
+
+    /**
+     * Log an artist play to the recently played history.
+     */
+    suspend fun logArtistPlay(artistName: String)
+
+    /**
+     * Get all genres by grouping songs.
+     */
+    fun getAllGenres(): Flow<List<Genre>>
+
+    /**
+     * Get a specific genre by ID.
+     */
+    fun getGenreById(genreId: Long): Flow<Genre?>
+
+    /**
+     * Get a specific genre by name.
+     */
+    fun getGenreByName(genreName: String): Flow<Genre?>
+
+    /**
+     * Get all songs in a specific genre.
+     */
+    fun getSongsByGenreId(genreId: Long): Flow<List<Song>>
+
+    /**
+     * Update genre name for all songs with the old genre.
+     */
+    suspend fun updateGenreTags(oldGenre: String, newGenre: String)
+
+    /**
+     * Set custom artwork for a genre.
+     */
+    suspend fun setGenreCover(genreId: Long, artworkUri: String)
+
+    /**
+     * Get custom artwork for a genre.
+     */
+    suspend fun getGenreCover(genreId: Long): String?
+
+    /**
+     * Remove custom artwork for a genre.
+     */
+    suspend fun removeGenreCover(genreId: Long)
 
     // ============================================
     // FOLDER METHODS

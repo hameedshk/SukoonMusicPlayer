@@ -95,6 +95,19 @@ sealed class Routes(val route: String) {
     }
 
     /**
+     * Genres screen - Shows all genres grouped from song library.
+     */
+    data object Genres : Routes("genres")
+
+    /**
+     * Genre Detail screen - Shows songs in a specific genre.
+     * Requires genreId parameter.
+     */
+    data object GenreDetail : Routes("genre/{genreId}") {
+        fun createRoute(genreId: Long) = "genre/$genreId"
+    }
+
+    /**
      * Folders screen - Shows all folders grouped from song library.
      */
     data object Folders : Routes("folders")
@@ -111,4 +124,21 @@ sealed class Routes(val route: String) {
      * Excluded Folders screen - Manage folders excluded from the music library.
      */
     data object ExcludedFolders : Routes("excluded_folders")
+
+    /**
+     * Queue screen - Shows current playback queue with reordering and saved queues.
+     */
+    data object Queue : Routes("queue")
+
+    /**
+     * Queue Detail screen - Shows songs in a specific saved queue.
+     * Requires queueId parameter.
+     */
+    data object QueueDetail : Routes("queue/{queueId}") {
+        fun createRoute(queueId: Long) = "queue/$queueId"
+    }
+
+    companion object {
+        const val ARG_GENRE_ID = "genreId"
+    }
 }

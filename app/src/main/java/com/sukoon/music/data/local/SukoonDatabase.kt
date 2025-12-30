@@ -6,16 +6,25 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sukoon.music.data.local.dao.DeletedPlaylistDao
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
+import com.sukoon.music.data.local.dao.GenreCoverDao
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.dao.PlaylistDao
+import com.sukoon.music.data.local.dao.QueueDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedAlbumDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SearchHistoryDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.local.entity.DeletedPlaylistEntity
 import com.sukoon.music.data.local.entity.EqualizerPresetEntity
+import com.sukoon.music.data.local.entity.GenreCoverEntity
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.local.entity.PlaylistEntity
 import com.sukoon.music.data.local.entity.PlaylistSongCrossRef
+import com.sukoon.music.data.local.entity.QueueEntity
+import com.sukoon.music.data.local.entity.QueueItemEntity
+import com.sukoon.music.data.local.entity.RecentlyPlayedAlbumEntity
+import com.sukoon.music.data.local.entity.RecentlyPlayedArtistEntity
 import com.sukoon.music.data.local.entity.RecentlyPlayedEntity
 import com.sukoon.music.data.local.entity.SearchHistoryEntity
 import com.sukoon.music.data.local.entity.SongEntity
@@ -27,33 +36,39 @@ import com.sukoon.music.data.local.entity.SongEntity
         PlaylistSongCrossRef::class,
         LyricsEntity::class,
         RecentlyPlayedEntity::class,
+        RecentlyPlayedAlbumEntity::class,
+        RecentlyPlayedArtistEntity::class,
         SearchHistoryEntity::class,
         EqualizerPresetEntity::class,
-        DeletedPlaylistEntity::class
+        DeletedPlaylistEntity::class,
+        QueueEntity::class,
+        QueueItemEntity::class,
+        GenreCoverEntity::class
     ],
-    version = 8,
+    version = 15,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
     abstract fun songDao(): SongDao
     abstract fun lyricsDao(): LyricsDao
     abstract fun recentlyPlayedDao(): RecentlyPlayedDao
+    abstract fun recentlyPlayedAlbumDao(): RecentlyPlayedAlbumDao
+    abstract fun recentlyPlayedArtistDao(): RecentlyPlayedArtistDao
     abstract fun playlistDao(): PlaylistDao
     abstract fun searchHistoryDao(): SearchHistoryDao
     abstract fun equalizerPresetDao(): EqualizerPresetDao
     abstract fun deletedPlaylistDao(): DeletedPlaylistDao
+    abstract fun queueDao(): QueueDao
+    abstract fun genreCoverDao(): GenreCoverDao
 
     companion object {
         const val DATABASE_NAME = "sukoon_music_db"
 
         /**
          * Migration from version 2 to 3.
-         * Adds the playlist_song_cross_ref junction table for many-to-many
-         * relationship between playlists and songs.
          */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Create playlist_song_cross_ref table
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS playlist_song_cross_ref (
                         playlistId INTEGER NOT NULL,
@@ -65,8 +80,6 @@ abstract class SukoonDatabase : RoomDatabase() {
                         FOREIGN KEY(songId) REFERENCES songs(id) ON DELETE CASCADE
                     )
                 """)
-
-                // Create index on songId for faster reverse lookups
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_playlist_song_cross_ref_songId " +
                     "ON playlist_song_cross_ref(songId)"
@@ -76,19 +89,15 @@ abstract class SukoonDatabase : RoomDatabase() {
 
         /**
          * Migration from version 3 to 4.
-         * Adds the search_history table for storing search queries.
          */
         val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Create search_history table
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS search_history (
                         query TEXT NOT NULL PRIMARY KEY,
                         timestamp INTEGER NOT NULL
                     )
                 """)
-
-                // Create index on timestamp for efficient ORDER BY queries
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_search_history_timestamp " +
                     "ON search_history(timestamp)"
@@ -98,11 +107,9 @@ abstract class SukoonDatabase : RoomDatabase() {
 
         /**
          * Migration from version 4 to 5.
-         * Adds source column to lyrics table for tracking lyrics origin.
          */
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Add source column to lyrics table with default value "UNKNOWN"
                 database.execSQL(
                     "ALTER TABLE lyrics ADD COLUMN source TEXT NOT NULL DEFAULT 'UNKNOWN'"
                 )
@@ -111,11 +118,9 @@ abstract class SukoonDatabase : RoomDatabase() {
 
         /**
          * Migration from version 5 to 6.
-         * Adds equalizer_presets table for storing custom EQ presets.
          */
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Create equalizer_presets table
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS equalizer_presets (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -135,11 +140,9 @@ abstract class SukoonDatabase : RoomDatabase() {
 
         /**
          * Migration from version 6 to 7.
-         * Adds deleted_playlists table for trash/restore functionality.
          */
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Create deleted_playlists table
                 database.execSQL("""
                     CREATE TABLE IF NOT EXISTS deleted_playlists (
                         id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -152,8 +155,6 @@ abstract class SukoonDatabase : RoomDatabase() {
                         playlistDataJson TEXT NOT NULL
                     )
                 """)
-
-                // Create index on deletedAt for efficient cleanup queries
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_deleted_playlists_deletedAt " +
                     "ON deleted_playlists(deletedAt)"
@@ -163,20 +164,104 @@ abstract class SukoonDatabase : RoomDatabase() {
 
         /**
          * Migration from version 7 to 8.
-         * Adds folderPath column to songs table for folder grouping.
          */
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // Add folderPath column to songs table
                 database.execSQL(
                     "ALTER TABLE songs ADD COLUMN folderPath TEXT"
                 )
-
-                // Create index on folderPath for efficient folder queries
                 database.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_songs_folderPath " +
                     "ON songs(folderPath)"
                 )
+            }
+        }
+
+        /**
+         * Migration from version 8 to 9.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS recently_played_albums (
+                        albumName TEXT NOT NULL PRIMARY KEY,
+                        lastPlayedAt INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
+        /**
+         * Migration from version 9 to 10.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS recently_played_artists (
+                        artistName TEXT NOT NULL PRIMARY KEY,
+                        lastPlayedAt INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
+        /**
+         * Migration from version 10 to 11.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE songs ADD COLUMN genre TEXT NOT NULL DEFAULT 'Unknown Genre'"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 11 to 12.
+         */
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS queues (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        createdAt INTEGER NOT NULL,
+                        modifiedAt INTEGER NOT NULL,
+                        isCurrent INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS queue_items (
+                        queueId INTEGER NOT NULL,
+                        songId INTEGER NOT NULL,
+                        position INTEGER NOT NULL,
+                        PRIMARY KEY(queueId, position),
+                        FOREIGN KEY(queueId) REFERENCES queues(id) ON DELETE CASCADE,
+                        FOREIGN KEY(songId) REFERENCES songs(id) ON DELETE CASCADE
+                    )
+                """)
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_queue_items_songId " +
+                    "ON queue_items(songId)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_queue_items_queueId_position " +
+                    "ON queue_items(queueId, position)"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 12 to 13.
+         */
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS genre_covers (
+                        genreId INTEGER PRIMARY KEY NOT NULL,
+                        customArtworkUri TEXT NOT NULL
+                    )
+                """)
             }
         }
     }

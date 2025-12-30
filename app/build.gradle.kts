@@ -91,6 +91,9 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
+    // Reorderable (for drag-and-drop)
+    implementation("org.burnoutcrew.composereorderable:reorderable:0.9.6")
+
     // Testing
     testImplementation(libs.junit)
     testImplementation("io.mockk:mockk:1.13.13")

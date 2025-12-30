@@ -2,6 +2,7 @@ package com.sukoon.music.ui.util
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,20 +20,21 @@ import kotlinx.coroutines.withContext
 
 /**
  * Data class holding extracted colors from album art.
+ * Fallback colors should be provided from MaterialTheme.colorScheme.
  */
 data class AlbumPalette(
-    val vibrant: Color = Color(0xFF1DB954), // Spotify green as fallback
-    val vibrantDark: Color = Color(0xFF1AAE4B),
-    val vibrantLight: Color = Color(0xFF21E35C),
-    val muted: Color = Color(0xFF2E2E2E),
-    val mutedDark: Color = Color(0xFF1E1E1E),
-    val mutedLight: Color = Color(0xFF3E3E3E),
-    val dominant: Color = Color(0xFF1DB954)
+    val vibrant: Color,
+    val vibrantDark: Color,
+    val vibrantLight: Color,
+    val muted: Color,
+    val mutedDark: Color,
+    val mutedLight: Color,
+    val dominant: Color
 )
 
 /**
  * Remembers and extracts color palette from album art URI.
- * Returns AlbumPalette with extracted colors or default Spotify green if extraction fails.
+ * Returns AlbumPalette with extracted colors or theme colors if extraction fails.
  *
  * @param albumArtUri URI of the album art image
  * @param onPaletteExtracted Callback when palette is extracted (optional)
@@ -44,11 +46,25 @@ fun rememberAlbumPalette(
     onPaletteExtracted: ((AlbumPalette) -> Unit)? = null
 ): AlbumPalette {
     val context = LocalContext.current
-    var palette by remember(albumArtUri) { mutableStateOf(AlbumPalette()) }
+    val colorScheme = MaterialTheme.colorScheme
+
+    // Default palette using theme colors
+    val defaultPalette = AlbumPalette(
+        vibrant = colorScheme.primary,
+        vibrantDark = colorScheme.primaryContainer,
+        vibrantLight = colorScheme.secondary,
+        muted = colorScheme.surfaceVariant,
+        mutedDark = colorScheme.surface,
+        mutedLight = colorScheme.surfaceContainer,
+        dominant = colorScheme.primary
+    )
+
+    var palette by remember(albumArtUri) { mutableStateOf(defaultPalette) }
 
     LaunchedEffect(albumArtUri) {
         if (albumArtUri.isNullOrBlank()) {
-            android.util.Log.d("PaletteExtractor", "Album art URI is null or blank, using default colors")
+            android.util.Log.d("PaletteExtractor", "Album art URI is null or blank, using theme colors")
+            palette = defaultPalette
             return@LaunchedEffect
         }
 
@@ -103,32 +119,34 @@ fun rememberAlbumPalette(
                         .generate()
                 }
 
-                // Convert to AlbumPalette
+                // Convert to AlbumPalette, falling back to theme colors
                 palette = AlbumPalette(
                     vibrant = extractedPalette.vibrantSwatch?.let { Color(it.rgb) }
-                        ?: palette.vibrant,
+                        ?: defaultPalette.vibrant,
                     vibrantDark = extractedPalette.darkVibrantSwatch?.let { Color(it.rgb) }
-                        ?: palette.vibrantDark,
+                        ?: defaultPalette.vibrantDark,
                     vibrantLight = extractedPalette.lightVibrantSwatch?.let { Color(it.rgb) }
-                        ?: palette.vibrantLight,
+                        ?: defaultPalette.vibrantLight,
                     muted = extractedPalette.mutedSwatch?.let { Color(it.rgb) }
-                        ?: palette.muted,
+                        ?: defaultPalette.muted,
                     mutedDark = extractedPalette.darkMutedSwatch?.let { Color(it.rgb) }
-                        ?: palette.mutedDark,
+                        ?: defaultPalette.mutedDark,
                     mutedLight = extractedPalette.lightMutedSwatch?.let { Color(it.rgb) }
-                        ?: palette.mutedLight,
+                        ?: defaultPalette.mutedLight,
                     dominant = extractedPalette.dominantSwatch?.let { Color(it.rgb) }
-                        ?: palette.dominant
+                        ?: defaultPalette.dominant
                 )
 
                 android.util.Log.d("PaletteExtractor", "Palette extracted - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")
                 onPaletteExtracted?.invoke(palette)
             } else {
-                android.util.Log.w("PaletteExtractor", "Bitmap is null, using default colors")
+                android.util.Log.w("PaletteExtractor", "Bitmap is null, using theme colors")
+                palette = defaultPalette
             }
         } catch (e: Exception) {
-            // If extraction fails, use default Spotify green
+            // If extraction fails, use theme colors
             android.util.Log.e("PaletteExtractor", "Error extracting palette", e)
+            palette = defaultPalette
         }
     }
 

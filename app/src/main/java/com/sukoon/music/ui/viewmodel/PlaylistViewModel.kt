@@ -152,6 +152,16 @@ class PlaylistViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
+    /**
+     * Filter state for playlists screen (null: All, true: Smart, false: My Playlists)
+     */
+    private val _playlistFilter = MutableStateFlow<Boolean?>(null)
+    val playlistFilter: StateFlow<Boolean?> = _playlistFilter.asStateFlow()
+
+    fun setPlaylistFilter(filter: Boolean?) {
+        _playlistFilter.value = filter
+    }
+
     // ============================================
     // PLAYBACK STATE
     // ============================================
