@@ -25,12 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.BannerAdView
 import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
+import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -45,6 +47,7 @@ import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
 fun AlbumDetailScreen(
     albumId: Long,
     onBackClick: () -> Unit,
+    navController: NavController,
     onNavigateToNowPlaying: () -> Unit,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
@@ -56,6 +59,11 @@ fun AlbumDetailScreen(
     val album by viewModel.album.collectAsStateWithLifecycle()
     val songs by viewModel.albumSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+
+    var showSortDialog by remember { mutableStateOf(false) }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
@@ -64,29 +72,54 @@ fun AlbumDetailScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Search in album */ }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${selectedSongIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = { },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = { /* TODO: Search in album */ }) {
+                            Icon(imageVector = Icons.Default.Search, contentDescription = "Search")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
         },
         bottomBar = {
             Column {
-                if (playbackState.currentSong != null) {
+                if (isSelectionMode && selectedSongIds.isNotEmpty()) {
+                    SongSelectionBottomBar(
+                        onPlay = { viewModel.playSelectedSongs(songs) },
+                        onAddToQueue = { viewModel.addSelectedToQueue(songs) },
+                        onDelete = { viewModel.deleteSelectedSongs() },
+                        onMore = { /* TODO: Show more options */ }
+                    )
+                }
+                if (playbackState.currentSong != null && !isSelectionMode) {
                     MiniPlayer(
                         playbackState = playbackState,
                         onPlayPauseClick = { viewModel.playPause() },
@@ -94,10 +127,12 @@ fun AlbumDetailScreen(
                         onClick = onNavigateToNowPlaying
                     )
                 }
-                BannerAdView(
-                    adMobManager = viewModel.adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                if (!isSelectionMode) {
+                    BannerAdView(
+                        adMobManager = viewModel.adMobManager,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -107,16 +142,38 @@ fun AlbumDetailScreen(
                 album = album!!,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                isSelectionMode = isSelectionMode,
+                selectedSongIds = selectedSongIds,
                 menuHandler = menuHandler,
                 onPlayAll = { viewModel.playAlbum(songs) },
                 onShuffle = { viewModel.shuffleAlbum(songs) },
-                onSongClick = { song -> viewModel.playSong(song, songs) },
+                onSongClick = { song ->
+                    if (isSelectionMode) {
+                        viewModel.toggleSongSelection(song.id)
+                    } else {
+                        viewModel.playSong(song, songs)
+                    }
+                },
                 onToggleLike = { songId, isLiked ->
                     viewModel.toggleLike(songId, isLiked)
                 },
+                onSortClick = { showSortDialog = true },
+                onSelectionClick = { viewModel.toggleSelectionMode(true) },
                 modifier = Modifier.padding(paddingValues)
             )
         }
+    }
+
+    // Sort Dialog
+    if (showSortDialog) {
+        AlbumSongSortDialog(
+            currentMode = sortMode,
+            onDismiss = { showSortDialog = false },
+            onModeSelect = { mode ->
+                viewModel.setSortMode(mode)
+                showSortDialog = false
+            }
+        )
     }
 }
 
@@ -125,11 +182,15 @@ private fun AlbumDetailContent(
     album: Album,
     songs: List<Song>,
     currentSongId: Long?,
+    isSelectionMode: Boolean,
+    selectedSongIds: Set<Long>,
     menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
     onToggleLike: (Long, Boolean) -> Unit,
+    onSortClick: () -> Unit,
+    onSelectionClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -145,58 +206,62 @@ private fun AlbumDetailContent(
             )
         }
 
-        // Stats Header (e.g. "1 song")
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "${album.songCount} song${if (album.songCount > 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row {
-                    IconButton(onClick = { /* TODO: Sort album songs */ }) {
-                        Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
-                    }
-                    IconButton(onClick = { /* TODO: View mode */ }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
+        // Stats Header (e.g. "1 song") - hide in selection mode
+        if (!isSelectionMode) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${album.songCount} song${if (album.songCount > 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row {
+                        IconButton(onClick = onSortClick) {
+                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                        }
+                        IconButton(onClick = onSelectionClick) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")
+                        }
                     }
                 }
             }
         }
 
-        // Play/Shuffle Buttons Row
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = onShuffle,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(8.dp)
+        // Play/Shuffle Buttons Row - hide in selection mode
+        if (!isSelectionMode) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Shuffle", color = MaterialTheme.colorScheme.onSurface)
-                }
-                Button(
-                    onClick = onPlayAll,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.PlayCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play", color = MaterialTheme.colorScheme.onSurface)
+                    Button(
+                        onClick = onShuffle,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Shuffle", color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Button(
+                        onClick = onPlayAll,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.PlayCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Play", color = MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
         }
@@ -214,6 +279,8 @@ private fun AlbumDetailContent(
                 AlbumSongItemRow(
                     song = song,
                     isCurrentlyPlaying = song.id == currentSongId,
+                    isSelectionMode = isSelectionMode,
+                    isSelected = selectedSongIds.contains(song.id),
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onToggleLike = { onToggleLike(song.id, song.isLiked) }
@@ -300,6 +367,8 @@ private fun AlbumHeader(
 private fun AlbumSongItemRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onToggleLike: () -> Unit
@@ -313,8 +382,14 @@ private fun AlbumSongItemRow(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Dash or Playing Indicator
-        if (isCurrentlyPlaying) {
+        // Dash, Playing Indicator, or Checkbox
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = { onClick() },
+                modifier = Modifier.size(24.dp)
+            )
+        } else if (isCurrentlyPlaying) {
             Icon(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = null,
@@ -352,17 +427,19 @@ private fun AlbumSongItemRow(
             )
         }
 
-        // More options button
-        IconButton(onClick = { showMenu = true }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // More options button - hide in selection mode
+        if (!isSelectionMode) {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 
-    if (showMenu) {
+    if (showMenu && !isSelectionMode) {
         SongContextMenu(
             song = song,
             menuHandler = menuHandler,
@@ -394,6 +471,141 @@ private fun EmptyAlbumState() {
     }
 }
 
+@Composable
+private fun AlbumSongSortDialog(
+    currentMode: com.sukoon.music.ui.viewmodel.AlbumSongSortMode,
+    onDismiss: () -> Unit,
+    onModeSelect: (com.sukoon.music.ui.viewmodel.AlbumSongSortMode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort by") },
+        text = {
+            Column {
+                com.sukoon.music.ui.viewmodel.AlbumSongSortMode.values().forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModeSelect(mode) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = when (mode) {
+                                com.sukoon.music.ui.viewmodel.AlbumSongSortMode.TRACK_NUMBER -> "Track number"
+                                com.sukoon.music.ui.viewmodel.AlbumSongSortMode.TITLE -> "Title (A-Z)"
+                                com.sukoon.music.ui.viewmodel.AlbumSongSortMode.ARTIST -> "Artist (A-Z)"
+                                com.sukoon.music.ui.viewmodel.AlbumSongSortMode.DURATION -> "Duration"
+                            }
+                        )
+                        if (mode == currentMode) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
+}
+
+@Composable
+private fun SongSelectionBottomBar(
+    onPlay: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onDelete: () -> Unit,
+    onMore: () -> Unit
+) {
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onPlay)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Play",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onAddToQueue)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Queue,
+                    contentDescription = "Add to queue",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Add to queue",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onDelete)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Delete",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onMore)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "More",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+    }
+}
+
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AlbumDetailScreenPreview() {
@@ -401,6 +613,7 @@ private fun AlbumDetailScreenPreview() {
         AlbumDetailScreen(
             albumId = 1,
             onBackClick = {},
+            navController = rememberNavController(),
             onNavigateToNowPlaying = {}
         )
     }

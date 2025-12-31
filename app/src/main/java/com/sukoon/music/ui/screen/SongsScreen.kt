@@ -34,18 +34,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 
 /**
  * Songs Screen - Displays all songs in alphabetical order with search functionality.
- *
- * @param onBackClick Callback to navigate back
- * @param viewModel ViewModel for song data and playback control
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,7 +87,7 @@ fun SongsScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back"
-                            )
+                              )
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -321,7 +316,10 @@ private fun SongListItem(
             }
 
             // More options menu
-            IconButton(onClick = { showMenu = true }) {
+            IconButton(onClick = {
+                showMenu = true
+                android.util.Log.d("SongMenu", "Click registered for: ${song.title}")
+            }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",

@@ -36,21 +36,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
 /**
  * Playlist Detail Screen - Shows songs in a specific playlist.
- *
- * Features:
- * - Playlist header with metadata
- * - Play All and Shuffle buttons
- * - List of songs with remove functionality
- * - Empty state when no songs
- * - Song playback on tap
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -667,12 +658,6 @@ private fun PlaylistDetailMiniPlayer(
 
 /**
  * Dialog for selecting songs to add to a playlist.
- *
- * Features:
- * - Search bar for filtering songs
- * - Multi-selection with checkboxes
- * - Shows count of selected songs
- * - Cancel and Add buttons
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

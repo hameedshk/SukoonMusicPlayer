@@ -77,12 +77,19 @@ class AlbumsViewModel @Inject constructor(
     )
 
     /**
-     * Recently played albums - for now using a subset of all albums as placeholder
-     * In a real app, this would come from a dedicated "recent" repository.
+     * Recently played albums - albums that contain recently played songs.
      */
-    val recentlyPlayedAlbums: StateFlow<List<Album>> = songRepository.getAllAlbums()
-        .map { it.take(5) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val recentlyPlayedAlbums: StateFlow<List<Album>> = combine(
+        songRepository.getRecentlyPlayed(),
+        songRepository.getAllAlbums()
+    ) { recentSongs: List<com.sukoon.music.domain.model.Song>, allAlbums: List<Album> ->
+        // Get unique album names from recently played songs
+        val recentAlbumNames = recentSongs.map { it.album }.distinct()
+        // Get the albums matching those names, maintaining recency order
+        recentAlbumNames.mapNotNull { albumName ->
+            allAlbums.find { it.title == albumName }
+        }.take(6) // Limit to 6 most recent
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
@@ -145,7 +152,7 @@ class AlbumsViewModel @Inject constructor(
     fun playSelectedAlbums() {
         val ids = _selectedAlbumIds.value
         if (ids.isEmpty()) return
-        
+
         viewModelScope.launch {
             val allSelectedSongs = ids.flatMap { id ->
                 songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
@@ -157,4 +164,59 @@ class AlbumsViewModel @Inject constructor(
             }
         }
     }
+
+    fun playAlbumNext(albumId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByAlbumId(albumId)
+                .firstOrNull()?.let { albumSongs ->
+                    albumSongs.forEach { song ->
+                        playbackRepository.playNext(song)
+                    }
+                }
+        }
+    }
+
+    fun addAlbumToQueue(albumId: Long) {
+        viewModelScope.launch {
+            songRepository.getSongsByAlbumId(albumId)
+                .firstOrNull()?.let { albumSongs ->
+                    albumSongs.forEach { song ->
+                        playbackRepository.addToQueue(song)
+                    }
+                }
+        }
+    }
+
+    fun addSelectedAlbumsToQueue() {
+        val ids = _selectedAlbumIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            }
+            allSelectedSongs.forEach { song ->
+                playbackRepository.addToQueue(song)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun deleteSelectedAlbums() {
+        val ids = _selectedAlbumIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            // TODO: Implement delete functionality via SongRepository
+            // For now, just clear selection
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun getSelectedAlbumSongs(): List<Long> {
+        return _selectedAlbumIds.value.toList()
+    }
+
+    suspend fun getSongsForAlbum(albumId: Long) =
+        songRepository.getSongsByAlbumId(albumId).firstOrNull() ?: emptyList()
 }

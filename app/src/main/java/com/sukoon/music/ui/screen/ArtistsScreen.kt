@@ -26,7 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Artist
-import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.AddToPlaylistBottomSheet
 import com.sukoon.music.ui.components.BannerAdView
 import com.sukoon.music.ui.components.RecentlyPlayedArtistsRow
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -63,6 +63,8 @@ fun ArtistsScreen(
     val artists by viewModel.artists.collectAsStateWithLifecycle()
     val recentlyPlayedArtists by viewModel.recentlyPlayedArtists.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedArtistIds by viewModel.selectedArtistIds.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var showMenuForArtist by remember { mutableStateOf<Artist?>(null) }
@@ -70,194 +72,159 @@ fun ArtistsScreen(
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var artistToAddToPlaylist by remember { mutableStateOf<Artist?>(null) }
     var showSortDialog by remember { mutableStateOf(false) }
-    var isSelectionMode by remember { mutableStateOf(false) }
-    var selectedArtistIds by remember { mutableStateOf(setOf<Long>()) }
+    var artistSongsForPlaylist by remember { mutableStateOf<List<com.sukoon.music.domain.model.Song>>(emptyList()) }
+    var pendingArtistForPlaylist by remember { mutableStateOf<Long?>(null) }
 
     val scope = rememberCoroutineScope()
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (artists.isEmpty()) {
-            EmptyArtistsState()
-        } else {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header
-                if (isSelectionMode) {
-                    // Selection mode header
-                    Surface(
-                        modifier = Modifier.fillMaxWidth(),
-                        tonalElevation = 2.dp
-                    ) {
+    // Handle pending artist for playlist
+    LaunchedEffect(pendingArtistForPlaylist) {
+        pendingArtistForPlaylist?.let { artistId ->
+            artistSongsForPlaylist = viewModel.songRepository.getSongsByArtistId(artistId).first()
+            showAddToPlaylistDialog = true
+            pendingArtistForPlaylist = null
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${selectedArtistIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            } else {
+                TopAppBar(
+                    title = { Text("Artists") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        },
+        bottomBar = {
+            if (isSelectionMode && selectedArtistIds.isNotEmpty()) {
+                ArtistSelectionBottomBar(
+                    onPlay = { viewModel.playSelectedArtists() },
+                    onAddToPlaylist = {
+                        val firstArtistId = selectedArtistIds.firstOrNull()
+                        if (firstArtistId != null) {
+                            pendingArtistForPlaylist = firstArtistId
+                        }
+                    },
+                    onDelete = {
+                        selectedArtistIds.firstOrNull()?.let { artistId ->
+                            artistToDelete = artists.find { it.id == artistId }
+                        }
+                    },
+                    onMore = { /* TODO: Show more options */ }
+                )
+            }
+        }
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            if (artists.isEmpty()) {
+                EmptyArtistsState()
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (!isSelectionMode) {
+                        // Normal mode header with count and icons
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 4.dp, vertical = 8.dp),
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            IconButton(onClick = {
-                                isSelectionMode = false
-                                selectedArtistIds = emptySet()
-                            }) {
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Exit selection"
-                                )
-                            }
                             Text(
-                                text = "${selectedArtistIds.size} selected",
-                                style = MaterialTheme.typography.titleLarge,
+                                text = "${artists.size} ${if (artists.size == 1) "artist" else "artists"}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
                             )
-                        }
-                    }
-
-                    // Search bar in selection mode
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        placeholder = { Text("Search artists") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
-                        shape = RoundedCornerShape(24.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-                        )
-                    )
-
-                    // Select all
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                selectedArtistIds = if (selectedArtistIds.size == artists.size) {
-                                    emptySet()
-                                } else {
-                                    artists.map { it.id }.toSet()
+                            Row {
+                                IconButton(onClick = { showSortDialog = true }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Sort,
+                                        contentDescription = "Sort"
+                                    )
+                                }
+                                IconButton(onClick = { viewModel.toggleSelectionMode(true) }) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Select"
+                                    )
                                 }
                             }
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Select all",
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Checkbox(
-                            checked = selectedArtistIds.size == artists.size,
-                            onCheckedChange = null
-                        )
-                    }
-                } else {
-                    // Normal mode header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "${artists.size} ${if (artists.size == 1) "artist" else "artists"}",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        IconButton(onClick = { showSortDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Sort"
-                            )
                         }
-                        IconButton(onClick = {
-                            isSelectionMode = true
-                            selectedArtistIds = emptySet()
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Select"
-                            )
+
+                        // Recently played section
+                        if (recentlyPlayedArtists.isNotEmpty()) {
+                            Column {
+                                RecentlyPlayedArtistsRow(
+                                    artists = recentlyPlayedArtists,
+                                    onArtistClick = { id ->
+                                        onNavigateToArtist(id)
+                                        viewModel.logArtistInteraction(id)
+                                    },
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    thickness = 0.5.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant
+                                )
+                            }
                         }
                     }
 
-                    // Recently played section
-                    if (recentlyPlayedArtists.isNotEmpty()) {
-                        Column {
-                            RecentlyPlayedArtistsRow(
-                                artists = recentlyPlayedArtists,
+                    // Artists list
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (isSelectionMode) {
+                            ArtistsListSelectable(
+                                artists = artists,
+                                selectedArtistIds = selectedArtistIds,
+                                onArtistClick = { artist ->
+                                    viewModel.toggleArtistSelection(artist.id)
+                                }
+                            )
+                        } else {
+                            ArtistsListWithMenu(
+                                artists = artists,
                                 onArtistClick = { id ->
                                     onNavigateToArtist(id)
                                     viewModel.logArtistInteraction(id)
                                 },
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            HorizontalDivider(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                thickness = 0.5.dp,
-                                color = MaterialTheme.colorScheme.outlineVariant
+                                onMenuClick = { artist -> showMenuForArtist = artist },
+                                adMobManager = playlistViewModel.adMobManager
                             )
                         }
-                    }
-                }
 
-                // Artists list
-                Box(modifier = Modifier.weight(1f)) {
-                    if (isSelectionMode) {
-                        ArtistsListSelectable(
-                            artists = artists,
-                            selectedArtistIds = selectedArtistIds,
-                            onArtistClick = { artist ->
-                                selectedArtistIds = if (selectedArtistIds.contains(artist.id)) {
-                                    selectedArtistIds - artist.id
-                                } else {
-                                    selectedArtistIds + artist.id
-                                }
-                            }
-                        )
-                    } else {
-                        ArtistsListWithMenu(
-                            artists = artists,
-                            onArtistClick = { id ->
-                                onNavigateToArtist(id)
-                                viewModel.logArtistInteraction(id)
-                            },
-                            onMenuClick = { artist -> showMenuForArtist = artist },
-                            adMobManager = playlistViewModel.adMobManager
-                        )
-                    }
-
-                    // Alphabet scroller
-                    if (!isSelectionMode) {
-                        AlphabetScroller(
-                            modifier = Modifier.align(Alignment.CenterEnd),
-                            onLetterClick = { /* TODO: Scroll to letter */ }
-                        )
-                    }
-                }
-            }
-
-            // Selection mode bottom action bar
-            if (isSelectionMode && selectedArtistIds.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth(),
-                    tonalElevation = 8.dp,
-                    color = MaterialTheme.colorScheme.surface
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        SelectionActionButton(icon = Icons.Default.PlayArrow, label = "Play", onClick = { /* TODO */ })
-                        SelectionActionButton(icon = Icons.Default.PlaylistAdd, label = "Playlist", onClick = { /* TODO */ })
-                        SelectionActionButton(icon = Icons.Default.Add, label = "Add", onClick = { /* TODO */ })
-                        SelectionActionButton(icon = Icons.Default.Delete, label = "Delete", onClick = { /* TODO */ })
-                        SelectionActionButton(icon = Icons.Default.MoreVert, label = "More", onClick = { /* TODO */ })
+                        // Alphabet scroller
+                        if (!isSelectionMode) {
+                            AlphabetScroller(
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                onLetterClick = { /* TODO: Scroll to letter */ }
+                            )
+                        }
                     }
                 }
             }
@@ -282,8 +249,7 @@ fun ArtistsScreen(
                     showMenuForArtist = null
                 },
                 onAddToPlaylist = {
-                    artistToAddToPlaylist = showMenuForArtist
-                    showAddToPlaylistDialog = true
+                    pendingArtistForPlaylist = showMenuForArtist!!.id
                     showMenuForArtist = null
                 },
                 onEditTags = {
@@ -301,26 +267,21 @@ fun ArtistsScreen(
             )
         }
 
-        // Add to playlist dialog
-        if (showAddToPlaylistDialog && artistToAddToPlaylist != null) {
-            AddToPlaylistDialog(
+        // Add to playlist bottom sheet
+        if (showAddToPlaylistDialog) {
+            AddToPlaylistBottomSheet(
                 playlists = playlists,
                 onPlaylistSelected = { playlistId ->
-                    val artistId = artistToAddToPlaylist!!.id
-                    scope.launch {
-                        viewModel.songRepository.getSongsByArtistId(artistId).first().let { songs ->
-                            songs.forEach { song ->
-                                playlistViewModel.addSongToPlaylist(playlistId, song.id)
-                            }
-                        }
-                        showAddToPlaylistDialog = false
-                        artistToAddToPlaylist = null
+                    artistSongsForPlaylist.forEach { song ->
+                        playlistViewModel.addSongToPlaylist(playlistId, song.id)
                     }
-                },
-                onDismiss = {
                     showAddToPlaylistDialog = false
-                    artistToAddToPlaylist = null
-                }
+                },
+                onCreatePlaylist = {
+                    // TODO: Show create playlist dialog
+                    showAddToPlaylistDialog = false
+                },
+                onDismiss = { showAddToPlaylistDialog = false }
             )
         }
 
@@ -562,9 +523,9 @@ private fun ArtistItemSelectable(
         }
 
         // Checkbox
-        RadioButton(
-            selected = isSelected,
-            onClick = null
+        Checkbox(
+            checked = isSelected,
+            onCheckedChange = { onClick() }
         )
     }
 }
@@ -820,26 +781,89 @@ private fun AlphabetScroller(
 }
 
 @Composable
-private fun SelectionActionButton(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
+private fun ArtistSelectionBottomBar(
+    onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDelete: () -> Unit,
+    onMore: () -> Unit
 ) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable(onClick = onClick)
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 11.sp
-        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onPlay)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Play",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Play",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onAddToPlaylist)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlaylistAdd,
+                    contentDescription = "Add to playlist",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Add to playlist",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onDelete)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Delete",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.clickable(onClick = onMore)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More",
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "More",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
     }
 }
 

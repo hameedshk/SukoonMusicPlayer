@@ -22,20 +22,12 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
 
 /**
  * Smart Playlist Detail Screen - Shows songs in a smart playlist.
- *
- * Features:
- * - Displays songs based on smart playlist type (Liked, Last Added, Recently Played, Most Played)
- * - Play All and Shuffle buttons
- * - Individual song playback
- * - Empty state when no songs
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

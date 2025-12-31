@@ -29,23 +29,12 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.SearchHistory
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SortMode
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
 
 /**
  * Enhanced Search Screen - Search and filter local music library with history and sorting.
- *
- * Features:
- * - Real-time search with query input
- * - Search history (last 10 queries, persistent)
- * - Filter by liked songs only
- * - Sort by relevance, title, artist, or date added
- * - Play song on tap
- * - Like/unlike functionality
- * - Empty states for no results and initial state
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

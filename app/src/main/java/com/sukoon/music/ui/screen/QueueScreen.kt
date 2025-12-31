@@ -26,20 +26,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Queue
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.QueueViewModel
 import org.burnoutcrew.reorderable.*
 
 /**
  * Queue Screen - Shows current playback queue with reordering and saved queues.
- *
- * Features:
- * - Current playback queue with drag-and-drop reordering
- * - Save current queue functionality
- * - List of saved queues
- * - Load/delete saved queues
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

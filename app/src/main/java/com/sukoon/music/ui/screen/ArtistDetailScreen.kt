@@ -28,21 +28,12 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
 
 /**
  * Artist Detail Screen - Shows artist info with Songs and Albums tabs.
- *
- * Features:
- * - Artist header with circular artwork, name, and stats
- * - Play and Shuffle buttons for all artist songs
- * - Tabs for Songs and Albums
- * - Songs tab: List of all songs by artist
- * - Albums tab: Grid of all albums by artist
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

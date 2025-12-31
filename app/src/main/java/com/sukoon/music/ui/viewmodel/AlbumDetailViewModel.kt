@@ -13,6 +13,13 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+enum class AlbumSongSortMode {
+    TRACK_NUMBER,
+    TITLE,
+    ARTIST,
+    DURATION
+}
+
 /**
  * ViewModel for Album Detail screen.
  */
@@ -24,6 +31,14 @@ class AlbumDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val _albumId = MutableStateFlow<Long>(-1)
+    private val _sortMode = MutableStateFlow(AlbumSongSortMode.TRACK_NUMBER)
+    val sortMode: StateFlow<AlbumSongSortMode> = _sortMode.asStateFlow()
+
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
+
+    private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedSongIds: StateFlow<Set<Long>> = _selectedSongIds.asStateFlow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val album: StateFlow<Album?> = _albumId
@@ -38,16 +53,25 @@ class AlbumDetailViewModel @Inject constructor(
         )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val albumSongs: StateFlow<List<Song>> = _albumId
-        .flatMapLatest { id ->
-            if (id == -1L) flowOf(emptyList())
-            else songRepository.getSongsByAlbumId(id)
+    val albumSongs: StateFlow<List<Song>> = combine(
+        _albumId,
+        _sortMode
+    ) { id, sortMode ->
+        if (id == -1L) emptyList()
+        else {
+            val songs = songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            when (sortMode) {
+                AlbumSongSortMode.TRACK_NUMBER -> songs // Keep original order (usually track number)
+                AlbumSongSortMode.TITLE -> songs.sortedBy { it.title.lowercase() }
+                AlbumSongSortMode.ARTIST -> songs.sortedBy { it.artist.lowercase() }
+                AlbumSongSortMode.DURATION -> songs.sortedByDescending { it.duration }
+            }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
@@ -106,6 +130,70 @@ class AlbumDetailViewModel @Inject constructor(
     fun toggleLike(songId: Long, isLiked: Boolean) {
         viewModelScope.launch {
             songRepository.updateLikeStatus(songId, !isLiked)
+        }
+    }
+
+    fun setSortMode(mode: AlbumSongSortMode) {
+        _sortMode.value = mode
+    }
+
+    fun toggleSelectionMode(enabled: Boolean) {
+        _isSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedSongIds.value = emptySet()
+        }
+    }
+
+    fun toggleSongSelection(songId: Long) {
+        val current = _selectedSongIds.value
+        _selectedSongIds.value = if (current.contains(songId)) {
+            current - songId
+        } else {
+            current + songId
+        }
+    }
+
+    fun selectAllSongs(songs: List<Song>) {
+        _selectedSongIds.value = songs.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedSongIds.value = emptySet()
+    }
+
+    fun playSelectedSongs(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playQueue(selectedSongs, startIndex = 0)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    fun addSelectedToQueue(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            selectedSongs.forEach { song ->
+                playbackRepository.addToQueue(song)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun deleteSelectedSongs() {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            // TODO: Implement delete functionality
+            toggleSelectionMode(false)
         }
     }
 }

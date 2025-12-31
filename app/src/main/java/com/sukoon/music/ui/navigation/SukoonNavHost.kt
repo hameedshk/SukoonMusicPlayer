@@ -217,6 +217,9 @@ fun SukoonNavHost(
                 },
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToSmartPlaylist = { smartPlaylistType ->
+                    navController.navigate(Routes.SmartPlaylistDetail.createRoute(smartPlaylistType.name))
                 }
             )
         }
@@ -234,6 +237,7 @@ fun SukoonNavHost(
                 onBackClick = {
                     navController.navigateUp()
                 },
+                navController = navController,
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
                 }

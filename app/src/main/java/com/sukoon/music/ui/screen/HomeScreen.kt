@@ -249,7 +249,8 @@ fun HomeScreen(
                                         permissionState.requestPermission()
                                     }
                                 },
-                                onSettingsClick = onNavigateToSettings
+                                onSettingsClick = onNavigateToSettings,
+                                onNavigateToSmartPlaylist = onNavigateToSmartPlaylist
                             )
                         }
                         "Songs" -> {
@@ -452,7 +453,8 @@ private fun ForYouContent(
     onShuffleAllClick: () -> Unit,
     onPlayAllClick: () -> Unit,
     onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -474,6 +476,9 @@ private fun ForYouContent(
                     onSongClick = { song ->
                         val index = songs.indexOf(song)
                         onSongClick(song, index)
+                    },
+                    onHeaderClick = {
+                        onNavigateToSmartPlaylist(SmartPlaylistType.LAST_ADDED)
                     }
                 )
             }
@@ -482,7 +487,10 @@ private fun ForYouContent(
             item {
                 RecentlyPlayedSection(
                     songs = recentlyPlayed,
-                    onSongClick = onRecentlyPlayedClick
+                    onSongClick = onRecentlyPlayedClick,
+                    onHeaderClick = {
+                        onNavigateToSmartPlaylist(SmartPlaylistType.RECENTLY_PLAYED)
+                    }
                 )
             }
         }
@@ -1172,7 +1180,8 @@ private fun ActionButton(
 @Composable
 private fun LastAddedSection(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit
+    onSongClick: (Song) -> Unit,
+    onHeaderClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1182,6 +1191,7 @@ private fun LastAddedSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onHeaderClick)
                 .padding(horizontal = SpacingLarge),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -1320,7 +1330,8 @@ private fun LastAddedCard(
 @Composable
 private fun RecentlyPlayedSection(
     songs: List<Song>,
-    onSongClick: (Song) -> Unit
+    onSongClick: (Song) -> Unit,
+    onHeaderClick: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -1330,6 +1341,7 @@ private fun RecentlyPlayedSection(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .clickable(onClick = onHeaderClick)
                 .padding(horizontal = SpacingLarge),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -1940,7 +1952,10 @@ private fun AlbumsContent(
                     item {
                         RecentlyPlayedAlbumsSection(
                             albums = recentlyPlayedAlbums,
-                            onAlbumClick = onAlbumClick
+                            onAlbumClick = onAlbumClick,
+                            onHeaderClick = {
+                                // TODO: Navigate to recently played screen
+                            }
                         )
                     }
                 }
@@ -1950,7 +1965,8 @@ private fun AlbumsContent(
                     item {
                         AlbumSortHeader(
                             albumCount = albums.size,
-                            onSortClick = { showSortDialog = true }
+                            onSortClick = { showSortDialog = true },
+                            onSelectionClick = { viewModel.toggleSelectionMode(true) }
                         )
                     }
                 }
@@ -2290,15 +2306,52 @@ private fun GenresContent(
 @Composable
 private fun RecentlyPlayedAlbumsSection(
     albums: List<Album>,
-    onAlbumClick: (Long) -> Unit
+    onAlbumClick: (Long) -> Unit,
+    onHeaderClick: () -> Unit = {}
 ) {
-    Column(modifier = Modifier.padding(vertical = 16.dp)) {
-        Text(
-            text = "Recently played",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onHeaderClick)
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "Recently played",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Icon(
+                imageVector = Icons.Default.ArrowForward,
+                contentDescription = "See all",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         LazyRow(
+            modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -2362,7 +2415,8 @@ private fun RecentlyPlayedAlbumCard(
 @Composable
 private fun AlbumSortHeader(
     albumCount: Int,
-    onSortClick: () -> Unit
+    onSortClick: () -> Unit,
+    onSelectionClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
@@ -2377,12 +2431,15 @@ private fun AlbumSortHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
+            IconButton(onClick = onSelectionClick) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+            }
             IconButton(onClick = onSortClick) {
                 Icon(Icons.Default.Sort, contentDescription = "Sort")
             }
-            IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
+            /*IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
-            }
+            }*/
         }
     }
 }

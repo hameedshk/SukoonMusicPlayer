@@ -23,23 +23,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.SongContextMenu
-import SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.LikedSongsViewModel
 import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
 
 /**
  * Enhanced Liked Songs Screen - Shows all user-favorited songs with filtering and sorting.
- *
- * Features:
- * - Filter by artist/album with dropdowns
- * - Sort by title, artist, album, date added
- * - Play All / Shuffle All buttons
- * - Song count in header
- * - Unlike functionality
- * - Empty state when no liked songs
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

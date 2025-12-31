@@ -12,14 +12,14 @@ interface RecentlyPlayedDao {
 
     /**
      * Get the most recently played songs, sorted by last played timestamp.
-     * Limited to 6 songs for the 2x3 grid display.
+     * Limited to 30 songs for recently played section.
      *
      * @return Flow of recently played song IDs
      */
     @Query("""
         SELECT * FROM recently_played
         ORDER BY lastPlayedAt DESC
-        LIMIT 6
+        LIMIT 30
     """)
     fun getRecentlyPlayed(): Flow<List<RecentlyPlayedEntity>>
 
