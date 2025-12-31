@@ -24,6 +24,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import com.sukoon.music.ui.components.SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderDetailViewModel
 
@@ -52,6 +55,11 @@ fun FolderDetailScreen(
     val folder by viewModel.folder.collectAsStateWithLifecycle()
     val songs by viewModel.folderSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     // Handle case where folder is deleted or excluded while viewing
     LaunchedEffect(folder) {
@@ -83,6 +91,7 @@ fun FolderDetailScreen(
                 folder = folder!!,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                menuHandler = menuHandler,
                 onPlayAll = { viewModel.playFolder(songs) },
                 onShuffle = { viewModel.shuffleFolder(songs) },
                 onSongClick = { song -> viewModel.playSong(song, songs) },
@@ -100,6 +109,7 @@ private fun FolderDetailContent(
     folder: Folder,
     songs: List<Song>,
     currentSongId: Long?,
+    menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
@@ -133,6 +143,7 @@ private fun FolderDetailContent(
                     song = song,
                     index = index + 1,
                     isCurrentlyPlaying = song.id == currentSongId,
+                    menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onLikeClick = { onToggleLike(song.id, song.isLiked) }
                 )
@@ -291,9 +302,12 @@ private fun FolderSongItem(
     song: Song,
     index: Int,
     isCurrentlyPlaying: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -357,6 +371,15 @@ private fun FolderSongItem(
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
 
+            // More options menu
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
             // Like Button
             IconButton(onClick = onLikeClick) {
                 Icon(
@@ -374,6 +397,14 @@ private fun FolderSongItem(
                 )
             }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -35,6 +36,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
@@ -165,6 +169,11 @@ private fun PlaylistDetailContent(
     var showAddSongsDialog by remember { mutableStateOf(false) }
     val availableSongs by viewModel.songsNotInPlaylist.collectAsStateWithLifecycle()
 
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 16.dp)
@@ -192,6 +201,7 @@ private fun PlaylistDetailContent(
                 PlaylistSongItem(
                     song = song,
                     index = index + 1,
+                    menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onRemoveClick = { onRemoveSong(song) }
                 )
@@ -363,9 +373,12 @@ private fun PlaylistHeader(
 private fun PlaylistSongItem(
     song: Song,
     index: Int,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onRemoveClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -459,6 +472,19 @@ private fun PlaylistSongItem(
                 )
             }
 
+            // More options menu
+            IconButton(
+                onClick = { showMenu = true },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
             // Remove Button
             IconButton(
                 onClick = onRemoveClick,
@@ -472,6 +498,14 @@ private fun PlaylistSongItem(
                 )
             }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

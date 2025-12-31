@@ -24,7 +24,7 @@ import javax.inject.Inject
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository,
+    val playbackRepository: PlaybackRepository,
     private val lyricsRepository: LyricsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {

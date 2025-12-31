@@ -26,7 +26,7 @@ import javax.inject.Inject
 @HiltViewModel
 class FolderDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     private var currentFolderId: Long = -1

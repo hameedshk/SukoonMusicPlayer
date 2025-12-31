@@ -29,6 +29,9 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.SearchHistory
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SortMode
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
 
@@ -57,6 +60,10 @@ fun SearchScreen(
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
 
     var showSortMenu by remember { mutableStateOf(false) }
+
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     Scaffold(
         topBar = {
@@ -139,6 +146,7 @@ fun SearchScreen(
                 else -> {
                     SearchResultsContent(
                         songs = searchResults,
+                        menuHandler = menuHandler,
                         onSongClick = { song -> viewModel.playSong(song) },
                         onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) }
                     )
@@ -399,6 +407,7 @@ private fun getSortModeLabel(mode: SortMode): String {
 @Composable
 private fun SearchResultsContent(
     songs: List<Song>,
+    menuHandler: SongMenuHandler,
     onSongClick: (Song) -> Unit,
     onLikeClick: (Song) -> Unit,
     modifier: Modifier = Modifier
@@ -424,6 +433,7 @@ private fun SearchResultsContent(
         ) { song ->
             SearchResultItem(
                 song = song,
+                menuHandler = menuHandler,
                 onClick = { onSongClick(song) },
                 onLikeClick = { onLikeClick(song) }
             )
@@ -434,9 +444,12 @@ private fun SearchResultsContent(
 @Composable
 private fun SearchResultItem(
     song: Song,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -517,6 +530,15 @@ private fun SearchResultItem(
                 )
             }
 
+            // More options menu
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
+
             // Like Button
             IconButton(onClick = onLikeClick) {
                 Icon(
@@ -527,6 +549,14 @@ private fun SearchResultItem(
                 )
             }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

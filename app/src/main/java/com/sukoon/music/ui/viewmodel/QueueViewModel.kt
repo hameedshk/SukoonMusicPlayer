@@ -32,7 +32,7 @@ import javax.inject.Inject
 @HiltViewModel
 class QueueViewModel @Inject constructor(
     private val queueRepository: QueueRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     // ============================================

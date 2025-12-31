@@ -2,6 +2,7 @@ package com.sukoon.music.data.local.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Embedded
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -12,6 +13,15 @@ import com.sukoon.music.data.local.entity.PlaylistSongCrossRef
 import com.sukoon.music.data.local.entity.PlaylistWithSongs
 import com.sukoon.music.data.local.entity.SongEntity
 import kotlinx.coroutines.flow.Flow
+
+/**
+ * POJO for playlist metadata with its song count.
+ * Used for reactive updates in the playlist list.
+ */
+data class PlaylistWithSongCount(
+    @Embedded val playlist: PlaylistEntity,
+    val songCount: Int
+)
 
 /**
  * Data Access Object for Playlist operations.
@@ -36,6 +46,18 @@ interface PlaylistDao {
      */
     @Query("SELECT * FROM playlists ORDER BY createdAt DESC")
     fun getAllPlaylists(): Flow<List<PlaylistEntity>>
+
+    /**
+     * Get all playlists with their song counts.
+     * Uses a subquery to ensure the Flow emits whenever the junction table changes.
+     */
+    @Transaction
+    @Query("""
+        SELECT *, (SELECT COUNT(*) FROM playlist_song_cross_ref WHERE playlistId = id) as songCount 
+        FROM playlists 
+        ORDER BY createdAt DESC
+    """)
+    fun getAllPlaylistsWithCount(): Flow<List<PlaylistWithSongCount>>
 
     /**
      * Get a specific playlist by ID.
@@ -82,6 +104,13 @@ interface PlaylistDao {
     @Transaction
     @Query("SELECT * FROM playlists WHERE id = :playlistId")
     suspend fun getPlaylistWithSongs(playlistId: Long): PlaylistWithSongs?
+
+    /**
+     * Get a playlist with all its songs as a Flow.
+     */
+    @Transaction
+    @Query("SELECT * FROM playlists WHERE id = :playlistId")
+    fun getPlaylistWithSongsFlow(playlistId: Long): Flow<PlaylistWithSongs?>
 
     /**
      * Get all playlists with their songs.

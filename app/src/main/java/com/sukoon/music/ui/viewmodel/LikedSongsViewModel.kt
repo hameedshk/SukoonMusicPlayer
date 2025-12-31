@@ -29,7 +29,7 @@ import javax.inject.Inject
 @HiltViewModel
 class LikedSongsViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     // --- Filter and Sort State ---

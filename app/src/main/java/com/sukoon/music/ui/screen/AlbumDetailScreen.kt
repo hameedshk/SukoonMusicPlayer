@@ -29,6 +29,9 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.BannerAdView
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
@@ -53,6 +56,11 @@ fun AlbumDetailScreen(
     val album by viewModel.album.collectAsStateWithLifecycle()
     val songs by viewModel.albumSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     Scaffold(
         topBar = {
@@ -99,6 +107,7 @@ fun AlbumDetailScreen(
                 album = album!!,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                menuHandler = menuHandler,
                 onPlayAll = { viewModel.playAlbum(songs) },
                 onShuffle = { viewModel.shuffleAlbum(songs) },
                 onSongClick = { song -> viewModel.playSong(song, songs) },
@@ -116,6 +125,7 @@ private fun AlbumDetailContent(
     album: Album,
     songs: List<Song>,
     currentSongId: Long?,
+    menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
@@ -204,6 +214,7 @@ private fun AlbumDetailContent(
                 AlbumSongItemRow(
                     song = song,
                     isCurrentlyPlaying = song.id == currentSongId,
+                    menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onToggleLike = { onToggleLike(song.id, song.isLiked) }
                 )
@@ -289,9 +300,12 @@ private fun AlbumHeader(
 private fun AlbumSongItemRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onToggleLike: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -339,13 +353,21 @@ private fun AlbumSongItemRow(
         }
 
         // More options button
-        IconButton(onClick = { /* TODO: Song options */ }) {
+        IconButton(onClick = { showMenu = true }) {
             Icon(
-                imageVector = Icons.Default.MoreHoriz,
-                contentDescription = "More",
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

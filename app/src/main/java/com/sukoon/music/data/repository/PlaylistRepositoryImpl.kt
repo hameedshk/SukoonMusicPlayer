@@ -19,9 +19,7 @@ import com.sukoon.music.domain.repository.PlaylistRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -29,12 +27,6 @@ import javax.inject.Singleton
 
 /**
  * Implementation of PlaylistRepository using Room database.
- *
- * Responsibilities:
- * - Map between database entities (PlaylistEntity, SongEntity) and domain models (Playlist, Song)
- * - Combine multiple data sources (playlists + song counts) for reactive updates
- * - Execute database operations on IO dispatcher
- * - Provide reactive Flows for UI observation
  */
 @Singleton
 class PlaylistRepositoryImpl @Inject constructor(
@@ -51,22 +43,19 @@ class PlaylistRepositoryImpl @Inject constructor(
     // ============================================
 
     override fun getAllPlaylists(): Flow<List<Playlist>> {
-        // Combine playlists with their song counts for reactive updates
-        return playlistDao.getAllPlaylists()
-            .combine(flow { emit(getAllSongCounts()) }) { playlists, counts ->
-                playlists.map { entity ->
-                    entity.toPlaylist(songCount = counts[entity.id] ?: 0)
-                }
+        // Use the optimized query with subquery count for reliable reactive updates
+        return playlistDao.getAllPlaylistsWithCount().map { list ->
+            list.map { item ->
+                item.playlist.toPlaylist(songCount = item.songCount)
             }
+        }
     }
 
     override fun getPlaylistWithSongs(playlistId: Long): Flow<Playlist?> {
-        // Get playlist metadata combined with its songs
-        return playlistDao.getSongsInPlaylist(playlistId)
-            .map { songs ->
-                val playlist = playlistDao.getPlaylistById(playlistId)
-                playlist?.toPlaylist(songCount = songs.size)
-            }
+        // Use the reactive Flow from DAO that handles the relation
+        return playlistDao.getPlaylistWithSongsFlow(playlistId).map { playlistWithSongs ->
+            playlistWithSongs?.playlist?.toPlaylist(songCount = playlistWithSongs.songs.size)
+        }
     }
 
     override suspend fun getPlaylistById(playlistId: Long): Playlist? {
@@ -108,15 +97,10 @@ class PlaylistRepositoryImpl @Inject constructor(
 
     override suspend fun deletePlaylist(playlistId: Long) {
         withContext(Dispatchers.IO) {
-            // First, export the playlist to JSON for backup
             val playlistJson = exportPlaylist(playlistId)
-
             if (playlistJson != null) {
-                // Get playlist info
                 val playlist = playlistDao.getPlaylistById(playlistId)
-
                 if (playlist != null) {
-                    // Save to trash
                     val deletedPlaylist = DeletedPlaylistEntity(
                         originalPlaylistId = playlistId,
                         name = playlist.name,
@@ -129,8 +113,6 @@ class PlaylistRepositoryImpl @Inject constructor(
                     deletedPlaylistDao.insertDeletedPlaylist(deletedPlaylist)
                 }
             }
-
-            // Then delete from main tables
             playlistDao.deletePlaylistById(playlistId)
         }
     }
@@ -147,11 +129,8 @@ class PlaylistRepositoryImpl @Inject constructor(
 
     override suspend fun addSongToPlaylist(playlistId: Long, songId: Long) {
         withContext(Dispatchers.IO) {
-            // Check if song already exists in playlist
             if (!playlistDao.isSongInPlaylist(playlistId, songId)) {
-                // Get current song count to set position
                 val position = playlistDao.getPlaylistSongCount(playlistId)
-
                 val crossRef = PlaylistSongCrossRef(
                     playlistId = playlistId,
                     songId = songId,
@@ -185,21 +164,6 @@ class PlaylistRepositoryImpl @Inject constructor(
     // HELPER METHODS
     // ============================================
 
-    /**
-     * Get song counts for all playlists.
-     * Used for combining with playlist data to show accurate counts.
-     */
-    private suspend fun getAllSongCounts(): Map<Long, Int> {
-        return withContext(Dispatchers.IO) {
-            playlistDao.getAllPlaylists().first().associate { playlist ->
-                playlist.id to playlistDao.getPlaylistSongCount(playlist.id)
-            }
-        }
-    }
-
-    /**
-     * Convert PlaylistEntity to Playlist domain model.
-     */
     private fun PlaylistEntity.toPlaylist(songCount: Int): Playlist {
         return Playlist(
             id = id,
@@ -211,9 +175,6 @@ class PlaylistRepositoryImpl @Inject constructor(
         )
     }
 
-    /**
-     * Convert SongEntity to Song domain model.
-     */
     private fun SongEntity.toSong(): Song {
         return Song(
             id = id,
@@ -237,27 +198,15 @@ class PlaylistRepositoryImpl @Inject constructor(
             try {
                 val playlist = playlistDao.getPlaylistById(playlistId) ?: return@withContext null
                 val songs = playlistDao.getSongsInPlaylist(playlistId).first()
-
                 val exportData = PlaylistExportData(
                     name = playlist.name,
                     description = playlist.description,
                     createdAt = playlist.createdAt,
                     songs = songs.map { song ->
-                        SongExportData(
-                            title = song.title,
-                            artist = song.artist,
-                            album = song.album,
-                            duration = song.duration
-                        )
+                        SongExportData(song.title, song.artist, song.album, song.duration)
                     }
                 )
-
-                val export = PlaylistExport(
-                    version = 1,
-                    playlists = listOf(exportData)
-                )
-
-                gson.toJson(export)
+                gson.toJson(PlaylistExport(version = 1, playlists = listOf(exportData)))
             } catch (e: Exception) {
                 null
             }
@@ -275,22 +224,11 @@ class PlaylistRepositoryImpl @Inject constructor(
                         description = playlist.description,
                         createdAt = playlist.createdAt,
                         songs = songs.map { song ->
-                            SongExportData(
-                                title = song.title,
-                                artist = song.artist,
-                                album = song.album,
-                                duration = song.duration
-                            )
+                            SongExportData(song.title, song.artist, song.album, song.duration)
                         }
                     )
                 }
-
-                val export = PlaylistExport(
-                    version = 1,
-                    playlists = exportDataList
-                )
-
-                gson.toJson(export)
+                gson.toJson(PlaylistExport(version = 1, playlists = exportDataList))
             } catch (e: Exception) {
                 "{\"version\":1,\"playlists\":[]}"
             }
@@ -302,45 +240,31 @@ class PlaylistRepositoryImpl @Inject constructor(
             try {
                 val export = gson.fromJson(json, PlaylistExport::class.java)
                 var importedCount = 0
-
-                // Get all songs from the database to match against
                 val allSongs = songDao.getAllSongs().first()
 
                 export.playlists.forEach { playlistData ->
-                    // Create new playlist
-                    val playlistEntity = PlaylistEntity(
-                        name = playlistData.name,
-                        description = playlistData.description,
-                        coverImageUri = null,
-                        createdAt = System.currentTimeMillis() // Use current time, not imported time
+                    val playlistId = playlistDao.insertPlaylist(
+                        PlaylistEntity(
+                            name = playlistData.name,
+                            description = playlistData.description,
+                            coverImageUri = null,
+                            createdAt = System.currentTimeMillis()
+                        )
                     )
-                    val playlistId = playlistDao.insertPlaylist(playlistEntity)
-
-                    // Match and add songs
                     var position = 0
                     playlistData.songs.forEach { songData ->
-                        // Try to find matching song in local library
                         val matchingSong = allSongs.find { song ->
                             song.title.equals(songData.title, ignoreCase = true) &&
-                            song.artist.equals(songData.artist, ignoreCase = true) &&
-                            song.album.equals(songData.album, ignoreCase = true)
+                            song.artist.equals(songData.artist, ignoreCase = true)
                         }
-
-                        // Add song to playlist if found
                         if (matchingSong != null) {
-                            val crossRef = PlaylistSongCrossRef(
-                                playlistId = playlistId,
-                                songId = matchingSong.id,
-                                addedAt = System.currentTimeMillis(),
-                                position = position++
+                            playlistDao.addSongToPlaylist(
+                                PlaylistSongCrossRef(playlistId, matchingSong.id, System.currentTimeMillis(), position++)
                             )
-                            playlistDao.addSongToPlaylist(crossRef)
                         }
                     }
-
                     importedCount++
                 }
-
                 importedCount
             } catch (e: Exception) {
                 0
@@ -365,20 +289,12 @@ class PlaylistRepositoryImpl @Inject constructor(
     override suspend fun restorePlaylist(deletedPlaylistId: Long): Boolean {
         return withContext(Dispatchers.IO) {
             try {
-                // Get the deleted playlist
                 val deletedPlaylist = deletedPlaylistDao.getDeletedPlaylistById(deletedPlaylistId)
                     ?: return@withContext false
-
-                // Parse the JSON data and import
-                val importedCount = importPlaylists(deletedPlaylist.playlistDataJson)
-
-                // If import successful, remove from trash
-                if (importedCount > 0) {
+                if (importPlaylists(deletedPlaylist.playlistDataJson) > 0) {
                     deletedPlaylistDao.permanentlyDelete(deletedPlaylistId)
                     true
-                } else {
-                    false
-                }
+                } else false
             } catch (e: Exception) {
                 false
             }
@@ -386,36 +302,21 @@ class PlaylistRepositoryImpl @Inject constructor(
     }
 
     override suspend fun permanentlyDeletePlaylist(deletedPlaylistId: Long) {
-        withContext(Dispatchers.IO) {
-            deletedPlaylistDao.permanentlyDelete(deletedPlaylistId)
-        }
+        withContext(Dispatchers.IO) { deletedPlaylistDao.permanentlyDelete(deletedPlaylistId) }
     }
 
     override suspend fun clearTrash() {
-        withContext(Dispatchers.IO) {
-            deletedPlaylistDao.clearTrash()
-        }
+        withContext(Dispatchers.IO) { deletedPlaylistDao.clearTrash() }
     }
 
     override suspend fun cleanupOldDeletedPlaylists() {
         withContext(Dispatchers.IO) {
-            // Delete playlists older than 30 days
             val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
             deletedPlaylistDao.deleteOlderThan(thirtyDaysAgo)
         }
     }
 
-    /**
-     * Convert DeletedPlaylistEntity to DeletedPlaylist domain model.
-     */
     private fun DeletedPlaylistEntity.toDeletedPlaylist(): DeletedPlaylist {
-        return DeletedPlaylist(
-            id = id,
-            name = name,
-            description = description,
-            deletedAt = deletedAt,
-            originalCreatedAt = originalCreatedAt,
-            songIds = emptyList() // We store full JSON, so we don't need individual song IDs
-        )
+        return DeletedPlaylist(id, name, description, deletedAt, originalCreatedAt, emptyList())
     }
 }

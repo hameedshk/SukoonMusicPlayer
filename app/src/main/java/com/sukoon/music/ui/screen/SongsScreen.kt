@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -33,6 +34,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.viewmodel.HomeViewModel
@@ -53,6 +57,11 @@ fun SongsScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     // Sort songs alphabetically and filter by search query
     val filteredSongs = remember(songs, searchQuery) {
@@ -143,6 +152,7 @@ fun SongsScreen(
                     SongListItem(
                         song = song,
                         isPlaying = isPlaying,
+                        menuHandler = menuHandler,
                         onClick = {
                             viewModel.playQueue(songs, index)
                         },
@@ -224,9 +234,12 @@ private fun SearchBar(
 private fun SongListItem(
     song: Song,
     isPlaying: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
@@ -306,6 +319,23 @@ private fun SongListItem(
                     tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+
+            // More options menu
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }

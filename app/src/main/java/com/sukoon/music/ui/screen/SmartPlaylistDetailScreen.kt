@@ -22,6 +22,9 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
 
@@ -58,6 +61,10 @@ fun SmartPlaylistDetailScreen(
 
     val title = SmartPlaylist.getDisplayName(playlistType)
 
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -79,6 +86,7 @@ fun SmartPlaylistDetailScreen(
         SmartPlaylistDetailContent(
             playlistType = playlistType,
             songs = songs,
+            menuHandler = menuHandler,
             onPlayAll = { viewModel.playSmartPlaylist(playlistType) },
             onShuffle = { viewModel.shuffleSmartPlaylist(playlistType) },
             onSongClick = { song -> viewModel.playSong(song) },
@@ -92,6 +100,7 @@ fun SmartPlaylistDetailScreen(
 private fun SmartPlaylistDetailContent(
     playlistType: SmartPlaylistType,
     songs: List<Song>,
+    menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
@@ -125,6 +134,7 @@ private fun SmartPlaylistDetailContent(
                 SmartPlaylistSongItem(
                     song = song,
                     index = index + 1,
+                    menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onLikeClick = { onLikeClick(song) }
                 )
@@ -234,9 +244,12 @@ private fun SmartPlaylistHeader(
 private fun SmartPlaylistSongItem(
     song: Song,
     index: Int,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -328,6 +341,19 @@ private fun SmartPlaylistSongItem(
                 )
             }
 
+            // More options menu
+            IconButton(
+                onClick = { showMenu = true },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
             // Like button
             IconButton(
                 onClick = onLikeClick,
@@ -341,6 +367,14 @@ private fun SmartPlaylistSongItem(
                 )
             }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

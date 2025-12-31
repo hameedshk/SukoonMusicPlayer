@@ -28,6 +28,9 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
 
@@ -55,6 +58,10 @@ fun ArtistDetailScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableStateOf(0) }
+
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     // Load artist when screen opens
     LaunchedEffect(artistId) {
@@ -127,6 +134,7 @@ fun ArtistDetailScreen(
                                 songs = artistSongs,
                                 currentSongId = playbackState.currentSong?.id,
                                 isPlaying = playbackState.isPlaying,
+                                menuHandler = menuHandler,
                                 onSongClick = { song ->
                                     viewModel.playSong(song, artistSongs)
                                 },
@@ -285,6 +293,7 @@ private fun SongsList(
     songs: List<Song>,
     currentSongId: Long?,
     isPlaying: Boolean,
+    menuHandler: SongMenuHandler,
     onSongClick: (Song) -> Unit,
     onLikeClick: (Song) -> Unit
 ) {
@@ -300,6 +309,7 @@ private fun SongsList(
                 song = song,
                 isCurrentSong = song.id == currentSongId,
                 isPlaying = isPlaying && song.id == currentSongId,
+                menuHandler = menuHandler,
                 onClick = { onSongClick(song) },
                 onLikeClick = { onLikeClick(song) }
             )
@@ -313,9 +323,12 @@ private fun SongItem(
     song: Song,
     isCurrentSong: Boolean,
     isPlaying: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     ListItem(
         headlineContent = {
             Text(
@@ -355,16 +368,33 @@ private fun SongItem(
             }
         },
         trailingContent = {
-            IconButton(onClick = onLikeClick) {
-                Icon(
-                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Row {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = onLikeClick) {
+                    Icon(
+                        imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (song.isLiked) "Unlike" else "Like",
+                        tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         },
         modifier = Modifier.clickable(onClick = onClick)
     )
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
+    }
 }
 
 @Composable

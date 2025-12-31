@@ -30,7 +30,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtistDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     private var currentArtistId: Long = -1

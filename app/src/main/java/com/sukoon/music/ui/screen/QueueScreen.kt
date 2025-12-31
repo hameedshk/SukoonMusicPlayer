@@ -26,6 +26,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Queue
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.viewmodel.QueueViewModel
 import org.burnoutcrew.reorderable.*
 
@@ -51,6 +54,11 @@ fun QueueScreen(
 
     var showSaveQueueDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     // Show snackbar for messages
     val snackbarHostState = remember { SnackbarHostState() }
@@ -141,6 +149,7 @@ fun QueueScreen(
                 0 -> CurrentQueueContent(
                     queue = playbackState.queue,
                     currentIndex = playbackState.currentQueueIndex,
+                    menuHandler = menuHandler,
                     onSongClick = { index -> viewModel.playQueueItem(index) },
                     onRemoveSong = { index -> viewModel.removeFromQueue(index) },
                     onReorder = { from, to -> viewModel.reorderQueue(from, to) },
@@ -172,6 +181,7 @@ fun QueueScreen(
 fun CurrentQueueContent(
     queue: List<Song>,
     currentIndex: Int,
+    menuHandler: SongMenuHandler,
     onSongClick: (Int) -> Unit,
     onRemoveSong: (Int) -> Unit,
     onReorder: (Int, Int) -> Unit,
@@ -225,6 +235,7 @@ fun CurrentQueueContent(
                         index = index,
                         isCurrentSong = index == currentIndex,
                         isDragging = isDragging,
+                        menuHandler = menuHandler,
                         onClick = { onSongClick(index) },
                         onRemove = { onRemoveSong(index) },
                         modifier = Modifier
@@ -243,10 +254,12 @@ fun QueueSongItem(
     index: Int,
     isCurrentSong: Boolean,
     isDragging: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showMenu by remember { mutableStateOf(false) }
     val elevation by animateDpAsState(
         targetValue = if (isDragging) 8.dp else 0.dp,
         label = "elevation"
@@ -369,6 +382,19 @@ fun QueueSongItem(
 
             Spacer(modifier = Modifier.width(8.dp))
 
+            // More options menu
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = if (isCurrentSong) {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+                )
+            }
+
             // Remove button
             IconButton(onClick = onRemove) {
                 Icon(
@@ -393,6 +419,14 @@ fun QueueSongItem(
                 }
             )
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 

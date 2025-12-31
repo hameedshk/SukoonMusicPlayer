@@ -32,7 +32,7 @@ import javax.inject.Inject
 class SearchViewModel @Inject constructor(
     private val songRepository: SongRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     // --- Input State (Mutable) ---

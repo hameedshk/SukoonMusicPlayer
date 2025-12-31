@@ -31,7 +31,7 @@ import javax.inject.Inject
 @HiltViewModel
 class SmartPlaylistViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     // ============================================

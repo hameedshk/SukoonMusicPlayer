@@ -19,7 +19,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AlbumDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository,
+    val playbackRepository: PlaybackRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {
 

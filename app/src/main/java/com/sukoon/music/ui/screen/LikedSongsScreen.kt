@@ -23,6 +23,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.SongContextMenu
+import SongMenuHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.LikedSongsViewModel
 import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
@@ -54,6 +57,10 @@ fun LikedSongsScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showArtistMenu by remember { mutableStateOf(false) }
     var showAlbumMenu by remember { mutableStateOf(false) }
+
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
 
     Scaffold(
         topBar = {
@@ -101,6 +108,7 @@ fun LikedSongsScreen(
                 selectedAlbum = selectedAlbum,
                 availableArtists = availableArtists,
                 availableAlbums = availableAlbums,
+                menuHandler = menuHandler,
                 onSongClick = { song -> viewModel.playSong(song) },
                 onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
                 onPlayAll = { viewModel.playAll() },
@@ -157,6 +165,7 @@ private fun LikedSongsContent(
     selectedAlbum: String?,
     availableArtists: List<String>,
     availableAlbums: List<String>,
+    menuHandler: SongMenuHandler,
     onSongClick: (Song) -> Unit,
     onLikeClick: (Song) -> Unit,
     onPlayAll: () -> Unit,
@@ -218,6 +227,7 @@ private fun LikedSongsContent(
         ) { song ->
             LikedSongItem(
                 song = song,
+                menuHandler = menuHandler,
                 onClick = { onSongClick(song) },
                 onLikeClick = { onLikeClick(song) }
             )
@@ -456,9 +466,12 @@ private fun getSortModeLabel(mode: LikedSongsSortMode): String = when (mode) {
 @Composable
 private fun LikedSongItem(
     song: Song,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Surface(
         onClick = onClick,
         modifier = Modifier
@@ -539,6 +552,15 @@ private fun LikedSongItem(
                 )
             }
 
+            // More options menu
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                )
+            }
+
             // Like Button
             IconButton(onClick = onLikeClick) {
                 Icon(
@@ -549,6 +571,14 @@ private fun LikedSongItem(
                 )
             }
         }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 
