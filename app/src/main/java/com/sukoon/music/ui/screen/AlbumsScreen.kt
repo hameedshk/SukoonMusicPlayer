@@ -29,8 +29,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.AlphabetScrollBar
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
+import androidx.compose.foundation.lazy.grid.LazyGridState
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 
 /**
  * Albums Screen - Shows all albums in a grid view.
@@ -143,35 +148,37 @@ fun AlbumsScreen(
                 }
 
                 // Main Albums Grid
-                AlbumsGrid(
-                    albums = albums,
-                    isSelectionMode = isSelectionMode,
-                    selectedAlbumIds = selectedAlbumIds,
-                    onAlbumClick = { album ->
-                        if (isSelectionMode) {
-                            viewModel.toggleAlbumSelection(album.id)
-                        } else {
-                            onNavigateToAlbum(album.id)
-                        }
-                    },
-                    onAlbumLongClick = { album ->
-                        if (!isSelectionMode) {
-                            viewModel.toggleSelectionMode(true)
-                            viewModel.toggleAlbumSelection(album.id)
-                        }
-                    },
-                    onPlayAlbum = { albumId ->
-                        viewModel.playAlbum(albumId)
-                    },
-                    onShuffleAlbum = { albumId ->
-                        viewModel.shuffleAlbum(albumId)
-                    },
-                    onShowContextMenu = { album ->
-                        selectedAlbumForMenu = album
-                    },
-                    onSortClick = { /* TODO: Show sort dialog */ },
-                    onSelectionClick = { viewModel.toggleSelectionMode(true) }
-                )
+                Box(modifier = Modifier.weight(1f)) {
+                    AlbumsGrid(
+                        albums = albums,
+                        isSelectionMode = isSelectionMode,
+                        selectedAlbumIds = selectedAlbumIds,
+                        onAlbumClick = { album ->
+                            if (isSelectionMode) {
+                                viewModel.toggleAlbumSelection(album.id)
+                            } else {
+                                onNavigateToAlbum(album.id)
+                            }
+                        },
+                        onAlbumLongClick = { album ->
+                            if (!isSelectionMode) {
+                                viewModel.toggleSelectionMode(true)
+                                viewModel.toggleAlbumSelection(album.id)
+                            }
+                        },
+                        onPlayAlbum = { albumId ->
+                            viewModel.playAlbum(albumId)
+                        },
+                        onShuffleAlbum = { albumId ->
+                            viewModel.shuffleAlbum(albumId)
+                        },
+                        onShowContextMenu = { album ->
+                            selectedAlbumForMenu = album
+                        },
+                        onSortClick = { /* TODO: Show sort dialog */ },
+                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
+                    )
+                }
             }
         }
 
@@ -240,13 +247,38 @@ private fun AlbumsGrid(
     onSortClick: () -> Unit,
     onSelectionClick: () -> Unit
 ) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
+    val gridState = rememberLazyGridState()
+    val scope = rememberCoroutineScope()
+
+    // Generate alphabet sections from albums
+    val albumsByLetter = remember(albums) {
+        albums.groupBy { album ->
+            val firstChar = album.title.firstOrNull()?.uppercaseChar()
+            if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+        }.toSortedMap()
+    }
+
+    val activeLetter = remember(albums) {
+        derivedStateOf {
+            val firstVisibleIndex = gridState.firstVisibleItemIndex
+            // Skip header (1 item)
+            val albumIndex = (firstVisibleIndex - 1).coerceAtLeast(0)
+            if (albumIndex < albums.size) {
+                val firstChar = albums[albumIndex].title.firstOrNull()?.uppercaseChar()
+                if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
+            } else null
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize(),
+            state = gridState
+        ) {
         // Sort Header spanning 2 columns - only show when NOT in selection mode
         if (!isSelectionMode) {
             item(
@@ -277,6 +309,28 @@ private fun AlbumsGrid(
             )
         }
     }
+
+        // Alphabet scroller - only show when NOT in selection mode
+        if (!isSelectionMode) {
+            AlphabetScrollBar(
+                onLetterClick = { letter ->
+                    scope.launch {
+                        val targetAlbum = albums.find { album ->
+                            val firstChar = album.title.firstOrNull()?.uppercaseChar()?.toString()
+                            firstChar == letter || (letter == "#" && (firstChar == null || !firstChar.first().isLetter()))
+                        }
+                        if (targetAlbum != null) {
+                            val index = albums.indexOf(targetAlbum)
+                            // +1 to account for header
+                            gridState.animateScrollToItem(index + 1)
+                        }
+                    }
+                },
+                activeLetter = activeLetter.value,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -292,7 +346,6 @@ private fun AlbumCard(
     onShowContextMenu: () -> Unit
 ) {
     Card(
-        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(0.9f),
@@ -320,7 +373,9 @@ private fun AlbumCard(
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
                         contentDescription = "Album cover",
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(onClick = onClick),
                         contentScale = ContentScale.Crop,
                         loading = {
                             CircularProgressIndicator(
@@ -328,11 +383,23 @@ private fun AlbumCard(
                             )
                         },
                         error = {
-                            DefaultAlbumCover()
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clickable(onClick = onClick)
+                            ) {
+                                DefaultAlbumCover()
+                            }
                         }
                     )
                 } else {
-                    DefaultAlbumCover()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(onClick = onClick)
+                    ) {
+                        DefaultAlbumCover()
+                    }
                 }
 
                 // Selection checkbox or context menu button
@@ -373,6 +440,7 @@ private fun AlbumCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .clickable(onClick = onClick)
                     .padding(12.dp)
             ) {
                 Text(

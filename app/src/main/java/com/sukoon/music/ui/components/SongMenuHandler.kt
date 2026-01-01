@@ -26,7 +26,8 @@ class SongMenuHandler(
     private val onShowChangeCover: (Song) -> Unit = {},
     private val onShowSetRingtone: (Song) -> Unit = {},
     private val onShowEditAudio: (Song) -> Unit = {},
-    private val onShowUpdateLyrics: (Song) -> Unit = {}
+    private val onShowUpdateLyrics: (Song) -> Unit = {},
+    private val onShowSongInfo: (Song) -> Unit = {}
 ) {
 
     fun handleSetAsRingtone(song: Song) {
@@ -78,6 +79,9 @@ class SongMenuHandler(
         onShowUpdateLyrics(song)
     }
 
+    fun handleShowSongInfo(song: Song) {
+        onShowSongInfo(song)
+    }
     fun handleDeleteFromDevice(song: Song) {
         // Show confirmation dialog before deleting
         onShowDeleteConfirmation(song)
@@ -104,7 +108,8 @@ fun rememberSongMenuHandler(
     onShowChangeCover: (Song) -> Unit = {},
     onShowSetRingtone: (Song) -> Unit = {},
     onShowEditAudio: (Song) -> Unit = {},
-    onShowUpdateLyrics: (Song) -> Unit = {}
+    onShowUpdateLyrics: (Song) -> Unit = {},
+    onShowSongInfo: (Song) -> Unit = {}
 ): SongMenuHandler {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -113,7 +118,8 @@ fun rememberSongMenuHandler(
         playbackRepository,
         onNavigateToAlbum,
         onShowPlaylistSelector,
-        onShowDeleteConfirmation
+        onShowDeleteConfirmation,
+        onShowSongInfo
     ) {
         SongMenuHandler(
             context = context,
@@ -126,7 +132,8 @@ fun rememberSongMenuHandler(
             onShowChangeCover = onShowChangeCover,
             onShowSetRingtone = onShowSetRingtone,
             onShowEditAudio = onShowEditAudio,
-            onShowUpdateLyrics = onShowUpdateLyrics
+            onShowUpdateLyrics = onShowUpdateLyrics,
+            onShowSongInfo = onShowSongInfo
         )
     }
 }

@@ -35,6 +35,7 @@ import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.MiniPlayer
+import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -64,10 +65,14 @@ fun AlbumDetailScreen(
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
 
     var showSortDialog by remember { mutableStateOf(false) }
+    var songForInfo by remember { mutableStateOf<Song?>(null) }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onShowSongInfo = { song ->
+            songForInfo = song
+        }
     )
 
     Scaffold(
@@ -173,6 +178,14 @@ fun AlbumDetailScreen(
                 viewModel.setSortMode(mode)
                 showSortDialog = false
             }
+        )
+    }
+
+    // Song Info Dialog
+    songForInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songForInfo = null }
         )
     }
 }

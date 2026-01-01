@@ -150,6 +150,11 @@ fun HomeScreen(
         selectedTab = tab
     }
 
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository
+    )
+
     val permissionState = rememberAudioPermissionState(
         onPermissionGranted = {
             viewModel.scanLocalMusic()
@@ -1533,8 +1538,15 @@ private fun SongsContent(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongIds by remember { mutableStateOf(setOf<Long>()) }
     var showMenuForSong by remember { mutableStateOf<Song?>(null) }
+    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository,
+        onShowSongInfo = { song -> showInfoForSong = song }
+    )
 
     val sortedSongs = remember(songs, sortMode, sortOrder) {
         val sorted = when (sortMode) {
@@ -1835,29 +1847,10 @@ private fun SongsContent(
 
     // Song menu bottom sheet
     showMenuForSong?.let { song ->
-        SongMenuBottomSheet(
+        SongContextMenu(
             song = song,
-            onDismiss = { showMenuForSong = null },
-            onPlayNext = {
-                viewModel.playNext(song)
-                showMenuForSong = null
-            },
-            onAddToQueue = {
-                viewModel.addToQueue(song)
-                showMenuForSong = null
-            },
-            onAddToPlaylist = {
-                songToAddToPlaylist = song
-                showAddToPlaylistDialog = true
-                showMenuForSong = null
-            },
-            onGoToAlbum = { /* TODO */ },
-            onSetRingtone = { /* TODO */ },
-            onChangeCover = { /* TODO */ },
-            onEditTags = { /* TODO */ },
-            onEditAudio = { /* TODO */ },
-            onUpdateLyrics = { /* TODO */ },
-            onDelete = { /* TODO */ }
+            menuHandler = menuHandler,
+            onDismiss = { showMenuForSong = null }
         )
     }
 
@@ -1874,6 +1867,14 @@ private fun SongsContent(
                 showAddToPlaylistDialog = false
                 songToAddToPlaylist = null
             }
+        )
+    }
+
+    // Song info dialog
+    showInfoForSong?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { showInfoForSong = null }
         )
     }
 }

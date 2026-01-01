@@ -52,10 +52,12 @@ fun SongsScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
+    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onShowSongInfo = { song -> showInfoForSong = song }
     )
 
     // Sort songs alphabetically and filter by search query
@@ -158,6 +160,14 @@ fun SongsScreen(
                 }
             }
         }
+    }
+
+    // Song info dialog
+    showInfoForSong?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { showInfoForSong = null }
+        )
     }
 }
 

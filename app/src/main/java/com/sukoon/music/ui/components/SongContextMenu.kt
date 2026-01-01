@@ -2,8 +2,11 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,18 +29,22 @@ fun SongContextMenu(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        dragHandle = { BottomSheetDefaults.DragHandle() }
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        sheetMaxWidth = androidx.compose.ui.unit.Dp.Unspecified
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 32.dp)
+                .fillMaxHeight(0.85f)
         ) {
-            // Header with song details
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+            // Header with song details and action buttons
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Album Art
@@ -56,7 +63,7 @@ fun SongContextMenu(
                                 Icon(
                                     Icons.Default.MusicNote,
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         },
@@ -68,54 +75,143 @@ fun SongContextMenu(
                                 Icon(
                                     Icons.Default.MusicNote,
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         }
                     )
                 }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1
                     )
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
+                    )
+                }
+                // Action buttons
+                IconButton(onClick = {
+                    menuHandler.handleShowSongInfo(song)
+                    onDismiss() // Close the bottom sheet
+                }) {
+                    Icon(
+                        Icons.Outlined.Info,
+                        contentDescription = "Song info",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = { /* TODO: Share or edit */ }) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            // Quick action chips row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Set as ringtone chip
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            menuHandler.handleSetAsRingtone(song)
+                            onDismiss()
+                        },
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Notifications,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Set as ringtone",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2
+                        )
+                    }
+                }
 
-            // Menu Items
-            ListItem(
-                headlineContent = { Text("Set as ringtone") },
-                leadingContent = { Icon(Icons.Default.Notifications, null) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleSetAsRingtone(song)
-                    onDismiss()
+                // Change cover chip
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            menuHandler.handleChangeCover(song)
+                            onDismiss()
+                        },
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Change cover",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2
+                        )
+                    }
                 }
-            )
-            ListItem(
-                headlineContent = { Text("Change cover") },
-                leadingContent = { Icon(Icons.Default.Image, null) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleChangeCover(song)
-                    onDismiss()
+
+                // Edit tags chip
+                Surface(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable {
+                            menuHandler.handleEditTags(song)
+                            onDismiss()
+                        },
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Edit tags",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2
+                        )
+                    }
                 }
-            )
-            ListItem(
-                headlineContent = { Text("Edit tags") },
-                leadingContent = { Icon(Icons.Default.Edit, null) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleEditTags(song)
-                    onDismiss()
-                }
-            )
+            }
+
+            // Main menu items
             ListItem(
                 headlineContent = { Text("Play next") },
                 leadingContent = { Icon(Icons.Default.SkipNext, null) },
@@ -134,7 +230,7 @@ fun SongContextMenu(
             )
             ListItem(
                 headlineContent = { Text("Add to playlist") },
-                leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
+                leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
                 modifier = Modifier.clickable {
                     menuHandler.handleAddToPlaylist(song)
                     onDismiss()
@@ -172,6 +268,9 @@ fun SongContextMenu(
                     onDismiss()
                 }
             )
+
+            Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 }
