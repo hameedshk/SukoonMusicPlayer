@@ -1,42 +1,102 @@
 package com.sukoon.music.ui.components
 
+import android.media.MediaMetadataRetriever
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.sukoon.music.domain.model.Song
-import java.text.SimpleDateFormat
-import java.util.*
+import androidx.core.net.toUri
+import android.net.Uri
 
-/**
- * Song information dialog showing detailed metadata.
- * Displays song properties like title, format, size, duration, and technical details.
- */
+enum class AudioQuality(val displayName: String) {
+    LOW("Low"),
+    NORMAL("Normal"),
+    HIGH("High"),
+    VERY_HIGH("Very High")
+}
+
+data class TechnicalInfo(
+    // Primary (always safe to show)
+    val qualityLabel: AudioQuality,
+    val codec: String,
+    val bitrateKbps: Int?,
+
+    // Advanced (optional, hidden unless available)
+    val samplingRateHz: Int? = null,
+    val channels: Int? = null
+)
+
+private fun mapBitrateToQuality(bitrateKbps: Int?): AudioQuality {
+    return when {
+        bitrateKbps == null -> AudioQuality.NORMAL
+        bitrateKbps < 96 -> AudioQuality.LOW
+        bitrateKbps < 160 -> AudioQuality.NORMAL
+        bitrateKbps < 256 -> AudioQuality.HIGH
+        else -> AudioQuality.VERY_HIGH
+    }
+}
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SongInfoDialog(
     song: Song,
     onDismiss: () -> Unit
 ) {
+    // 1. Properly fetch technical metadata using remember
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val technicalInfo = remember(song.path) {
+        val retriever = MediaMetadataRetriever()
+        try {
+            retriever.setDataSource(context, song.uri.toUri())
+
+            val bitrate = retriever
+                .extractMetadata(MediaMetadataRetriever.METADATA_KEY_BITRATE)
+                ?.toIntOrNull()
+                ?.div(1000)
+
+            val samplingRate = retriever
+                .extractMetadata(MediaMetadataRetriever.METADATA_KEY_SAMPLERATE)
+                ?.toIntOrNull()
+
+            val codec = getFormatFromPath(song.path)
+
+            TechnicalInfo(
+                qualityLabel = mapBitrateToQuality(bitrate),
+                codec = codec,
+                bitrateKbps = bitrate,
+                samplingRateHz = samplingRate,
+                channels = 2 // safe assumption on mobile
+            )
+        } catch (e: Exception) {
+            TechnicalInfo(
+                qualityLabel = AudioQuality.NORMAL,
+                codec = getFormatFromPath(song.path),
+                bitrateKbps = null
+            )
+        } finally {
+            retriever.release()
+        }
+    }
+
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        sheetMaxWidth = androidx.compose.ui.unit.Dp.Unspecified
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.9f)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Header
+            Column(modifier = Modifier.fillMaxSize()) {
                 Text(
                     text = "Song information",
                     style = MaterialTheme.typography.headlineSmall,
@@ -44,149 +104,70 @@ fun SongInfoDialog(
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
                 )
 
-                // Scrollable content
                 LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
                 ) {
-                    // Title
-                    item {
-                        InfoField("Title", song.title)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
+                    item { InfoField("Title", song.title) }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Format
                     item {
                         val format = getFormatFromPath(song.path)
                         InfoField("Format", format)
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Size
+                    item { InfoField("Size", formatFileSize(song.size)) }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                    item { InfoField("Duration", song.durationFormatted()) }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
+                    // --- TECHNICAL DETAILS (Using technicalInfo) ---
+                    item {technicalInfo.bitrateKbps?.let {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        InfoField("Bitrate", "$it kbps")
+                    }}
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+
                     item {
-                        val size = formatFileSize(song.size)
-                        InfoField("Size", size)
-                        Spacer(modifier = Modifier.height(16.dp))
+                        technicalInfo.samplingRateHz?.let {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InfoField("Sampling rate", "$it Hz")
+                        }
                     }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Duration
                     item {
-                        InfoField("Duration", song.durationFormatted())
-                        Spacer(modifier = Modifier.height(16.dp))
+                        technicalInfo.channels?.let {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InfoField("Channels", "$it Hz")
+                        }
                     }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Album
-                    item {
-                        InfoField("Album", song.album.ifEmpty { "<unknown>" })
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
+                    // --- REMAINING METADATA ---
+                    item { InfoField("Artist", song.artist.ifEmpty { "<unknown>" }) }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Artist
-                    item {
-                        InfoField("Artist", song.artist.ifEmpty { "<unknown>" })
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Genre
-                    item {
-                        InfoField("Genre", song.genre ?: "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Track number
-                    item {
-                        InfoField("Track number", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Album artist
-                    item {
-                        InfoField("Album artist", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Composer
-                    item {
-                        InfoField("Composer", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Year
-                    item {
-                        val year = if (song.year > 0) song.year.toString() else "<unknown>"
-                        InfoField("Year", year)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Added time
-                    item {
-                        val addedTime = formatTimestamp(song.dateAdded)
-                        InfoField("Added time", addedTime)
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Modified time
-                    item {
-                        InfoField("Modified time", formatTimestamp(song.dateAdded))
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Bitrate
-                    item {
-                        InfoField("Bitrate", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Sampling rate
-                    item {
-                        InfoField("Sampling rate", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Channels
-                    item {
-                        InfoField("Channels", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // Bits per sample
-                    item {
-                        InfoField("Bits per sample", "<unknown>")
-                        Spacer(modifier = Modifier.height(16.dp))
-                    }
-
-                    // File name
                     item {
                         val fileName = song.path.substringAfterLast("/")
                         InfoField("File name", fileName)
-                        Spacer(modifier = Modifier.height(16.dp))
                     }
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    // Location
-                    item {
-                        InfoField("Location", song.path)
-                        Spacer(modifier = Modifier.height(24.dp))
-                    }
+                    item { InfoField("Location", song.path) }
+                    item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
 
-                // OK Button
                 Button(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 24.dp, vertical = 16.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
+                    shape = RoundedCornerShape(50)
                 ) {
-                    Text(
-                        text = "OK",
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
+                    Text("OK")
                 }
             }
         }
@@ -216,33 +197,11 @@ private fun InfoField(label: String, value: String) {
 
 private fun formatFileSize(bytes: Long): String {
     if (bytes <= 0) return "<unknown>"
-    val kb = bytes / 1024.0
-    val mb = kb / 1024.0
-    val gb = mb / 1024.0
-
-    return when {
-        gb >= 1 -> String.format("%.1f GB", gb)
-        mb >= 1 -> String.format("%.1f MB", mb)
-        kb >= 1 -> String.format("%.1f KB", kb)
-        else -> "$bytes B"
-    }
-}
-
-private fun formatTimestamp(timestamp: Long): String {
-    if (timestamp <= 0) return "<unknown>"
-    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-    return sdf.format(Date(timestamp * 1000)) // Convert seconds to milliseconds
+    val mb = bytes / (1024.0 * 1024.0)
+    return String.format("%.2f MB", mb)
 }
 
 private fun getFormatFromPath(path: String): String {
     val extension = path.substringAfterLast(".", "")
-    return when (extension.lowercase()) {
-        "mp3" -> "mp3(MPEG)"
-        "flac" -> "flac"
-        "m4a", "aac" -> "m4a(AAC)"
-        "ogg" -> "ogg"
-        "wav" -> "wav"
-        "opus" -> "opus"
-        else -> extension.ifEmpty { "<unknown>" }
-    }
+    return extension.uppercase().ifEmpty { "<unknown>" }
 }
