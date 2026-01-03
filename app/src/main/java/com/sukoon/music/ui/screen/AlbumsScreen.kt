@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -348,7 +349,8 @@ private fun AlbumCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.9f),
+            .aspectRatio(0.9f)
+            .clickable(onClick = onClick),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) {
@@ -373,9 +375,7 @@ private fun AlbumCard(
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
                         contentDescription = "Album cover",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(onClick = onClick),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
                             CircularProgressIndicator(
@@ -383,21 +383,13 @@ private fun AlbumCard(
                             )
                         },
                         error = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clickable(onClick = onClick)
-                            ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
                                 DefaultAlbumCover()
                             }
                         }
                     )
                 } else {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clickable(onClick = onClick)
-                    ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
                         DefaultAlbumCover()
                     }
                 }
@@ -415,23 +407,26 @@ private fun AlbumCard(
                         )
                     }
                 } else {
-                    IconButton(
-                        onClick = {
-                            onShowContextMenu()
-                        },
+                    Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
+                            .zIndex(1f)
                             .padding(4.dp)
-                            .background(
-                                color = Color.Black.copy(alpha = 0.5f),
-                                shape = RoundedCornerShape(50)
-                            )
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options",
-                            tint = Color.White
-                        )
+                        IconButton(
+                            onClick = onShowContextMenu,
+                            modifier = Modifier
+                                .background(
+                                    color = Color.Black.copy(alpha = 0.5f),
+                                    shape = RoundedCornerShape(50)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Options",
+                                tint = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -440,7 +435,6 @@ private fun AlbumCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClick = onClick)
                     .padding(12.dp)
             ) {
                 Text(

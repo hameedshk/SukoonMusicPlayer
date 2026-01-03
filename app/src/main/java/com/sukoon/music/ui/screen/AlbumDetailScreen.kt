@@ -66,6 +66,7 @@ fun AlbumDetailScreen(
 
     var showSortDialog by remember { mutableStateOf(false) }
     var songForInfo by remember { mutableStateOf<Song?>(null) }
+    var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
