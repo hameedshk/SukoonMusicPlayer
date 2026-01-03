@@ -9,10 +9,10 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -30,46 +30,29 @@ import javax.inject.Inject
 @HiltViewModel
 class ArtistDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository,
+    val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {
 
-    private var currentArtistId: Long = -1
+    private val _artistId = MutableStateFlow<Long?>(null)
 
     /**
      * Current artist being displayed.
-     * Updated when loadArtist() is called.
      */
-    private var _artist: StateFlow<Artist?> = songRepository.getArtistById(-1)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
-    val artist: StateFlow<Artist?> get() = _artist
+    private val _artist = MutableStateFlow<Artist?>(null)
+    val artist: StateFlow<Artist?> = _artist.asStateFlow()
 
     /**
      * Songs by the current artist.
-     * Updated when loadArtist() is called.
      */
-    private var _artistSongs: StateFlow<List<Song>> = songRepository.getSongsByArtistId(-1)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-    val artistSongs: StateFlow<List<Song>> get() = _artistSongs
+    private val _artistSongs = MutableStateFlow<List<Song>>(emptyList())
+    val artistSongs: StateFlow<List<Song>> = _artistSongs.asStateFlow()
 
     /**
      * Albums by the current artist.
-     * Updated when loadArtist() is called.
      */
-    private var _artistAlbums: StateFlow<List<Album>> = songRepository.getAlbumsByArtistId(-1)
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
-    val artistAlbums: StateFlow<List<Album>> get() = _artistAlbums
+    private val _artistAlbums = MutableStateFlow<List<Album>>(emptyList())
+    val artistAlbums: StateFlow<List<Album>> = _artistAlbums.asStateFlow()
 
     /**
      * Current playback state for UI feedback.
@@ -83,35 +66,38 @@ class ArtistDetailViewModel @Inject constructor(
      * @param artistId The unique ID of the artist
      */
     fun loadArtist(artistId: Long) {
-        if (currentArtistId == artistId) return // Already loaded
+        if (_artistId.value == artistId) return // Already loaded
 
-        currentArtistId = artistId
+        _artistId.value = artistId
 
-        _artist = songRepository.getArtistById(artistId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = null
-            )
-
-        _artistSongs = songRepository.getSongsByArtistId(artistId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
-        _artistAlbums = songRepository.getAlbumsByArtistId(artistId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
+        // Load artist
         viewModelScope.launch {
-            _artist.filterNotNull().first().let { artist ->
-                logArtistInteraction(artist.id, artist.name)
-            }
+            songRepository.getArtistById(artistId)
+                .stateIn(viewModelScope)
+                .collect { artist ->
+                    _artist.value = artist
+                    artist?.let {
+                        logArtistInteraction(it.id, it.name)
+                    }
+                }
+        }
+
+        // Load artist songs
+        viewModelScope.launch {
+            songRepository.getSongsByArtistId(artistId)
+                .stateIn(viewModelScope)
+                .collect { songs ->
+                    _artistSongs.value = songs
+                }
+        }
+
+        // Load artist albums
+        viewModelScope.launch {
+            songRepository.getAlbumsByArtistId(artistId)
+                .stateIn(viewModelScope)
+                .collect { albums ->
+                    _artistAlbums.value = albums
+                }
         }
     }
 
@@ -191,6 +177,24 @@ class ArtistDetailViewModel @Inject constructor(
     fun toggleLike(songId: Long, isLiked: Boolean) {
         viewModelScope.launch {
             songRepository.updateLikeStatus(songId, !isLiked)
+        }
+    }
+
+    /**
+     * Toggle play/pause for current playback.
+     */
+    fun playPause() {
+        viewModelScope.launch {
+            playbackRepository.playPause()
+        }
+    }
+
+    /**
+     * Skip to next track in queue.
+     */
+    fun seekToNext() {
+        viewModelScope.launch {
+            playbackRepository.seekToNext()
         }
     }
 }

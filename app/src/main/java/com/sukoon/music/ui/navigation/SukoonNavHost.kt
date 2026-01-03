@@ -48,6 +48,9 @@ fun SukoonNavHost(
                 onNavigateToArtists = {
                     navController.navigate(Routes.Artists.route)
                 },
+                onNavigateToArtistDetail = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
+                },
                 onNavigateToSettings = {
                     navController.navigate(Routes.Settings.route)
                 },
@@ -244,22 +247,8 @@ fun SukoonNavHost(
             )
         }
 
-        // Artists Screen - All artists
-        composable(route = Routes.Artists.route) {
-            val playlistViewModel: PlaylistViewModel = hiltViewModel()
-            ArtistsScreen(
-                onNavigateToArtist = { artistId ->
-                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                },
-                onBackClick = {
-                    navController.navigateUp()
-                },
-                onShowEditTagsDialog = { /* Placeholder */ },
-                onShowChangeCoverDialog = { /* Placeholder */ },
-                onShowDeleteConfirmDialog = { /* Placeholder */ },
-                playlistViewModel = playlistViewModel
-            )
-        }
+        // Artists Screen - REMOVED: Now handled in HomeScreen Artists tab
+        // Clicking on artist in HomeScreen navigates directly to ArtistDetailScreen
 
         // Artist Detail Screen - Songs and albums by an artist
         composable(
@@ -276,6 +265,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToAlbum = { albumId ->
                     navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
                 }
             )
         }

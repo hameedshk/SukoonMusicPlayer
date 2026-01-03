@@ -31,6 +31,8 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
+import com.sukoon.music.ui.components.MiniPlayer
+import com.sukoon.music.ui.components.BannerAdView
 
 /**
  * Artist Detail Screen - Shows artist info with Songs and Albums tabs.
@@ -41,14 +43,12 @@ fun ArtistDetailScreen(
     artistId: Long,
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {},
     viewModel: ArtistDetailViewModel = hiltViewModel()
 ) {
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val artistSongs by viewModel.artistSongs.collectAsStateWithLifecycle()
-    val artistAlbums by viewModel.artistAlbums.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
-
-    var selectedTab by remember { mutableStateOf(0) }
 
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository
@@ -72,6 +72,22 @@ fun ArtistDetailScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
+        },
+        bottomBar = {
+            Column {
+                if (playbackState.currentSong != null) {
+                    MiniPlayer(
+                        playbackState = playbackState,
+                        onPlayPauseClick = { viewModel.playPause() },
+                        onNextClick = { viewModel.seekToNext() },
+                        onClick = onNavigateToNowPlaying
+                    )
+                }
+                BannerAdView(
+                    adMobManager = viewModel.adMobManager,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     ) { paddingValues ->
         if (artist == null) {
@@ -97,58 +113,22 @@ fun ArtistDetailScreen(
                     onShuffleClick = { viewModel.shuffleArtist(artistSongs) }
                 )
 
-                // Tabs
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = MaterialTheme.colorScheme.surface
-                ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Songs (${artistSongs.size})") }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Albums (${artistAlbums.size})") }
-                    )
-                }
-
-                // Tab Content
-                when (selectedTab) {
-                    0 -> {
-                        // Songs Tab
-                        if (artistSongs.isEmpty()) {
-                            EmptyStateMessage("No songs found")
-                        } else {
-                            SongsList(
-                                songs = artistSongs,
-                                currentSongId = playbackState.currentSong?.id,
-                                isPlaying = playbackState.isPlaying,
-                                menuHandler = menuHandler,
-                                onSongClick = { song ->
-                                    viewModel.playSong(song, artistSongs)
-                                },
-                                onLikeClick = { song ->
-                                    viewModel.toggleLike(song.id, song.isLiked)
-                                }
-                            )
+                // Songs List
+                if (artistSongs.isEmpty()) {
+                    EmptyStateMessage("No songs found")
+                } else {
+                    SongsList(
+                        songs = artistSongs,
+                        currentSongId = playbackState.currentSong?.id,
+                        isPlaying = playbackState.isPlaying,
+                        menuHandler = menuHandler,
+                        onSongClick = { song ->
+                            viewModel.playSong(song, artistSongs)
+                        },
+                        onLikeClick = { song ->
+                            viewModel.toggleLike(song.id, song.isLiked)
                         }
-                    }
-                    1 -> {
-                        // Albums Tab
-                        if (artistAlbums.isEmpty()) {
-                            EmptyStateMessage("No albums found")
-                        } else {
-                            AlbumsGrid(
-                                albums = artistAlbums,
-                                onAlbumClick = onNavigateToAlbum,
-                                onPlayAlbum = { albumId ->
-                                    viewModel.playAlbum(albumId)
-                                }
-                            )
-                        }
-                    }
+                    )
                 }
             }
         }

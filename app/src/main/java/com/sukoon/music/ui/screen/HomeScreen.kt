@@ -1,7 +1,9 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -60,6 +62,7 @@ import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.viewmodel.ArtistsViewModel
+import com.sukoon.music.ui.viewmodel.ArtistSortMode
 import com.sukoon.music.ui.viewmodel.GenresViewModel
 import com.sukoon.music.ui.viewmodel.GenreSortMode
 import androidx.compose.material.icons.filled.Add
@@ -96,6 +99,7 @@ fun HomeScreen(
     onNavigateToLikedSongs: () -> Unit = {},
     onNavigateToAlbums: () -> Unit = {},
     onNavigateToArtists: () -> Unit = {},
+    onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToSongs: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
@@ -297,7 +301,7 @@ fun HomeScreen(
                             ArtistsContent(
                                 artists = artists,
                                 recentlyPlayedArtists = recentlyPlayedArtists,
-                                onArtistClick = onNavigateToArtists,
+                                onArtistClick = onNavigateToArtistDetail,
                                 viewModel = artistsViewModel
                             )
                         }
@@ -2025,22 +2029,51 @@ private fun AlbumsContent(
 /**
  * Artists Content - Displays artists in a list view.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ArtistsContent(
     artists: List<Artist>,
     recentlyPlayedArtists: List<Artist>,
-    onArtistClick: () -> Unit,
+    onArtistClick: (Long) -> Unit,
     viewModel: ArtistsViewModel
 ) {
-    if (artists.isEmpty()) {
+    var showMenuForArtist by remember { mutableStateOf<Artist?>(null) }
+    var showSortDialog by remember { mutableStateOf(false) }
+
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val isAscending by viewModel.isAscending.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedIds by viewModel.selectedArtistIds.collectAsStateWithLifecycle()
+
+    if (artists.isEmpty() && searchQuery.isEmpty()) {
         EmptyArtistsContentState()
     } else {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
+            // Search Bar in Selection Mode
+            if (isSelectionMode) {
+                item {
+                    ArtistSearchBar(
+                        query = searchQuery,
+                        onQueryChange = { viewModel.setSearchQuery(it) }
+                    )
+                }
+                item {
+                    SelectAllArtistsRow(
+                        isAllSelected = selectedIds.size == artists.size && artists.isNotEmpty(),
+                        onToggleSelectAll = {
+                            if (selectedIds.size == artists.size) viewModel.clearSelection()
+                            else viewModel.selectAllArtists()
+                        }
+                    )
+                }
+            }
+
             // Recently played section
-            if (recentlyPlayedArtists.isNotEmpty()) {
+            if (!isSelectionMode && recentlyPlayedArtists.isNotEmpty() && searchQuery.isEmpty()) {
                 item {
                     Column {
                         Text(
@@ -2055,7 +2088,7 @@ private fun ArtistsContent(
                             items(recentlyPlayedArtists.take(10), key = { it.id }) { artist ->
                                 ArtistCard(
                                     artist = artist,
-                                    onClick = { onArtistClick() }
+                                    onClick = { onArtistClick(artist.id) }
                                 )
                             }
                         }
@@ -2068,18 +2101,13 @@ private fun ArtistsContent(
                 }
             }
 
-            // Header
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "${artists.size} ${if (artists.size == 1) "artist" else "artists"}",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f)
+            // Sort Header
+            if (!isSelectionMode) {
+                item {
+                    ArtistSortHeader(
+                        artistCount = artists.size,
+                        onSortClick = { showSortDialog = true },
+                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
                     )
                 }
             }
@@ -2088,10 +2116,59 @@ private fun ArtistsContent(
             items(artists, key = { it.id }) { artist ->
                 ArtistListItem(
                     artist = artist,
-                    onClick = { onArtistClick() }
+                    isSelected = selectedIds.contains(artist.id),
+                    isSelectionMode = isSelectionMode,
+                    onClick = {
+                        if (isSelectionMode) {
+                            viewModel.toggleArtistSelection(artist.id)
+                        } else {
+                            onArtistClick(artist.id)
+                        }
+                    },
+                    onLongClick = { viewModel.toggleSelectionMode(true); viewModel.toggleArtistSelection(artist.id) },
+                    onMenuClick = { showMenuForArtist = artist }
                 )
             }
         }
+    }
+
+    // Artist context menu
+    showMenuForArtist?.let { artist ->
+        ArtistContextMenuBottomSheet(
+            artist = artist,
+            onDismiss = { showMenuForArtist = null },
+            onPlay = {
+                viewModel.playArtist(artist.id)
+                showMenuForArtist = null
+            },
+            onShuffle = {
+                viewModel.shuffleArtist(artist.id)
+                showMenuForArtist = null
+            },
+            onPlayNext = {
+                viewModel.playArtistNext(artist.id)
+                showMenuForArtist = null
+            },
+            onAddToQueue = {
+                viewModel.addArtistToQueue(artist.id)
+                showMenuForArtist = null
+            },
+            onAddToPlaylist = {
+                viewModel.showAddToPlaylistDialog(artist.id)
+                showMenuForArtist = null
+            }
+        )
+    }
+
+    // Sort dialog
+    if (showSortDialog) {
+        ArtistSortDialog(
+            currentSortMode = sortMode,
+            isAscending = isAscending,
+            onDismiss = { showSortDialog = false },
+            onSortModeChange = { viewModel.setSortMode(it) },
+            onOrderChange = { viewModel.setAscending(it) }
+        )
     }
 }
 
@@ -2148,15 +2225,23 @@ private fun ArtistCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ArtistListItem(
     artist: Artist,
-    onClick: () -> Unit
+    isSelected: Boolean = false,
+    isSelectionMode: Boolean = false,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -2208,7 +2293,154 @@ private fun ArtistListItem(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = null
+            )
+        } else {
+            IconButton(onClick = { onMenuClick() }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
+}
+
+@Composable
+private fun ArtistSortHeader(
+    artistCount: Int,
+    onSortClick: () -> Unit,
+    onSelectionClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "$artistCount ${if (artistCount == 1) "artist" else "artists"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row {
+            IconButton(onClick = onSelectionClick) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+            }
+            IconButton(onClick = onSortClick) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+        }
+    }
+}
+
+@Composable
+private fun ArtistSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        placeholder = { Text("Search artists...") },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        singleLine = true,
+        shape = RoundedCornerShape(24.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = MaterialTheme.colorScheme.primary,
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline
+        )
+    )
+}
+
+@Composable
+private fun SelectAllArtistsRow(
+    isAllSelected: Boolean,
+    onToggleSelectAll: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggleSelectAll)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = if (isAllSelected) "Deselect all" else "Select all",
+            style = MaterialTheme.typography.bodyLarge
+        )
+        Checkbox(
+            checked = isAllSelected,
+            onCheckedChange = null
+        )
+    }
+}
+
+@Composable
+private fun ArtistSortDialog(
+    currentSortMode: ArtistSortMode,
+    isAscending: Boolean,
+    onDismiss: () -> Unit,
+    onSortModeChange: (ArtistSortMode) -> Unit,
+    onOrderChange: (Boolean) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("OK", color = MaterialTheme.colorScheme.primary) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("CANCEL") }
+        },
+        title = { Text("Sort by") },
+        text = {
+            Column {
+                SortOption(
+                    text = "Artist name",
+                    isSelected = currentSortMode == ArtistSortMode.ARTIST_NAME,
+                    onClick = { onSortModeChange(ArtistSortMode.ARTIST_NAME) }
+                )
+                SortOption(
+                    text = "Number of albums",
+                    isSelected = currentSortMode == ArtistSortMode.ALBUM_COUNT,
+                    onClick = { onSortModeChange(ArtistSortMode.ALBUM_COUNT) }
+                )
+                SortOption(
+                    text = "Number of songs",
+                    isSelected = currentSortMode == ArtistSortMode.SONG_COUNT,
+                    onClick = { onSortModeChange(ArtistSortMode.SONG_COUNT) }
+                )
+                SortOption(
+                    text = "Random",
+                    isSelected = currentSortMode == ArtistSortMode.RANDOM,
+                    onClick = { onSortModeChange(ArtistSortMode.RANDOM) }
+                )
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                SortOption(
+                    text = "From A to Z",
+                    isSelected = isAscending,
+                    onClick = { onOrderChange(true) }
+                )
+                SortOption(
+                    text = "From Z to A",
+                    isSelected = !isAscending,
+                    onClick = { onOrderChange(false) }
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -2239,6 +2471,109 @@ private fun EmptyArtistsContentState() {
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ArtistContextMenuBottomSheet(
+    artist: Artist,
+    onDismiss: () -> Unit,
+    onPlay: () -> Unit,
+    onShuffle: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
+    onAddToPlaylist: () -> Unit
+) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        dragHandle = { BottomSheetDefaults.DragHandle() }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp)
+        ) {
+            // Header with artist info
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (artist.artworkUri != null) {
+                        SubcomposeAsyncImage(
+                            model = artist.artworkUri,
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop,
+                            error = {
+                                Icon(
+                                    Icons.Default.Person,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        )
+                    } else {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column {
+                    Text(
+                        text = artist.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "${artist.albumCount} albums · ${artist.songCount} songs",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+            // Menu items
+            ListItem(
+                headlineContent = { Text("Play") },
+                leadingContent = { Icon(Icons.Default.PlayArrow, null) },
+                modifier = Modifier.clickable(onClick = onPlay)
+            )
+            ListItem(
+                headlineContent = { Text("Shuffle") },
+                leadingContent = { Icon(Icons.Default.Shuffle, null) },
+                modifier = Modifier.clickable(onClick = onShuffle)
+            )
+            ListItem(
+                headlineContent = { Text("Play next") },
+                leadingContent = { Icon(Icons.Default.SkipNext, null) },
+                modifier = Modifier.clickable(onClick = onPlayNext)
+            )
+            ListItem(
+                headlineContent = { Text("Add to queue") },
+                leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
+                modifier = Modifier.clickable(onClick = onAddToQueue)
+            )
+            ListItem(
+                headlineContent = { Text("Add to playlist") },
+                leadingContent = { Icon(Icons.Default.Add, null) },
+                modifier = Modifier.clickable(onClick = onAddToPlaylist)
+            )
+        }
     }
 }
 
