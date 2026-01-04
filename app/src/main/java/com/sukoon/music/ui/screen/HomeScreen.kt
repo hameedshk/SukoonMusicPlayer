@@ -147,6 +147,8 @@ fun HomeScreen(
 
     // Genres state
     val genres by genresViewModel.genres.collectAsStateWithLifecycle()
+    val isGenreSelectionMode by genresViewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedGenreIds by genresViewModel.selectedGenreIds.collectAsStateWithLifecycle()
 
     var selectedTab by rememberSaveable { mutableStateOf("For you") }
 
@@ -177,6 +179,11 @@ fun HomeScreen(
                     selectedCount = selectedArtistIds.size,
                     onBackClick = { artistsViewModel.toggleSelectionMode(false) }
                 )
+            } else if (selectedTab == "Genres" && isGenreSelectionMode) {
+                GenreSelectionTopBar(
+                    selectedCount = selectedGenreIds.size,
+                    onBackClick = { genresViewModel.toggleSelectionMode(false) }
+                )
             } else {
                 Column {
                     RedesignedTopBar(
@@ -206,6 +213,15 @@ fun HomeScreen(
                         onAddToPlaylist = { artistsViewModel.showAddToPlaylistDialog(selectedArtistIds.firstOrNull()) },
                         onDelete = { selectedArtistIds.firstOrNull()?.let { artistsViewModel.deleteArtist(it) } },
                         onMore = { /* TODO */ }
+                    )
+                } else if (selectedTab == "Genres" && isGenreSelectionMode && selectedGenreIds.isNotEmpty()) {
+                    GenreSelectionBottomBar(
+                        selectedCount = selectedGenreIds.size,
+                        onPlay = { genresViewModel.playSelectedGenres() },
+                        onAddToPlaylist = { /* TODO */ },
+                        onDelete = { genresViewModel.deleteSelectedGenres() },
+                        onPlayNext = { genresViewModel.playSelectedNext() },
+                        onAddToQueue = { genresViewModel.addSelectedToQueue() }
                     )
                 } else if (playbackState.currentSong != null) {
                     MiniPlayer(
@@ -2597,6 +2613,9 @@ private fun GenresContent(
     onGenreClick: (Long) -> Unit,
     viewModel: GenresViewModel
 ) {
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedGenreIds by viewModel.selectedGenreIds.collectAsStateWithLifecycle()
+
     Column(modifier = Modifier.fillMaxSize()) {
         if (genres.isEmpty()) {
             Box(
@@ -2614,18 +2633,65 @@ private fun GenresContent(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 80.dp)
             ) {
+                // Genre Header with Selection Button
+                if (!isSelectionMode) {
+                    item {
+                        GenreHeader(
+                            genreCount = genres.size,
+                            onSelectionClick = { viewModel.toggleSelectionMode(true) }
+                        )
+                    }
+                }
+
+                // Select All Checkbox
+                if (isSelectionMode) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (selectedGenreIds.size == genres.size && genres.isNotEmpty()) {
+                                        viewModel.clearSelection()
+                                    } else {
+                                        viewModel.selectAllGenres()
+                                    }
+                                }
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = selectedGenreIds.size == genres.size && genres.isNotEmpty(),
+                                onCheckedChange = {
+                                    if (it) viewModel.selectAllGenres() else viewModel.clearSelection()
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text(
+                                text = "Select all",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
+                }
+
                 items(
                     items = genres,
                     key = { it.id }
                 ) { genre ->
                     GenreRow(
                         genre = genre,
-                        onClick = { onGenreClick(genre.id) },
+                        isSelected = selectedGenreIds.contains(genre.id),
+                        isSelectionMode = isSelectionMode,
+                        onClick = {
+                            if (isSelectionMode) viewModel.toggleGenreSelection(genre.id)
+                            else onGenreClick(genre.id)
+                        },
+                        onSelectionToggle = { viewModel.toggleGenreSelection(genre.id) },
                         onPlayClick = { viewModel.playGenre(genre.id) },
                         onPlayNextClick = { viewModel.playGenreNext(genre.id) },
                         onAddToQueueClick = { viewModel.addGenreToQueue(genre.id) },
                         onAddToPlaylistClick = { viewModel.showAddToPlaylistDialog(listOf(genre.id)) },
-                        onDeleteClick = { /* Handled via detail or selection mode */ }
+                        onDeleteClick = { /* Handled via selection mode */ }
                     )
                 }
             }
@@ -4095,4 +4161,44 @@ private fun HomeScreenPreview() {
             )
         }
     }
+}
+
+@Composable
+private fun GenreHeader(
+    genreCount: Int,
+    onSelectionClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "$genreCount ${if (genreCount == 1) "genre" else "genres"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        IconButton(onClick = onSelectionClick) {
+            Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GenreSelectionTopBar(
+    selectedCount: Int,
+    onBackClick: () -> Unit
+) {
+    TopAppBar(
+        title = { Text("$selectedCount selected") },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+    )
 }
