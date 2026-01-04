@@ -155,7 +155,15 @@ class FolderViewModel @Inject constructor(
     fun navigateUp() {
         val path = _currentPath.value ?: return
         val parentPath = path.substringBeforeLast('/').ifEmpty { null }
-        _currentPath.value = parentPath
+
+        // Check if current path is a root-level folder (e.g., /storage/emulated/0/Music)
+        // by checking if parent is the Android storage base
+        val strippedParent = parentPath?.stripAndroidStoragePrefix()
+        if (strippedParent.isNullOrEmpty() || strippedParent == "/storage/emulated/0") {
+            _currentPath.value = null // Go back to root folder list
+        } else {
+            _currentPath.value = parentPath
+        }
     }
 
     fun setFolderViewMode(mode: FolderViewMode) {
