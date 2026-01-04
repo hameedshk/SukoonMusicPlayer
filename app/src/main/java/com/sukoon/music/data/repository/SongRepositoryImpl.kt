@@ -419,8 +419,9 @@ class SongRepositoryImpl @Inject constructor(
             // Find immediate subfolders (one level down)
             val subfolders = allPaths
                 .filter { path ->
-                    val parent = java.io.File(path).parent
-                    parent == normalizedPath
+                    val parent = java.io.File(path).parent ?: return@filter false
+                    // Match parent path AND ensure we're not showing storage root folders
+                    parent == normalizedPath && !isStorageRootPath(parent)
                 }
                 .map { subPath ->
                     val songsInSubfolder = entities.filter { it.folderPath == subPath }
@@ -546,6 +547,19 @@ class SongRepositoryImpl @Inject constructor(
             }
             FolderSortMode.DURATION -> folders.sortedByDescending { it.totalDuration }
         }
+    }
+
+    /**
+     * Check if a path is a storage root that should not be navigable.
+     * Prevents showing /storage, /storage/emulated, /storage/emulated/0, etc.
+     */
+    private fun isStorageRootPath(path: String): Boolean {
+        val normalizedPath = path.trimEnd('/')
+        // Storage root patterns to exclude
+        return normalizedPath.isEmpty() ||
+                normalizedPath == "/storage" ||
+                normalizedPath == "/storage/emulated" ||
+                normalizedPath.matches(Regex("^/storage/emulated/\\d+$"))
     }
 
     // --- Smart Playlists ---

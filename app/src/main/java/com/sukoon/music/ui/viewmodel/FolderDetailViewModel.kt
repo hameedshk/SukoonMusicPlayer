@@ -109,6 +109,12 @@ class FolderDetailViewModel @Inject constructor(
      * @param folderPath The file system path of the folder
      */
     fun loadFolderByPath(folderPath: String) {
+        // Prevent navigation to storage root paths
+        if (isStorageRootPath(folderPath)) {
+            _folderItems.value = emptyList()
+            return
+        }
+
         if (currentFolderPath == folderPath) return // Already loaded
 
         currentFolderPath = folderPath
@@ -129,17 +135,35 @@ class FolderDetailViewModel @Inject constructor(
 
     /**
      * Calculate parent folder path from current path.
-     * Returns null if at root level.
+     * Returns null if at root level or at storage root.
      */
     private fun calculateParentPath(path: String): String? {
         val normalizedPath = path.trimEnd('/')
         val lastSlashIndex = normalizedPath.lastIndexOf('/')
 
-        return if (lastSlashIndex > 0) {
-            normalizedPath.substring(0, lastSlashIndex)
-        } else {
-            null // Root level
+        if (lastSlashIndex <= 0) {
+            return null // Root level
         }
+
+        val parentPath = normalizedPath.substring(0, lastSlashIndex)
+
+        // Don't allow navigation to storage root paths
+        if (isStorageRootPath(parentPath)) {
+            return null
+        }
+
+        return parentPath
+    }
+
+    /**
+     * Check if a path is a storage root that should not be navigable.
+     */
+    private fun isStorageRootPath(path: String): Boolean {
+        val normalizedPath = path.trimEnd('/')
+        return normalizedPath.isEmpty() ||
+                normalizedPath == "/storage" ||
+                normalizedPath == "/storage/emulated" ||
+                normalizedPath.matches(Regex("^/storage/emulated/\\d+$"))
     }
 
     /**
