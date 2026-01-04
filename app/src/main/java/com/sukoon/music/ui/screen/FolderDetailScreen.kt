@@ -74,7 +74,7 @@ fun FolderDetailScreen(
 
     // Handle case where folder is deleted or excluded while viewing
     LaunchedEffect(folder) {
-        if (folder == null && folderId != 0L && folderPath == null) {
+        if (folder == null && folderId > 0L && folderPath == null) {
             onBackClick()
         }
     }

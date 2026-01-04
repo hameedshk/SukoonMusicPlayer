@@ -58,8 +58,7 @@ fun FoldersScreen(
 
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
-    var showDeleteConfirmation by remember { mutableStateOf<Folder?>(null) }
-    var folderToDeleteId by remember { mutableStateOf<Long?>(null) }
+    var folderToDelete by remember { mutableStateOf<Long?>(null) }
     val scope = rememberCoroutineScope()
 
     // SAF delete permission launcher
@@ -154,9 +153,7 @@ fun FoldersScreen(
                         onHide = { viewModel.excludeFolder(it) },
                         onUnhide = { viewModel.unhideFolder(it) },
                         onDelete = { folderId ->
-                            val folder = displayFolders.find { it.id == folderId }
-                            showDeleteConfirmation = folder
-                            folderToDeleteId = folderId
+                            folderToDelete = folderId
                         }
                     )
                 }
@@ -176,19 +173,21 @@ fun FoldersScreen(
     }
 
     // Delete confirmation dialog
-    showDeleteConfirmation?.let { folder ->
-        DeleteConfirmationDialog(
-            folder = folder,
-            onConfirm = {
-                folderToDeleteId?.let { viewModel.deleteFolder(it) }
-                showDeleteConfirmation = null
-                folderToDeleteId = null
-            },
-            onDismiss = {
-                showDeleteConfirmation = null
-                folderToDeleteId = null
-            }
-        )
+    folderToDelete?.let { folderId ->
+        val allAvailableFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) folders else hiddenFolders
+        val folder = allAvailableFolders.find { it.id == folderId }
+        if (folder != null) {
+            DeleteConfirmationDialog(
+                folder = folder,
+                onConfirm = {
+                    viewModel.deleteFolder(folderId)
+                    folderToDelete = null
+                },
+                onDismiss = {
+                    folderToDelete = null
+                }
+            )
+        }
     }
 }
 
@@ -202,7 +201,7 @@ private fun FolderList(
     onAddToQueue: (String) -> Unit,
     onAddToPlaylist: (Long) -> Unit,
     onHide: (String) -> Unit,
-    onUnhide: (Long) -> Unit,
+    onUnhide: (String) -> Unit,
     onDelete: (Long) -> Unit
 ) {
     LazyColumn(
@@ -218,7 +217,7 @@ private fun FolderList(
                 onAddToQueue = { onAddToQueue(folder.path) },
                 onAddToPlaylist = { onAddToPlaylist(folder.id) },
                 onHide = { onHide(folder.path) },
-                onUnhide = { onUnhide(folder.id) },
+                onUnhide = { onUnhide(folder.path) },
                 onDelete = { onDelete(folder.id) }
             )
         }

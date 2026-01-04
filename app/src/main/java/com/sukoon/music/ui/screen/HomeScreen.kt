@@ -112,7 +112,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
     folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel = hiltViewModel(),
-    albumsViewModel: AlbumsViewModel = hiltViewModel(),
+    //albumsViewModel: AlbumsViewModel = hiltViewModel(),
     artistsViewModel: ArtistsViewModel = hiltViewModel(),
     genresViewModel: GenresViewModel = hiltViewModel()
 ) {
@@ -132,12 +132,6 @@ fun HomeScreen(
     val hiddenFolders by folderViewModel.hiddenFolders.collectAsStateWithLifecycle()
     val folderViewMode by folderViewModel.folderViewMode.collectAsStateWithLifecycle()
     val folderSortMode by folderViewModel.sortMode.collectAsStateWithLifecycle()
-
-    // Albums state
-    val albums by albumsViewModel.albums.collectAsStateWithLifecycle()
-    val recentlyPlayedAlbums by albumsViewModel.recentlyPlayedAlbums.collectAsStateWithLifecycle()
-    val isAlbumSelectionMode by albumsViewModel.isSelectionMode.collectAsStateWithLifecycle()
-    val selectedAlbumIds by albumsViewModel.selectedAlbumIds.collectAsStateWithLifecycle()
 
     // Artists state
     val artists by artistsViewModel.artists.collectAsStateWithLifecycle()
@@ -169,12 +163,7 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            if (selectedTab == "Albums" && isAlbumSelectionMode) {
-                AlbumSelectionTopBar(
-                    selectedCount = selectedAlbumIds.size,
-                    onBackClick = { albumsViewModel.toggleSelectionMode(false) }
-                )
-            } else if (selectedTab == "Artists" && isArtistSelectionMode) {
+                if (selectedTab == "Artists" && isArtistSelectionMode) {
                 ArtistSelectionTopBar(
                     selectedCount = selectedArtistIds.size,
                     onBackClick = { artistsViewModel.toggleSelectionMode(false) }
@@ -200,14 +189,7 @@ fun HomeScreen(
         },
         bottomBar = {
             Column {
-                if (selectedTab == "Albums" && isAlbumSelectionMode) {
-                    AlbumSelectionBottomBar(
-                        onPlay = { albumsViewModel.playSelectedAlbums() },
-                        onAddToPlaylist = { /* TODO */ },
-                        onDelete = { /* TODO */ },
-                        onMore = { /* TODO */ }
-                    )
-                } else if (selectedTab == "Artists" && isArtistSelectionMode) {
+                if (selectedTab == "Artists" && isArtistSelectionMode) {
                     ArtistSelectionBottomBar(
                         onPlay = { artistsViewModel.playSelectedArtists() },
                         onAddToPlaylist = { artistsViewModel.showAddToPlaylistDialog(selectedArtistIds.firstOrNull()) },
@@ -292,25 +274,9 @@ fun HomeScreen(
                             )
                         }
                         "Albums" -> {
-                            AlbumsContent(
-                                albums = albums,
-                                recentlyPlayedAlbums = recentlyPlayedAlbums,
-                                isSelectionMode = isAlbumSelectionMode,
-                                selectedIds = selectedAlbumIds,
-                                onAlbumClick = { albumId ->
-                                    if (isAlbumSelectionMode) {
-                                        albumsViewModel.toggleAlbumSelection(albumId)
-                                    } else {
-                                        onNavigateToAlbumDetail(albumId)
-                                    }
-                                },
-                                onAlbumLongClick = { albumId ->
-                                    albumsViewModel.toggleSelectionMode(true)
-                                    albumsViewModel.toggleAlbumSelection(albumId)
-                                },
-                                onPlayAlbum = { albumsViewModel.playAlbum(it) },
-                                onShuffleAlbum = { albumsViewModel.shuffleAlbum(it) },
-                                viewModel = albumsViewModel
+                            AlbumsScreen(
+                                onNavigateToAlbum = onNavigateToAlbumDetail,
+                                onBackClick = { }
                             )
                         }
                         "Artists" -> {
@@ -902,151 +868,6 @@ private fun SongsContent(
         SongInfoDialog(
             song = song,
             onDismiss = { showInfoForSong = null }
-        )
-    }
-}
-
-/**
- * Albums Content - Displays albums as per the provided design.
- */
-@Composable
-private fun AlbumsContent(
-    albums: List<Album>,
-    recentlyPlayedAlbums: List<Album>,
-    isSelectionMode: Boolean,
-    selectedIds: Set<Long>,
-    onAlbumClick: (Long) -> Unit,
-    onAlbumLongClick: (Long) -> Unit,
-    onPlayAlbum: (Long) -> Unit,
-    onShuffleAlbum: (Long) -> Unit,
-    viewModel: AlbumsViewModel
-) {
-    var showSortDialog by remember { mutableStateOf(false) }
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
-    val isAscending by viewModel.isAscending.collectAsStateWithLifecycle()
-
-    val scrollState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-
-    val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".toList()
-    val currentHighlightChar = remember { derivedStateOf {
-        if (isSelectionMode || albums.isEmpty()) null
-        else {
-            val firstVisibleIndex = scrollState.firstVisibleItemIndex
-            // Basic logic: find first visible album's title first char
-            // Account for header items (Recently Played section and Sort Header)
-            var actualAlbumIndex = firstVisibleIndex
-            if (recentlyPlayedAlbums.isNotEmpty() && searchQuery.isEmpty()) actualAlbumIndex--
-            actualAlbumIndex-- // Sort header
-
-            if (actualAlbumIndex in albums.indices) {
-                val char = albums[actualAlbumIndex].title.firstOrNull()?.uppercaseChar()
-                if (char != null && char in 'A'..'Z') char else '#'
-            } else null
-        }
-    }}
-
-    if (albums.isEmpty() && searchQuery.isEmpty()) {
-        EmptyAlbumsState()
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                state = scrollState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                // Search Bar in Selection Mode
-                if (isSelectionMode) {
-                    item {
-                        AlbumSearchBar(
-                            query = searchQuery,
-                            onQueryChange = { viewModel.setSearchQuery(it) }
-                        )
-                    }
-                    item {
-                        SelectAllRow(
-                            isAllSelected = selectedIds.size == albums.size && albums.isNotEmpty(),
-                            onToggleSelectAll = {
-                                if (selectedIds.size == albums.size) viewModel.clearSelection()
-                                else viewModel.selectAllAlbums()
-                            }
-                        )
-                    }
-                }
-
-                // Recently Played Section
-                if (!isSelectionMode && recentlyPlayedAlbums.isNotEmpty() && searchQuery.isEmpty()) {
-                    item {
-                        RecentlyPlayedSection(
-                            items = recentlyPlayedAlbums,
-                            onItemClick = { album -> onAlbumClick(album.id) },
-                            onHeaderClick = {
-                                // TODO: Navigate to recently played screen
-                            }
-                        ) { album, onClick ->
-                            RecentlyPlayedAlbumCard(album = album, onClick = onClick)
-                        }
-                    }
-                }
-
-                // Sort Header
-                if (!isSelectionMode) {
-                    item {
-                        AlbumSortHeader(
-                            albumCount = albums.size,
-                            onSortClick = { showSortDialog = true },
-                            onSelectionClick = { viewModel.toggleSelectionMode(true) }
-                        )
-                    }
-                }
-
-                // Main Album List
-                items(albums, key = { it.id }) { album ->
-                    AlbumRow(
-                        album = album,
-                        isSelected = selectedIds.contains(album.id),
-                        isSelectionMode = isSelectionMode,
-                        onClick = { onAlbumClick(album.id) },
-                        onLongClick = { onAlbumLongClick(album.id) }
-                    )
-                }
-            }
-
-            // Alphabet Scroller
-            if (!isSelectionMode) {
-                AlphabetScroller(
-                    highlightChar = currentHighlightChar.value,
-                    onCharClick = { char ->
-                        coroutineScope.launch {
-                            val targetIndex = albums.indexOfFirst { 
-                                val firstChar = it.title.firstOrNull()?.uppercaseChar()
-                                if (char == '#') firstChar == null || firstChar !in 'A'..'Z'
-                                else firstChar == char
-                            }
-                            if (targetIndex != -1) {
-                                // Account for headers
-                                var scrollIndex = targetIndex + 1 // Sort header
-                                if (recentlyPlayedAlbums.isNotEmpty() && searchQuery.isEmpty()) scrollIndex++
-                                scrollState.animateScrollToItem(scrollIndex)
-                            }
-                        }
-                    },
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp)
-                )
-            }
-        }
-    }
-
-    if (showSortDialog) {
-        AlbumSortDialog(
-            currentSortMode = sortMode,
-            isAscending = isAscending,
-            onDismiss = { showSortDialog = false },
-            onSortModeChange = { viewModel.setSortMode(it) },
-            onOrderChange = { viewModel.setAscending(it) }
         )
     }
 }
@@ -1698,39 +1519,7 @@ private fun GenresContent(
 }
 
 @Composable
-private fun AlbumSortHeader(
-    albumCount: Int,
-    onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit = {}
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "$albumCount albums",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row {
-            IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
-            }
-            IconButton(onClick = onSortClick) {
-                Icon(Icons.Default.Sort, contentDescription = "Sort")
-            }
-            /*IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
-                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
-            }*/
-        }
-    }
-}
-
-@Composable
-private fun AlbumRow(
+fun AlbumRow(
     album: Album,
     isSelected: Boolean,
     isSelectionMode: Boolean,
@@ -1802,7 +1591,7 @@ private fun AlbumRow(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AlbumSortDialog(
+fun AlbumSortDialog(
     currentSortMode: AlbumSortMode,
     isAscending: Boolean,
     onDismiss: () -> Unit,
@@ -1881,7 +1670,7 @@ private fun AlbumSelectionTopBar(
 }
 
 @Composable
-private fun AlbumSearchBar(
+fun AlbumSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
@@ -1919,7 +1708,7 @@ private fun AlbumSearchBar(
 }
 
 @Composable
-private fun SelectAllRow(
+fun SelectAllRow(
     isAllSelected: Boolean,
     onToggleSelectAll: () -> Unit
 ) {
@@ -2287,7 +2076,7 @@ private fun FoldersContent(
                             onAddToQueue = { folderViewModel.addToQueue(folder.path) },
                             onAddToPlaylist = { folderViewModel.showAddToPlaylistDialog(folder.id) },
                             onHide = { folderViewModel.excludeFolder(folder.path) },
-                            onUnhide = { folderViewModel.unhideFolder(folder.id) },
+                            onUnhide = { folderViewModel.unhideFolder(folder.path) },
                             onDelete = {
                                 showDeleteConfirmation = folder
                                 folderToDeleteId = folder.id

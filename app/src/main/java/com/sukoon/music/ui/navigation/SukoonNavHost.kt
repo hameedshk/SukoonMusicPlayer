@@ -351,7 +351,7 @@ fun SukoonNavHost(
                 java.net.URLDecoder.decode(it, "UTF-8")
             } ?: return@composable
             FolderDetailScreen(
-                folderId = 0L,
+                folderId = -1L,
                 folderPath = folderPath,
                 onBackClick = {
                     navController.navigateUp()

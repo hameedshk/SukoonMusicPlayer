@@ -140,7 +140,15 @@ class FolderViewModel @Inject constructor(
         }))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val folders: StateFlow<List<Folder>> = allFolders
+    val folders: StateFlow<List<Folder>> = combine(allFolders, sortMode) { folders, sort ->
+        when (sort) {
+            FolderSortMode.NAME_ASC -> folders.sortedBy { it.name.lowercase() }
+            FolderSortMode.NAME_DESC -> folders.sortedByDescending { it.name.lowercase() }
+            FolderSortMode.TRACK_COUNT -> folders.sortedByDescending { it.songCount }
+            FolderSortMode.RECENTLY_MODIFIED -> folders.sortedByDescending { it.totalDuration }
+            FolderSortMode.DURATION -> folders.sortedByDescending { it.totalDuration }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private val _selectedFolderForPlaylist = MutableStateFlow<Long?>(null)
     val selectedFolderForPlaylist: StateFlow<Long?> = _selectedFolderForPlaylist.asStateFlow()
@@ -173,12 +181,9 @@ class FolderViewModel @Inject constructor(
         }
     }
 
-    fun unhideFolder(folderId: Long) {
+    fun unhideFolder(path: String) {
         viewModelScope.launch {
-            val folder = hiddenFolders.value.find { it.id == folderId }
-            folder?.let {
-                preferencesManager.removeExcludedFolderPath(it.path)
-            }
+            preferencesManager.removeExcludedFolderPath(path)
         }
     }
 
