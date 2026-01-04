@@ -47,6 +47,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Playlist
+import com.sukoon.music.ui.components.getSmartPlaylistIcon
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.components.NativeAdCard
@@ -369,18 +370,6 @@ private fun SmartPlaylistCard(
             )
 
         }
-    }
-}
-
-/**
- * Get icon for smart playlist type
- */
-private fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
-    return when (type) {
-        SmartPlaylistType.MY_FAVOURITE -> Icons.Default.Favorite
-        SmartPlaylistType.LAST_ADDED -> Icons.Default.Add
-        SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
-        SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
     }
 }
 

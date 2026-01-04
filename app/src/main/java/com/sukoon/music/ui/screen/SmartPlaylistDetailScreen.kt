@@ -407,15 +407,6 @@ private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
     }
 }
 
-private fun getSmartPlaylistIcon(type: SmartPlaylistType): androidx.compose.ui.graphics.vector.ImageVector {
-    return when (type) {
-        SmartPlaylistType.MY_FAVOURITE -> Icons.Default.Favorite
-        SmartPlaylistType.LAST_ADDED -> Icons.Default.Add
-        SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
-        SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
-    }
-}
-
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun SmartPlaylistDetailScreenPreview() {

@@ -93,7 +93,12 @@ fun PlaylistDetailScreen(
             )
         },
         bottomBar = {
-            Column {
+            Surface(
+                tonalElevation = 8.dp, // Ensures the bar stays on top of content
+                shadowElevation = 8.dp,
+                color = MaterialTheme.colorScheme.surface
+            ) {
+                Column {
                 // Mini Player
                 if (playbackState.currentSong != null) {
                     PlaylistDetailMiniPlayer(
@@ -110,6 +115,7 @@ fun PlaylistDetailScreen(
                     adMobManager = viewModel.adMobManager,
                     modifier = Modifier.fillMaxWidth()
                 )
+                }
             }
         }
     ) { paddingValues ->

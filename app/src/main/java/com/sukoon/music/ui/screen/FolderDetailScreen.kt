@@ -3,6 +3,7 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
+import com.sukoon.music.domain.model.FolderItem
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongMenuHandler
@@ -44,17 +46,26 @@ import com.sukoon.music.ui.viewmodel.FolderDetailViewModel
 @Composable
 fun FolderDetailScreen(
     folderId: Long,
+    folderPath: String? = null,
     onBackClick: () -> Unit,
+    onNavigateToParent: (String?) -> Unit = { onBackClick() },
+    onNavigateToSubfolder: (String) -> Unit = {},
     viewModel: FolderDetailViewModel = hiltViewModel()
 ) {
-    // Load folder data
-    LaunchedEffect(folderId) {
-        viewModel.loadFolder(folderId)
+    // Load folder data (hierarchical or flat mode)
+    LaunchedEffect(folderId, folderPath) {
+        if (folderPath != null) {
+            viewModel.loadFolderByPath(folderPath)
+        } else {
+            viewModel.loadFolder(folderId)
+        }
     }
 
     val folder by viewModel.folder.collectAsStateWithLifecycle()
     val songs by viewModel.folderSongs.collectAsStateWithLifecycle()
+    val folderItems by viewModel.folderItems.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val parentFolderPath by viewModel.parentFolderPath.collectAsStateWithLifecycle()
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
@@ -63,7 +74,7 @@ fun FolderDetailScreen(
 
     // Handle case where folder is deleted or excluded while viewing
     LaunchedEffect(folder) {
-        if (folder == null && folderId != 0L) {
+        if (folder == null && folderId != 0L && folderPath == null) {
             onBackClick()
         }
     }
@@ -71,9 +82,15 @@ fun FolderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(folder?.name ?: "Folder") },
+                title = { Text(folderPath?.substringAfterLast("/") ?: folder?.name ?: "Folder") },
                 navigationIcon = {
-                    IconButton(onClick = onBackClick) {
+                    IconButton(onClick = {
+                        if (folderPath != null) {
+                            onNavigateToParent(parentFolderPath)
+                        } else {
+                            onBackClick()
+                        }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
@@ -86,7 +103,25 @@ fun FolderDetailScreen(
             )
         }
     ) { paddingValues ->
-        if (folder != null) {
+        if (folderPath != null) {
+            // Hierarchical mode: show folders + songs
+            HierarchicalFolderContent(
+                folderItems = folderItems,
+                currentSongId = playbackState.currentSong?.id,
+                menuHandler = menuHandler,
+                onFolderClick = onNavigateToSubfolder,
+                onSongClick = { song ->
+                    val allSongs = folderItems.filterIsInstance<FolderItem.SongType>()
+                        .map { it.song }
+                    viewModel.playSong(song, allSongs)
+                },
+                onToggleLike = { songId, isLiked ->
+                    viewModel.toggleLike(songId, isLiked)
+                },
+                modifier = Modifier.padding(paddingValues)
+            )
+        } else if (folder != null) {
+            // Flat mode: show only songs (backward compatibility)
             FolderDetailContent(
                 folder = folder!!,
                 songs = songs,
@@ -99,6 +134,115 @@ fun FolderDetailScreen(
                     viewModel.toggleLike(songId, isLiked)
                 },
                 modifier = Modifier.padding(paddingValues)
+            )
+        }
+    }
+}
+
+@Composable
+private fun HierarchicalFolderContent(
+    folderItems: List<FolderItem>,
+    currentSongId: Long?,
+    menuHandler: SongMenuHandler,
+    onFolderClick: (String) -> Unit,
+    onSongClick: (Song) -> Unit,
+    onToggleLike: (Long, Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
+        if (folderItems.isEmpty()) {
+            item {
+                EmptyFolderState()
+            }
+        } else {
+            items(
+                items = folderItems,
+                key = { item ->
+                    when (item) {
+                        is FolderItem.FolderType -> "folder_${item.folder.id}"
+                        is FolderItem.SongType -> "song_${item.song.id}"
+                    }
+                }
+            ) { item ->
+                when (item) {
+                    is FolderItem.FolderType -> {
+                        FolderItemRow(
+                            folder = item.folder,
+                            onClick = { onFolderClick(item.folder.path) }
+                        )
+                    }
+                    is FolderItem.SongType -> {
+                        FolderSongItem(
+                            song = item.song,
+                            index = 0, // Not showing index in hierarchical mode
+                            isCurrentlyPlaying = item.song.id == currentSongId,
+                            menuHandler = menuHandler,
+                            onClick = { onSongClick(item.song) },
+                            onLikeClick = { onToggleLike(item.song.id, item.song.isLiked) }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FolderItemRow(
+    folder: Folder,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp, vertical = 4.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Folder Icon
+            Icon(
+                imageVector = Icons.Default.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(48.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Folder Info
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = folder.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${folder.songCount} songs",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+
+            // Navigate arrow
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = "Open folder",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }

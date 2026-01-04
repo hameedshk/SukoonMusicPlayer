@@ -330,6 +330,43 @@ fun SukoonNavHost(
                 folderId = folderId,
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToParent = {
+                    navController.navigateUp()
+                },
+                onNavigateToSubfolder = { folderPath ->
+                    navController.navigate(Routes.FolderDetailByPath.createRoute(folderPath))
+                }
+            )
+        }
+
+        // Folder Detail Screen (Hierarchical) - Subfolders and songs by path
+        composable(
+            route = Routes.FolderDetailByPath.route,
+            arguments = listOf(
+                navArgument("folderPath") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val folderPath = backStackEntry.arguments?.getString("folderPath")?.let {
+                java.net.URLDecoder.decode(it, "UTF-8")
+            } ?: return@composable
+            FolderDetailScreen(
+                folderId = 0L,
+                folderPath = folderPath,
+                onBackClick = {
+                    navController.navigateUp()
+                },
+                onNavigateToParent = { parentPath ->
+                    if (parentPath != null) {
+                        navController.navigate(Routes.FolderDetailByPath.createRoute(parentPath)) {
+                            popUpTo(Routes.FolderDetailByPath.route) { inclusive = true }
+                        }
+                    } else {
+                        navController.navigateUp()
+                    }
+                },
+                onNavigateToSubfolder = { subfolderPath ->
+                    navController.navigate(Routes.FolderDetailByPath.createRoute(subfolderPath))
                 }
             )
         }

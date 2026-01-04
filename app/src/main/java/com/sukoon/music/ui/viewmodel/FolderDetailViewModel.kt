@@ -3,11 +3,13 @@ package com.sukoon.music.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukoon.music.domain.model.Folder
+import com.sukoon.music.domain.model.FolderItem
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -18,8 +20,8 @@ import javax.inject.Inject
  * ViewModel for Folder Detail screen.
  *
  * Responsibilities:
- * - Load specific folder by ID
- * - Load songs in the folder
+ * - Load specific folder by ID or path
+ * - Load subfolders and songs in the folder (hierarchical)
  * - Provide playback actions (play, shuffle, play song)
  * - Handle like/unlike songs
  */
@@ -30,6 +32,14 @@ class FolderDetailViewModel @Inject constructor(
 ) : ViewModel() {
 
     private var currentFolderId: Long = -1
+    private var currentFolderPath: String = ""
+
+    /**
+     * Parent folder path for hierarchical navigation.
+     * Null if at root level.
+     */
+    private val _parentFolderPath = MutableStateFlow<String?>(null)
+    val parentFolderPath: StateFlow<String?> = _parentFolderPath
 
     /**
      * Current folder being displayed.
@@ -54,6 +64,13 @@ class FolderDetailViewModel @Inject constructor(
             initialValue = emptyList()
         )
     val folderSongs: StateFlow<List<Song>> get() = _folderSongs
+
+    /**
+     * Mixed list of subfolders and songs in current folder.
+     * Used for hierarchical navigation.
+     */
+    private val _folderItems = MutableStateFlow<List<FolderItem>>(emptyList())
+    val folderItems: StateFlow<List<FolderItem>> = _folderItems
 
     /**
      * Current playback state for UI feedback.
@@ -84,6 +101,45 @@ class FolderDetailViewModel @Inject constructor(
                 started = SharingStarted.WhileSubscribed(5000),
                 initialValue = emptyList()
             )
+    }
+
+    /**
+     * Load folder contents (subfolders + songs) by path for hierarchical navigation.
+     *
+     * @param folderPath The file system path of the folder
+     */
+    fun loadFolderByPath(folderPath: String) {
+        if (currentFolderPath == folderPath) return // Already loaded
+
+        currentFolderPath = folderPath
+        _parentFolderPath.value = calculateParentPath(folderPath)
+
+        viewModelScope.launch {
+            songRepository.getSubfoldersAndSongsByPath(folderPath)
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList()
+                )
+                .collect { items ->
+                    _folderItems.value = items
+                }
+        }
+    }
+
+    /**
+     * Calculate parent folder path from current path.
+     * Returns null if at root level.
+     */
+    private fun calculateParentPath(path: String): String? {
+        val normalizedPath = path.trimEnd('/')
+        val lastSlashIndex = normalizedPath.lastIndexOf('/')
+
+        return if (lastSlashIndex > 0) {
+            normalizedPath.substring(0, lastSlashIndex)
+        } else {
+            null // Root level
+        }
     }
 
     /**

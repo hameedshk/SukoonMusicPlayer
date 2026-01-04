@@ -359,7 +359,9 @@ fun HomeScreen(
                                 sortMode = folderSortMode,
                                 playbackState = playbackState,
                                 onFolderClick = onNavigateToFolderDetail,
-                                folderViewModel = folderViewModel
+                                folderViewModel = folderViewModel,
+                                menuHandler = menuHandler,
+                                onNavigateToNowPlaying = onNavigateToNowPlaying
                             )
                         }
                     }
@@ -522,12 +524,14 @@ private fun ForYouContent(
         if (recentlyPlayed.isNotEmpty()) {
             item {
                 RecentlyPlayedSection(
-                    songs = recentlyPlayed,
-                    onSongClick = onRecentlyPlayedClick,
+                    items = recentlyPlayed,
+                    onItemClick = onRecentlyPlayedClick,
                     onHeaderClick = {
                         onNavigateToSmartPlaylist(SmartPlaylistType.RECENTLY_PLAYED)
                     }
-                )
+                ) { song, onClick ->
+                    RecentlyPlayedSongCard(song = song, onClick = onClick)
+                }
             }
         }
         item {
@@ -550,1002 +554,6 @@ private fun ForYouContent(
                 onClick = { onSongClick(song, index) },
                 onLikeClick = { onLikeClick(song) }
             )
-        }
-    }
-}
-
-@Composable
-private fun SongItem(
-    song: Song,
-    isPlaying: Boolean,
-    onClick: () -> Unit,
-    onLikeClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = "Album art for ${song.title}",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                error = {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${song.artist} • ${song.album}",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        IconButton(onClick = onLikeClick) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun SongItemWithMenu(
-    song: Song,
-    isPlaying: Boolean,
-    onClick: () -> Unit,
-    onMenuClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = "Album art for ${song.title}",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                error = {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        IconButton(onClick = onMenuClick) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SongMenuBottomSheet(
-    song: Song,
-    onDismiss: () -> Unit,
-    onPlayNext: () -> Unit,
-    onAddToQueue: () -> Unit,
-    onAddToPlaylist: () -> Unit,
-    onGoToAlbum: () -> Unit,
-    onSetRingtone: () -> Unit,
-    onChangeCover: () -> Unit,
-    onEditTags: () -> Unit,
-    onEditAudio: () -> Unit,
-    onUpdateLyrics: () -> Unit,
-    onDelete: () -> Unit
-) {
-    ModalBottomSheet(
-        onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            // Song header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = {
-                            Icon(Icons.Default.MusicNote, contentDescription = null)
-                        }
-                    )
-                }
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(song.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1)
-                    Text(song.artist, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
-                }
-                IconButton(onClick = { /* TODO: Info */ }) {
-                    Icon(Icons.Default.Info, contentDescription = "Info")
-                }
-                IconButton(onClick = { /* TODO: Share */ }) {
-                    Icon(Icons.Default.Share, contentDescription = "Share")
-                }
-            }
-
-            // Pill buttons
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                PillButton(
-                    text = "Set as ringtone",
-                    icon = Icons.Default.Notifications,
-                    onClick = { onSetRingtone(); onDismiss() },
-                    modifier = Modifier.weight(1f)
-                )
-                PillButton(
-                    text = "Change cover",
-                    icon = Icons.Default.Image,
-                    onClick = { onChangeCover(); onDismiss() },
-                    modifier = Modifier.weight(1f)
-                )
-                PillButton(
-                    text = "Edit tags",
-                    icon = Icons.Default.Edit,
-                    onClick = { onEditTags(); onDismiss() },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            // Menu items
-            MenuOption("Play next", Icons.Default.SkipNext) { onPlayNext(); onDismiss() }
-            MenuOption("Add to queue", Icons.Default.PlaylistAdd) { onAddToQueue(); onDismiss() }
-            MenuOption("Add to playlist", Icons.Default.PlaylistAdd) { onAddToPlaylist(); onDismiss() }
-            MenuOption("Go to album", Icons.Default.Album) { onGoToAlbum(); onDismiss() }
-            MenuOption("Edit audio", Icons.Default.MusicNote) { onEditAudio(); onDismiss() }
-            MenuOption("Update lyrics", Icons.Default.Edit) { onUpdateLyrics(); onDismiss() }
-            MenuOption("Delete from device", Icons.Default.Delete, isDestructive = true) { onDelete(); onDismiss() }
-        }
-    }
-}
-
-@Composable
-private fun PillButton(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.height(56.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(20.dp))
-            Spacer(Modifier.height(4.dp))
-            Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-    }
-}
-
-@Composable
-private fun MenuOption(
-    text: String,
-    icon: ImageVector,
-    isDestructive: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(Modifier.width(16.dp))
-        Text(
-            text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-        )
-    }
-}
-
-@Composable
-private fun SongItemSelectable(
-    song: Song,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = { Icon(Icons.Default.MusicNote, contentDescription = null) }
-            )
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Spacer(Modifier.height(4.dp))
-            Text(song.artist, style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
-        RadioButton(selected = isSelected, onClick = null)
-    }
-}
-
-@Composable
-private fun SelectionActionButton(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier.clickable(onClick = onClick).padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(icon, contentDescription = label)
-        Spacer(Modifier.height(4.dp))
-        Text(label, style = MaterialTheme.typography.labelSmall)
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun SongSortDialog(
-    currentSortMode: String,
-    currentOrder: String,
-    onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
-) {
-    var selectedMode by remember { mutableStateOf(currentSortMode) }
-    var selectedOrder by remember { mutableStateOf(currentOrder) }
-
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-            Text("Sort by", style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
-
-            listOf("Song name", "Artist name", "Album name", "Folder name",
-                "Time added", "Play count", "Year", "Duration", "Size").forEach { mode ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { selectedMode = mode }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(mode, style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedMode == mode) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface)
-                    if (selectedMode == mode) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            listOf("A to Z", "Z to A").forEach { order ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { selectedOrder = order }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("From $order", style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedOrder == order) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface)
-                    if (selectedOrder == order) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Text("CANCEL", color = MaterialTheme.colorScheme.onSurface)
-                }
-                Button(onClick = { onConfirm(selectedMode, selectedOrder) }, modifier = Modifier.weight(1f)) {
-                    Text("OK")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RedesignedTopBar(
-    onPremiumClick: () -> Unit,
-    onGlobalSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Sukoon Music",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onPremiumClick) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Premium",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            IconButton(onClick = onGlobalSearchClick) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TabPills(
-    selectedTab: String,
-    onTabSelected: (String) -> Unit
-) {
-    val tabs = listOf("For you", "Songs", "Albums", "Artists", "Genres", "Playlist", "Folders")
-
-    LazyRow(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = SpacingMedium),
-        horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
-        contentPadding = PaddingValues(horizontal = SpacingLarge)
-    ) {
-        items(
-            count = tabs.size,
-            key = { index -> tabs[index] }
-        ) { index ->
-            val tab = tabs[index]
-            val isSelected = tab == selectedTab
-
-            Surface(
-                modifier = Modifier
-                    .height(44.dp)
-                    .clickable { onTabSelected(tab) },
-                shape = PillShape,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = if (isSelected) 4.dp else 0.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = tab,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isSelected) Color.White
-                        else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun WidgetBanner(
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.primaryContainer
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(SpacingLarge),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Album,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "Add widgets to your home screen",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "Go",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionButtonGrid(
-    onShuffleAllClick: () -> Unit,
-    onPlayAllClick: () -> Unit,
-    onScanClick: () -> Unit,
-    onSettingsClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-        verticalArrangement = Arrangement.spacedBy(SpacingMedium)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            ActionButton(
-                text = "Shuffle",
-                icon = Icons.Default.Shuffle,
-                onClick = onShuffleAllClick,
-                modifier = Modifier.weight(1f)
-            )
-            ActionButton(
-                text = "Play",
-                icon = Icons.Default.PlayArrow,
-                onClick = onPlayAllClick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            ActionButton(
-                text = "Scan music",
-                icon = Icons.Default.Refresh,
-                onClick = onScanClick,
-                modifier = Modifier.weight(1f)
-            )
-            ActionButton(
-                text = "Settings",
-                icon = Icons.Default.Settings,
-                onClick = onSettingsClick,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun ActionButton(
-    text: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .height(56.dp)
-            .clickable(onClick = onClick),
-        shape = ActionButtonShape,
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(SpacingLarge),
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = text,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.width(SpacingMedium))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
-private fun LastAddedSection(
-    songs: List<Song>,
-    onSongClick: (Song) -> Unit,
-    onHeaderClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = SpacingMedium)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onHeaderClick)
-                .padding(horizontal = SpacingLarge),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Last added",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "See all",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(SpacingMedium))
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = SpacingLarge),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            items(songs.size.coerceAtMost(10)) { index ->
-                LastAddedCard(
-                    song = songs[index],
-                    onClick = { onSongClick(songs[index]) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LastAddedCard(
-    song: Song,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .width(160.dp)
-            .height(160.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (song.albumArtUri != null) {
-                SubcomposeAsyncImage(
-                    model = song.albumArtUri,
-                    contentDescription = song.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    }
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(64.dp)
-                    )
-                }
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.5f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.BottomEnd
-            ) {
-                IconButton(
-                    onClick = onClick,
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(20.dp)
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentlyPlayedSection(
-    songs: List<Song>,
-    onSongClick: (Song) -> Unit,
-    onHeaderClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = SpacingMedium)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onHeaderClick)
-                .padding(horizontal = SpacingLarge),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "Recently played",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "See all",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(SpacingMedium))
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = SpacingLarge),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            items(songs.size.coerceAtMost(10)) { index ->
-                RecentlyPlayedCard(
-                    song = songs[index],
-                    onClick = { onSongClick(songs[index]) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentlyPlayedCard(
-    song: Song,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .width(160.dp)
-            .height(160.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            if (song.albumArtUri != null) {
-                SubcomposeAsyncImage(
-                    model = song.albumArtUri,
-                    contentDescription = song.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    },
-                    error = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(64.dp)
-                            )
-                        }
-                    }
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(64.dp)
-                    )
-                }
-            }
-
-            // Gradient overlay with play button
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.5f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.BottomEnd
-            ) {
-                IconButton(
-                    onClick = onClick,
-                    modifier = Modifier.padding(8.dp)
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surface
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .size(20.dp)
-                        )
-                    }
-                }
-            }
-
-            // Recently played badge
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(8.dp)
-            ) {
-                Surface(
-                    shape = RoundedCornerShape(4.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.History,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(12.dp)
-                        )
-                    }
-                }
-            }
         }
     }
 }
@@ -1982,13 +990,15 @@ private fun AlbumsContent(
                 // Recently Played Section
                 if (!isSelectionMode && recentlyPlayedAlbums.isNotEmpty() && searchQuery.isEmpty()) {
                     item {
-                        RecentlyPlayedAlbumsSection(
-                            albums = recentlyPlayedAlbums,
-                            onAlbumClick = onAlbumClick,
+                        RecentlyPlayedSection(
+                            items = recentlyPlayedAlbums,
+                            onItemClick = { album -> onAlbumClick(album.id) },
                             onHeaderClick = {
                                 // TODO: Navigate to recently played screen
                             }
-                        )
+                        ) { album, onClick ->
+                            RecentlyPlayedAlbumCard(album = album, onClick = onClick)
+                        }
                     }
                 }
 
@@ -2700,115 +1710,6 @@ private fun GenresContent(
 }
 
 @Composable
-private fun RecentlyPlayedAlbumsSection(
-    albums: List<Album>,
-    onAlbumClick: (Long) -> Unit,
-    onHeaderClick: () -> Unit = {}
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onHeaderClick)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "Recently played",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Icon(
-                imageVector = Icons.Default.ArrowForward,
-                contentDescription = "See all",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyRow(
-            modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(albums) { album ->
-                RecentlyPlayedAlbumCard(album = album, onClick = { onAlbumClick(album.id) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun RecentlyPlayedAlbumCard(
-    album: Album,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .width(140.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = album.albumArtUri,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = {
-                    Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            )
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = album.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = album.artist,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-@Composable
 private fun AlbumSortHeader(
     albumCount: Int,
     onSortClick: () -> Unit,
@@ -2911,34 +1812,6 @@ private fun AlbumRow(
     }
 }
 
-@Composable
-private fun AlphabetScroller(
-    highlightChar: Char?,
-    onCharClick: (Char) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".toList()
-    Column(
-        modifier = modifier.background(Color.Black.copy(alpha = 0.1f), CircleShape),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        alphabet.forEach { char ->
-            val isHighlighted = char == highlightChar
-            Text(
-                text = char.toString(),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
-                    fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
-                ),
-                modifier = Modifier
-                    .padding(vertical = 1.dp, horizontal = 4.dp)
-                    .clickable { onCharClick(char) },
-                color = if (isHighlighted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AlbumSortDialog(
@@ -3000,33 +1873,6 @@ private fun AlbumSortDialog(
             }
         }
     )
-}
-
-@Composable
-private fun SortOption(
-    text: String,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-        )
-        RadioButton(
-            selected = isSelected,
-            onClick = null,
-            colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.primary)
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -3129,23 +1975,6 @@ private fun AlbumSelectionBottomBar(
             SelectionBottomBarItem(icon = Icons.Default.Delete, label = "Delete", onClick = onDelete)
             SelectionBottomBarItem(icon = Icons.Default.MoreVert, label = "More", onClick = onMore)
         }
-    }
-}
-
-@Composable
-private fun SelectionBottomBarItem(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(icon, contentDescription = label)
-        Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
 
@@ -3352,10 +2181,15 @@ private fun FoldersContent(
     sortMode: FolderSortMode,
     playbackState: PlaybackState,
     onFolderClick: (Long) -> Unit,
-    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel
+    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel,
+    menuHandler: SongMenuHandler,
+    onNavigateToNowPlaying: () -> Unit
 ) {
     var showDeleteConfirmation by remember { mutableStateOf<Folder?>(null) }
     var folderToDeleteId by remember { mutableStateOf<Long?>(null) }
+
+    val browsingContent by folderViewModel.browsingContent.collectAsStateWithLifecycle()
+    val currentPath by folderViewModel.currentPath.collectAsStateWithLifecycle()
 
     val displayFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) {
         folders
@@ -3364,27 +2198,90 @@ private fun FoldersContent(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Category pill row
-        CategoryPillRow(
-            itemCount = displayFolders.size,
-            itemLabel = if (displayFolders.size == 1) "folder" else "folders",
-            sortOptions = FolderSortMode.entries,
-            currentSortMode = sortMode,
-            onSortModeChanged = { folderViewModel.setSortMode(it) },
-            sortModeToDisplayName = { it.toDisplayName() },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        // Back button when navigating in folders
+        if (folderViewMode == FolderViewMode.DIRECTORIES && currentPath != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { folderViewModel.navigateUp() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Navigate up"
+                    )
+                }
+                Text(
+                    text = currentPath ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            HorizontalDivider()
+        }
 
-        // Context header
-        FolderContextHeader(
-            selectedMode = folderViewMode,
-            onModeChanged = { folderViewModel.setFolderViewMode(it) },
-            modifier = Modifier.padding(horizontal = 16.dp)
-        )
+        // Category pill row (only show when at root)
+        if (currentPath == null) {
+            CategoryPillRow(
+                itemCount = displayFolders.size,
+                itemLabel = if (displayFolders.size == 1) "folder" else "folders",
+                sortOptions = FolderSortMode.entries,
+                currentSortMode = sortMode,
+                onSortModeChanged = { folderViewModel.setSortMode(it) },
+                sortModeToDisplayName = { it.toDisplayName() },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // Context header
+            FolderContextHeader(
+                selectedMode = folderViewMode,
+                onModeChanged = { folderViewModel.setFolderViewMode(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
 
         // Folder list or empty state
         Box(modifier = Modifier.weight(1f)) {
-            if (displayFolders.isEmpty()) {
+            if (folderViewMode == FolderViewMode.DIRECTORIES && browsingContent.isNotEmpty()) {
+                // Hierarchical browsing mode
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(browsingContent.size, key = { index ->
+                        when (val item = browsingContent[index]) {
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder -> "folder_${item.path}"
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem -> "song_${item.song.id}"
+                        }
+                    }) { index ->
+                        when (val item = browsingContent[index]) {
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder -> {
+                                FolderBrowserSubFolderRow(
+                                    subFolder = item,
+                                    onClick = { folderViewModel.navigateToFolder(item.path) },
+                                    onPlay = { folderViewModel.playFolder(item.path) }
+                                )
+                            }
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem -> {
+                                FolderBrowserSongRow(
+                                    song = item.song,
+                                    isPlaying = item.song.id == playbackState.currentSong?.id,
+                                    menuHandler = menuHandler,
+                                    onClick = {
+                                        val contextSongs = browsingContent.filterIsInstance<com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem>()
+                                            .map { it.song }
+                                        folderViewModel.playSong(item.song, contextSongs)
+                                        onNavigateToNowPlaying()
+                                    },
+                                    onLikeClick = { folderViewModel.toggleLike(item.song.id, item.song.isLiked) }
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (displayFolders.isEmpty()) {
                 EmptyFoldersState(
                     isHiddenView = folderViewMode == FolderViewMode.HIDDEN
                 )
@@ -3555,15 +2452,6 @@ private fun SmartPlaylistCard(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
             )
         }
-    }
-}
-
-private fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
-    return when (type) {
-        SmartPlaylistType.MY_FAVOURITE -> Icons.Default.Favorite
-        SmartPlaylistType.LAST_ADDED -> Icons.Default.Add
-        SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
-        SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
     }
 }
 
@@ -4201,4 +3089,186 @@ private fun GenreSelectionTopBar(
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
     )
+}
+
+@Composable
+private fun FolderBrowserSubFolderRow(
+    subFolder: com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder,
+    onClick: () -> Unit,
+    onPlay: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (subFolder.albumArtUri != null) {
+                SubcomposeAsyncImage(
+                    model = subFolder.albumArtUri,
+                    contentDescription = "Folder cover",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    },
+                    error = {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = subFolder.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${subFolder.songCount} songs",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Icon(
+            imageVector = Icons.Default.ArrowForward,
+            contentDescription = "Enter folder",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun FolderBrowserSongRow(
+    song: Song,
+    isPlaying: Boolean,
+    menuHandler: SongMenuHandler,
+    onClick: () -> Unit,
+    onLikeClick: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            SubcomposeAsyncImage(
+                model = song.albumArtUri,
+                contentDescription = "Album art for ${song.title}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                error = {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${song.artist} • ${song.album}",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        IconButton(onClick = { showMenu = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IconButton(onClick = onLikeClick) {
+            Icon(
+                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (song.isLiked) "Unlike" else "Like",
+                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
+    }
 }

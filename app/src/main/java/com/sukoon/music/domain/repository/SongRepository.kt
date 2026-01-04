@@ -173,6 +173,12 @@ interface SongRepository {
      */
     fun getSongsByFolderId(folderId: Long): Flow<List<Song>>
 
+    /**
+     * Get subfolders and songs in a specific folder by path.
+     * Returns a flow of FolderItem list (mixed folders and songs).
+     */
+    fun getSubfoldersAndSongsByPath(folderPath: String): Flow<List<com.sukoon.music.domain.model.FolderItem>>
+
     // ============================================
     // PLAYLIST METHODS
     // ============================================

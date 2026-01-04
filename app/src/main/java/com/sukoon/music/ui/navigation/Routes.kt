@@ -121,6 +121,17 @@ sealed class Routes(val route: String) {
     }
 
     /**
+     * Folder Detail By Path screen - Shows subfolders and songs in a folder (hierarchical).
+     * Requires folderPath parameter (URL-encoded).
+     */
+    data object FolderDetailByPath : Routes("folder_path/{folderPath}") {
+        fun createRoute(folderPath: String): String {
+            val encoded = java.net.URLEncoder.encode(folderPath, "UTF-8")
+            return "folder_path/$encoded"
+        }
+    }
+
+    /**
      * Excluded Folders screen - Manage folders excluded from the music library.
      */
     data object ExcludedFolders : Routes("excluded_folders")

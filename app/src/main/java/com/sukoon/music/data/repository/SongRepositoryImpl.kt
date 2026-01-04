@@ -15,6 +15,7 @@ import com.sukoon.music.data.source.MediaStoreScanner
 import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
+import com.sukoon.music.domain.model.FolderItem
 import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.ScanState
@@ -399,6 +400,40 @@ class SongRepositoryImpl @Inject constructor(
             } else {
                 emptyList()
             }
+        }
+    }
+
+    override fun getSubfoldersAndSongsByPath(folderPath: String): Flow<List<FolderItem>> {
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            val normalizedPath = folderPath.trimEnd('/')
+
+            // Get all folder paths
+            val allPaths = entities
+                .filter { !it.folderPath.isNullOrEmpty() }
+                .map { it.folderPath!! }
+                .distinct()
+
+            // Find immediate subfolders (one level down)
+            val subfolders = allPaths
+                .filter { path ->
+                    val parent = java.io.File(path).parent
+                    parent == normalizedPath
+                }
+                .map { subPath ->
+                    val songsInSubfolder = entities.filter { it.folderPath == subPath }
+                    FolderItem.FolderType(createFolderFromSongs(subPath, songsInSubfolder))
+                }
+
+            // Get songs directly in this folder
+            val songs = entities
+                .filter { it.folderPath == normalizedPath }
+                .map { FolderItem.SongType(it.toSong()) }
+
+            // Combine: folders first, then songs
+            subfolders + songs
         }
     }
 

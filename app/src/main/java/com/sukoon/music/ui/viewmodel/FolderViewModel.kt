@@ -40,8 +40,13 @@ class FolderViewModel @Inject constructor(
     private val preferencesManager: PreferencesManager,
     val adMobManager: AdMobManager,
     @ApplicationContext private val context: Context
+
 ) : ViewModel() {
 
+    private fun String.stripAndroidStoragePrefix(): String {
+        val prefix = "/storage/emulated/0/"
+        return if (this.startsWith(prefix)) this.removePrefix(prefix) else this
+    }
     private val allFolders: StateFlow<List<Folder>> = songRepository.getAllFolders()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -76,16 +81,16 @@ class FolderViewModel @Inject constructor(
 
         if (currentPath == null) {
             // Show root folders (top-level segments of all folder paths)
-            val rootPaths = folders.map { it.path.split("/").filter { s -> s.isNotEmpty() }.firstOrNull() ?: "" }
+            val rootPaths = folders.map { it.path.stripAndroidStoragePrefix().split("/").filter { s -> s.isNotEmpty() }.firstOrNull() ?: "" }
                 .distinct()
             
             rootPaths.forEach { root ->
                 val fullPath = "/$root"
-                val foldersUnderRoot = folders.filter { it.path.startsWith(fullPath) }
+                val foldersUnderRoot = folders.filter { it.path.stripAndroidStoragePrefix().startsWith(fullPath) }
                 val songCount = foldersUnderRoot.sumOf { it.songCount }
                 items.add(FolderBrowserItem.SubFolder(
                     name = root,
-                    path = fullPath,
+                    path = "/storage/emulated/0/$root",
                     songCount = songCount,
                     totalDuration = foldersUnderRoot.sumOf { it.totalDuration },
                     albumArtUri = foldersUnderRoot.firstOrNull { it.albumArtUri != null }?.albumArtUri
@@ -264,6 +269,12 @@ class FolderViewModel @Inject constructor(
     fun setSortMode(mode: FolderSortMode) {
         viewModelScope.launch {
             preferencesManager.setFolderSortMode(mode)
+        }
+    }
+
+    fun toggleLike(songId: Long, currentLiked: Boolean) {
+        viewModelScope.launch {
+            songRepository.updateLikeStatus(songId, !currentLiked)
         }
     }
 }
