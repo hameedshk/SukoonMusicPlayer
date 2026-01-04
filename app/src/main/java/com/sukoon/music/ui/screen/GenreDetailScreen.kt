@@ -83,30 +83,6 @@ fun GenreDetailScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        bottomBar = {
-            Column {
-                if (playbackState.currentSong != null) {
-                    MiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { 
-                            scope.launch {
-                                // Handled via common playback control logic
-                            }
-                        },
-                        onNextClick = { 
-                            scope.launch {
-                                // Handled via common playback control logic
-                            }
-                        },
-                        onClick = onNavigateToNowPlaying
-                    )
-                }
-                BannerAdView(
-                    adMobManager = viewModel.adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
         }
     ) { paddingValues ->
         Box(

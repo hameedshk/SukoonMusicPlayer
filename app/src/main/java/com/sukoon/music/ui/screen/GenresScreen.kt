@@ -148,30 +148,6 @@ fun GenresScreen(
                         onAddToQueue = { viewModel.addSelectedToQueue() }
                     )
                 }
-
-                // MiniPlayer
-                if (playbackState.currentSong != null) {
-                    MiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { 
-                            scope.launch {
-                                // Handled via common playback co"For you"ntrol logic
-                            }
-                        },
-                        onNextClick = { 
-                            scope.launch {
-                                // Handled via common playback control logic
-                            }
-                        },
-                        onClick = { /* Navigate to player */ }
-                    )
-                }
-
-                // Ad banner
-                BannerAdView(
-                    adMobManager = playlistViewModel.adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     ) { paddingValues ->

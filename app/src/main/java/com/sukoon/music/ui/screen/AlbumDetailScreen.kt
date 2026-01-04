@@ -116,29 +116,13 @@ fun AlbumDetailScreen(
             }
         },
         bottomBar = {
-            Column {
-                if (isSelectionMode && selectedSongIds.isNotEmpty()) {
-                    SongSelectionBottomBar(
-                        onPlay = { viewModel.playSelectedSongs(songs) },
-                        onAddToQueue = { viewModel.addSelectedToQueue(songs) },
-                        onDelete = { viewModel.deleteSelectedSongs() },
-                        onMore = { /* TODO: Show more options */ }
-                    )
-                }
-                if (playbackState.currentSong != null && !isSelectionMode) {
-                    MiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { viewModel.playPause() },
-                        onNextClick = { viewModel.seekToNext() },
-                        onClick = onNavigateToNowPlaying
-                    )
-                }
-                if (!isSelectionMode) {
-                    BannerAdView(
-                        adMobManager = viewModel.adMobManager,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+            if (isSelectionMode && selectedSongIds.isNotEmpty()) {
+                SongSelectionBottomBar(
+                    onPlay = { viewModel.playSelectedSongs(songs) },
+                    onAddToQueue = { viewModel.addSelectedToQueue(songs) },
+                    onDelete = { viewModel.deleteSelectedSongs() },
+                    onMore = { /* TODO: Show more options */ }
+                )
             }
         },
         containerColor = MaterialTheme.colorScheme.background

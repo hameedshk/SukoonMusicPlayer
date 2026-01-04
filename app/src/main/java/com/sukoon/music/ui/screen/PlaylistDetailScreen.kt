@@ -91,32 +91,6 @@ fun PlaylistDetailScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        bottomBar = {
-            Surface(
-                tonalElevation = 8.dp, // Ensures the bar stays on top of content
-                shadowElevation = 8.dp,
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                Column {
-                // Mini Player
-                if (playbackState.currentSong != null) {
-                    PlaylistDetailMiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { viewModel.playPause() },
-                        onNextClick = { viewModel.seekToNext() },
-                        onPreviousClick = { viewModel.seekToPrevious() },
-                        onClick = onNavigateToNowPlaying
-                    )
-                }
-
-                // Banner Ad
-                com.sukoon.music.ui.components.BannerAdView(
-                    adMobManager = viewModel.adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                }
-            }
         }
     ) { paddingValues ->
         if (playlist != null) {

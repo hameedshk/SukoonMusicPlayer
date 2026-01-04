@@ -223,19 +223,7 @@ fun HomeScreen(
                         onPlayNext = { genresViewModel.playSelectedNext() },
                         onAddToQueue = { genresViewModel.addSelectedToQueue() }
                     )
-                } else if (playbackState.currentSong != null) {
-                    MiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { viewModel.playPause() },
-                        onNextClick = { viewModel.seekToNext() },
-                        onClick = onNavigateToNowPlaying
-                    )
                 }
-
-                BannerAdView(
-                    adMobManager = adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     ) { paddingValues ->

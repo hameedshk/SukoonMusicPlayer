@@ -72,22 +72,6 @@ fun ArtistDetailScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        },
-        bottomBar = {
-            Column {
-                if (playbackState.currentSong != null) {
-                    MiniPlayer(
-                        playbackState = playbackState,
-                        onPlayPauseClick = { viewModel.playPause() },
-                        onNextClick = { viewModel.seekToNext() },
-                        onClick = onNavigateToNowPlaying
-                    )
-                }
-                BannerAdView(
-                    adMobManager = viewModel.adMobManager,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
         }
     ) { paddingValues ->
         if (artist == null) {

@@ -161,30 +161,6 @@ fun FoldersScreen(
                     )
                 }
             }
-
-            // Mini player (conditional)
-            if (playbackState.currentSong != null) {
-                MiniPlayer(
-                    playbackState = playbackState,
-                    onPlayPauseClick = { 
-                        scope.launch {
-                            viewModel.playbackRepository.playPause()
-                        }
-                    },
-                    onNextClick = { 
-                        scope.launch {
-                            viewModel.playbackRepository.seekToNext()
-                        }
-                    },
-                    onClick = onNavigateToNowPlaying
-                )
-            }
-
-            // Ad banner
-            BannerAdView(
-                adMobManager = viewModel.adMobManager,
-                modifier = Modifier.fillMaxWidth()
-            )
         }
     }
 
