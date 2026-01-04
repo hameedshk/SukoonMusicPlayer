@@ -23,7 +23,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.*
-import com.sukoon.music.ui.viewmodel.GenreSortMode
 import com.sukoon.music.ui.viewmodel.GenresViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
@@ -41,7 +40,6 @@ fun GenresScreen(
 ) {
     val genres by viewModel.genres.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedGenreIds by viewModel.selectedGenreIds.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -131,24 +129,6 @@ fun GenresScreen(
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
-                    )
-                }
-
-                // Genre count and sort controls
-                if (!showSearchBar && !isSelectionMode) {
-                    CategoryPillRow(
-                        itemCount = genres.size,
-                        itemLabel = "genres",
-                        sortOptions = GenreSortMode.entries,
-                        currentSortMode = sortMode,
-                        onSortModeChanged = { viewModel.setSortMode(it) },
-                        sortModeToDisplayName = { mode ->
-                            when(mode) {
-                                GenreSortMode.NAME -> "Name"
-                                GenreSortMode.SONG_COUNT -> "Songs"
-                                GenreSortMode.RANDOM -> "Random"
-                            }
-                        }
                     )
                 }
             }
@@ -270,8 +250,8 @@ fun GenresScreen(
                             }
                         }
 
-                        // Alphabet Scroll Bar Overlay (Only visible when sorted by name)
-                        if (sortMode == GenreSortMode.NAME && !showSearchBar) {
+                        // Alphabet Scroll Bar Overlay
+                        if (!showSearchBar) {
                             AlphabetScrollBar(
                                 onLetterClick = { letter ->
                                     letterToIndexMap[letter]?.let { index ->

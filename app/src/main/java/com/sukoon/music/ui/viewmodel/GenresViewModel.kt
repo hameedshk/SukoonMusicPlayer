@@ -92,7 +92,7 @@ class GenresViewModel @Inject constructor(
         var filtered = if (query.isBlank()) {
             allGenres
         } else {
-            allGenres.filter { 
+            allGenres.filter {
                 it.name.contains(query, ignoreCase = true)
             }
         }

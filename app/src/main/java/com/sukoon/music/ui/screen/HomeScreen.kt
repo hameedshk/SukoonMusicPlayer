@@ -143,6 +143,8 @@ fun HomeScreen(
     // Artists state
     val artists by artistsViewModel.artists.collectAsStateWithLifecycle()
     val recentlyPlayedArtists by artistsViewModel.recentlyPlayedArtists.collectAsStateWithLifecycle()
+    val isArtistSelectionMode by artistsViewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedArtistIds by artistsViewModel.selectedArtistIds.collectAsStateWithLifecycle()
 
     // Genres state
     val genres by genresViewModel.genres.collectAsStateWithLifecycle()
@@ -172,6 +174,11 @@ fun HomeScreen(
                     selectedCount = selectedAlbumIds.size,
                     onBackClick = { albumsViewModel.toggleSelectionMode(false) }
                 )
+            } else if (selectedTab == "Artists" && isArtistSelectionMode) {
+                ArtistSelectionTopBar(
+                    selectedCount = selectedArtistIds.size,
+                    onBackClick = { artistsViewModel.toggleSelectionMode(false) }
+                )
             } else {
                 Column {
                     RedesignedTopBar(
@@ -193,6 +200,13 @@ fun HomeScreen(
                         onPlay = { albumsViewModel.playSelectedAlbums() },
                         onAddToPlaylist = { /* TODO */ },
                         onDelete = { /* TODO */ },
+                        onMore = { /* TODO */ }
+                    )
+                } else if (selectedTab == "Artists" && isArtistSelectionMode) {
+                    ArtistSelectionBottomBar(
+                        onPlay = { artistsViewModel.playSelectedArtists() },
+                        onAddToPlaylist = { artistsViewModel.showAddToPlaylistDialog(selectedArtistIds.firstOrNull()) },
+                        onDelete = { selectedArtistIds.firstOrNull()?.let { artistsViewModel.deleteArtist(it) } },
                         onMore = { /* TODO */ }
                     )
                 } else if (playbackState.currentSong != null) {
@@ -3086,6 +3100,46 @@ private fun SelectionBottomBarItem(
     ) {
         Icon(icon, contentDescription = label)
         Text(label, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ArtistSelectionTopBar(
+    selectedCount: Int,
+    onBackClick: () -> Unit
+) {
+    TopAppBar(
+        title = { Text("$selectedCount selected") },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+    )
+}
+
+@Composable
+private fun ArtistSelectionBottomBar(
+    onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDelete: () -> Unit,
+    onMore: () -> Unit
+) {
+    BottomAppBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            SelectionBottomBarItem(icon = Icons.Default.PlayArrow, label = "Play", onClick = onPlay)
+            SelectionBottomBarItem(icon = Icons.Default.PlaylistAdd, label = "Add to play", onClick = onAddToPlaylist)
+            SelectionBottomBarItem(icon = Icons.Default.Delete, label = "Delete", onClick = onDelete)
+            SelectionBottomBarItem(icon = Icons.Default.MoreVert, label = "More", onClick = onMore)
+        }
     }
 }
 
