@@ -35,12 +35,6 @@ class GenresViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
-    private val _sortMode = MutableStateFlow(GenreSortMode.NAME)
-    val sortMode: StateFlow<GenreSortMode> = _sortMode.asStateFlow()
-
-    private val _isAscending = MutableStateFlow(true)
-    val isAscending: StateFlow<Boolean> = _isAscending.asStateFlow()
-
     private val _selectedGenreIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedGenreIds: StateFlow<Set<Long>> = _selectedGenreIds.asStateFlow()
 
@@ -80,15 +74,13 @@ class GenresViewModel @Inject constructor(
         )
 
     /**
-     * All genres from song library, filtered and sorted.
+     * All genres from song library, filtered.
      */
     val genres: StateFlow<List<Genre>> = combine(
         songRepository.getAllGenres(),
         _searchQuery,
-        _sortMode,
-        _isAscending,
         _genreFilter
-    ) { allGenres, query, sort, ascending, filter ->
+    ) { allGenres, query, filter ->
         var filtered = if (query.isBlank()) {
             allGenres
         } else {
@@ -99,12 +91,6 @@ class GenresViewModel @Inject constructor(
 
         // Apply additional filtering based on genreFilter if needed
         // For now, "All" doesn't filter further.
-
-        filtered = when (sort) {
-            GenreSortMode.NAME -> if (ascending) filtered.sortedBy { it.name.lowercase() } else filtered.sortedByDescending { it.name.lowercase() }
-            GenreSortMode.SONG_COUNT -> if (ascending) filtered.sortedBy { it.songCount } else filtered.sortedByDescending { it.songCount }
-            GenreSortMode.RANDOM -> filtered.shuffled()
-        }
 
         filtered
     }.stateIn(
@@ -117,14 +103,6 @@ class GenresViewModel @Inject constructor(
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
-    }
-
-    fun setSortMode(mode: GenreSortMode) {
-        _sortMode.value = mode
-    }
-
-    fun setAscending(ascending: Boolean) {
-        _isAscending.value = ascending
     }
 
     fun toggleSelectionMode(enabled: Boolean) {

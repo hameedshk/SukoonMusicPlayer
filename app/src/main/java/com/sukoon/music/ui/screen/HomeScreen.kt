@@ -64,7 +64,6 @@ import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.viewmodel.ArtistsViewModel
 import com.sukoon.music.ui.viewmodel.ArtistSortMode
 import com.sukoon.music.ui.viewmodel.GenresViewModel
-import com.sukoon.music.ui.viewmodel.GenreSortMode
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
@@ -148,7 +147,6 @@ fun HomeScreen(
 
     // Genres state
     val genres by genresViewModel.genres.collectAsStateWithLifecycle()
-    val genreSortMode by genresViewModel.sortMode.collectAsStateWithLifecycle()
 
     var selectedTab by rememberSaveable { mutableStateOf("For you") }
 
@@ -322,7 +320,6 @@ fun HomeScreen(
                         "Genres" -> {
                             GenresContent(
                                 genres = genres,
-                                sortMode = genreSortMode,
                                 onGenreClick = onNavigateToGenreDetail,
                                 viewModel = genresViewModel
                             )
@@ -2597,27 +2594,10 @@ private fun ArtistContextMenuBottomSheet(
 @Composable
 private fun GenresContent(
     genres: List<Genre>,
-    sortMode: GenreSortMode,
     onGenreClick: (Long) -> Unit,
     viewModel: GenresViewModel
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        CategoryPillRow(
-            itemCount = genres.size,
-            itemLabel = if (genres.size == 1) "genre" else "genres",
-            sortOptions = GenreSortMode.entries.toList(),
-            currentSortMode = sortMode,
-            onSortModeChanged = { viewModel.setSortMode(it) },
-            sortModeToDisplayName = { mode ->
-                when (mode) {
-                    GenreSortMode.NAME -> "Name"
-                    GenreSortMode.SONG_COUNT -> "Songs"
-                    GenreSortMode.RANDOM -> "Random"
-                }
-            },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-
         if (genres.isEmpty()) {
             Box(
                 modifier = Modifier.fillMaxSize(),
