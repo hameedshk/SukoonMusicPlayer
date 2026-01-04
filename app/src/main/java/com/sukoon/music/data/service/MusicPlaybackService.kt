@@ -23,6 +23,7 @@ import androidx.media3.ui.PlayerNotificationManager
 import com.sukoon.music.MainActivity
 import com.sukoon.music.R
 import com.sukoon.music.di.ApplicationScope
+import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -75,7 +76,7 @@ class MusicPlaybackService : MediaSessionService() {
             initializePlayer()
             registerAudioNoisyReceiver()
         } catch (e: Exception) {
-            android.util.Log.e("MusicPlaybackService", "Failed to initialize service", e)
+            DevLogger.e("MusicPlaybackService", "Failed to initialize service", e)
             // If initialization fails, stop the service
             stopSelf()
         }
@@ -182,7 +183,7 @@ class MusicPlaybackService : MediaSessionService() {
             // Get audio session ID from ExoPlayer
             val audioSessionId = player.audioSessionId
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
-                android.util.Log.w("MusicPlaybackService", "Audio session ID not available, skipping effects")
+                DevLogger.w("MusicPlaybackService", "Audio session ID not available, skipping effects")
                 return
             }
 
@@ -190,7 +191,7 @@ class MusicPlaybackService : MediaSessionService() {
             audioEffectManager = com.sukoon.music.data.audio.AudioEffectManager(audioSessionId).apply {
                 val initialized = initialize()
                 if (!initialized) {
-                    android.util.Log.e("MusicPlaybackService", "Failed to initialize audio effects")
+                    DevLogger.e("MusicPlaybackService", "Failed to initialize audio effects")
                     return
                 }
             }
@@ -202,7 +203,7 @@ class MusicPlaybackService : MediaSessionService() {
                 }
             }
         } catch (e: Exception) {
-            android.util.Log.e("MusicPlaybackService", "Error initializing audio effects", e)
+            DevLogger.e("MusicPlaybackService", "Error initializing audio effects", e)
         }
     }
 

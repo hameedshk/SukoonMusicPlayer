@@ -14,6 +14,7 @@ import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.sukoon.music.R
 import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.util.DevLogger
 
 /**
  * Native Ad composable component.
@@ -46,13 +47,13 @@ fun NativeAdCard(
             }
             .withAdListener(object : AdListener() {
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    android.util.Log.e("NativeAdCard", "Ad failed to load: ${error.message}")
+                    DevLogger.e("NativeAdCard", "Ad failed to load: ${error.message}")
                     isAdLoading = false
                     adLoadFailed = true
                 }
 
                 override fun onAdLoaded() {
-                    android.util.Log.d("NativeAdCard", "Native ad loaded successfully")
+                    DevLogger.d("NativeAdCard", "Native ad loaded successfully")
                 }
             })
             .build()

@@ -3,8 +3,8 @@ package com.sukoon.music.data.audio
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
 import android.media.audiofx.Virtualizer
-import android.util.Log
 import com.sukoon.music.domain.model.EqualizerSettings
+import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,30 +50,30 @@ class AudioEffectManager(private val audioSessionId: Int) {
      */
     fun initialize(): Boolean {
         return try {
-            Log.d(TAG, "Initializing audio effects with session ID: $audioSessionId")
+            DevLogger.d(TAG, "Initializing audio effects with session ID: $audioSessionId")
 
             // Create Equalizer (5-band)
             equalizer = Equalizer(0, audioSessionId).apply {
                 enabled = false // Start disabled, enabled by user
                 _isEqualizerSupported.value = true
-                Log.d(TAG, "Equalizer initialized: ${numberOfBands} bands")
+                DevLogger.d(TAG, "Equalizer initialized: ${numberOfBands} bands")
             }
 
             // Create Bass Boost
             bassBoost = BassBoost(0, audioSessionId).apply {
                 enabled = false
-                Log.d(TAG, "Bass Boost initialized")
+                DevLogger.d(TAG, "Bass Boost initialized")
             }
 
             // Create Virtualizer
             virtualizer = Virtualizer(0, audioSessionId).apply {
                 enabled = false
-                Log.d(TAG, "Virtualizer initialized")
+                DevLogger.d(TAG, "Virtualizer initialized")
             }
 
             true
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize audio effects", e)
+            DevLogger.e(TAG, "Failed to initialize audio effects", e)
             _isEqualizerSupported.value = false
             false
         }
@@ -87,7 +87,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
      */
     fun applySettings(settings: EqualizerSettings) {
         try {
-            Log.d(TAG, "Applying settings: enabled=${settings.isEnabled}, preset=${settings.currentPresetId}")
+            DevLogger.d(TAG, "Applying settings: enabled=${settings.isEnabled}, preset=${settings.currentPresetId}")
 
             _currentSettings.value = settings
 
@@ -107,7 +107,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
                 virtualizer?.setStrength(settings.virtualizerStrength.toShort())
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to apply settings", e)
+            DevLogger.e(TAG, "Failed to apply settings", e)
         }
     }
 
@@ -119,7 +119,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
     private fun applyEqualizerBands(bandLevels: List<Int>) {
         equalizer?.let { eq ->
             if (bandLevels.size != 5) {
-                Log.w(TAG, "Invalid band levels size: ${bandLevels.size}, expected 5")
+                DevLogger.w(TAG, "Invalid band levels size: ${bandLevels.size}, expected 5")
                 return
             }
 
@@ -128,9 +128,9 @@ class AudioEffectManager(private val audioSessionId: Int) {
             bandLevels.forEachIndexed { index, level ->
                 try {
                     eq.setBandLevel(index.toShort(), level.toShort())
-                    Log.d(TAG, "Set band $index to $level mB")
+                    DevLogger.d(TAG, "Set band $index to $level mB")
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to set band $index", e)
+                    DevLogger.e(TAG, "Failed to set band $index", e)
                 }
             }
         }
@@ -179,7 +179,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
      */
     fun release() {
         try {
-            Log.d(TAG, "Releasing audio effects")
+            DevLogger.d(TAG, "Releasing audio effects")
             equalizer?.release()
             bassBoost?.release()
             virtualizer?.release()
@@ -187,7 +187,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
             bassBoost = null
             virtualizer = null
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to release audio effects", e)
+            DevLogger.e(TAG, "Failed to release audio effects", e)
         }
     }
 }

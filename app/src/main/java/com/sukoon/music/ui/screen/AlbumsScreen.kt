@@ -72,6 +72,7 @@ fun AlbumsScreen(
     var selectedAlbumForMenu by remember { mutableStateOf<Album?>(null) }
     var albumSongsForPlaylist by remember { mutableStateOf<List<com.sukoon.music.domain.model.Song>>(emptyList()) }
     var pendingAlbumForPlaylist by remember { mutableStateOf<Long?>(null) }
+    var showSortDialog by remember { mutableStateOf(false) }
 
 
     // Handle pending album for playlist
@@ -84,6 +85,27 @@ fun AlbumsScreen(
     }
 
     Scaffold(
+        topBar = {
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = {
+                        Text("${selectedAlbumIds.size} selected")
+                    },
+                    navigationIcon = {
+                        IconButton(
+                            onClick = {
+                                viewModel.toggleSelectionMode(false)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    }
+                )
+            }
+        },
         bottomBar = {
             if (isSelectionMode && selectedAlbumIds.isNotEmpty()) {
                 AlbumSelectionBottomBar(
@@ -109,49 +131,73 @@ fun AlbumsScreen(
             if (albums.isEmpty()) {
                 EmptyAlbumsState()
             } else {
-                // Recently Played Section
-                if (!isSelectionMode && recentlyPlayedAlbums.isNotEmpty()) {
-                    RecentlyPlayedAlbumsSection(
-                        albums = recentlyPlayedAlbums,
-                        onAlbumClick = onNavigateToAlbum,
-                        onHeaderClick = {
-                            onNavigateToSmartPlaylist(com.sukoon.music.domain.model.SmartPlaylistType.RECENTLY_PLAYED)
-                        }
+                if (showSortDialog) {
+                    AlbumSortDialog(
+                        currentSortMode = viewModel.sortMode.collectAsStateWithLifecycle().value,
+                        isAscending = viewModel.isAscending.collectAsStateWithLifecycle().value,
+                        onDismiss = { showSortDialog = false },
+                        onSortModeChange = { viewModel.setSortMode(it) },
+                        onOrderChange = { viewModel.setAscending(it) }
                     )
                 }
 
-                // Main Albums Grid
-                Box(modifier = Modifier.weight(1f)) {
-                    AlbumsGrid(
-                        albums = albums,
-                        isSelectionMode = isSelectionMode,
-                        selectedAlbumIds = selectedAlbumIds,
-                        onAlbumClick = { album ->
-                            if (isSelectionMode) {
-                                viewModel.toggleAlbumSelection(album.id)
-                            } else {
-                                onNavigateToAlbum(album.id)
+// Main Albums List
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+
+                    // ✅ Recently Played (wrapped correctly)
+                    if (!isSelectionMode && recentlyPlayedAlbums.isNotEmpty()) {
+                        item {
+                            RecentlyPlayedAlbumsSection(
+                                albums = recentlyPlayedAlbums,
+                                onAlbumClick = onNavigateToAlbum,
+                                onHeaderClick = {
+                                    onNavigateToSmartPlaylist(
+                                        com.sukoon.music.domain.model.SmartPlaylistType.RECENTLY_PLAYED
+                                    )
+                                }
+                            )
+                        }
+                    }
+
+                    if (!isSelectionMode) {
+                        item {
+                            AlbumSortHeader(
+                                albumCount = albums.size,
+                                onSortClick = {
+                                    showSortDialog = true
+                                },
+                                onSelectionClick = {
+                                    viewModel.toggleSelectionMode(true)
+                                }
+                            )
+                        }
+                    }
+
+                    items(albums, key = { it.id }) { album ->
+                        AlbumRow(
+                            album = album,
+                            isSelected = selectedAlbumIds.contains(album.id),
+                            isSelectionMode = isSelectionMode,
+                            onClick = {
+                                if (isSelectionMode) {
+                                    viewModel.toggleAlbumSelection(album.id)
+                                } else {
+                                    onNavigateToAlbum(album.id)
+                                }
+                            },
+                            onLongClick = {
+                                if (!isSelectionMode) {
+                                    viewModel.toggleSelectionMode(true)
+                                    viewModel.toggleAlbumSelection(album.id)
+                                }
                             }
-                        },
-                        onAlbumLongClick = { album ->
-                            if (!isSelectionMode) {
-                                viewModel.toggleSelectionMode(true)
-                                viewModel.toggleAlbumSelection(album.id)
-                            }
-                        },
-                        onPlayAlbum = { albumId ->
-                            viewModel.playAlbum(albumId)
-                        },
-                        onShuffleAlbum = { albumId ->
-                            viewModel.shuffleAlbum(albumId)
-                        },
-                        onShowContextMenu = { album ->
-                            selectedAlbumForMenu = album
-                        },
-                        onSortClick = { /* TODO: Show sort dialog */ },
-                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
-                    )
+                        )
+                    }
                 }
+
             }
         }
 
@@ -202,105 +248,6 @@ fun AlbumsScreen(
                     // TODO: Show delete confirmation
                     selectedAlbumForMenu = null
                 }
-            )
-        }
-    }
-}
-
-@Composable
-private fun AlbumsGrid(
-    albums: List<Album>,
-    isSelectionMode: Boolean,
-    selectedAlbumIds: Set<Long>,
-    onAlbumClick: (Album) -> Unit,
-    onAlbumLongClick: (Album) -> Unit,
-    onPlayAlbum: (Long) -> Unit,
-    onShuffleAlbum: (Long) -> Unit,
-    onShowContextMenu: (Album) -> Unit,
-    onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit
-) {
-    val gridState = rememberLazyGridState()
-    val scope = rememberCoroutineScope()
-
-    // Generate alphabet sections from albums
-    val albumsByLetter = remember(albums) {
-        albums.groupBy { album ->
-            val firstChar = album.title.firstOrNull()?.uppercaseChar()
-            if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
-        }.toSortedMap()
-    }
-
-    val activeLetter = remember(albums) {
-        derivedStateOf {
-            val firstVisibleIndex = gridState.firstVisibleItemIndex
-            // Skip header (1 item)
-            val albumIndex = (firstVisibleIndex - 1).coerceAtLeast(0)
-            if (albumIndex < albums.size) {
-                val firstChar = albums[albumIndex].title.firstOrNull()?.uppercaseChar()
-                if (firstChar != null && firstChar.isLetter()) firstChar.toString() else "#"
-            } else null
-        }
-    }
-
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxSize(),
-            state = gridState
-        ) {
-        // Sort Header spanning 2 columns - only show when NOT in selection mode
-        if (!isSelectionMode) {
-            item(
-                span = { GridItemSpan(2) }
-            ) {
-                AlbumGridSortHeader(
-                    albumCount = albums.size,
-                    onSortClick = onSortClick,
-                    onSelectionClick = onSelectionClick
-                )
-            }
-        }
-
-        items(
-            items = albums,
-            key = { album -> album.id }
-        ) { album ->
-            AlbumCard(
-                album = album,
-                isSelectionMode = isSelectionMode,
-                isSelected = selectedAlbumIds.contains(album.id),
-                onClick = {
-                    onAlbumClick(album) },
-                onLongClick = { onAlbumLongClick(album) },
-                onPlayClick = { onPlayAlbum(album.id) },
-                onShuffleClick = { onShuffleAlbum(album.id) },
-                onShowContextMenu = { onShowContextMenu(album) }
-            )
-        }
-    }
-
-        // Alphabet scroller - only show when NOT in selection mode
-        if (!isSelectionMode) {
-            AlphabetScrollBar(
-                onLetterClick = { letter ->
-                    scope.launch {
-                        val targetAlbum = albums.find { album ->
-                            val firstChar = album.title.firstOrNull()?.uppercaseChar()?.toString()
-                            firstChar == letter || (letter == "#" && (firstChar == null || !firstChar.first().isLetter()))
-                        }
-                        if (targetAlbum != null) {
-                            val index = albums.indexOf(targetAlbum)
-                            // +1 to account for header
-                            gridState.animateScrollToItem(index + 1)
-                        }
-                    }
-                },
-                activeLetter = activeLetter.value,
-                modifier = Modifier.align(Alignment.CenterEnd)
             )
         }
     }
@@ -801,36 +748,33 @@ private fun AlbumSelectionBottomBar(
 }
 
 @Composable
-private fun AlbumGridSortHeader(
+private fun AlbumSortHeader(
     albumCount: Int,
     onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit
+    onSelectionClick: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "$albumCount album${if (albumCount != 1) "s" else ""}",
+            text = "$albumCount albums",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
-            IconButton(onClick = onSortClick) {
-                Icon(
-                    imageVector = Icons.Default.Sort,
-                    contentDescription = "Sort"
-                )
-            }
             IconButton(onClick = onSelectionClick) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Select albums"
-                )
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
             }
+            IconButton(onClick = onSortClick) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+            /*IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
+                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
+            }*/
         }
     }
 }

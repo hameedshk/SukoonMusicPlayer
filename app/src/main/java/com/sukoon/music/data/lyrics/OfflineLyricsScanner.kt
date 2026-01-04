@@ -2,7 +2,7 @@ package com.sukoon.music.data.lyrics
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import com.sukoon.music.util.DevLogger
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -46,13 +46,13 @@ class OfflineLyricsScanner @Inject constructor(
             }
 
             if (filePath == null) {
-                Log.d(TAG, "Could not resolve file path from URI: $audioUri")
+                DevLogger.d(TAG, "Could not resolve file path from URI: $audioUri")
                 return null
             }
 
             val audioFile = File(filePath)
             if (!audioFile.exists()) {
-                Log.d(TAG, "Audio file does not exist: $filePath")
+                DevLogger.d(TAG, "Audio file does not exist: $filePath")
                 return null
             }
 
@@ -62,7 +62,7 @@ class OfflineLyricsScanner @Inject constructor(
             // Strategy 1: Exact match - "songname.lrc"
             val exactMatch = File(parentDir, "$audioNameWithoutExt.lrc")
             if (exactMatch.exists() && exactMatch.canRead()) {
-                Log.d(TAG, "Found exact match .lrc file: ${exactMatch.absolutePath}")
+                DevLogger.d(TAG, "Found exact match .lrc file: ${exactMatch.absolutePath}")
                 return exactMatch.readText()
             }
 
@@ -70,7 +70,7 @@ class OfflineLyricsScanner @Inject constructor(
             val cleanedName = cleanFileName(audioNameWithoutExt)
             val cleanedMatch = File(parentDir, "$cleanedName.lrc")
             if (cleanedMatch.exists() && cleanedMatch.canRead()) {
-                Log.d(TAG, "Found cleaned match .lrc file: ${cleanedMatch.absolutePath}")
+                DevLogger.d(TAG, "Found cleaned match .lrc file: ${cleanedMatch.absolutePath}")
                 return cleanedMatch.readText()
             }
 
@@ -79,7 +79,7 @@ class OfflineLyricsScanner @Inject constructor(
             val cleanedArtistTitle = cleanFileName(artistTitleName)
             val artistTitleMatch = File(parentDir, "$cleanedArtistTitle.lrc")
             if (artistTitleMatch.exists() && artistTitleMatch.canRead()) {
-                Log.d(TAG, "Found artist-title match .lrc file: ${artistTitleMatch.absolutePath}")
+                DevLogger.d(TAG, "Found artist-title match .lrc file: ${artistTitleMatch.absolutePath}")
                 return artistTitleMatch.readText()
             }
 
@@ -96,16 +96,16 @@ class OfflineLyricsScanner @Inject constructor(
                 }
 
                 if (bestMatch != null && bestMatch.canRead()) {
-                    Log.d(TAG, "Found fuzzy match .lrc file: ${bestMatch.absolutePath}")
+                    DevLogger.d(TAG, "Found fuzzy match .lrc file: ${bestMatch.absolutePath}")
                     return bestMatch.readText()
                 }
             }
 
-            Log.d(TAG, "No .lrc file found for: $audioNameWithoutExt")
+            DevLogger.d(TAG, "No .lrc file found for: $audioNameWithoutExt")
             return null
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error scanning for .lrc file", e)
+            DevLogger.e(TAG, "Error scanning for .lrc file", e)
             return null
         }
     }
@@ -125,7 +125,7 @@ class OfflineLyricsScanner @Inject constructor(
                 } else null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting path from content URI", e)
+            DevLogger.e(TAG, "Error getting path from content URI", e)
             null
         }
     }

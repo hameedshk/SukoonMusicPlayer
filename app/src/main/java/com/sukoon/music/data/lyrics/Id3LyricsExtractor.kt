@@ -3,7 +3,7 @@ package com.sukoon.music.data.lyrics
 import android.content.Context
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.util.Log
+import com.sukoon.music.util.DevLogger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,7 +50,7 @@ class Id3LyricsExtractor @Inject constructor(
                     retriever.setDataSource(context, uri)
                 }
                 else -> {
-                    Log.w(TAG, "Unsupported URI scheme: ${uri.scheme}")
+                    DevLogger.w(TAG, "Unsupported URI scheme: ${uri.scheme}")
                     return Pair(null, null)
                 }
             }
@@ -61,13 +61,13 @@ class Id3LyricsExtractor @Inject constructor(
             return lyrics
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error extracting embedded lyrics from $audioUri", e)
+            DevLogger.e(TAG, "Error extracting embedded lyrics from $audioUri", e)
             return Pair(null, null)
         } finally {
             try {
                 retriever.release()
             } catch (e: Exception) {
-                Log.e(TAG, "Error releasing MediaMetadataRetriever", e)
+                DevLogger.e(TAG, "Error releasing MediaMetadataRetriever", e)
             }
         }
     }
@@ -117,10 +117,10 @@ class Id3LyricsExtractor @Inject constructor(
                 plainLyrics = writer
             }
 
-            Log.d(TAG, "Extracted lyrics - Synced: ${syncedLyrics != null}, Plain: ${plainLyrics != null}")
+            DevLogger.d(TAG, "Extracted lyrics - Synced: ${syncedLyrics != null}, Plain: ${plainLyrics != null}")
 
         } catch (e: Exception) {
-            Log.e(TAG, "Error extracting metadata", e)
+            DevLogger.e(TAG, "Error extracting metadata", e)
         }
 
         return Pair(syncedLyrics, plainLyrics)

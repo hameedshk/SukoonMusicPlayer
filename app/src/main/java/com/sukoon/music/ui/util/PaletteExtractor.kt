@@ -15,6 +15,7 @@ import androidx.palette.graphics.Palette
 import coil.ImageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
+import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -63,13 +64,13 @@ fun rememberAlbumPalette(
 
     LaunchedEffect(albumArtUri) {
         if (albumArtUri.isNullOrBlank()) {
-            android.util.Log.d("PaletteExtractor", "Album art URI is null or blank, using theme colors")
+            DevLogger.d("PaletteExtractor", "Album art URI is null or blank, using theme colors")
             palette = defaultPalette
             return@LaunchedEffect
         }
 
         try {
-            android.util.Log.d("PaletteExtractor", "Extracting palette from: $albumArtUri")
+            DevLogger.d("PaletteExtractor", "Extracting palette from: $albumArtUri")
 
             val bitmap = withContext(Dispatchers.IO) {
                 // Load bitmap from URI using Coil with proper configuration
@@ -103,14 +104,14 @@ fun rememberAlbumPalette(
                         }
                     }
                     else -> {
-                        android.util.Log.w("PaletteExtractor", "Failed to load image: ${result.javaClass.simpleName}")
+                        DevLogger.w("PaletteExtractor", "Failed to load image: ${result.javaClass.simpleName}")
                         null
                     }
                 }
             }
 
             if (bitmap != null) {
-                android.util.Log.d("PaletteExtractor", "Bitmap loaded, extracting palette...")
+                DevLogger.d("PaletteExtractor", "Bitmap loaded, extracting palette...")
 
                 // Extract palette on Default dispatcher
                 val extractedPalette = withContext(Dispatchers.Default) {
@@ -137,15 +138,15 @@ fun rememberAlbumPalette(
                         ?: defaultPalette.dominant
                 )
 
-                android.util.Log.d("PaletteExtractor", "Palette extracted - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")
+                DevLogger.d("PaletteExtractor", "Palette extracted - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")
                 onPaletteExtracted?.invoke(palette)
             } else {
-                android.util.Log.w("PaletteExtractor", "Bitmap is null, using theme colors")
+                DevLogger.w("PaletteExtractor", "Bitmap is null, using theme colors")
                 palette = defaultPalette
             }
         } catch (e: Exception) {
             // If extraction fails, use theme colors
-            android.util.Log.e("PaletteExtractor", "Error extracting palette", e)
+            DevLogger.e("PaletteExtractor", "Error extracting palette", e)
             palette = defaultPalette
         }
     }

@@ -3,6 +3,7 @@ package com.sukoon.music.data.ads
 import android.content.Context
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
+import com.sukoon.music.util.DevLogger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -50,7 +51,7 @@ class AdMobManager @Inject constructor(
             val statusMap = initializationStatus.adapterStatusMap
             for (adapterClass in statusMap.keys) {
                 val status = statusMap[adapterClass]
-                android.util.Log.d(
+                DevLogger.d(
                     "AdMobManager",
                     "Adapter: $adapterClass, Status: ${status?.initializationState}, Description: ${status?.description}"
                 )

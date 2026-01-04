@@ -38,6 +38,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.viewmodel.HomeViewModel
+import com.sukoon.music.util.DevLogger
 
 /**
  * Songs Screen - Displays all songs in alphabetical order with search functionality.
@@ -328,7 +329,7 @@ private fun SongListItem(
             // More options menu
             IconButton(onClick = {
                 showMenu = true
-                android.util.Log.d("SongMenu", "Click registered for: ${song.title}")
+                DevLogger.click("SongMenu", "More options for: ${song.title}", handled = true)
             }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,

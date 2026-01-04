@@ -18,6 +18,7 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -200,7 +201,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                     updatePlaybackState()
                 }
             } catch (e: Exception) {
-                android.util.Log.e("PlaybackRepository", "Failed to restore queue", e)
+                DevLogger.e("PlaybackRepository", "Failed to restore queue", e)
             }
         }
     }
@@ -281,7 +282,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 }
             } catch (e: Exception) {
                 // Log error but don't crash - queue saving is not critical
-                android.util.Log.e("PlaybackRepository", "Failed to auto-save queue", e)
+                DevLogger.e("PlaybackRepository", "Failed to auto-save queue", e)
             }
         }
     }
@@ -330,7 +331,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 _playbackState.update {
                     it.copy(error = "Failed to play song: ${e.message}")
                 }
-                android.util.Log.e("PlaybackRepository", "Error playing song: ${song.title}", e)
+                DevLogger.e("PlaybackRepository", "Error playing song: ${song.title}", e)
             }
         }
     }
@@ -349,7 +350,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 _playbackState.update {
                     it.copy(error = "Failed to play queue: ${e.message}")
                 }
-                android.util.Log.e("PlaybackRepository", "Error playing queue", e)
+                DevLogger.e("PlaybackRepository", "Error playing queue", e)
             }
         }
     }
