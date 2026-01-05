@@ -42,12 +42,6 @@ fun SukoonNavHost(
                 onNavigateToLikedSongs = {
                     navController.navigate(Routes.LikedSongs.route)
                 },
-                onNavigateToAlbums = {
-                    navController.navigate(Routes.Albums.route)
-                },
-                onNavigateToArtists = {
-                    navController.navigate(Routes.Artists.route)
-                },
                 onNavigateToArtistDetail = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },

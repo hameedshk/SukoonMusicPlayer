@@ -207,6 +207,7 @@ class ArtistsViewModel @Inject constructor(
         }
     }
 
+
     fun clearDeleteResult() {
         _deleteResult.value = null
     }
