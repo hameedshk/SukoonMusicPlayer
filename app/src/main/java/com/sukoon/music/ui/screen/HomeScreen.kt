@@ -59,7 +59,6 @@ import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.ActionButtonShape
 import com.sukoon.music.ui.theme.PillShape
 import com.sukoon.music.ui.viewmodel.HomeViewModel
-import com.sukoon.music.ui.viewmodel.AlbumsViewModel
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.viewmodel.ArtistsViewModel
 import com.sukoon.music.ui.viewmodel.ArtistSortMode
@@ -112,7 +111,6 @@ fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
     folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel = hiltViewModel(),
-    //albumsViewModel: AlbumsViewModel = hiltViewModel(),
     artistsViewModel: ArtistsViewModel = hiltViewModel(),
     genresViewModel: GenresViewModel = hiltViewModel()
 ) {
