@@ -42,6 +42,7 @@ import com.sukoon.music.ui.components.AlphabetScroller
 import com.sukoon.music.ui.components.RecentlyPlayedAlbumCard
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import kotlinx.coroutines.launch
+import com.sukoon.music.ui.screen.albums.*
 
 /**
  * Albums Screen - Shows all albums in a grid view.
@@ -187,6 +188,9 @@ fun AlbumsScreen(
                                 } else {
                                     onNavigateToAlbum(album.id)
                                 }
+                            },
+                            onMoreClick = {
+                                selectedAlbumForMenu = album   // ✅ THIS WAS MISSING
                             },
                             onLongClick = {
                                 if (!isSelectionMode) {
