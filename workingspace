@@ -12,7 +12,13 @@ private fun FolderList(
     onRequestDeleteFolder: (Long) -> Unit
 )
 
-
+onPlay = { onPlayFolder(folder.path) }
+onPlayNext = { onPlayNextFolder(folder.path) }
+onAddToQueue = { onAddFolderToQueue(folder.path) }
+onAddToPlaylist = { onAddFolderToPlaylist(folder.id) }
+onHide = { onHideFolder(folder.path) }
+onUnhide = { onUnhideFolder(folder.path) }
+onDelete = { onRequestDeleteFolder(folder.id) }
 
 
 FolderList(
