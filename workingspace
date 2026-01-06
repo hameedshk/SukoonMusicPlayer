@@ -33,3 +33,19 @@ FolderList(
     onUnhideFolder = viewModel::unhideFolder,
     onRequestDeleteFolder = { folderToDelete = it }
 )
+
+
+@Composable
+private fun FolderDetailContent(
+    songs: List<Song>,
+    isSelectionMode: Boolean,
+    selectedSongIds: Set<Long>,
+    onSongClick: (Long) -> Unit,
+    onSongLongClick: (Long) -> Unit,
+    onPlaySong: (Long) -> Unit,
+    onPlayNext: (Long) -> Unit,
+    onAddToQueue: (Long) -> Unit,
+    onAddToPlaylist: (Long) -> Unit,
+    onToggleSelection: (Long) -> Unit
+)
+
