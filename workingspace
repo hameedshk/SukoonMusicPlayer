@@ -1,1 +1,29 @@
-temp
+@Composable
+private fun FolderList(
+    folders: List<Folder>,
+    isHiddenView: Boolean,
+    onFolderClick: (Long) -> Unit,
+    onPlayFolder: (String) -> Unit,
+    onPlayNextFolder: (String) -> Unit,
+    onAddFolderToQueue: (String) -> Unit,
+    onAddFolderToPlaylist: (Long) -> Unit,
+    onHideFolder: (String) -> Unit,
+    onUnhideFolder: (String) -> Unit,
+    onRequestDeleteFolder: (Long) -> Unit
+)
+
+
+
+
+FolderList(
+    folders = displayFolders,
+    isHiddenView = folderViewMode == FolderViewMode.HIDDEN,
+    onFolderClick = onNavigateToFolder,
+    onPlayFolder = viewModel::playFolder,
+    onPlayNextFolder = viewModel::playNext,
+    onAddFolderToQueue = viewModel::addToQueue,
+    onAddFolderToPlaylist = viewModel::showAddToPlaylistDialog,
+    onHideFolder = viewModel::excludeFolder,
+    onUnhideFolder = viewModel::unhideFolder,
+    onRequestDeleteFolder = { folderToDelete = it }
+)
