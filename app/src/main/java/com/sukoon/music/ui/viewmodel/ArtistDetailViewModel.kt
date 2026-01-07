@@ -73,7 +73,6 @@ class ArtistDetailViewModel @Inject constructor(
         // Load artist
         viewModelScope.launch {
             songRepository.getArtistById(artistId)
-                .stateIn(viewModelScope)
                 .collect { artist ->
                     _artist.value = artist
                     artist?.let {

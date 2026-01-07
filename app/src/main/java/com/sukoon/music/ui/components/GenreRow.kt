@@ -1,8 +1,7 @@
 package com.sukoon.music.ui.components
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -29,7 +28,6 @@ import com.sukoon.music.domain.model.Genre
  * - Middle: Column with genre name + song count
  * - Trailing: Three-dot menu button
  */
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun GenreRow(
     genre: Genre,
@@ -40,7 +38,6 @@ fun GenreRow(
     onAddToPlaylistClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onMoreClick: (Genre) -> Unit = {},
-    onLongClick: () -> Unit = {},
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
     onSelectionToggle: () -> Unit = {},
@@ -50,10 +47,7 @@ fun GenreRow(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = if (isSelectionMode) onSelectionToggle else onClick,
-                onLongClick = onLongClick
-            ),
+            .clickable(onClick = if (isSelectionMode) onSelectionToggle else onClick),
         color = if (isSelected && isSelectionMode) {
             MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
         } else {

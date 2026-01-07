@@ -47,6 +47,12 @@ class GenresViewModel @Inject constructor(
     private val _showAddToPlaylistDialog = MutableStateFlow<List<Long>?>(null)
     val showAddToPlaylistDialog: StateFlow<List<Long>?> = _showAddToPlaylistDialog.asStateFlow()
 
+    private val _sortMode = MutableStateFlow(GenreSortMode.NAME)
+    val sortMode: StateFlow<GenreSortMode> = _sortMode.asStateFlow()
+
+    private val _isAscending = MutableStateFlow(true)
+    val isAscending: StateFlow<Boolean> = _isAscending.asStateFlow()
+
     /**
      * Filter state for genres (e.g., "All", "Popular", etc. - currently just "All")
      */
@@ -74,13 +80,15 @@ class GenresViewModel @Inject constructor(
         )
 
     /**
-     * All genres from song library, filtered.
+     * All genres from song library, filtered and sorted.
      */
     val genres: StateFlow<List<Genre>> = combine(
         songRepository.getAllGenres(),
         _searchQuery,
-        _genreFilter
-    ) { allGenres, query, filter ->
+        _genreFilter,
+        _sortMode,
+        _isAscending
+    ) { allGenres, query, filter, sortMode, isAscending ->
         var filtered = if (query.isBlank()) {
             allGenres
         } else {
@@ -92,7 +100,18 @@ class GenresViewModel @Inject constructor(
         // Apply additional filtering based on genreFilter if needed
         // For now, "All" doesn't filter further.
 
-        filtered
+        // Apply sorting
+        val sorted = when (sortMode) {
+            GenreSortMode.NAME -> filtered.sortedBy { it.name.lowercase() }
+            GenreSortMode.SONG_COUNT -> filtered.sortedBy { it.songCount }
+            GenreSortMode.RANDOM -> filtered.shuffled()
+        }
+
+        if (sortMode != GenreSortMode.RANDOM) {
+            if (isAscending) sorted else sorted.reversed()
+        } else {
+            sorted
+        }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
@@ -103,6 +122,14 @@ class GenresViewModel @Inject constructor(
 
     fun setSearchQuery(query: String) {
         _searchQuery.value = query
+    }
+
+    fun setSortMode(mode: GenreSortMode) {
+        _sortMode.value = mode
+    }
+
+    fun setAscending(ascending: Boolean) {
+        _isAscending.value = ascending
     }
 
     fun toggleSelectionMode(enabled: Boolean) {

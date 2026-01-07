@@ -14,15 +14,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.viewmodel.GenreSortMode
 import com.sukoon.music.ui.viewmodel.GenresViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
@@ -115,7 +113,7 @@ private fun GenresContent(
 
         val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
-        var showSearchBar by remember { mutableStateOf(false) }
+        var showSortDialog by remember { mutableStateOf(false) }
         var genreForMore by remember { mutableStateOf<Genre?>(null) }
         var showAddToPlaylistDialog by remember { mutableStateOf<List<Long>?>(null) }
         var genresToDelete by remember { mutableStateOf<List<Genre>?>(null) }
@@ -123,7 +121,6 @@ private fun GenresContent(
 
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
-        val focusRequester = remember { FocusRequester() }
 
         // Pre-calculated letter-to-index map for fast scrolling
         val letterToIndexMap = remember(genres) {
@@ -148,67 +145,29 @@ private fun GenresContent(
         }
 
         // Handle back press
-        BackHandler(enabled = isSelectionMode || showSearchBar) {
-            if (showSearchBar) {
-                showSearchBar = false
-                viewModel.setSearchQuery("")
-            } else if (isSelectionMode) {
+        BackHandler(enabled = isSelectionMode) {
+            if (isSelectionMode) {
                 viewModel.toggleSelectionMode(false)
             }
         }
 
         Scaffold(
             topBar = {
-                Column {
-                    if (showSearchBar) {
-                        GenresSearchTopBar(
-                            query = searchQuery,
-                            onQueryChange = { viewModel.setSearchQuery(it) },
-                            onCloseClick = {
-                                showSearchBar = false
-                                viewModel.setSearchQuery("")
-                            },
-                            focusRequester = focusRequester
+                if (isSelectionMode) {
+                    TopAppBar(
+                        title = { Text("${selectedGenreIds.size} selected") },
+                        navigationIcon = {
+                            IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Exit selection"
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
                         )
-                    } else {
-                        TopAppBar(
-                            title = { Text(if (isSelectionMode) "${selectedGenreIds.size} Selected" else "Genres") },
-                            navigationIcon = {
-                                IconButton(
-                                    onClick = if (isSelectionMode) {
-                                        { viewModel.toggleSelectionMode(false) }
-                                    } else onBackClick) {
-                                    Icon(
-                                        imageVector = if (isSelectionMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                                        contentDescription = if (isSelectionMode) "Clear selection" else "Back"
-                                    )
-                                }
-                            },
-                            actions = {
-                                if (!isSelectionMode) {
-                                    IconButton(onClick = { showSearchBar = true }) {
-                                        Icon(Icons.Default.Search, contentDescription = "Search")
-                                    }
-                                    IconButton(onClick = { viewModel.toggleSelectionMode(true) }) {
-                                        Icon(
-                                            Icons.Default.Checklist,
-                                            contentDescription = "Selection Mode"
-                                        )
-                                    }
-                                } else {
-                                    IconButton(onClick = { viewModel.selectAllGenres() }) {
-                                        Icon(
-                                            Icons.Default.SelectAll,
-                                            contentDescription = "Select All"
-                                        )
-                                    }
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surface
-                            )
-                        )
-                    }
+                    )
                 }
             },
             bottomBar = {
@@ -238,7 +197,7 @@ private fun GenresContent(
             ) {
                 if (genres.isEmpty()) {
                     EmptyGenresState(
-                        isSearching = searchQuery.isNotEmpty(),
+                        isSearching = false,
                         onScanClick = { viewModel.scanMediaLibrary() }
                     )
                 } else {
@@ -277,6 +236,17 @@ private fun GenresContent(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 80.dp)
                             ) {
+                                // Sort Header
+                                if (!isSelectionMode) {
+                                    item {
+                                        GenreSortHeader(
+                                            genreCount = genres.size,
+                                            onSortClick = { showSortDialog = true },
+                                            onSelectionClick = { viewModel.toggleSelectionMode(true) }
+                                        )
+                                    }
+                                }
+
                                 items(
                                     items = genres,
                                     key = { it.id }
@@ -290,12 +260,6 @@ private fun GenresContent(
                                                 genre.id
                                             )
                                             else onNavigateToGenre(genre.id)
-                                        },
-                                        onLongClick = {
-                                            if (!isSelectionMode) {
-                                                viewModel.toggleSelectionMode(true)
-                                                viewModel.toggleGenreSelection(genre.id)
-                                            }
                                         },
                                         onSelectionToggle = { viewModel.toggleGenreSelection(genre.id) },
                                         onPlayClick = { viewModel.playGenre(genre.id) },
@@ -311,21 +275,19 @@ private fun GenresContent(
                             }
 
                             // Alphabet Scroll Bar Overlay
-                            if (!showSearchBar) {
-                                AlphabetScrollBar(
-                                    onLetterClick = { letter ->
-                                        letterToIndexMap[letter]?.let { index ->
-                                            scope.launch {
-                                                listState.animateScrollToItem(index)
-                                            }
+                            AlphabetScrollBar(
+                                onLetterClick = { letter ->
+                                    letterToIndexMap[letter]?.let { index ->
+                                        scope.launch {
+                                            listState.animateScrollToItem(index)
                                         }
-                                    },
-                                    activeLetter = activeLetter,
-                                    modifier = Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 4.dp)
-                                )
-                            }
+                                    }
+                                },
+                                activeLetter = activeLetter,
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .padding(end = 4.dp)
+                            )
                         }
                     }
                 }
@@ -411,56 +373,19 @@ private fun GenresContent(
                         }
                     )
                 }
-            }
-        }
 
-        // Auto-focus search field
-        LaunchedEffect(showSearchBar) {
-            if (showSearchBar) {
-                focusRequester.requestFocus()
-            }
-        }
-    }
-
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    private fun GenresSearchTopBar(
-        query: String,
-        onQueryChange: (String) -> Unit,
-        onCloseClick: () -> Unit,
-        focusRequester: FocusRequester
-    ) {
-        TopAppBar(
-            title = {
-                TextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .focusRequester(focusRequester),
-                    placeholder = { Text("Search genres...") },
-                    singleLine = true,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                // Sort Dialog
+                if (showSortDialog) {
+                    GenreSortDialog(
+                        currentSortMode = viewModel.sortMode.collectAsStateWithLifecycle().value,
+                        isAscending = viewModel.isAscending.collectAsStateWithLifecycle().value,
+                        onDismiss = { showSortDialog = false },
+                        onSortModeChange = { viewModel.setSortMode(it) },
+                        onOrderChange = { viewModel.setAscending(it) }
                     )
-                )
-            },
-            navigationIcon = {
-                IconButton(onClick = onCloseClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Close Search")
-                }
-            },
-            actions = {
-                if (query.isNotEmpty()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(Icons.Default.Close, contentDescription = "Clear")
-                    }
                 }
             }
-        )
+        }
     }
 
     @Composable
@@ -553,5 +478,88 @@ private fun GenresContent(
                 Icon(Icons.Default.CheckCircle, contentDescription = "Select")
             }
         }
+    }
+
+    @Composable
+    private fun GenreSortHeader(
+        genreCount: Int,
+        onSortClick: () -> Unit,
+        onSelectionClick: () -> Unit = {}
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "$genreCount ${if (genreCount == 1) "genre" else "genres"}",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Row {
+                IconButton(onClick = onSelectionClick) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                }
+                IconButton(onClick = onSortClick) {
+                    Icon(Icons.Default.Sort, contentDescription = "Sort")
+                }
+            }
+        }
+    }
+
+    @Composable
+    private fun GenreSortDialog(
+        currentSortMode: GenreSortMode,
+        isAscending: Boolean,
+        onDismiss: () -> Unit,
+        onSortModeChange: (GenreSortMode) -> Unit,
+        onOrderChange: (Boolean) -> Unit
+    ) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            confirmButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) { Text("CANCEL") }
+            },
+            title = { Text("Sort by") },
+            text = {
+                Column {
+                    SortOption(
+                        text = "Genre name",
+                        isSelected = currentSortMode == GenreSortMode.NAME,
+                        onClick = { onSortModeChange(GenreSortMode.NAME) }
+                    )
+                    SortOption(
+                        text = "Number of songs",
+                        isSelected = currentSortMode == GenreSortMode.SONG_COUNT,
+                        onClick = { onSortModeChange(GenreSortMode.SONG_COUNT) }
+                    )
+                    SortOption(
+                        text = "Random",
+                        isSelected = currentSortMode == GenreSortMode.RANDOM,
+                        onClick = { onSortModeChange(GenreSortMode.RANDOM) }
+                    )
+
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+                    SortOption(
+                        text = "From A to Z",
+                        isSelected = isAscending,
+                        onClick = { onOrderChange(true) }
+                    )
+                    SortOption(
+                        text = "From Z to A",
+                        isSelected = !isAscending,
+                        onClick = { onOrderChange(false) }
+                    )
+                }
+            }
+        )
     }
 
