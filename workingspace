@@ -1,1 +1,37 @@
+@Composable
+private fun PlaylistContent(
+    playlists: List<Playlist>,
+    smartPlaylists: List<SmartPlaylist>,
+    playlistFilter: Boolean?,
+    onFilterChange: (Boolean?) -> Unit,
 
+    onPlaylistClick: (Long) -> Unit,
+    onSmartPlaylistClick: (SmartPlaylistType) -> Unit,
+
+    onCreatePlaylistClick: () -> Unit,
+    onDeletePlaylistClick: (Long) -> Unit
+)
+
+
+
+
+
+
+
+var showCreateDialog by remember { mutableStateOf(false) }
+var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+
+PlaylistContent(
+    playlists = playlists,
+    smartPlaylists = smartPlaylists,
+    playlistFilter = playlistFilter,
+    onFilterChange = { playlistFilter = it },
+
+    onPlaylistClick = onNavigateToPlaylist,
+    onSmartPlaylistClick = onNavigateToSmartPlaylist,
+
+    onCreatePlaylistClick = { showCreateDialog = true },
+    onDeletePlaylistClick = { id ->
+        playlistToDelete = playlists.firstOrNull { it.id == id }
+    }
+)
