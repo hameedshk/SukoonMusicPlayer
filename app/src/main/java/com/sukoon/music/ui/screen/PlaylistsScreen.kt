@@ -139,7 +139,6 @@ fun PlaylistsScreen(
                     PlaylistActionsSection(
                         playlistCount = playlists.size,
                         onCreateClick = { showCreateDialog = true },
-                        onRestoreClick = onNavigateToRestore,
                         onImportClick = {
                             showImportDialog = true
                             importResult = null
@@ -1292,7 +1291,7 @@ private fun PlaylistCardPreview() {
 /**
  * Playlists Content - Displays smart playlists and user playlists inline within HomeScreen.
  */
-@Composable
+/* @Composable
 private fun PlaylistContent(
     playlists: List<Playlist>,
     smartPlaylists: List<SmartPlaylist>,
@@ -1441,7 +1440,7 @@ private fun PlaylistContent(
             }
         )
     }
-}
+} */
 
 @Composable
 private fun HomeScreenDeletePlaylistConfirmationDialog(
@@ -1734,7 +1733,8 @@ private fun HomeScreenAddSongsToNewPlaylistDialog(
 @Composable
 private fun PlaylistActionsSection(
     playlistCount: Int,
-    onCreateClick: () -> Unit
+    onCreateClick: () -> Unit,
+    onImportClick: () -> Unit
 ) {
     Column {
         Text(

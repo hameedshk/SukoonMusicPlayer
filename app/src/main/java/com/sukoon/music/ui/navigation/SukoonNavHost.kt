@@ -99,12 +99,12 @@ fun SukoonNavHost(
                 onNavigateToSmartPlaylist = { smartPlaylistType ->
                     navController.navigate(Routes.SmartPlaylistDetail.createRoute(smartPlaylistType.name))
                 },
-                onNavigateToRestore = {
+              /*  onNavigateToRestore = {
                     navController.navigate(Routes.RestorePlaylist.route)
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
-                },
+                },*/
                 onBackClick = {
                     navController.navigateUp()
                 }
