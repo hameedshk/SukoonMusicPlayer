@@ -10,8 +10,10 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -55,22 +57,38 @@ fun MiniPlayer(
     val palette = rememberAlbumPalette(playbackState.currentSong.albumArtUri)
     val accentColor = palette.accentColor
 
+    // Real-time position tracking
+    var currentPosition by remember { mutableLongStateOf(playbackState.currentPosition) }
+
+    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
+        currentPosition = playbackState.currentPosition
+        if (playbackState.isPlaying) {
+            while (isActive && currentPosition < playbackState.duration) {
+                delay(100) // Update every 100ms
+                currentPosition += 100
+            }
+        }
+    }
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(MiniPlayerHeight)
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
             .clickable(onClick = onClick),
         shape = MiniPlayerShape,
         color = DarkCard
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(SpacingMedium),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(MiniPlayerHeight)
+                    .padding(SpacingMedium),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
+            ) {
             // Album Art
             SubcomposeAsyncImage(
                 model = playbackState.currentSong.albumArtUri,
@@ -141,6 +159,23 @@ fun MiniPlayer(
                     tint = TextPrimary
                 )
             }
+        }
+
+            // Thin progress bar at bottom edge
+            LinearProgressIndicator(
+                progress = {
+                    if (playbackState.duration > 0) {
+                        (currentPosition.toFloat() / playbackState.duration.toFloat()).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp),
+                color = accentColor,
+                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
+            )
         }
     }
 }
