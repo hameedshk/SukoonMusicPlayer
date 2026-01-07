@@ -344,7 +344,7 @@ private fun FoldersContent(
             ) {
                 IconButton(onClick = { folderViewModel.navigateUp() }) {
                     Icon(
-                        imageVector = Icons.Default.Folder,
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Navigate up"
                     )
                 }
@@ -357,26 +357,6 @@ private fun FoldersContent(
                 )
             }
             HorizontalDivider()
-        }
-
-        // Category pill row (only show when at root)
-        if (currentPath == null) {
-            CategoryPillRow(
-                itemCount = displayFolders.size,
-                itemLabel = if (displayFolders.size == 1) "folder" else "folders",
-                sortOptions = FolderSortMode.entries,
-                currentSortMode = sortMode,
-                onSortModeChanged = { folderViewModel.setSortMode(it) },
-                sortModeToDisplayName = { it.toDisplayName() },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            // Context header
-            FolderContextHeader(
-                selectedMode = folderViewMode,
-                onModeChanged = { folderViewModel.setFolderViewMode(it) },
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
         }
 
         // Folder list or empty state

@@ -83,7 +83,8 @@ class FolderViewModel @Inject constructor(
             // Show root folders (top-level segments of all folder paths)
             val rootPaths = folders.map { it.path.stripAndroidStoragePrefix().split("/").filter { s -> s.isNotEmpty() }.firstOrNull() ?: "" }
                 .distinct()
-            
+                .filter { it.isNotEmpty() && it != "storage" && it != "emulated" }
+
             rootPaths.forEach { root ->
                 val fullPath = root
                 val foldersUnderRoot = folders.filter { it.path.stripAndroidStoragePrefix().startsWith(fullPath) }
