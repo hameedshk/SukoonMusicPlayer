@@ -85,7 +85,7 @@ class FolderViewModel @Inject constructor(
                 .distinct()
             
             rootPaths.forEach { root ->
-                val fullPath = "/$root"
+                val fullPath = root
                 val foldersUnderRoot = folders.filter { it.path.stripAndroidStoragePrefix().startsWith(fullPath) }
                 val songCount = foldersUnderRoot.sumOf { it.songCount }
                 items.add(FolderBrowserItem.SubFolder(

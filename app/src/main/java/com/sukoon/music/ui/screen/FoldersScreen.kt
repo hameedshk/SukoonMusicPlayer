@@ -344,7 +344,7 @@ private fun FoldersContent(
             ) {
                 IconButton(onClick = { folderViewModel.navigateUp() }) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        imageVector = Icons.Default.Folder,
                         contentDescription = "Navigate up"
                     )
                 }
