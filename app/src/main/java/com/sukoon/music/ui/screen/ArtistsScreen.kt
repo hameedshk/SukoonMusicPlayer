@@ -1,4 +1,4 @@
-package com.sukoon.music.ui.screen.artists
+package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -77,6 +77,7 @@ import androidx.compose.material3.Scaffold
 @Composable
 fun ArtistsScreen(
     onNavigateToArtistDetail: (Long) -> Unit,
+    onBackClick: () -> Unit,
     viewModel: ArtistsViewModel = hiltViewModel()
 ) {
     val artists by viewModel.artists.collectAsStateWithLifecycle()

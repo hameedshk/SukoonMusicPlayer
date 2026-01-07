@@ -82,7 +82,6 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import kotlinx.coroutines.launch
-
 /**
  * Home Screen - Main entry point of the app.
  */
@@ -223,6 +222,12 @@ fun HomeScreen(
                         "Albums" -> {
                             AlbumsScreen(
                                 onNavigateToAlbum = onNavigateToAlbumDetail,
+                                onBackClick = { }
+                            )
+                        }
+                        "Artists" -> {
+                            ArtistsScreen(
+                                onNavigateToArtistDetail = onNavigateToArtistDetail,
                                 onBackClick = { }
                             )
                         }
