@@ -233,14 +233,10 @@ fun HomeScreen(
                             )
                         }
                         "Playlist" -> {
-                            PlaylistsContent(
-                                playlists = playlists,
-                                smartPlaylists = smartPlaylists,
-                                availableSongs = availableSongs,
-                                playbackState = playbackState,
-                                onPlaylistClick = onNavigateToPlaylistDetail,
-                                onSmartPlaylistClick = onNavigateToSmartPlaylist,
-                                playlistViewModel = playlistViewModel
+                            PlaylistsScreen(
+                               onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
+                               onNavigatToSmartPlaylist = onNavigateToSmartPlaylist,
+                                onBackClick = { }
                             )
                         }
                         "Folders" -> {
@@ -801,157 +797,6 @@ private fun SongsContent(
         SongInfoDialog(
             song = song,
             onDismiss = { showInfoForSong = null }
-        )
-    }
-}
-
-/**
- * Playlists Content - Displays smart playlists and user playlists inline within HomeScreen.
- */
-@Composable
-private fun PlaylistsContent(
-    playlists: List<Playlist>,
-    smartPlaylists: List<SmartPlaylist>,
-    availableSongs: List<Song>,
-    playbackState: PlaybackState,
-    onPlaylistClick: (Long) -> Unit,
-    onSmartPlaylistClick: (SmartPlaylistType) -> Unit,
-    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel
-) {
-    var showCreateDialog by remember { mutableStateOf(false) }
-    var playlistFilter by remember { mutableStateOf<Boolean?>(null) }
-    var newPlaylistId by remember { mutableStateOf<Long?>(null) }
-    var showAddSongsDialog by remember { mutableStateOf(false) }
-    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Filter Chips Section
-        item {
-            PlaylistFilterChips(
-                selectedFilter = playlistFilter,
-                onFilterChange = { playlistFilter = it }
-            )
-        }
-
-        // Smart Playlists Section (show only if filter allows)
-        if (playlistFilter == null || playlistFilter == true) {
-            item {
-                SmartPlaylistsSection(
-                    smartPlaylists = smartPlaylists,
-                    onSmartPlaylistClick = onSmartPlaylistClick
-                )
-            }
-        }
-        // Actions and User Playlists (show only if filter allows)
-        if (playlistFilter == null || playlistFilter == false) {
-            item {
-                PlaylistActionsSection(
-                    playlistCount = playlists.size,
-                    onCreateClick = { showCreateDialog = true }
-                )
-            }
-
-            // User Playlists Grid
-            if (playlists.isNotEmpty()) {
-                item {
-                    Text(
-                        text = "My playlists (${playlists.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-
-                items(
-                    items = playlists.chunked(2),
-                    key = { row: List<Playlist> -> row.first().id }
-                ) { rowPlaylists: List<Playlist> ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowPlaylists.forEach { playlist ->
-                            Box(modifier = Modifier.weight(1f)) {
-                                PlaylistCard(
-                                    playlist = playlist,
-                                    onClick = { onPlaylistClick(playlist.id) },
-                                    onDeleteClick = { playlistToDelete = playlist }
-                                )
-                            }
-                        }
-                        if (rowPlaylists.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            } else {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No playlists yet. Create your first playlist!",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    // Create Playlist Dialog
-    if (showCreateDialog) {
-        HomeScreenCreatePlaylistDialog(
-            onDismiss = { showCreateDialog = false },
-            onConfirm = { name, description ->
-                playlistViewModel.createPlaylist(name, description) { playlistId ->
-                    newPlaylistId = playlistId
-                    playlistViewModel.loadPlaylist(playlistId)
-                    showAddSongsDialog = true
-                }
-                showCreateDialog = false
-            }
-        )
-    }
-
-    // Add Songs Dialog
-    if (showAddSongsDialog && newPlaylistId != null) {
-        HomeScreenAddSongsToNewPlaylistDialog(
-            availableSongs = availableSongs,
-            onDismiss = {
-                showAddSongsDialog = false
-                newPlaylistId?.let { onPlaylistClick(it) }
-                newPlaylistId = null
-            },
-            onAddSongs = { selectedSongs ->
-                selectedSongs.forEach { song ->
-                    playlistViewModel.addSongToPlaylist(newPlaylistId!!, song.id)
-                }
-                showAddSongsDialog = false
-                newPlaylistId?.let { onPlaylistClick(it) }
-                newPlaylistId = null
-            }
-        )
-    }
-
-    // Delete Confirmation
-    playlistToDelete?.let { playlist ->
-        HomeScreenDeletePlaylistConfirmationDialog(
-            playlistName = playlist.name,
-            onDismiss = { playlistToDelete = null },
-            onConfirm = {
-                playlistViewModel.deletePlaylist(playlist.id)
-                playlistToDelete = null
-            }
         )
     }
 }
@@ -1519,32 +1364,6 @@ private fun HomeScreenCreatePlaylistDialog(
         },
         dismissButton = {
             TextButton(onClick = { name = ""; description = ""; onDismiss() }) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Composable
-private fun HomeScreenDeletePlaylistConfirmationDialog(
-    playlistName: String,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete Playlist") },
-        text = { Text("Are you sure you want to delete '$playlistName'?") },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-            ) {
-                Text("Delete")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
         }
