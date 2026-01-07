@@ -90,7 +90,7 @@ fun ArtistsScreen(
                 ArtistSelectionTopBar(
                     selectedCount = selectedArtistIds.size,
                     onBackClick = {
-                        // ✅ clear selection + exit selection mode
+                        viewModel.clearSelection()
                         viewModel.toggleSelectionMode(false)
                     }
                 )

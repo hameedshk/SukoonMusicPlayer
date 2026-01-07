@@ -4,26 +4,41 @@ import android.app.Activity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.FolderSortMode
+import com.sukoon.music.domain.model.PlaybackState
+import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderViewModel
@@ -55,6 +70,7 @@ fun FoldersScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val selectedFolderForPlaylist by viewModel.selectedFolderForPlaylist.collectAsStateWithLifecycle()
     val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
+    val folderSortMode by viewModel.sortMode.collectAsStateWithLifecycle()
 
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
@@ -113,51 +129,20 @@ fun FoldersScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            val displayFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) {
-                folders
-            } else {
-                hiddenFolders
-            }
-
-            // Category pill row (count + sort)
-            CategoryPillRow(
-                itemCount = displayFolders.size,
-                itemLabel = if (displayFolders.size == 1) "folder" else "folders",
-                sortOptions = FolderSortMode.entries,
-                currentSortMode = sortMode,
-                onSortModeChanged = { viewModel.setSortMode(it) },
-                sortModeToDisplayName = { it.toDisplayName() }
+            FoldersContent(
+                folders = folders,
+                hiddenFolders = hiddenFolders,
+                folderViewMode = folderViewMode,
+                sortMode = folderSortMode,
+                playbackState = playbackState,
+                onFolderClick = onNavigateToFolder,
+                folderViewModel = viewModel,
+                menuHandler = rememberSongMenuHandler(
+                    playbackRepository = viewModel.playbackRepository
+                ),
+                onNavigateToNowPlaying = onNavigateToNowPlaying
             )
 
-            // Context header (Directories / Hidden)
-            FolderContextHeader(
-                selectedMode = folderViewMode,
-                onModeChanged = { viewModel.setFolderViewMode(it) }
-            )
-
-            // Folder list or empty state
-            Box(modifier = Modifier.weight(1f)) {
-                if (displayFolders.isEmpty()) {
-                    EmptyFoldersState(
-                        isHiddenView = folderViewMode == FolderViewMode.HIDDEN
-                    )
-                } else {
-                    FolderList(
-                        folders = displayFolders,
-                        isHiddenView = folderViewMode == FolderViewMode.HIDDEN,
-                        onFolderClick = onNavigateToFolder,
-                        onPlay = { viewModel.playFolder(it) },
-                        onPlayNext = { viewModel.playNext(it) },
-                        onAddToQueue = { viewModel.addToQueue(it) },
-                        onAddToPlaylist = { viewModel.showAddToPlaylistDialog(it) },
-                        onHide = { viewModel.excludeFolder(it) },
-                        onUnhide = { viewModel.unhideFolder(it) },
-                        onDelete = { folderId ->
-                            folderToDelete = folderId
-                        }
-                    )
-                }
-            }
         }
     }
 
@@ -313,7 +298,7 @@ private fun DeleteConfirmationDialog(
     )
 }
 
-private fun FolderSortMode.toDisplayName(): String = when (this) {
+fun FolderSortMode.toDisplayName(): String = when (this) {
     FolderSortMode.NAME_ASC -> "Name (A-Z)"
     FolderSortMode.NAME_DESC -> "Name (Z-A)"
     FolderSortMode.TRACK_COUNT -> "Most Songs"
@@ -326,5 +311,397 @@ private fun FolderSortMode.toDisplayName(): String = when (this) {
 private fun FoldersScreenPreview() {
     SukoonMusicPlayerTheme {
         EmptyFoldersState()
+    }
+}
+
+/**
+ * Folders Content - Displays music folders with management options inline within HomeScreen.
+ */
+@Composable
+private fun FoldersContent(
+    folders: List<Folder>,
+    hiddenFolders: List<Folder>,
+    folderViewMode: FolderViewMode,
+    sortMode: FolderSortMode,
+    playbackState: PlaybackState,
+    onFolderClick: (Long) -> Unit,
+    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel,
+    menuHandler: SongMenuHandler,
+    onNavigateToNowPlaying: () -> Unit
+) {
+    var showDeleteConfirmation by remember { mutableStateOf<Folder?>(null) }
+    var folderToDeleteId by remember { mutableStateOf<Long?>(null) }
+
+    val browsingContent by folderViewModel.browsingContent.collectAsStateWithLifecycle()
+    val currentPath by folderViewModel.currentPath.collectAsStateWithLifecycle()
+
+    val displayFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) {
+        folders
+    } else {
+        hiddenFolders
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Back button when navigating in folders
+        if (folderViewMode == FolderViewMode.DIRECTORIES && currentPath != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { folderViewModel.navigateUp() }) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Navigate up"
+                    )
+                }
+                Text(
+                    text = currentPath ?: "",
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            HorizontalDivider()
+        }
+
+        // Category pill row (only show when at root)
+        if (currentPath == null) {
+            CategoryPillRow(
+                itemCount = displayFolders.size,
+                itemLabel = if (displayFolders.size == 1) "folder" else "folders",
+                sortOptions = FolderSortMode.entries,
+                currentSortMode = sortMode,
+                onSortModeChanged = { folderViewModel.setSortMode(it) },
+                sortModeToDisplayName = { it.toDisplayName() },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            // Context header
+            FolderContextHeader(
+                selectedMode = folderViewMode,
+                onModeChanged = { folderViewModel.setFolderViewMode(it) },
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+
+        // Folder list or empty state
+        Box(modifier = Modifier.weight(1f)) {
+            if (folderViewMode == FolderViewMode.DIRECTORIES && browsingContent.isNotEmpty()) {
+                // Hierarchical browsing mode
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(browsingContent.size, key = { index ->
+                        when (val item = browsingContent[index]) {
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder -> "folder_${item.path}"
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem -> "song_${item.song.id}"
+                        }
+                    }) { index ->
+                        when (val item = browsingContent[index]) {
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder -> {
+                                FolderBrowserSubFolderRow(
+                                    subFolder = item,
+                                    onClick = { folderViewModel.navigateToFolder(item.path) },
+                                    onPlay = { folderViewModel.playFolder(item.path) }
+                                )
+                            }
+                            is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem -> {
+                                FolderBrowserSongRow(
+                                    song = item.song,
+                                    isPlaying = item.song.id == playbackState.currentSong?.id,
+                                    menuHandler = menuHandler,
+                                    onClick = {
+                                        val contextSongs = browsingContent.filterIsInstance<com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem>()
+                                            .map { it.song }
+                                        folderViewModel.playSong(item.song, contextSongs)
+                                        onNavigateToNowPlaying()
+                                    },
+                                    onLikeClick = { folderViewModel.toggleLike(item.song.id, item.song.isLiked) }
+                                )
+                            }
+                        }
+                    }
+                }
+            } else if (displayFolders.isEmpty()) {
+                EmptyFoldersState(
+                    isHiddenView = folderViewMode == FolderViewMode.HIDDEN
+                )
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(vertical = 8.dp)
+                ) {
+                    items(displayFolders, key = { it.id }) { folder ->
+                        FolderRow(
+                            folder = folder,
+                            isHidden = folderViewMode == FolderViewMode.HIDDEN,
+                            onFolderClick = { onFolderClick(folder.id) },
+                            onPlay = { folderViewModel.playFolder(folder.path) },
+                            onPlayNext = { folderViewModel.playNext(folder.path) },
+                            onAddToQueue = { folderViewModel.addToQueue(folder.path) },
+                            onAddToPlaylist = { folderViewModel.showAddToPlaylistDialog(folder.id) },
+                            onHide = { folderViewModel.excludeFolder(folder.path) },
+                            onUnhide = { folderViewModel.unhideFolder(folder.path) },
+                            onDelete = {
+                                showDeleteConfirmation = folder
+                                folderToDeleteId = folder.id
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    // Delete confirmation dialog
+    showDeleteConfirmation?.let { folder ->
+        DeleteFolderConfirmationDialog(
+            folder = folder,
+            onConfirm = {
+                folderToDeleteId?.let { folderViewModel.deleteFolder(it) }
+                showDeleteConfirmation = null
+                folderToDeleteId = null
+            },
+            onDismiss = {
+                showDeleteConfirmation = null
+                folderToDeleteId = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun FolderBrowserSubFolderRow(
+    subFolder: com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder,
+    onClick: () -> Unit,
+    onPlay: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            if (subFolder.albumArtUri != null) {
+                SubcomposeAsyncImage(
+                    model = subFolder.albumArtUri,
+                    contentDescription = "Folder cover",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    },
+                    error = {
+                        Icon(
+                            imageVector = Icons.Default.Folder,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Folder,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = subFolder.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${subFolder.songCount} songs",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        Icon(
+            imageVector = Icons.Default.ArrowForward,
+            contentDescription = "Enter folder",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun DeleteFolderConfirmationDialog(
+    folder: Folder,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error
+            )
+        },
+        title = { Text("Delete folder?") },
+        text = {
+            Column {
+                Text("This will permanently delete ${folder.songCount} songs from your device:")
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = folder.path,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "This action cannot be undone.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Text("Delete")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+private fun FolderBrowserSongRow(
+    song: Song,
+    isPlaying: Boolean,
+    menuHandler: SongMenuHandler,
+    onClick: () -> Unit,
+    onLikeClick: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            SubcomposeAsyncImage(
+                model = song.albumArtUri,
+                contentDescription = "Album art for ${song.title}",
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                error = {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
+                        contentDescription = null,
+                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${song.artist} • ${song.album}",
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(8.dp))
+
+        IconButton(onClick = { showMenu = true }) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        IconButton(onClick = onLikeClick) {
+            Icon(
+                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (song.isLiked) "Unlike" else "Like",
+                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+
+    if (showMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
