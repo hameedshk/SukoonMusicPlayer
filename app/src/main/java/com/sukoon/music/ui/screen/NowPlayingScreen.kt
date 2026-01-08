@@ -215,10 +215,18 @@ private fun NowPlayingContent(
 
     // Immersive mode state (hides controls temporarily)
     var isImmersiveMode by remember { mutableStateOf(false) }
-    var selectedTab by remember { mutableIntStateOf(0) }
 
-    // Lyrics modal state
-    var showLyricsModal by remember { mutableStateOf(false) }
+    // Overlay states
+    var showLyricsOverlay by remember { mutableStateOf(false) }
+    var showQueueModal by remember { mutableStateOf(false) }
+
+    // Lyrics state
+    val lyricsState by viewModel.lyricsState.collectAsStateWithLifecycle()
+
+    // Fetch lyrics when song changes
+    LaunchedEffect(song.id) {
+        viewModel.fetchLyrics(song)
+    }
 
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         currentPosition = playbackState.currentPosition
@@ -251,10 +259,14 @@ private fun NowPlayingContent(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Album Art with tap gesture for immersive mode
+        // Album Art with tap gesture for immersive mode and lyrics overlay
         AlbumArtSection(
             song = song,
-            onAlbumArtClick = { isImmersiveMode = !isImmersiveMode }
+            onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
+            showLyricsOverlay = showLyricsOverlay,
+            lyricsState = lyricsState,
+            currentPosition = currentPosition,
+            accentColor = accentColor
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -270,9 +282,7 @@ private fun NowPlayingContent(
             )
         ) {
             SongInfoSection(
-                song = song,
-                accentColor = accentColor,
-                onLikeClick = onLikeClick
+                song = song
             )
         }
 
@@ -318,20 +328,13 @@ private fun NowPlayingContent(
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-
-                    // Secondary Action Row
-                    SecondaryActionRow(
-                        accentColor = accentColor,
-                        onLyricsClick = { showLyricsModal = true },
-                        onMoreClick = { /* TODO: Show overflow menu */ }
-                    )
                 }
             }
         }
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Lyrics/Queue Tabs Section
+        // Action Buttons Section (Favorite, Lyrics, Queue)
         AnimatedVisibility(
             visible = !isImmersiveMode,
             enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -341,32 +344,26 @@ private fun NowPlayingContent(
                 animationSpec = tween(200, easing = FastOutSlowInEasing)
             )
         ) {
-            LyricsQueueSection(
+            ActionButtonsSection(
                 song = song,
-                currentPosition = currentPosition,
                 accentColor = accentColor,
-                viewModel = viewModel,
-                selectedTab = selectedTab,
-                onTabChange = { selectedTab = it }
+                showLyricsOverlay = showLyricsOverlay,
+                onLikeClick = onLikeClick,
+                onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
+                onQueueClick = { showQueueModal = true }
             )
         }
     }
 
-    // Lyrics Modal Bottom Sheet
-    if (showLyricsModal) {
-        LyricsModalSheet(
-            song = song,
-            currentPosition = currentPosition,
+    // Queue Modal Bottom Sheet
+    if (showQueueModal) {
+        QueueModalSheet(
+            queue = playbackState.queue,
+            currentIndex = playbackState.currentQueueIndex,
             accentColor = accentColor,
-            lyricsState = viewModel.lyricsState.collectAsStateWithLifecycle().value,
-            onDismiss = { showLyricsModal = false },
-            onOffsetAdjust = { offsetDelta ->
-                val currentState = viewModel.lyricsState.value
-                if (currentState is LyricsState.Success) {
-                    val newOffset = currentState.lyrics.syncOffset + offsetDelta
-                    viewModel.updateLyricsSyncOffset(song.id, newOffset)
-                }
-            }
+            onDismiss = { showQueueModal = false },
+            onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
+            onRemoveClick = { index -> viewModel.removeFromQueue(index) }
         )
     }
 }
@@ -374,7 +371,11 @@ private fun NowPlayingContent(
 @Composable
 private fun AlbumArtSection(
     song: Song,
-    onAlbumArtClick: () -> Unit
+    onAlbumArtClick: () -> Unit,
+    showLyricsOverlay: Boolean = false,
+    lyricsState: LyricsState = LyricsState.NotFound,
+    currentPosition: Long = 0L,
+    accentColor: Color = MaterialTheme.colorScheme.primary
 ) {
     // Enhanced album art with deeper elevation for visual separation and tap gesture
     Card(
@@ -396,6 +397,7 @@ private fun AlbumArtSection(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
+            // Album Art Background
             SubcomposeAsyncImage(
                 model = song.albumArtUri,
                 contentDescription = "Album art for ${song.album}",
@@ -421,80 +423,248 @@ private fun AlbumArtSection(
                     )
                 }
             )
+
+            // Lyrics Overlay
+            if (showLyricsOverlay) {
+                // Semi-transparent dark scrim
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.5f),
+                                    Color.Black.copy(alpha = 0.7f)
+                                )
+                            )
+                        )
+                )
+
+                // Lyrics content
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.8f)
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LyricsOverlayContent(
+                        lyricsState = lyricsState,
+                        currentPosition = currentPosition,
+                        accentColor = accentColor
+                    )
+                }
+            }
         }
+    }
+}
+
+/**
+ * Lyrics overlay content - displayed on top of album art.
+ * Compact design optimized for overlay visibility.
+ */
+@Composable
+private fun LyricsOverlayContent(
+    lyricsState: LyricsState,
+    currentPosition: Long,
+    accentColor: Color
+) {
+    when (lyricsState) {
+        is LyricsState.Loading -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(32.dp),
+                    color = Color.White,
+                    strokeWidth = 3.dp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Loading lyrics...",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.9f)
+                )
+            }
+        }
+
+        is LyricsState.Success -> {
+            val parsedLines = lyricsState.parsedLines
+            if (parsedLines.isNotEmpty()) {
+                // Synced lyrics with active line highlighting
+                CompactSyncedLyricsView(
+                    lines = parsedLines,
+                    currentPosition = currentPosition,
+                    accentColor = accentColor
+                )
+            } else if (!lyricsState.lyrics.plainLyrics.isNullOrBlank()) {
+                // Plain lyrics without timestamps
+                CompactPlainLyricsView(text = lyricsState.lyrics.plainLyrics)
+            } else {
+                // No lyrics available
+                CompactLyricsNotAvailable()
+            }
+        }
+
+        is LyricsState.Error -> {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = Color.White.copy(alpha = 0.7f)
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Failed to load lyrics",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.White.copy(alpha = 0.9f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        is LyricsState.NotFound -> {
+            CompactLyricsNotAvailable()
+        }
+    }
+}
+
+/**
+ * Compact synced lyrics view for overlay.
+ */
+@Composable
+private fun CompactSyncedLyricsView(
+    lines: List<LyricLine>,
+    currentPosition: Long,
+    accentColor: Color
+) {
+    val listState = rememberLazyListState()
+    val activeLine = remember(currentPosition) {
+        LrcParser.findActiveLine(lines, currentPosition)
+    }
+
+    // Auto-scroll to active line
+    LaunchedEffect(activeLine) {
+        if (activeLine >= 0 && activeLine < lines.size) {
+            listState.animateScrollToItem(
+                index = activeLine,
+                scrollOffset = -80
+            )
+        }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 12.dp)
+    ) {
+        itemsIndexed(
+            items = lines,
+            key = { index, _ -> index }
+        ) { index, line ->
+            val isActive = index == activeLine
+            Text(
+                text = line.text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (isActive) {
+                    Color.White
+                } else {
+                    Color.White.copy(alpha = 0.5f)
+                },
+                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+/**
+ * Compact plain lyrics view for overlay.
+ */
+@Composable
+private fun CompactPlainLyricsView(text: String) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        contentPadding = PaddingValues(12.dp)
+    ) {
+        item {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.White.copy(alpha = 0.9f),
+                textAlign = TextAlign.Center,
+                lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f
+            )
+        }
+    }
+}
+
+/**
+ * Compact lyrics not available view for overlay.
+ */
+@Composable
+private fun CompactLyricsNotAvailable() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier.fillMaxSize()
+    ) {
+        Icon(
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            modifier = Modifier.size(40.dp),
+            tint = Color.White.copy(alpha = 0.6f)
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "No lyrics available",
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White.copy(alpha = 0.9f)
+        )
     }
 }
 
 @Composable
 private fun SongInfoSection(
-    song: Song,
-    accentColor: Color,
-    onLikeClick: () -> Unit
+    song: Song
 ) {
-    // Animation state for like button
-    var likeAnimationTrigger by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (likeAnimationTrigger) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
-        ),
-        finishedListener = {
-            if (likeAnimationTrigger) {
-                likeAnimationTrigger = false
-            }
-        },
-        label = "like_scale"
-    )
-
-    Row(
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            // Song title - larger and bolder for visual hierarchy
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = MaterialTheme.typography.headlineMedium.fontSize * 1.05f
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // Artist name - smaller and lower opacity for contrast
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Animated like button
-        IconButton(
-            onClick = {
-                likeAnimationTrigger = true
-                onLikeClick()
-            }
-        ) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier
-                    .size(32.dp)
-                    .scale(scale)
-            )
-        }
+        // Song title - larger and bolder for visual hierarchy
+        Text(
+            text = song.title,
+            style = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.SemiBold,
+                fontSize = MaterialTheme.typography.headlineMedium.fontSize * 1.05f
+            ),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        // Artist name - smaller and lower opacity for contrast
+        Text(
+            text = song.artist,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -693,478 +863,104 @@ private fun PlaybackControlsSection(
 }
 
 /**
- * Secondary Action Row - Minimal, discoverable actions below main controls.
- *
- * Features only 2 actions to avoid clutter:
- * - Lyrics: Quick jump to lyrics tab
- * - More: Overflow menu for additional options
- *
- * Visually secondary with smaller size and lower opacity.
+ * Action Buttons Section - Favorite, Lyrics, Queue buttons.
+ * Simplified version that uses overlay for lyrics display.
  */
 @Composable
-private fun SecondaryActionRow(
+private fun ActionButtonsSection(
+    song: Song,
     accentColor: Color,
+    showLyricsOverlay: Boolean,
+    onLikeClick: () -> Unit,
     onLyricsClick: () -> Unit,
-    onMoreClick: () -> Unit
+    onQueueClick: () -> Unit
 ) {
+    // Animation state for like button
+    var likeAnimationTrigger by remember { mutableStateOf(false) }
+    val likeScale by animateFloatAsState(
+        targetValue = if (likeAnimationTrigger) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        finishedListener = {
+            if (likeAnimationTrigger) {
+                likeAnimationTrigger = false
+            }
+        },
+        label = "like_scale"
+    )
+
+    // Horizontal Action Buttons Row
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
-        horizontalArrangement = Arrangement.Center,
+            .padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Lyrics action - jumps to lyrics tab
-        IconButton(
-            onClick = onLyricsClick,
-            modifier = Modifier.size(40.dp)
+        // Favorite Button
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Icon(
-                imageVector = Icons.Default.Article,
-                contentDescription = "View Lyrics",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(32.dp))
-
-        // More action - overflow menu
-        IconButton(
-            onClick = onMoreClick,
-            modifier = Modifier.size(40.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More Options",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-private fun LyricsQueueSection(
-    song: Song,
-    currentPosition: Long,
-    accentColor: Color,
-    viewModel: HomeViewModel,
-    selectedTab: Int,
-    onTabChange: (Int) -> Unit
-) {
-    val tabs = listOf("Lyrics", "Queue")
-    val lyricsState by viewModel.lyricsState.collectAsStateWithLifecycle()
-
-    // Fetch lyrics when song changes
-    LaunchedEffect(song.id) {
-        viewModel.fetchLyrics(song)
-    }
-
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        // Tab Row
-        TabRow(
-            selectedTabIndex = selectedTab,
-            containerColor = Color.Transparent,
-            contentColor = MaterialTheme.colorScheme.onBackground,
-            indicator = { tabPositions ->
-                if (selectedTab < tabPositions.size) {
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        color = accentColor
-                    )
+            IconButton(
+                onClick = {
+                    likeAnimationTrigger = true
+                    onLikeClick()
                 }
-            }
-        ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTab == index,
-                    onClick = { onTabChange(index) },
-                    text = {
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Tab Content
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            when (selectedTab) {
-                0 -> LyricsView(
-                    lyricsState = lyricsState,
-                    currentPosition = currentPosition,
-                    accentColor = accentColor
-                )
-                1 -> QueueView(
-                    queue = viewModel.playbackState.collectAsStateWithLifecycle().value.queue,
-                    currentIndex = viewModel.playbackState.collectAsStateWithLifecycle().value.currentQueueIndex,
-                    accentColor = accentColor,
-                    onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
-                    onRemoveClick = { index -> viewModel.removeFromQueue(index) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun LyricsView(
-    lyricsState: LyricsState,
-    currentPosition: Long,
-    accentColor: Color
-) {
-    when (lyricsState) {
-        is LyricsState.Loading -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = accentColor
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Loading lyrics...",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
-        }
-
-        is LyricsState.Success -> {
-            val parsedLines = lyricsState.parsedLines
-            if (parsedLines.isNotEmpty()) {
-                // Synced lyrics with active line highlighting
-                SyncedLyricsView(
-                    lines = parsedLines,
-                    currentPosition = currentPosition,
-                    accentColor = accentColor
-                )
-            } else if (!lyricsState.lyrics.plainLyrics.isNullOrBlank()) {
-                // Plain lyrics without timestamps
-                PlainLyricsView(text = lyricsState.lyrics.plainLyrics)
-            } else {
-                // No lyrics available
-                LyricsNotAvailable()
-            }
-        }
-
-        is LyricsState.Error -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
             ) {
                 Icon(
-                    imageVector = Icons.Default.Error,
-                    contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Failed to load lyrics",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = lyricsState.message,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp)
+                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (song.isLiked) "Unlike" else "Like",
+                    tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier
+                        .size(32.dp)
+                        .scale(likeScale)
                 )
             }
-        }
-
-        is LyricsState.NotFound -> {
-            LyricsNotAvailable()
-        }
-    }
-}
-
-@Composable
-private fun SyncedLyricsView(
-    lines: List<LyricLine>,
-    currentPosition: Long,
-    accentColor: Color
-) {
-    val listState = rememberLazyListState()
-    val activeLine = remember(currentPosition) {
-        LrcParser.findActiveLine(lines, currentPosition)
-    }
-
-    // Auto-scroll to active line
-    LaunchedEffect(activeLine) {
-        if (activeLine >= 0 && activeLine < lines.size) {
-            listState.animateScrollToItem(
-                index = activeLine,
-                scrollOffset = -100 // Center the active line
-            )
-        }
-    }
-
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 16.dp)
-    ) {
-        itemsIndexed(
-            items = lines,
-            key = { index, _ -> index }
-        ) { index, line ->
-            val isActive = index == activeLine
             Text(
-                text = line.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isActive) {
-                    accentColor // Dynamic accent color for active line
-                } else {
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                },
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun PlainLyricsView(text: String) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        contentPadding = PaddingValues(16.dp)
-    ) {
-        item {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight * 1.5f
-            )
-        }
-    }
-}
-
-@Composable
-private fun LyricsNotAvailable() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "No lyrics available",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = "Lyrics not found for this track",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
-        )
-    }
-}
-
-@Composable
-private fun QueueView(
-    queue: List<Song>,
-    currentIndex: Int,
-    accentColor: Color,
-    onSongClick: (Int) -> Unit,
-    onRemoveClick: (Int) -> Unit
-) {
-    if (queue.isEmpty()) {
-        // Empty queue state
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Icon(
-                imageVector = Icons.Default.QueueMusic,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Queue is empty",
-                style = MaterialTheme.typography.bodyMedium,
+                text = "Favorite",
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        // Lyrics Button
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            IconButton(onClick = onLyricsClick) {
+                Icon(
+                    imageVector = Icons.Default.Lyrics,
+                    contentDescription = "Lyrics",
+                    tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(32.dp)
+                )
+            }
             Text(
-                text = "Add songs to start playing",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                text = "Lyrics",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
             )
         }
-    } else {
-        // Queue list
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 8.dp)
+
+        // Queue Button
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            itemsIndexed(
-                items = queue,
-                key = { index, song -> "${song.id}_$index" }
-            ) { index, song ->
-                QueueSongItem(
-                    song = song,
-                    isCurrentSong = index == currentIndex,
-                    accentColor = accentColor,
-                    onSongClick = { onSongClick(index) },
-                    onRemoveClick = { onRemoveClick(index) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun QueueSongItem(
-    song: Song,
-    isCurrentSong: Boolean,
-    accentColor: Color,
-    onSongClick: () -> Unit,
-    onRemoveClick: () -> Unit
-) {
-
-    Surface(
-        onClick = onSongClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        color = if (isCurrentSong) {
-            accentColor.copy(alpha = 0.1f)
-        } else {
-            Color.Transparent
-        },
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Album Art
-            Card(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = "Album art for ${song.title}",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        },
-                        error = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Song Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isCurrentSong) {
-                        accentColor
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    },
-                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // Currently Playing Indicator
-            if (isCurrentSong) {
+            IconButton(onClick = onQueueClick) {
                 Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Currently playing",
-                    tint = accentColor,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            // Remove Button
-            IconButton(
-                onClick = onRemoveClick,
-                modifier = Modifier.size(32.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Remove from queue",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.size(18.dp)
+                    imageVector = Icons.Default.QueueMusic,
+                    contentDescription = "Queue",
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(32.dp)
                 )
             }
+            Text(
+                text = "Queue",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+            )
         }
     }
 }

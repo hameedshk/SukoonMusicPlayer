@@ -80,7 +80,9 @@ class MainActivity : ComponentActivity() {
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
 
                 // Calculate dynamic bottom padding based on playback state
-                val bottomPadding = if (playbackState.currentSong != null) {
+                // Hide mini player when on NowPlayingScreen
+                val isOnNowPlayingScreen = currentRoute == Routes.NowPlaying.route
+                val bottomPadding = if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
                     (GLOBAL_AD_HEIGHT_DP + 80).dp // Ad + MiniPlayer
                 } else {
                     GLOBAL_AD_HEIGHT_DP.dp // Ad only
@@ -96,8 +98,8 @@ class MainActivity : ComponentActivity() {
                             .padding(bottom = bottomPadding)
                     )
 
-                    // MiniPlayer above ad (z-index 1) - only when playing
-                    if (playbackState.currentSong != null) {
+                    // MiniPlayer above ad (z-index 1) - only when playing and not on NowPlayingScreen
+                    if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
                         MiniPlayer(
                             playbackState = playbackState,
                             onPlayPauseClick = { homeViewModel.playPause() },

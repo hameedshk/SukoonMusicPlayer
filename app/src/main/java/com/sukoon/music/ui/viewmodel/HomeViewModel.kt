@@ -10,6 +10,7 @@ import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -62,6 +63,9 @@ class HomeViewModel @Inject constructor(
     // Lyrics State
     private val _lyricsState = MutableStateFlow<LyricsState>(LyricsState.Loading)
     val lyricsState: StateFlow<LyricsState> = _lyricsState.asStateFlow()
+
+    // Track lyrics fetch job to prevent race conditions
+    private var lyricsFetchJob: Job? = null
 
     // User Actions
 
@@ -153,16 +157,33 @@ class HomeViewModel @Inject constructor(
     }
 
     fun fetchLyrics(song: Song) {
-        viewModelScope.launch {
-            lyricsRepository.getLyrics(
-                trackId = song.id,
-                audioUri = song.uri,
-                artist = song.artist,
-                title = song.title,
-                album = song.album,
-                duration = (song.duration / 1000).toInt()
-            ).collect { state ->
-                _lyricsState.value = state
+        // Cancel previous fetch job to prevent race conditions
+        lyricsFetchJob?.cancel()
+
+        // Validate song data before fetching
+        if (song.title.isBlank() || song.artist.isBlank()) {
+            _lyricsState.value = LyricsState.NotFound
+            return
+        }
+
+        // Reset to loading state
+        _lyricsState.value = LyricsState.Loading
+
+        // Start new fetch job
+        lyricsFetchJob = viewModelScope.launch {
+            try {
+                lyricsRepository.getLyrics(
+                    trackId = song.id,
+                    audioUri = song.uri,
+                    artist = song.artist,
+                    title = song.title,
+                    album = song.album,
+                    duration = (song.duration / 1000).toInt()
+                ).collect { state ->
+                    _lyricsState.value = state
+                }
+            } catch (e: Exception) {
+                _lyricsState.value = LyricsState.Error("Failed to fetch lyrics: ${e.message}")
             }
         }
     }
@@ -170,6 +191,7 @@ class HomeViewModel @Inject constructor(
     fun updateLyricsSyncOffset(trackId: Long, offsetMs: Long) {
         viewModelScope.launch {
             lyricsRepository.updateSyncOffset(trackId, offsetMs)
+            // Re-fetch lyrics with updated offset
             playbackState.value.currentSong?.let { song ->
                 fetchLyrics(song)
             }
@@ -177,9 +199,13 @@ class HomeViewModel @Inject constructor(
     }
 
     fun clearLyrics(trackId: Long) {
+        // Cancel any ongoing fetch
+        lyricsFetchJob?.cancel()
+        lyricsFetchJob = null
+
         viewModelScope.launch {
             lyricsRepository.clearLyrics(trackId)
-            _lyricsState.value = LyricsState.Loading
+            _lyricsState.value = LyricsState.NotFound
         }
     }
 
