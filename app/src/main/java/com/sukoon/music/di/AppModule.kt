@@ -133,11 +133,14 @@ object AppModule {
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
                     .addHeader("User-Agent", "Sukoon Music Player/1.0.0 (Android)")
+                    .addHeader("Accept", "application/json")
                     .build()
                 chain.proceed(request)
             }
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(30, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
             .build()
     }
 

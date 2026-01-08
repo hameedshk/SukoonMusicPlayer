@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukoon.music.domain.model.LyricsState
@@ -29,6 +30,10 @@ class HomeViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {
+
+    companion object {
+        private const val TAG = "HomeViewModel"
+    }
 
     // Tab State Management
     private val _selectedTab = MutableStateFlow("For you")
@@ -157,21 +162,28 @@ class HomeViewModel @Inject constructor(
     }
 
     fun fetchLyrics(song: Song) {
+        Log.d(TAG, "=== FETCH LYRICS CALLED ===")
+        Log.d(TAG, "Song: ${song.title} by ${song.artist}")
+
         // Cancel previous fetch job to prevent race conditions
         lyricsFetchJob?.cancel()
+        Log.d(TAG, "Previous job cancelled (if any)")
 
         // Validate song data before fetching
         if (song.title.isBlank() || song.artist.isBlank()) {
+            Log.w(TAG, "Invalid song data - title or artist is blank")
             _lyricsState.value = LyricsState.NotFound
             return
         }
 
         // Reset to loading state
         _lyricsState.value = LyricsState.Loading
+        Log.d(TAG, "State set to Loading")
 
         // Start new fetch job
         lyricsFetchJob = viewModelScope.launch {
             try {
+                Log.d(TAG, "Starting lyrics repository flow collection...")
                 lyricsRepository.getLyrics(
                     trackId = song.id,
                     audioUri = song.uri,
@@ -180,9 +192,11 @@ class HomeViewModel @Inject constructor(
                     album = song.album,
                     duration = (song.duration / 1000).toInt()
                 ).collect { state ->
+                    Log.d(TAG, "Received lyrics state: ${state::class.simpleName}")
                     _lyricsState.value = state
                 }
             } catch (e: Exception) {
+                Log.e(TAG, "Exception in fetchLyrics", e)
                 _lyricsState.value = LyricsState.Error("Failed to fetch lyrics: ${e.message}")
             }
         }
