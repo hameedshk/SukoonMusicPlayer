@@ -1,6 +1,5 @@
 package com.sukoon.music.ui.components
 
-import androidx.compose.animation.core.animateScrollToItem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
