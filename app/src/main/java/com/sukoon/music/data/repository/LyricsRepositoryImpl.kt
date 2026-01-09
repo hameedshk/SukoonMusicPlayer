@@ -4,6 +4,7 @@ import android.util.Log
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.lyrics.LrcParser
+import com.sukoon.music.data.metadata.GeminiMetadataCorrector
 import com.sukoon.music.data.remote.LyricsApi
 import com.sukoon.music.domain.model.Lyrics
 import com.sukoon.music.domain.model.LyricsState
@@ -36,7 +37,8 @@ class LyricsRepositoryImpl @Inject constructor(
     private val lyricsDao: LyricsDao,
     private val lyricsApi: LyricsApi,
     private val offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
-    private val id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor
+    private val id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
+    private val geminiMetadataCorrector: com.sukoon.music.data.metadata.GeminiMetadataCorrector
 ) : LyricsRepository {
 
     companion object {
@@ -124,27 +126,50 @@ class LyricsRepositoryImpl @Inject constructor(
             // Step 4: Fetch from LRCLIB - try precise lookup first
             Log.d(TAG, "Step 4: Fetching from LRCLIB API...")
             Log.d(TAG, "API Request: artist='$artist', track='$title', album='$album', duration=${duration}s")
-            val cleanTitle = title
-                .replace(Regex("\\s*-\\s*.*$"), "") // remove "- DJMaza.Life"
-                .replace(Regex("\\(.*?\\)"), "")    // remove "(Official Video)"
-                .trim()
+
+
+            val cleanArtist : String? = normalize(artist)
+            val cleanTitle  : String? = normalize(title)
+            val cleanAlbum  = normalize(album)
             val safeDuration = duration.takeIf { it > 0 }
+
+            // Validation: Title is mandatory for any lookup
+            if (cleanTitle.isNullOrBlank()) {
+                Log.w(TAG, "Cannot fetch lyrics: title is blank after normalization (original: '$title')")
+                emit(LyricsState.NotFound)
+                return@flow
+            }
+
             val lyricsResponse = try {
-                val response = lyricsApi.getLyrics(
-                    artistName = artist,
-                    trackName = cleanTitle,
-                    albumName = album,
-                    duration = safeDuration
-                )
-                Log.d(TAG, "✓ LRCLIB API success - precise lookup")
-                response
+                // Try precise lookup if we have artist metadata
+                if (!cleanArtist.isNullOrBlank()) {
+                    Log.d(TAG, "Trying precise lookup with artist='$cleanArtist', title='$cleanTitle', album='$cleanAlbum', duration=$safeDuration")
+                    val response = lyricsApi.getLyrics(
+                        artistName = cleanArtist,
+                        trackName = cleanTitle,
+                        albumName = cleanAlbum,
+                        duration = safeDuration
+                    )
+                    Log.d(TAG, "✓ LRCLIB API success - precise lookup")
+                    response
+                } else {
+                    Log.d(TAG, "Artist missing/invalid, going straight to search fallback")
+                    null // Skip to search fallback
+                }
             } catch (e: HttpException) {
                 Log.d(TAG, "✗ LRCLIB precise lookup failed: ${e.code()} ${e.message()}")
                 if (e.code() == 404) {
                     // Step 5: Fallback to search if not found
                     Log.d(TAG, "Step 5: Trying LRCLIB search fallback...")
                     try {
-                        val searchResults = lyricsApi.searchLyrics("$artist $cleanTitle")
+                        // Try with normalized values first, then fallback to original if needed
+                        val searchQuery = when {
+                            cleanArtist != null && cleanTitle != null -> "$cleanArtist $cleanTitle"
+                            cleanTitle != null -> cleanTitle
+                            else -> "$artist $title"
+                        }
+                        Log.d(TAG, "Search query: '$searchQuery'")
+                        val searchResults = lyricsApi.searchLyrics(searchQuery)
                         Log.d(TAG, "✓ LRCLIB search returned ${searchResults.size} results")
                         searchResults.firstOrNull()
                     } catch (searchError: Exception) {
@@ -170,15 +195,84 @@ class LyricsRepositoryImpl @Inject constructor(
                 throw e
             }
 
-            if (lyricsResponse == null) {
+            // If no response yet, try search API as last resort
+            val finalLyricsResponse = if (lyricsResponse == null) {
+                Log.d(TAG, "Precise lookup returned null, trying search API as final fallback...")
+                try {
+                    val searchQuery = if (!cleanArtist.isNullOrBlank()) {
+                        "$cleanArtist $cleanTitle"
+                    } else {
+                        cleanTitle
+                    }
+                    Log.d(TAG, "Final search query: '$searchQuery'")
+                    val searchResults = lyricsApi.searchLyrics(searchQuery)
+                    Log.d(TAG, "✓ Final search returned ${searchResults.size} results")
+                    searchResults.firstOrNull()
+                } catch (searchError: Exception) {
+                    Log.e(TAG, "✗ Final search failed", searchError)
+                    null
+                }
+            } else {
+                lyricsResponse
+            }
+
+            // Step 6: Gemini metadata correction (if enabled and API key configured)
+            val geminiCorrectedResponse = if (finalLyricsResponse == null) {
+                Log.d(TAG, "Attempting Gemini metadata correction")
+
+                val correctedMetadata = geminiMetadataCorrector.correctMetadata(
+                    originalArtist = artist,
+                    originalTitle = title,
+                    originalAlbum = album
+                )
+
+                if (correctedMetadata != null) {
+                    Log.d(TAG, "Retrying LRCLIB with corrected metadata")
+
+                    // Normalize corrected metadata (same as original flow)
+                    val normalizedArtist = normalize(correctedMetadata.artist) ?: ""
+                    val normalizedTitle = normalize(correctedMetadata.title) ?: ""
+                    val normalizedAlbum = normalize(correctedMetadata.album)
+
+                    try {
+                        // Retry precise lookup with corrected metadata
+                        val retryResponse = lyricsApi.getLyrics(
+                            artistName = normalizedArtist,
+                            trackName = normalizedTitle,
+                            albumName = normalizedAlbum,
+                            duration = duration?.toInt()
+                        )
+
+                        // Success - return for caching
+                        if (retryResponse.syncedLyrics != null || retryResponse.plainLyrics != null) {
+                            Log.d(TAG, "✓ LRCLIB retry with corrected metadata succeeded")
+                            retryResponse
+                        } else {
+                            null
+                        }
+                    } catch (e: HttpException) {
+                        Log.d(TAG, "✗ LRCLIB retry with corrected metadata failed: ${e.code()}")
+                        null
+                    } catch (e: IOException) {
+                        Log.d(TAG, "✗ LRCLIB retry network error: ${e.message}")
+                        null
+                    }
+                } else {
+                    null
+                }
+            } else {
+                finalLyricsResponse
+            }
+
+            if (geminiCorrectedResponse == null) {
                 Log.d(TAG, "✗ No lyrics found from any source")
                 emit(LyricsState.NotFound)
                 return@flow
             }
 
             // Validate that the response has usable lyrics
-            val hasLyrics = !lyricsResponse.syncedLyrics.isNullOrBlank() ||
-                           !lyricsResponse.plainLyrics.isNullOrBlank()
+            val hasLyrics = !geminiCorrectedResponse.syncedLyrics.isNullOrBlank() ||
+                           !geminiCorrectedResponse.plainLyrics.isNullOrBlank()
 
             if (!hasLyrics) {
                 Log.d(TAG, "✗ API returned response but lyrics fields are empty")
@@ -186,14 +280,14 @@ class LyricsRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            Log.d(TAG, "✓ API returned valid lyrics (synced: ${!lyricsResponse.syncedLyrics.isNullOrBlank()}, plain: ${!lyricsResponse.plainLyrics.isNullOrBlank()})")
+            Log.d(TAG, "✓ API returned valid lyrics (synced: ${!geminiCorrectedResponse.syncedLyrics.isNullOrBlank()}, plain: ${!geminiCorrectedResponse.plainLyrics.isNullOrBlank()})")
 
-            // Step 6: Cache the result from online source
-            Log.d(TAG, "Step 6: Caching online lyrics...")
+            // Step 7: Cache the result from online source
+            Log.d(TAG, "Step 7: Caching online lyrics...")
             val entity = LyricsEntity(
                 trackId = trackId,
-                syncedLyrics = lyricsResponse.syncedLyrics,
-                plainLyrics = lyricsResponse.plainLyrics,
+                syncedLyrics = geminiCorrectedResponse.syncedLyrics,
+                plainLyrics = geminiCorrectedResponse.plainLyrics,
                 syncOffset = 0,
                 source = com.sukoon.music.domain.model.LyricsSource.ONLINE.name,
                 lastFetched = System.currentTimeMillis()
@@ -248,4 +342,35 @@ class LyricsRepositoryImpl @Inject constructor(
             lastFetched = lastFetched
         )
     }
+}
+
+/**
+ * Normalize track/artist metadata by removing common junk patterns.
+ * Uses generic patterns to catch watermarks, site tags, and quality indicators.
+ */
+private fun normalize(text: String?): String? {
+    if (text.isNullOrBlank()) return null
+
+    return text
+        // Remove website watermarks: (SiteName.com), (www.site.com), [SiteName.pk]
+        .replace(Regex("[\\(\\[](?:www\\.)?[a-zA-Z0-9-]+\\.[a-z]{2,}[\\)\\]]", RegexOption.IGNORE_CASE), "")
+
+        // Remove quality/bitrate indicators: (320Kbps), [128kbps], (High Quality)
+        .replace(Regex("[\\(\\[]\\s*\\d+\\s*[kK]bps\\s*[\\)\\]]", RegexOption.IGNORE_CASE), "")
+        .replace(Regex("[\\(\\[]\\s*(?:High|Low|Medium|Best)\\s+Quality\\s*[\\)\\]]", RegexOption.IGNORE_CASE), "")
+
+        // Remove YouTube Music "- Topic" suffix
+        .replace(Regex("\\s*-\\s*Topic$", RegexOption.IGNORE_CASE), "")
+
+        // Remove file extensions if present
+        .replace(Regex("\\.(mp3|m4a|flac|wav|ogg|aac|wma)$", RegexOption.IGNORE_CASE), "")
+
+        // Remove standalone site names in parentheses (words with unusual caps or all caps)
+        .replace(Regex("[\\(\\[](?:[A-Z][a-z]*){2,}[\\)\\]]"), "") // PagalWorld, DjMaza
+        .replace(Regex("[\\(\\[][A-Z-]{4,}[\\)\\]]"), "") // MR-JATT, SONGS
+
+        // Clean up extra whitespace and multiple spaces
+        .replace(Regex("\\s+"), " ")
+        .trim()
+        .takeIf { it.isNotBlank() }
 }

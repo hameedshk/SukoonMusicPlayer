@@ -39,6 +39,7 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Named
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import okhttp3.ConnectionSpec
@@ -238,19 +239,59 @@ object AppModule {
         return com.sukoon.music.data.lyrics.Id3LyricsExtractor(context)
     }
 
+    // Gemini AI providers (for metadata correction)
+    @Provides
+    @Singleton
+    @Named("GeminiClient")
+    fun provideGeminiOkHttpClient(): OkHttpClient {
+        return OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val request = chain.request().newBuilder()
+                    .addHeader("Content-Type", "application/json")
+                    .build()
+                chain.proceed(request)
+            }
+            .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)  // No auto-retry for Gemini
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeminiApi(@Named("GeminiClient") okHttpClient: OkHttpClient): com.sukoon.music.data.remote.GeminiApi {
+        return Retrofit.Builder()
+            .baseUrl(com.sukoon.music.data.remote.GeminiApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(com.sukoon.music.data.remote.GeminiApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideGeminiMetadataCorrector(
+        geminiApi: com.sukoon.music.data.remote.GeminiApi,
+        @ApplicationContext context: Context
+    ): com.sukoon.music.data.metadata.GeminiMetadataCorrector {
+        return com.sukoon.music.data.metadata.GeminiMetadataCorrector(geminiApi, context)
+    }
+
     @Provides
     @Singleton
     fun provideLyricsRepository(
         lyricsDao: LyricsDao,
         lyricsApi: LyricsApi,
         offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
-        id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor
+        id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
+        geminiMetadataCorrector: com.sukoon.music.data.metadata.GeminiMetadataCorrector
     ): com.sukoon.music.domain.repository.LyricsRepository {
         return com.sukoon.music.data.repository.LyricsRepositoryImpl(
             lyricsDao,
             lyricsApi,
             offlineLyricsScanner,
-            id3LyricsExtractor
+            id3LyricsExtractor,
+            geminiMetadataCorrector
         )
     }
 
