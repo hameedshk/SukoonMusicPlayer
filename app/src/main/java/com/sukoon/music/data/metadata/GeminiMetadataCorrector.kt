@@ -58,8 +58,8 @@ class GeminiMetadataCorrector @Inject constructor(
                 Content(parts = listOf(Part(text = prompt)))
             ),
             generationConfig = GenerationConfig(
-                temperature = 0.1f,
-                maxOutputTokens = 100,
+                temperature = 0.1f,           // Balanced for complete responses
+                maxOutputTokens = 600,        // Sufficient for 3 fields
                 topP = 0.8f
             )
         )
@@ -90,27 +90,37 @@ class GeminiMetadataCorrector @Inject constructor(
         }
     }
 
-    private fun buildPrompt(artist: String, title: String, album: String?): String {
+    private fun buildPrompt(
+        artist: String,
+        title: String,
+        album: String?
+    ): String {
         return """
-            Task: Correct music metadata for lyrics lookup.
+        Task: Normalize music metadata.
 
-            CRITICAL RULES:
-            - You MUST NOT generate or write lyrics
-            - You MUST ONLY correct artist name, song title, and album name
-            - Fix spelling errors, expand abbreviations, remove junk text
-            - Respond ONLY in this exact format:
+        Rules:
+        - Do NOT generate lyrics
+        - Do NOT add explanations
+        - Do NOT use markdown
+        - Do NOT guess missing information
+        - Only fix spelling, casing, and remove junk text
+        - If unsure, keep the original value unchanged
 
-            ARTIST: [corrected artist name]
-            TITLE: [corrected song title]
-            ALBUM: [corrected album name or UNKNOWN]
+        Respond ONLY with valid JSON in this exact schema:
 
-            Original Metadata:
-            Artist: $artist
-            Title: $title
-            Album: ${album ?: "UNKNOWN"}
+        {
+          "artist": "string",
+          "title": "string",
+          "album": "string or null"
+        }
 
-            Provide corrected metadata now:
-        """.trimIndent()
+        Original metadata:
+        {
+          "artist": "$artist",
+          "title": "$title",
+          "album": ${album?.let { "\"$it\"" } ?: "null"}
+        }
+    """.trimIndent()
     }
 
     private fun parseAndValidate(
@@ -130,18 +140,13 @@ class GeminiMetadataCorrector @Inject constructor(
             Log.d(tag, "Gemini returned empty response")
             return null
         }
+        Log.d(tag, "RAW Gemini response:\n$text")
 
-        Log.d(tag, "Gemini response: $text")
+        val correctedArtist = extractField("ARTIST", text)
+        val correctedTitle = extractField("TITLE", text)
+        val correctedAlbum = extractField("ALBUM", text)
+            ?.takeIf { !it.equals("UNKNOWN", true) }
 
-        // Parse structured output
-        val artistMatch = Regex("ARTIST:\\s*(.+)").find(text)
-        val titleMatch = Regex("TITLE:\\s*(.+)").find(text)
-        val albumMatch = Regex("ALBUM:\\s*(.+)").find(text)
-
-        val correctedArtist = artistMatch?.groupValues?.getOrNull(1)?.trim()
-        val correctedTitle = titleMatch?.groupValues?.getOrNull(1)?.trim()
-        val correctedAlbum = albumMatch?.groupValues?.getOrNull(1)?.trim()
-            ?.takeIf { it != "UNKNOWN" }
 
         // Validation: Must have artist and title
         if (correctedArtist.isNullOrBlank() || correctedTitle.isNullOrBlank()) {
@@ -170,4 +175,11 @@ class GeminiMetadataCorrector @Inject constructor(
             album = correctedAlbum
         )
     }
+}
+
+private fun extractField(label: String, text: String): String? {
+    val regex = Regex(
+        pattern = "(?im)^\\s*\\*{0,2}$label\\*{0,2}\\s*[:\\-]\\s*(.+?)\\s*$"
+    )
+    return regex.find(text)?.groupValues?.get(1)?.trim()
 }

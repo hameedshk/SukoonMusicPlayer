@@ -41,9 +41,14 @@ android {
             "true"  // Set to false to disable Gemini entirely
         )
         buildConfigField(
+            "Boolean",
+            "ENABLE_GOOGLE_SEARCH_GROUNDING",
+            "false"  // Set to true to enable Google Search (may require API setup)
+        )
+        buildConfigField(
             "String",
             "GEMINI_MODEL",
-            "\"gemini-1.5-flash-latest\""
+            "\"gemini-2.5-flash\""  // Updated: removed '-latest' suffix
         )
     }
 
