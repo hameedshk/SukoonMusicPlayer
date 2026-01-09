@@ -57,15 +57,20 @@ fun MiniPlayer(
     val palette = rememberAlbumPalette(playbackState.currentSong.albumArtUri)
     val accentColor = palette.accentColor
 
-    // Real-time position tracking
-    var currentPosition by remember { mutableLongStateOf(playbackState.currentPosition) }
+    // Real-time position tracking - optimized with derivedStateOf
+    // Only updates offset, not full recomposition of MiniPlayer
+    var positionOffset by remember { mutableLongStateOf(0L) }
+    val currentPosition by remember {
+        derivedStateOf { playbackState.currentPosition + positionOffset }
+    }
 
+    // Position ticker - reduced frequency to 250ms for battery optimization
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
-        currentPosition = playbackState.currentPosition
+        positionOffset = 0L
         if (playbackState.isPlaying) {
-            while (isActive && currentPosition < playbackState.duration) {
-                delay(100) // Update every 100ms
-                currentPosition += 100
+            while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
+                delay(250) // Reduced from 100ms: 4 updates/sec instead of 10/sec
+                positionOffset += 250
             }
         }
     }

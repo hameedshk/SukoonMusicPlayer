@@ -124,12 +124,17 @@ class LyricsRepositoryImpl @Inject constructor(
             // Step 4: Fetch from LRCLIB - try precise lookup first
             Log.d(TAG, "Step 4: Fetching from LRCLIB API...")
             Log.d(TAG, "API Request: artist='$artist', track='$title', album='$album', duration=${duration}s")
+            val cleanTitle = title
+                .replace(Regex("\\s*-\\s*.*$"), "") // remove "- DJMaza.Life"
+                .replace(Regex("\\(.*?\\)"), "")    // remove "(Official Video)"
+                .trim()
+            val safeDuration = duration.takeIf { it > 0 }
             val lyricsResponse = try {
                 val response = lyricsApi.getLyrics(
                     artistName = artist,
-                    trackName = title,
+                    trackName = cleanTitle,
                     albumName = album,
-                    duration = duration
+                    duration = safeDuration
                 )
                 Log.d(TAG, "✓ LRCLIB API success - precise lookup")
                 response
@@ -139,7 +144,7 @@ class LyricsRepositoryImpl @Inject constructor(
                     // Step 5: Fallback to search if not found
                     Log.d(TAG, "Step 5: Trying LRCLIB search fallback...")
                     try {
-                        val searchResults = lyricsApi.searchLyrics("$artist $title")
+                        val searchResults = lyricsApi.searchLyrics("$artist $cleanTitle")
                         Log.d(TAG, "✓ LRCLIB search returned ${searchResults.size} results")
                         searchResults.firstOrNull()
                     } catch (searchError: Exception) {

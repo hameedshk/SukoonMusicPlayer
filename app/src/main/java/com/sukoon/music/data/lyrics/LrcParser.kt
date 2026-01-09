@@ -1,5 +1,6 @@
 package com.sukoon.music.data.lyrics
 
+import android.util.Log
 import com.sukoon.music.domain.model.LyricLine
 
 /**
@@ -20,6 +21,8 @@ object LrcParser {
     private val LRC_LINE_REGEX = Regex("""^\[(\d{2}):(\d{2})\.(\d{2})\](.*)$""")
     private val LRC_METADATA_REGEX = Regex("""^\[([a-z]+):(.+)\]$""")
 
+    private const val TAG = "LRCParser"
+
     /**
      * Parse LRC format lyrics into timestamped lines.
      *
@@ -29,7 +32,7 @@ object LrcParser {
      */
     fun parse(lrcContent: String?, offsetMs: Long = 0): List<LyricLine> {
         if (lrcContent.isNullOrBlank()) return emptyList()
-
+        Log.d(TAG, "=== LYRICS FETCH START ===")
         val lines = mutableListOf<LyricLine>()
 
         lrcContent.lines().forEach { line ->
@@ -66,8 +69,9 @@ object LrcParser {
 
     /**
      * Find the active lyric line for the current playback position.
+     * Uses binary search for O(log n) performance instead of O(n) linear scan.
      *
-     * @param lines Parsed lyric lines
+     * @param lines Parsed lyric lines (must be sorted by timestamp)
      * @param currentPositionMs Current playback position in milliseconds
      * @param tolerance Sync tolerance in milliseconds (default: 500ms)
      * @return Index of the current line, or -1 if not found
@@ -79,13 +83,23 @@ object LrcParser {
     ): Int {
         if (lines.isEmpty()) return -1
 
-        // Find the last line whose timestamp is before or at current position (with tolerance)
+        val targetPosition = currentPositionMs + tolerance
+
+        // Binary search to find the last line whose timestamp <= targetPosition
+        var left = 0
+        var right = lines.size - 1
         var activeIndex = -1
-        for (i in lines.indices) {
-            if (lines[i].timestamp <= currentPositionMs + tolerance) {
-                activeIndex = i
+
+        while (left <= right) {
+            val mid = left + (right - left) / 2
+
+            if (lines[mid].timestamp <= targetPosition) {
+                // This line is a candidate, search right half for later lines
+                activeIndex = mid
+                left = mid + 1
             } else {
-                break
+                // This line is too late, search left half
+                right = mid - 1
             }
         }
 

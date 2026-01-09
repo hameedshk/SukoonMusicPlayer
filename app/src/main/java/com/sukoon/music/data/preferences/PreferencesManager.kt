@@ -14,6 +14,7 @@ import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -68,6 +69,11 @@ class PreferencesManager @Inject constructor(
         private val KEY_EQ_BAND_4 = intPreferencesKey("eq_band_14000hz")
         private val KEY_EQ_BASS_BOOST = intPreferencesKey("eq_bass_boost")
         private val KEY_EQ_VIRTUALIZER = intPreferencesKey("eq_virtualizer")
+
+        // Playback State (for process death recovery)
+        private val KEY_LAST_PLAYBACK_POSITION = stringPreferencesKey("last_playback_position_ms") // String to support Long
+        private val KEY_LAST_QUEUE_INDEX = intPreferencesKey("last_queue_index")
+        private val KEY_LAST_SONG_ID = stringPreferencesKey("last_song_id") // String to support Long
     }
 
     /**
@@ -361,6 +367,56 @@ class PreferencesManager @Inject constructor(
     suspend fun setEqualizerEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_EQ_ENABLED] = enabled
+        }
+    }
+
+    // --- Playback State (for process death recovery) ---
+
+    /**
+     * Save current playback state for recovery after process death.
+     *
+     * @param songId ID of currently playing song
+     * @param queueIndex Current index in queue
+     * @param positionMs Current playback position in milliseconds
+     */
+    suspend fun savePlaybackState(songId: Long, queueIndex: Int, positionMs: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_LAST_SONG_ID] = songId.toString()
+            preferences[KEY_LAST_QUEUE_INDEX] = queueIndex
+            preferences[KEY_LAST_PLAYBACK_POSITION] = positionMs.toString()
+        }
+    }
+
+    /**
+     * Get saved playback state for recovery after process death.
+     *
+     * @return Triple of (songId, queueIndex, positionMs) or null if not saved
+     */
+    suspend fun getPlaybackState(): Triple<Long, Int, Long>? {
+        val preferences = context.dataStore.data
+            .map { prefs ->
+                val songId = prefs[KEY_LAST_SONG_ID]?.toLongOrNull()
+                val queueIndex = prefs[KEY_LAST_QUEUE_INDEX]
+                val position = prefs[KEY_LAST_PLAYBACK_POSITION]?.toLongOrNull()
+
+                if (songId != null && queueIndex != null && position != null) {
+                    Triple(songId, queueIndex, position)
+                } else {
+                    null
+                }
+            }
+        return preferences.first()
+    }
+
+    /**
+     * Clear saved playback state.
+     * Call this after successfully restoring state or when user explicitly clears it.
+     */
+    suspend fun clearPlaybackState() {
+        context.dataStore.edit { preferences ->
+            preferences.remove(KEY_LAST_SONG_ID)
+            preferences.remove(KEY_LAST_QUEUE_INDEX)
+            preferences.remove(KEY_LAST_PLAYBACK_POSITION)
         }
     }
 }

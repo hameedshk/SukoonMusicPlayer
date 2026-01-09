@@ -77,6 +77,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 pausedByNoisyAudio = false
             }
             updatePlaybackState()
+            savePlaybackStateForRecovery()
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
@@ -102,6 +103,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 }
             }
             updatePlaybackState()
+            savePlaybackStateForRecovery()
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
@@ -187,21 +189,73 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     /**
      * Restore the last saved queue on app launch.
+     * Also restores playback position if available (for process death recovery).
      */
     private fun restoreLastQueue() {
         scope.launch {
             try {
+                // First, try to restore saved playback state (for process death recovery)
+                val playbackState = preferencesManager.getPlaybackState()
+
                 val currentQueue = queueRepository.getCurrentQueueWithSongs()
                 if (currentQueue != null && currentQueue.songs.isNotEmpty()) {
                     // Restore the queue to playback
                     val mediaItems = currentQueue.songs.map { it.toMediaItem() }
-                    mediaController?.setMediaItems(mediaItems)
+
+                    // If we have saved playback state, restore to that position
+                    if (playbackState != null) {
+                        val (songId, queueIndex, position) = playbackState
+
+                        // Verify the queue index is valid
+                        val validIndex = queueIndex.coerceIn(0, mediaItems.size - 1)
+
+                        DevLogger.d("PlaybackRepository", "Restoring playback: song=$songId, index=$validIndex, position=${position}ms")
+
+                        mediaController?.setMediaItems(mediaItems, validIndex, position)
+
+                        // Clear the saved state after successful restore
+                        preferencesManager.clearPlaybackState()
+                    } else {
+                        // No saved position, just restore queue
+                        mediaController?.setMediaItems(mediaItems)
+                    }
+
+                    // Prepare but don't auto-play (user must explicitly start)
+                    mediaController?.prepare()
+
                     currentSavedQueueId = currentQueue.queue.id
                     lastSavedQueue = currentQueue.songs
                     updatePlaybackState()
                 }
             } catch (e: Exception) {
                 DevLogger.e("PlaybackRepository", "Failed to restore queue", e)
+            }
+        }
+    }
+
+    /**
+     * Save current playback state for recovery after process death.
+     * Called when playback state changes.
+     */
+    private fun savePlaybackStateForRecovery() {
+        val controller = mediaController ?: return
+
+        // Only save if we have a valid current item
+        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        val currentIndex = controller.currentMediaItemIndex
+        val currentPosition = controller.currentPosition
+
+        // Save state in background
+        scope.launch {
+            try {
+                preferencesManager.savePlaybackState(
+                    songId = currentSongId,
+                    queueIndex = currentIndex,
+                    positionMs = currentPosition
+                )
+            } catch (e: Exception) {
+                // Log but don't crash - state saving is not critical
+                DevLogger.e("PlaybackRepository", "Failed to save playback state", e)
             }
         }
     }

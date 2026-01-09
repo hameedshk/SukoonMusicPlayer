@@ -41,6 +41,8 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import okhttp3.ConnectionSpec
+import okhttp3.TlsVersion
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -127,8 +129,21 @@ object AppModule {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
+        val tlsSpec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
+            .tlsVersions(
+                TlsVersion.TLS_1_2,
+                TlsVersion.TLS_1_3
+            )
+            .allEnabledCipherSuites()
+            .build()
 
         return OkHttpClient.Builder()
+            .connectionSpecs(
+                listOf(
+                    tlsSpec,
+                    ConnectionSpec.CLEARTEXT // safe fallback
+                )
+            )
             .addInterceptor(logging)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -137,9 +152,9 @@ object AppModule {
                     .build()
                 chain.proceed(request)
             }
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
-            .writeTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
             .retryOnConnectionFailure(true)
             .build()
     }

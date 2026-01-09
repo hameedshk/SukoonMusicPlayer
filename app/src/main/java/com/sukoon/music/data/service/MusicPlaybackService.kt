@@ -5,6 +5,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -28,6 +29,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import androidx.media3.common.PlaybackException
 
 @UnstableApi
 @AndroidEntryPoint
@@ -57,12 +59,18 @@ class MusicPlaybackService : MediaSessionService() {
     // Audio noisy receiver for headphone unplug detection
     private var audioNoisyReceiver: BroadcastReceiver? = null
 
-    // Track if we were playing before audio focus loss
+    // Audio focus state tracking
     private var wasPlayingBeforeAudioFocusLoss = false
+    private var currentAudioFocusState = AudioManager.AUDIOFOCUS_NONE
+
+    // Volume state for ducking
+    private var normalVolume = 1.0f
+    private var isDucked = false
 
     companion object {
         private const val NOTIFICATION_ID = 101
         private const val CHANNEL_ID = "sukoon_music_playback"
+        private const val DUCK_VOLUME = 0.2f // 20% volume when ducked
     }
 
     override fun onCreate() {
@@ -208,9 +216,9 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /**
-     * Player listener to track audio focus state changes.
+     * Player listener to track audio focus state changes and errors.
      * ExoPlayer automatically pauses on audio focus loss.
-     * We track the state to prevent auto-resume.
+     * We track the state to prevent auto-resume and handle ducking.
      */
     private val audioFocusListener = object : Player.Listener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -218,8 +226,28 @@ class MusicPlaybackService : MediaSessionService() {
                 Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> {
                     // Audio focus was lost - track that we should not auto-resume
                     wasPlayingBeforeAudioFocusLoss = player.isPlaying
+                    DevLogger.d("MusicPlaybackService", "Audio focus lost, was playing: $wasPlayingBeforeAudioFocusLoss")
+                }
+                Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> {
+                    // User explicitly played/paused - reset audio focus state
+                    wasPlayingBeforeAudioFocusLoss = false
+                    DevLogger.d("MusicPlaybackService", "User action: playWhenReady=$playWhenReady")
                 }
             }
+        }
+
+        override fun onPlayerErrorChanged(error: PlaybackException?) {
+            error?.let {
+                DevLogger.e("MusicPlaybackService", "Playback error: ${it.message}", it)
+            }
+        }
+
+        override fun onVolumeChanged(volume: Float) {
+            // Track volume changes (including ducking by ExoPlayer)
+            if (!isDucked) {
+                normalVolume = volume
+            }
+            DevLogger.d("MusicPlaybackService", "Volume changed: $volume (isDucked: $isDucked)")
         }
     }
 
@@ -314,9 +342,44 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+
+        // Only stop service if player is not playing
         val player = mediaSession?.player
-        if (player?.playWhenReady == false) {
+        if (player?.playWhenReady == false || player == null) {
+            DevLogger.d("MusicPlaybackService", "Task removed and not playing, stopping service")
             stopSelf()
+        } else {
+            DevLogger.d("MusicPlaybackService", "Task removed but still playing, keeping service alive")
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Log service start for debugging
+        DevLogger.d("MusicPlaybackService", "onStartCommand: action=${intent?.action}, flags=$flags, startId=$startId")
+
+        return super.onStartCommand(intent, flags, startId)
+    }
+
+    override fun onLowMemory() {
+        super.onLowMemory()
+        DevLogger.w("MusicPlaybackService", "Low memory warning received")
+
+        // Don't stop playback, but log for monitoring
+        // The system may kill us anyway, but we shouldn't proactively stop
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        DevLogger.d("MusicPlaybackService", "onTrimMemory: level=$level")
+
+        // Handle different trim memory levels
+        when (level) {
+            TRIM_MEMORY_RUNNING_CRITICAL,
+            TRIM_MEMORY_COMPLETE -> {
+                // System is running very low on memory, but keep playing if active
+                DevLogger.w("MusicPlaybackService", "Critical memory pressure, but maintaining playback")
+            }
         }
     }
 

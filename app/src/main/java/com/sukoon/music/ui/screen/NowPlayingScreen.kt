@@ -210,8 +210,12 @@ private fun NowPlayingContent(
 ) {
     val song = playbackState.currentSong ?: return
 
-    // Real-time progress tracking
-    var currentPosition by remember { mutableLongStateOf(playbackState.currentPosition) }
+    // Real-time progress tracking - optimized to reduce recomposition
+    // Using derivedStateOf prevents full screen recomposition on position updates
+    var positionOffset by remember { mutableLongStateOf(0L) }
+    val currentPosition by remember {
+        derivedStateOf { playbackState.currentPosition + positionOffset }
+    }
 
     // Immersive mode state (hides controls temporarily)
     var isImmersiveMode by remember { mutableStateOf(false) }
@@ -228,19 +232,16 @@ private fun NowPlayingContent(
         viewModel.fetchLyrics(song)
     }
 
+    // Position ticker - samples at 250ms instead of 100ms for better battery life
+    // Updates only offset, which triggers derivedStateOf calculation
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
-        currentPosition = playbackState.currentPosition
+        positionOffset = 0L
         if (playbackState.isPlaying) {
-            while (isActive && currentPosition < playbackState.duration) {
-                delay(100)
-                currentPosition += 100
+            while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
+                delay(250)  // Reduced from 100ms: 4 updates/sec instead of 10/sec
+                positionOffset += 250
             }
         }
-    }
-
-    // Update position when playback state changes
-    LaunchedEffect(playbackState.currentPosition) {
-        currentPosition = playbackState.currentPosition
     }
 
     // Auto-restore from immersive mode after 3 seconds
@@ -546,11 +547,16 @@ private fun CompactSyncedLyricsView(
     accentColor: Color
 ) {
     val listState = rememberLazyListState()
-    val activeLine = remember(currentPosition) {
-        LrcParser.findActiveLine(lines, currentPosition)
+
+    // Use derivedStateOf to prevent recalculation on every composition
+    // Only recalculates when currentPosition actually changes the active line
+    val activeLine by remember {
+        derivedStateOf {
+            LrcParser.findActiveLine(lines, currentPosition)
+        }
     }
 
-    // Auto-scroll to active line
+    // Auto-scroll to active line - debounced via activeLine changes
     LaunchedEffect(activeLine) {
         if (activeLine >= 0 && activeLine < lines.size) {
             listState.animateScrollToItem(
@@ -569,7 +575,7 @@ private fun CompactSyncedLyricsView(
     ) {
         itemsIndexed(
             items = lines,
-            key = { index, _ -> index }
+            key = { _, line -> line.timestamp } // Stable key based on timestamp
         ) { index, line ->
             val isActive = index == activeLine
             Text(

@@ -11,7 +11,7 @@ interface LyricsApi {
         @Query("artist_name") artistName: String,
         @Query("track_name") trackName: String,
         @Query("album_name") albumName: String? = null,
-        @Query("duration") duration: Int? = null
+        @Query("duration") duration: Int?
     ): LyricsResponse
 
     @GET("api/search")

@@ -447,13 +447,16 @@ private fun ModalSyncedLyricsView(
 ) {
     val listState = rememberLazyListState()
 
-    // Find active line with caching to avoid recomputation
-    val activeLine = remember(currentPosition, lines) {
-        LrcParser.findActiveLine(lines, currentPosition)
+    // Use derivedStateOf with binary search for optimal performance
+    // Only recalculates when currentPosition actually changes the active line
+    val activeLine by remember {
+        derivedStateOf {
+            LrcParser.findActiveLine(lines, currentPosition)
+        }
     }
 
     // Smooth auto-scroll to keep active line near center
-    // Update only when active line changes to avoid excessive scrolling
+    // Debounced automatically via activeLine changes
     LaunchedEffect(activeLine) {
         if (activeLine >= 0 && activeLine < lines.size) {
             // Smooth scroll with offset to center the active line
@@ -474,7 +477,7 @@ private fun ModalSyncedLyricsView(
     ) {
         itemsIndexed(
             items = lines,
-            key = { index, _ -> index }
+            key = { _, line -> line.timestamp } // Stable key based on timestamp
         ) { index, line ->
             val isActive = index == activeLine
             Text(

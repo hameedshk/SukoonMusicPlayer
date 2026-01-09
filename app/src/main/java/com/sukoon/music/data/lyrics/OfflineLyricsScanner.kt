@@ -35,6 +35,7 @@ class OfflineLyricsScanner @Inject constructor(
      * @return Lyrics content from .lrc file, or null if not found
      */
     fun findLrcFile(audioUri: String, title: String, artist: String): String? {
+        DevLogger.d("LYRICS_DEBUG", "Scanning LRC for uri=$audioUri title=$title artist=$artist")
         try {
             val uri = Uri.parse(audioUri)
 

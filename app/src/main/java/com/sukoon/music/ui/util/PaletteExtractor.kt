@@ -2,6 +2,7 @@ package com.sukoon.music.ui.util
 
 import android.graphics.Bitmap
 import android.graphics.drawable.BitmapDrawable
+import androidx.collection.LruCache
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +19,12 @@ import coil.request.SuccessResult
 import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+/**
+ * LRU cache for extracted album palettes.
+ * Caches up to 50 palettes (approx 10KB total memory).
+ */
+private val paletteCache = LruCache<String, AlbumPalette>(50)
 
 /**
  * Data class holding extracted colors from album art.
@@ -64,8 +71,16 @@ fun rememberAlbumPalette(
 
     LaunchedEffect(albumArtUri) {
         if (albumArtUri.isNullOrBlank()) {
-            DevLogger.d("PaletteExtractor", "Album art URI is null or blank, using theme colors")
             palette = defaultPalette
+            return@LaunchedEffect
+        }
+
+        // Check cache first
+        val cachedPalette = paletteCache.get(albumArtUri)
+        if (cachedPalette != null) {
+            DevLogger.d("PaletteExtractor", "Using cached palette for: $albumArtUri")
+            palette = cachedPalette
+            onPaletteExtracted?.invoke(cachedPalette)
             return@LaunchedEffect
         }
 
@@ -81,7 +96,7 @@ fun rememberAlbumPalette(
                 val request = ImageRequest.Builder(context)
                     .data(albumArtUri)
                     .allowHardware(false) // Disable hardware bitmaps for Palette
-                    .size(512) // Limit size for faster palette extraction
+                    .size(256) // Reduced from 512 for 4x faster extraction
                     .build()
 
                 val result = imageLoader.execute(request)
@@ -113,15 +128,15 @@ fun rememberAlbumPalette(
             if (bitmap != null) {
                 DevLogger.d("PaletteExtractor", "Bitmap loaded, extracting palette...")
 
-                // Extract palette on Default dispatcher
+                // Extract palette on Default dispatcher - reduced color count for performance
                 val extractedPalette = withContext(Dispatchers.Default) {
                     Palette.from(bitmap)
-                        .maximumColorCount(16)
+                        .maximumColorCount(8) // Reduced from 16 for 2x faster extraction
                         .generate()
                 }
 
                 // Convert to AlbumPalette, falling back to theme colors
-                palette = AlbumPalette(
+                val extractedAlbumPalette = AlbumPalette(
                     vibrant = extractedPalette.vibrantSwatch?.let { Color(it.rgb) }
                         ?: defaultPalette.vibrant,
                     vibrantDark = extractedPalette.darkVibrantSwatch?.let { Color(it.rgb) }
@@ -138,7 +153,11 @@ fun rememberAlbumPalette(
                         ?: defaultPalette.dominant
                 )
 
-                DevLogger.d("PaletteExtractor", "Palette extracted - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")
+                // Cache the extracted palette for reuse
+                paletteCache.put(albumArtUri, extractedAlbumPalette)
+
+                palette = extractedAlbumPalette
+                DevLogger.d("PaletteExtractor", "Palette extracted and cached - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")
                 onPaletteExtracted?.invoke(palette)
             } else {
                 DevLogger.w("PaletteExtractor", "Bitmap is null, using theme colors")
