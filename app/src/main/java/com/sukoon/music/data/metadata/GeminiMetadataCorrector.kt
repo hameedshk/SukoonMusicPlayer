@@ -59,7 +59,7 @@ class GeminiMetadataCorrector @Inject constructor(
             ),
             generationConfig = GenerationConfig(
                 temperature = 0.1f,           // Balanced for complete responses
-                maxOutputTokens = 600,        // Sufficient for 3 fields
+                maxOutputTokens = 1000,        // Sufficient for 3 fields
                 topP = 0.8f
             )
         )
