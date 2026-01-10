@@ -3,44 +3,47 @@ package com.sukoon.music.ui.theme
 import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 
 private val DarkColorScheme = darkColorScheme(
-    // Brand colors - brighter orange for dark theme
-    primary = androidx.compose.ui.graphics.Color(0xFFFF5722),
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFFDD4411),
+    // Brand colors - Spotify green
+    primary = androidx.compose.ui.graphics.Color(0xFF1DB954),
+    primaryContainer = androidx.compose.ui.graphics.Color(0xFF1AA34A),
     onPrimary = androidx.compose.ui.graphics.Color(0xFF000000),
     onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
 
-    // Secondary colors - amber accent
-    secondary = androidx.compose.ui.graphics.Color(0xFFFF9800),
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFFE65100),
+    // Secondary colors - muted green
+    secondary = androidx.compose.ui.graphics.Color(0xFF1ED760),
+    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF1AA34A),
     onSecondary = androidx.compose.ui.graphics.Color(0xFF000000),
     onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
 
-    // Tertiary colors
-    tertiary = androidx.compose.ui.graphics.Color(0xFFFFB74D),
-    tertiaryContainer = androidx.compose.ui.graphics.Color(0xFFFF6F00),
-    onTertiary = androidx.compose.ui.graphics.Color(0xFF000000),
-    onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    // Tertiary colors - subtle grey-green
+    tertiary = androidx.compose.ui.graphics.Color(0xFF535353),
+    tertiaryContainer = androidx.compose.ui.graphics.Color(0xFF404040),
+    onTertiary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
 
-    // Background and surfaces
+    // Background and surfaces - Spotify flat dark (#121212 base, minimal elevation)
     background = androidx.compose.ui.graphics.Color(0xFF121212),
-    onBackground = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    onBackground = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
 
-    surface = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
-    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF1C1C1C),
-    surfaceContainer = androidx.compose.ui.graphics.Color(0xFF2A2A2A),
-    surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF2F2F2F),
-    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF353535),
-    onSurface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
+    surface = androidx.compose.ui.graphics.Color(0xFF121212),
+    surfaceVariant = androidx.compose.ui.graphics.Color(0xFF121212),
+    surfaceContainer = androidx.compose.ui.graphics.Color(0xFF181818),
+    surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF181818),
+    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF181818),
+    onSurface = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
+    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF7F7F7F),
 
     // Error colors
     error = androidx.compose.ui.graphics.Color(0xFFCF6679),
@@ -95,6 +98,14 @@ private val LightColorScheme = lightColorScheme(
     outlineVariant = androidx.compose.ui.graphics.Color(0xFFDDDDDD)
 )
 
+private val AppShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(24.dp),
+    extraLarge = RoundedCornerShape(28.dp)
+)
+
 @Composable
 fun SukoonMusicPlayerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -115,6 +126,7 @@ fun SukoonMusicPlayerTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = AppShapes,
         content = content
     )
 }

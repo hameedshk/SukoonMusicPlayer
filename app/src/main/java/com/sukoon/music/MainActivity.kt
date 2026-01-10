@@ -68,7 +68,10 @@ class MainActivity : ComponentActivity() {
                 AppTheme.SYSTEM -> isSystemInDarkTheme()
             }
 
-            SukoonMusicPlayerTheme(darkTheme = darkTheme) {
+            SukoonMusicPlayerTheme(
+                darkTheme = darkTheme,
+                dynamicColor = false
+            ) {
                 val navController = rememberNavController()
 
                 // Observe current route for ad reload trigger
