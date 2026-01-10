@@ -347,6 +347,7 @@ class SongRepositoryImpl @Inject constructor(
                 .filter { !it.folderPath.isNullOrEmpty() && shouldIncludeSong(it, preferences) }
                 .groupBy { it.folderPath!! }
                 .map { (folderPath, songs) -> createFolderFromSongs(folderPath, songs) }
+                .filter { it.songCount > 0 }  // Exclude empty folders
 
             applySorting(folders, preferences.folderSortMode, entities)
         }

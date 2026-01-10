@@ -85,18 +85,30 @@ class FolderViewModel @Inject constructor(
                 .distinct()
                 .filter { it.isNotEmpty() && it != "storage" && it != "emulated" }
 
+            // Create SubFolder items ONLY if they contain songs
             rootPaths.forEach { root ->
                 val fullPath = root
                 val foldersUnderRoot = folders.filter { it.path.stripAndroidStoragePrefix().startsWith(fullPath) }
-                val songCount = foldersUnderRoot.sumOf { it.songCount }
-                items.add(FolderBrowserItem.SubFolder(
-                    name = root,
-                    path = "/storage/emulated/0/$root",
-                    songCount = songCount,
-                    totalDuration = foldersUnderRoot.sumOf { it.totalDuration },
-                    albumArtUri = foldersUnderRoot.firstOrNull { it.albumArtUri != null }?.albumArtUri
-                ))
+
+                // Only add if folders exist under this root
+                if (foldersUnderRoot.isNotEmpty()) {
+                    val songCount = foldersUnderRoot.sumOf { it.songCount }
+                    items.add(FolderBrowserItem.SubFolder(
+                        name = root,
+                        path = "/storage/emulated/0/$root",
+                        songCount = songCount,
+                        totalDuration = foldersUnderRoot.sumOf { it.totalDuration },
+                        albumArtUri = foldersUnderRoot.firstOrNull { it.albumArtUri != null }?.albumArtUri
+                    ))
+                }
             }
+
+            // Add root-level songs (not in any meaningful folder)
+            val rootLevelSongs = songs.filter { song ->
+                val songFolder = folders.find { f -> f.songIds.contains(song.id) }
+                songFolder == null || songFolder.path == "/storage/emulated/0"
+            }
+            items.addAll(rootLevelSongs.map { FolderBrowserItem.SongItem(it) })
         } else {
             // Show direct sub-folders and songs in currentPath
             val subFoldersMap = mutableMapOf<String, MutableList<Folder>>()
