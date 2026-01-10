@@ -44,7 +44,7 @@ import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
-
+import androidx.compose.material.icons.filled.ArrowUpward
 /**
  * Folders Screen - Displays local music folders with enhanced management.
  *
@@ -332,31 +332,65 @@ private fun FoldersContent(
     } else {
         hiddenFolders
     }
+    var folderMenuExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Back button when navigating in folders
-        if (folderViewMode == FolderViewMode.DIRECTORIES && currentPath != null) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = { folderViewModel.navigateUp() }) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Navigate up"
-                    )
+// Global folder navigation header (Samsung-style)
+        if (folderViewMode == FolderViewMode.DIRECTORIES) {
+            currentPath?.let { path ->
+
+                var folderMenuExpanded by remember { mutableStateOf(false) }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // ⬆️ Global UP button
+                    IconButton(onClick = { folderViewModel.navigateUp() }) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowUpward,
+                            contentDescription = "Go to parent folder"
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // ⋮ Overflow menu
+                    Box {
+                        IconButton(onClick = { folderMenuExpanded = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Folder options"
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = folderMenuExpanded,
+                            onDismissRequest = { folderMenuExpanded = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Play folder") },
+                                onClick = {
+                                    folderMenuExpanded = false
+                                    folderViewModel.playFolder(path)
+                                }
+                            )
+
+                            DropdownMenuItem(
+                                text = { Text("Shuffle") },
+                                onClick = {
+                                    folderMenuExpanded = false
+                                    folderViewModel.playFolder(path)
+                                }
+                            )
+                        }
+                    }
                 }
-                Text(
-                    text = currentPath ?: "",
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
+
+                HorizontalDivider()
             }
-            HorizontalDivider()
         }
 
         // Folder list or empty state
