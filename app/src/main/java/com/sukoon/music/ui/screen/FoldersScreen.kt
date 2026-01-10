@@ -11,12 +11,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
@@ -459,28 +458,6 @@ private fun FoldersContent(
                 }
             }
         }
-
-        DropdownMenu(
-            expanded = menuExpanded,
-            onDismissRequest = { menuExpanded = false }
-        ) {
-            DropdownMenuItem(
-                text = { Text("Open") },
-                onClick = {
-                    menuExpanded = false
-                    onClick()
-                }
-            )
-
-            DropdownMenuItem(
-                text = { Text("Play folder") },
-                onClick = {
-                    menuExpanded = false
-                    onPlay()
-                }
-            )
-        }
-
     }
 
     // Delete confirmation dialog
@@ -582,21 +559,40 @@ private fun FolderBrowserSubFolderRow(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        IconButton(
-            onClick = { menuExpanded = true }
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "Folder options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+        Box {
+            IconButton(
+                onClick = { menuExpanded = true }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "Folder options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-        /*Icon(
-            imageVector = Icons.Default.ArrowForward,
-            contentDescription = "Enter folder",
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )*/
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Open") },
+                    onClick = {
+                        menuExpanded = false
+                        onClick()
+                    },
+                    leadingIcon = { Icon(Icons.Default.FolderOpen, null) }
+                )
+
+                DropdownMenuItem(
+                    text = { Text("Play folder") },
+                    onClick = {
+                        menuExpanded = false
+                        onPlay()
+                    },
+                    leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
+                )
+            }
+        }
     }
 }
 
