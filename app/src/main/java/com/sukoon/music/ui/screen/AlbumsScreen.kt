@@ -190,7 +190,7 @@ fun AlbumsScreen(
                                 }
                             },
                             onMoreClick = {
-                                selectedAlbumForMenu = album   // ✅ THIS WAS MISSING
+                                selectedAlbumForMenu = album
                             },
                             onLongClick = {
                                 if (!isSelectionMode) {

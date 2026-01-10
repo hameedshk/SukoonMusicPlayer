@@ -107,14 +107,14 @@ fun FoldersScreen(
     }
 
     Scaffold(
-        topBar = {
+        /*topBar = {
             TopAppBar(
                 title = { Text("Folders") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        }*/
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -332,7 +332,7 @@ private fun FoldersContent(
     } else {
         hiddenFolders
     }
-    var folderMenuExpanded by remember { mutableStateOf(false) }
+    var menuExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
 // Global folder navigation header (Samsung-style)
@@ -459,6 +459,28 @@ private fun FoldersContent(
                 }
             }
         }
+
+        DropdownMenu(
+            expanded = menuExpanded,
+            onDismissRequest = { menuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Open") },
+                onClick = {
+                    menuExpanded = false
+                    onClick()
+                }
+            )
+
+            DropdownMenuItem(
+                text = { Text("Play folder") },
+                onClick = {
+                    menuExpanded = false
+                    onPlay()
+                }
+            )
+        }
+
     }
 
     // Delete confirmation dialog
@@ -484,13 +506,17 @@ private fun FolderBrowserSubFolderRow(
     onClick: () -> Unit,
     onPlay: () -> Unit
 ) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
-    ) {
+    )
+
+    {
         Box(
             modifier = Modifier
                 .size(56.dp)
@@ -556,11 +582,21 @@ private fun FolderBrowserSubFolderRow(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        Icon(
+        IconButton(
+            onClick = { menuExpanded = true }
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "Folder options",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        /*Icon(
             imageVector = Icons.Default.ArrowForward,
             contentDescription = "Enter folder",
             tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        )*/
     }
 }
 
