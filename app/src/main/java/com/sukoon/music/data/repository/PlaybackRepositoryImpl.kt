@@ -409,6 +409,23 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun shuffleAndPlayQueue(songs: List<Song>) {
+        if (songs.isEmpty()) return
+
+        // Fisher-Yates shuffle algorithm
+        val shuffled = songs.toMutableList()
+        for (i in shuffled.size - 1 downTo 1) {
+            val j = (0..i).random()
+            val temp = shuffled[i]
+            shuffled[i] = shuffled[j]
+            shuffled[j] = temp
+        }
+
+        // Play shuffled queue and disable ExoPlayer's shuffle since we shuffled manually
+        playQueue(shuffled, startIndex = 0)
+        setShuffleEnabled(false)
+    }
+
     override suspend fun addToQueue(song: Song) {
         mediaController?.addMediaItem(song.toMediaItem())
     }

@@ -106,7 +106,7 @@ internal fun RedesignedTopBar(
     ) {
         Text(
             text = "Sukoon Music",
-            style = MaterialTheme.typography.headlineMedium,
+            style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.primary
         )
@@ -115,13 +115,13 @@ internal fun RedesignedTopBar(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onPremiumClick) {
+          /*  IconButton(onClick = onPremiumClick) {
                 Icon(
                     imageVector = Icons.Default.Star,
                     contentDescription = "Premium",
                     tint = MaterialTheme.colorScheme.primary
                 )
-            }
+            }*/
             IconButton(onClick = onGlobalSearchClick) {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -142,17 +142,18 @@ internal fun RedesignedTopBar(
 
 @Composable
 internal fun TabPills(
+    tabs: List<String>,
     selectedTab: String,
     onTabSelected: (String) -> Unit
 ) {
-    val tabs = listOf("For you", "Songs", "Albums", "Artists", "Genres", "Playlist", "Folders")
+    /* val tabs = listOf("Hi Hameed", "Songs","Playlist", "Folders", "Albums", "Artists", "Genres")*/
 
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = SpacingMedium),
-        horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
-        contentPadding = PaddingValues(horizontal = SpacingLarge)
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
         items(
             count = tabs.size,
@@ -163,23 +164,24 @@ internal fun TabPills(
 
             Surface(
                 modifier = Modifier
-                    .height(44.dp)
+                    .height(TabPillHeight)
                     .clickable { onTabSelected(tab) },
                 shape = PillShape,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = if (isSelected) 4.dp else 0.dp
+                tonalElevation = if (isSelected) 4.dp else 0.dp,
+                shadowElevation = if (isSelected) 2.dp else 0.dp
             ) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = tab,
                         style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal,
                         color = if (isSelected) Color.White
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                     )
                 }
             }

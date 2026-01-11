@@ -119,10 +119,7 @@ class SmartPlaylistViewModel @Inject constructor(
             val songs = currentSmartPlaylistSongs.value
 
             if (songs.isNotEmpty()) {
-                // Enable shuffle first
-                playbackRepository.setShuffleEnabled(true)
-                // Then play the queue
-                playbackRepository.playQueue(songs, startIndex = 0)
+                playbackRepository.shuffleAndPlayQueue(songs)
             }
         }
     }

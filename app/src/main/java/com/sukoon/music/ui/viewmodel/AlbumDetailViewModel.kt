@@ -107,8 +107,7 @@ class AlbumDetailViewModel @Inject constructor(
     fun shuffleAlbum(albumSongs: List<Song>) {
         if (albumSongs.isEmpty()) return
         viewModelScope.launch {
-            playbackRepository.setShuffleEnabled(true)
-            playbackRepository.playQueue(albumSongs, startIndex = 0)
+            playbackRepository.shuffleAndPlayQueue(albumSongs)
         }
     }
 

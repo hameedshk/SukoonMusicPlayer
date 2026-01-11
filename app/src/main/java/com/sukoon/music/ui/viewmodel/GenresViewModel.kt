@@ -179,8 +179,7 @@ class GenresViewModel @Inject constructor(
     fun shuffleGenreSongs(songs: List<Song>) {
         if (songs.isEmpty()) return
         viewModelScope.launch {
-            playbackRepository.setShuffleEnabled(true)
-            playbackRepository.playQueue(songs, startIndex = 0)
+            playbackRepository.shuffleAndPlayQueue(songs)
         }
     }
 

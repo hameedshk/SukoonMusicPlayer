@@ -140,10 +140,9 @@ class LikedSongsViewModel @Inject constructor(
      */
     fun shuffleAll() {
         viewModelScope.launch {
-            val songs = likedSongs.value.shuffled()
+            val songs = likedSongs.value
             if (songs.isNotEmpty()) {
-                playbackRepository.playSong(songs.first())
-                // TODO: Add queue functionality to play all shuffled songs
+                playbackRepository.shuffleAndPlayQueue(songs)
             }
         }
     }

@@ -23,8 +23,8 @@ val ActionButtonHeight = 56.dp
 val ActionButtonCornerRadius = 12.dp
 
 // Tab pill dimensions
-val TabPillHeight = 44.dp
-val TabPillCornerRadius = 22.dp // Fully rounded
+val TabPillHeight = 52.dp
+val TabPillCornerRadius = 26.dp // Fully rounded (half of height)
 
 // Widget banner
 val WidgetBannerHeight = 56.dp

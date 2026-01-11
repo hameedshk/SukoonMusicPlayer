@@ -91,7 +91,7 @@ fun PlaylistsScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        topBar = {
+        /*topBar = {
             TopAppBar(
                 title = { Text("Playlists") },
                 navigationIcon = {
@@ -106,7 +106,7 @@ fun PlaylistsScreen(
                     containerColor = MaterialTheme.colorScheme.surface
                 )
             )
-        }
+        }*/
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier

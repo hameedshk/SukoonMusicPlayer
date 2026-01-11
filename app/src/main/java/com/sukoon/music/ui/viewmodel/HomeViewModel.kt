@@ -102,8 +102,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val allSongs = songs.value
             if (allSongs.isNotEmpty()) {
-                playbackRepository.setShuffleEnabled(true)
-                playbackRepository.playQueue(allSongs, startIndex = 0)
+                playbackRepository.shuffleAndPlayQueue(allSongs)
             }
         }
     }

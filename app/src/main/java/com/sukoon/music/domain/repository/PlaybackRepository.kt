@@ -70,6 +70,12 @@ interface PlaybackRepository {
     suspend fun playQueue(songs: List<Song>, startIndex: Int = 0)
 
     /**
+     * Shuffle and play a queue of songs using Fisher-Yates algorithm.
+     * @param songs List of songs to shuffle and play
+     */
+    suspend fun shuffleAndPlayQueue(songs: List<Song>)
+
+    /**
      * Add a song to the end of the current queue.
      * @param song Song to add
      */

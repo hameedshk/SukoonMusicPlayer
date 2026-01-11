@@ -525,7 +525,7 @@ private fun FolderSongItem(
             }
 
             // Like Button
-            IconButton(onClick = onLikeClick) {
+          IconButton(onClick = onLikeClick) {
                 Icon(
                     imageVector = if (song.isLiked) {
                         Icons.Default.Favorite

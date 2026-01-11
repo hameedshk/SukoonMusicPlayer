@@ -170,8 +170,7 @@ class ArtistsViewModel @Inject constructor(
         viewModelScope.launch {
             songRepository.getSongsByArtistId(artistId)
                 .firstOrNull()?.let { artistSongs ->
-                    playbackRepository.setShuffleEnabled(true)
-                    playbackRepository.playQueue(artistSongs, startIndex = 0)
+                    playbackRepository.shuffleAndPlayQueue(artistSongs)
                     logArtistInteraction(artistId)
                 }
         }

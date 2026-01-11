@@ -110,19 +110,24 @@ fun HomeScreen(
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
-    val adMobManager = viewModel.adMobManager
 
-    // Playlists state
-    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
-    val smartPlaylists by playlistViewModel.smartPlaylists.collectAsStateWithLifecycle()
-    val availableSongs by playlistViewModel.availableSongs.collectAsStateWithLifecycle()
-
-
-    var selectedTab by rememberSaveable { mutableStateOf("For you") }
+    val username = "Hameed"
+    var selectedTab by rememberSaveable { mutableStateOf("Hi $username") }
 
     val handleTabSelection: (String) -> Unit = { tab ->
         selectedTab = tab
     }
+
+    val tabs = listOf(
+        "Hi $username",
+        "Songs",
+        "Playlist",
+        "Folders",
+        "Albums",
+        "Artists",
+        "Genres"
+    )
+
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
@@ -137,16 +142,23 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            Column {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.background)
+            ) {
                 RedesignedTopBar(
                     onPremiumClick = { },
                     onGlobalSearchClick = onNavigateToSearch,
                     onSettingsClick = onNavigateToSettings
                 )
+                Spacer(modifier = Modifier.height(16.dp))
                 TabPills(
+                    tabs = tabs,
                     selectedTab = selectedTab,
-                    onTabSelected = handleTabSelection
+                    onTabSelected = { selectedTab = it }
                 )
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
         },
@@ -179,7 +191,7 @@ fun HomeScreen(
                 }
                 else -> {
                     when (selectedTab) {
-                        "For you" -> {
+                        "Hi $username" -> {
                             ForYouContent(
                                 songs = songs,
                                 recentlyPlayed = recentlyPlayed,
@@ -386,7 +398,7 @@ private fun ForYouContent(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        item { WidgetBanner(onClick = { /* TODO: Open widget configuration */ }) }
+        /* item { WidgetBanner(onClick = { /* TODO: Open widget configuration */ }) }*/
         item {
             ActionButtonGrid(
                 onShuffleAllClick = onShuffleAllClick,

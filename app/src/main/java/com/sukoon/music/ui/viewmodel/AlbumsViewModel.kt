@@ -143,8 +143,7 @@ class AlbumsViewModel @Inject constructor(
         viewModelScope.launch {
             songRepository.getSongsByAlbumId(albumId)
                 .firstOrNull()?.let { albumSongs ->
-                    playbackRepository.setShuffleEnabled(true)
-                    playbackRepository.playQueue(albumSongs, startIndex = 0)
+                    playbackRepository.shuffleAndPlayQueue(albumSongs)
                 }
         }
     }
