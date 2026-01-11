@@ -81,6 +81,12 @@ import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import com.sukoon.music.data.mediastore.DeleteHelper
 import kotlinx.coroutines.launch
 /**
  * Home Screen - Main entry point of the app.
@@ -498,8 +504,23 @@ private fun SongsContent(
     var selectedSongIds by remember { mutableStateOf(setOf<Long>()) }
     var showMenuForSong by remember { mutableStateOf<Song?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    // Delete result launcher
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.scanLocalMusic()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
+    }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
@@ -508,7 +529,8 @@ private fun SongsContent(
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
-        onShare = { song -> /* TODO: Implement share */ }
+        onShare = { song -> /* TODO: Implement share */ },
+        onShowDeleteConfirmation = { song -> songToDelete = song }
     )
 
     val sortedSongs = remember(songs, sortMode, sortOrder) {
@@ -838,6 +860,32 @@ private fun SongsContent(
         SongInfoDialog(
             song = song,
             onDismiss = { showInfoForSong = null }
+        )
+    }
+
+    // Delete confirmation dialog
+    songToDelete?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = menuHandler.performDelete(song)) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        viewModel.scanLocalMusic()
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
         )
     }
 }

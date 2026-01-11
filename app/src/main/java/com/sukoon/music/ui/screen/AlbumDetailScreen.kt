@@ -23,11 +23,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.BannerAdView
@@ -36,6 +42,7 @@ import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.components.SongInfoDialog
+import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -67,12 +74,32 @@ fun AlbumDetailScreen(
     var showSortDialog by remember { mutableStateOf(false) }
     var songForInfo by remember { mutableStateOf<Song?>(null) }
     var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
+    val context = LocalContext.current
+
+    // Delete result launcher
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadAlbum(albumId)
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songPendingDeletion = null
+    }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onShowSongInfo = { song ->
             songForInfo = song
+        },
+        onShowDeleteConfirmation = { song ->
+            songPendingDeletion = song
+        },
+        onToggleLike = { songId, isLiked ->
+            viewModel.toggleLike(songId, isLiked)
         }
     )
 
@@ -175,6 +202,32 @@ fun AlbumDetailScreen(
         SongInfoDialog(
             song = song,
             onDismiss = { songForInfo = null }
+        )
+    }
+
+    // Delete confirmation dialog
+    songPendingDeletion?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = menuHandler.performDelete(song)) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        viewModel.loadAlbum(albumId)
+                        songPendingDeletion = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songPendingDeletion = null
+                    }
+                }
+            },
+            onDismiss = { songPendingDeletion = null }
         )
     }
 }
