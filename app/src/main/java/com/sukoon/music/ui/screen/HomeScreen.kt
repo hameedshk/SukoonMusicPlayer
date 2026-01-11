@@ -134,12 +134,27 @@ fun HomeScreen(
         "Genres"
     )
 
+    // Delete state and launcher
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    val context = LocalContext.current
+
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
+    }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
+        onShowDeleteConfirmation = { song -> songToDelete = song },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = { song -> /* TODO: Implement share */ }
     )
@@ -292,6 +307,31 @@ fun HomeScreen(
                 }
             }
         }
+    }
+
+    // Delete confirmation dialog
+    songToDelete?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
+        )
     }
 }
 

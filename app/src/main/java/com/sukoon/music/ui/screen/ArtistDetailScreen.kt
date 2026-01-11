@@ -24,12 +24,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
+import com.sukoon.music.data.mediastore.DeleteHelper
 
 
 /**
@@ -47,10 +53,24 @@ fun ArtistDetailScreen(
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val artistSongs by viewModel.artistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    val context = LocalContext.current
 
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onShowDeleteConfirmation = { song -> songToDelete = song }
     )
+
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
+    }
 
     // Load artist when screen opens
     LaunchedEffect(artistId) {
@@ -117,6 +137,31 @@ fun ArtistDetailScreen(
                     )
                 }
             }
+        }
+
+        // Delete confirmation dialog
+        songToDelete?.let { song ->
+            DeleteConfirmationDialog(
+                song = song,
+                onConfirm = {
+                    when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                        }
+                    }
+                },
+                onDismiss = { songToDelete = null }
+            )
         }
     }
 }
