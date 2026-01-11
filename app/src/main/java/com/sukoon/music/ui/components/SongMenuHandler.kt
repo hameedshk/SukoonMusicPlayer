@@ -19,8 +19,8 @@ class SongMenuHandler(
     private val context: Context,
     private val coroutineScope: CoroutineScope,
     private val playbackRepository: PlaybackRepository,
-    private val onNavigateToAlbum: (String) -> Unit = {},
-    private val onNavigateToArtist: (String) -> Unit = {},
+    private val onNavigateToAlbum: (Long) -> Unit = {},
+    private val onNavigateToArtist: (Long) -> Unit = {},
     private val onShowPlaylistSelector: (Song) -> Unit = {},
     private val onShowDeleteConfirmation: (Song) -> Unit = {},
     private val onShowEditTags: (Song) -> Unit = {},
@@ -68,11 +68,13 @@ class SongMenuHandler(
     }
 
     fun handleGoToAlbum(song: Song) {
-        onNavigateToAlbum(song.album)
+        val albumId = song.album.hashCode().toLong()
+        onNavigateToAlbum(albumId)
     }
 
     fun handleGoToArtist(song: Song) {
-        onNavigateToArtist(song.artist)
+        val artistId = song.artist.hashCode().toLong()
+        onNavigateToArtist(artistId)
     }
 
     fun handleToggleLike(song: Song) {
@@ -116,8 +118,8 @@ class SongMenuHandler(
 @Composable
 fun rememberSongMenuHandler(
     playbackRepository: PlaybackRepository,
-    onNavigateToAlbum: (String) -> Unit = {},
-    onNavigateToArtist: (String) -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     onShowPlaylistSelector: (Song) -> Unit = {},
     onShowDeleteConfirmation: (Song) -> Unit = {},
     onShowEditTags: (Song) -> Unit = {},

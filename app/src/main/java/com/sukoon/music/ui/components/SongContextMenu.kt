@@ -2,18 +2,21 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
 
 /**
@@ -27,28 +30,38 @@ fun SongContextMenu(
     menuHandler: SongMenuHandler,
     onDismiss: () -> Unit
 ) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scrollState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        scrollState.scrollToItem(0)
+    }
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = MaterialTheme.colorScheme.surface
     ) {
-        Column(
+        LazyColumn(
+            state = scrollState,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp)
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            item {
+                // Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                 Surface(
                     modifier = Modifier.size(48.dp),
                     shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    AsyncImage(
+                    SubcomposeAsyncImage(
                         model = song.albumArtUri,
                         contentDescription = null,
                         modifier = Modifier.size(48.dp),
@@ -82,11 +95,12 @@ fun SongContextMenu(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
+                    }
                 }
             }
-
-            // Utility Row
-            Row(
+            item {
+                // Utility Row
+                Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 8.dp, vertical = 8.dp),
@@ -122,90 +136,97 @@ fun SongContextMenu(
                         menuHandler.handleAddToPlaylist(song)
                         onDismiss()
                     }
-                )
+                    )
+                }
             }
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Group A: Playback
-            OptionItem(
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            item {
+                // Group A: Playback
+                OptionItem(
                 icon = Icons.Default.SkipNext,
                 text = "Play Next",
-                onClick = {
-                    menuHandler.handlePlayNext(song)
-                    onDismiss()
-                }
-            )
-            OptionItem(
-                icon = Icons.Default.QueueMusic,
-                text = "Add to Queue",
-                onClick = {
-                    menuHandler.handleAddToQueue(song)
-                    onDismiss()
-                }
-            )
-            OptionItem(
-                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                text = "Add to Playlist",
-                onClick = {
-                    menuHandler.handleAddToPlaylist(song)
-                    onDismiss()
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Group B: Navigation
-            OptionItem(
-                icon = Icons.Default.Album,
-                text = "Go to Album",
-                onClick = {
-                    menuHandler.handleGoToAlbum(song)
-                    onDismiss()
-                }
-            )
-            OptionItem(
-                icon = Icons.Default.Person,
-                text = "Go to Artist",
-                onClick = {
-                    menuHandler.handleGoToArtist(song)
-                    onDismiss()
-                }
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-            // Group C: System
-            OptionItem(
-                icon = Icons.Default.Edit,
-                text = "Edit Audio",
-                trailing = {
-                    Surface(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.small
-                    ) {
-                        Text(
-                            text = "PREMIUM",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
+                    onClick = {
+                        menuHandler.handlePlayNext(song)
+                        onDismiss()
                     }
-                },
-                onClick = {
-                    menuHandler.handleEditAudio(song)
-                    onDismiss()
-                }
-            )
-            OptionItem(
-                icon = Icons.Default.Delete,
-                text = "Delete from Device",
-                tint = Color.Red,
-                onClick = {
-                    menuHandler.handleDeleteFromDevice(song)
-                    onDismiss()
-                }
-            )
+                )
+                OptionItem(
+                    icon = Icons.Default.QueueMusic,
+                    text = "Add to Queue",
+                    onClick = {
+                        menuHandler.handleAddToQueue(song)
+                        onDismiss()
+                    }
+                )
+                OptionItem(
+                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    text = "Add to Playlist",
+                    onClick = {
+                        menuHandler.handleAddToPlaylist(song)
+                        onDismiss()
+                    }
+                )
+            }
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            item {
+                // Group B: Navigation
+                OptionItem(
+                    icon = Icons.Default.Album,
+                    text = "Go to Album",
+                    onClick = {
+                        menuHandler.handleGoToAlbum(song)
+                        onDismiss()
+                    }
+                )
+                OptionItem(
+                    icon = Icons.Default.Person,
+                    text = "Go to Artist",
+                    onClick = {
+                        menuHandler.handleGoToArtist(song)
+                        onDismiss()
+                    }
+                )
+            }
+            item {
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+            }
+            item {
+                // Group C: System
+                OptionItem(
+                    icon = Icons.Default.Edit,
+                    text = "Edit Audio",
+                    trailing = {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Text(
+                                text = "PREMIUM",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    },
+                    onClick = {
+                        menuHandler.handleEditAudio(song)
+                        onDismiss()
+                    }
+                )
+                OptionItem(
+                    icon = Icons.Default.Delete,
+                    text = "Delete from Device",
+                    tint = Color.Red,
+                    onClick = {
+                        menuHandler.handleDeleteFromDevice(song)
+                        onDismiss()
+                    }
+                )
+            }
         }
     }
 }

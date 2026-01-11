@@ -132,7 +132,8 @@ fun HomeScreen(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onNavigateToArtist = { artistName -> onNavigateToArtistDetail(0L) },
+        onNavigateToAlbum = onNavigateToAlbumDetail,
+        onNavigateToArtist = onNavigateToArtistDetail,
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = { song -> /* TODO: Implement share */ }
     )
@@ -244,7 +245,8 @@ fun HomeScreen(
                                 onPlayAllClick = { viewModel.playAll() },
                                 viewModel = viewModel,
                                 playlistViewModel = playlistViewModel,
-                                onNavigateToArtistDetail = onNavigateToArtistDetail
+                                onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                onNavigateToAlbumDetail = onNavigateToAlbumDetail
                             )
                         }
                         "Albums" -> {
@@ -483,7 +485,8 @@ private fun SongsContent(
     onPlayAllClick: () -> Unit,
     viewModel: HomeViewModel,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
-    onNavigateToArtistDetail: (Long) -> Unit = {}
+    onNavigateToArtistDetail: (Long) -> Unit = {},
+    onNavigateToAlbumDetail: (Long) -> Unit = {}
 ) {
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
@@ -502,7 +505,8 @@ private fun SongsContent(
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onShowSongInfo = { song -> showInfoForSong = song },
-        onNavigateToArtist = { artistName -> onNavigateToArtistDetail(0L) },
+        onNavigateToAlbum = onNavigateToAlbumDetail,
+        onNavigateToArtist = onNavigateToArtistDetail,
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = { song -> /* TODO: Implement share */ }
     )
