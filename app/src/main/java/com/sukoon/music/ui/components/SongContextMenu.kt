@@ -2,23 +2,23 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
+import coil.compose.AsyncImage
 import com.sukoon.music.domain.model.Song
 
 /**
- * Bottom sheet context menu for a Song.
- * Provides actions like setting ringtone, editing tags, adding to queue/playlist, and more.
+ * Hybrid Bottom Sheet context menu for a Song.
+ * Combines Spotify's scannability with offline-first utility.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,53 +29,39 @@ fun SongContextMenu(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        dragHandle = { BottomSheetDefaults.DragHandle() },
-        sheetMaxWidth = androidx.compose.ui.unit.Dp.Unspecified
+        containerColor = MaterialTheme.colorScheme.surface
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.85f)
+                .padding(bottom = 16.dp)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-            // Header with song details and action buttons
+            // Header
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Album Art
-                Card(
-                    modifier = Modifier.size(56.dp),
-                    shape = MaterialTheme.shapes.small
+                Surface(
+                    modifier = Modifier.size(48.dp),
+                    shape = MaterialTheme.shapes.small,
+                    color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
-                    SubcomposeAsyncImage(
+                    AsyncImage(
                         model = song.albumArtUri,
                         contentDescription = null,
-                        loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                            }
-                        },
+                        modifier = Modifier.size(48.dp),
                         error = {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    Icons.Default.MusicNote,
+                                    imageVector = Icons.Default.MusicNote,
                                     contentDescription = null,
-                                    modifier = Modifier.size(28.dp)
+                                    modifier = Modifier.size(24.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
@@ -86,190 +72,201 @@ fun SongContextMenu(
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-                // Action buttons
-                IconButton(onClick = {
-                    menuHandler.handleShowSongInfo(song)
-                    onDismiss() // Close the bottom sheet
-                }) {
-                    Icon(
-                        Icons.Outlined.Info,
-                        contentDescription = "Song info",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                IconButton(onClick = { /* TODO: Share or edit */ }) {
-                    Icon(
-                        Icons.Default.Edit,
-                        contentDescription = "Edit",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
 
-            // Quick action chips row
+            // Utility Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                // Set as ringtone chip
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            menuHandler.handleSetAsRingtone(song)
-                            onDismiss()
-                        },
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Notifications,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Set as ringtone",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2
-                        )
+                UtilityIconButton(
+                    icon = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    label = "Like",
+                    onClick = {
+                        menuHandler.handleToggleLike(song)
                     }
-                }
-
-                // Change cover chip
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            menuHandler.handleChangeCover(song)
-                            onDismiss()
-                        },
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Change cover",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2
-                        )
+                )
+                UtilityIconButton(
+                    icon = Icons.Default.Share,
+                    label = "Share",
+                    onClick = {
+                        menuHandler.handleShare(song)
+                        onDismiss()
                     }
-                }
-
-                // Edit tags chip
-                Surface(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clickable {
-                            menuHandler.handleEditTags(song)
-                            onDismiss()
-                        },
-                    shape = RoundedCornerShape(24.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Column(
-                        modifier = Modifier.padding(vertical = 16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Edit tags",
-                            style = MaterialTheme.typography.bodySmall,
-                            maxLines = 2
-                        )
+                )
+                UtilityIconButton(
+                    icon = Icons.Default.Info,
+                    label = "Info",
+                    onClick = {
+                        menuHandler.handleShowSongInfo(song)
+                        onDismiss()
                     }
-                }
+                )
+                UtilityIconButton(
+                    icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                    label = "Playlist",
+                    onClick = {
+                        menuHandler.handleAddToPlaylist(song)
+                        onDismiss()
+                    }
+                )
             }
 
-            // Main menu items
-            ListItem(
-                headlineContent = { Text("Play next") },
-                leadingContent = { Icon(Icons.Default.SkipNext, null) },
-                modifier = Modifier.clickable {
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Group A: Playback
+            OptionItem(
+                icon = Icons.Default.SkipNext,
+                text = "Play Next",
+                onClick = {
                     menuHandler.handlePlayNext(song)
                     onDismiss()
                 }
             )
-            ListItem(
-                headlineContent = { Text("Add to queue") },
-                leadingContent = { Icon(Icons.Default.Queue, null) },
-                modifier = Modifier.clickable {
+            OptionItem(
+                icon = Icons.Default.QueueMusic,
+                text = "Add to Queue",
+                onClick = {
                     menuHandler.handleAddToQueue(song)
                     onDismiss()
                 }
             )
-            ListItem(
-                headlineContent = { Text("Add to playlist") },
-                leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
-                modifier = Modifier.clickable {
+            OptionItem(
+                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
+                text = "Add to Playlist",
+                onClick = {
                     menuHandler.handleAddToPlaylist(song)
                     onDismiss()
                 }
             )
-            ListItem(
-                headlineContent = { Text("Go to album") },
-                leadingContent = { Icon(Icons.Default.Album, null) },
-                modifier = Modifier.clickable {
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Group B: Navigation
+            OptionItem(
+                icon = Icons.Default.Album,
+                text = "Go to Album",
+                onClick = {
                     menuHandler.handleGoToAlbum(song)
                     onDismiss()
                 }
             )
-            ListItem(
-                headlineContent = { Text("Edit audio") },
-                leadingContent = { Icon(Icons.Default.AudioFile, null) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleEditAudio(song)
-                    onDismiss()
-                }
-            )
-            ListItem(
-                headlineContent = { Text("Update lyrics") },
-                leadingContent = { Icon(Icons.Default.Lyrics, null) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleUpdateLyrics(song)
-                    onDismiss()
-                }
-            )
-            ListItem(
-                headlineContent = { Text("Delete from device", color = MaterialTheme.colorScheme.error) },
-                leadingContent = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                modifier = Modifier.clickable {
-                    menuHandler.handleDeleteFromDevice(song)
+            OptionItem(
+                icon = Icons.Default.Person,
+                text = "Go to Artist",
+                onClick = {
+                    menuHandler.handleGoToArtist(song)
                     onDismiss()
                 }
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+
+            // Group C: System
+            OptionItem(
+                icon = Icons.Default.Edit,
+                text = "Edit Audio",
+                trailing = {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            text = "PREMIUM",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                },
+                onClick = {
+                    menuHandler.handleEditAudio(song)
+                    onDismiss()
+                }
+            )
+            OptionItem(
+                icon = Icons.Default.Delete,
+                text = "Delete from Device",
+                tint = Color.Red,
+                onClick = {
+                    menuHandler.handleDeleteFromDevice(song)
+                    onDismiss()
+                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun UtilityIconButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.width(64.dp)
+    ) {
+        IconButton(onClick = onClick) {
+            Icon(icon, contentDescription = label)
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun OptionItem(
+    icon: ImageVector,
+    text: String,
+    tint: Color = MaterialTheme.colorScheme.onSurface,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge,
+                color = tint,
+                modifier = Modifier.weight(1f)
+            )
+            if (trailing != null) {
+                trailing()
             }
         }
     }

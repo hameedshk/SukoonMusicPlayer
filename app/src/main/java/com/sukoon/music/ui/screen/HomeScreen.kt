@@ -131,7 +131,10 @@ fun HomeScreen(
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToArtist = { artistName -> onNavigateToArtistDetail(0L) },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = { song -> /* TODO: Implement share */ }
     )
 
     val permissionState = rememberAudioPermissionState(
@@ -240,7 +243,8 @@ fun HomeScreen(
                                 onShuffleAllClick = { viewModel.shuffleAll() },
                                 onPlayAllClick = { viewModel.playAll() },
                                 viewModel = viewModel,
-                                playlistViewModel = playlistViewModel
+                                playlistViewModel = playlistViewModel,
+                                onNavigateToArtistDetail = onNavigateToArtistDetail
                             )
                         }
                         "Albums" -> {
@@ -478,7 +482,8 @@ private fun SongsContent(
     onShuffleAllClick: () -> Unit,
     onPlayAllClick: () -> Unit,
     viewModel: HomeViewModel,
-    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
+    onNavigateToArtistDetail: (Long) -> Unit = {}
 ) {
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
@@ -496,7 +501,10 @@ private fun SongsContent(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onShowSongInfo = { song -> showInfoForSong = song }
+        onShowSongInfo = { song -> showInfoForSong = song },
+        onNavigateToArtist = { artistName -> onNavigateToArtistDetail(0L) },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = { song -> /* TODO: Implement share */ }
     )
 
     val sortedSongs = remember(songs, sortMode, sortOrder) {

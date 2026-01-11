@@ -20,6 +20,7 @@ class SongMenuHandler(
     private val coroutineScope: CoroutineScope,
     private val playbackRepository: PlaybackRepository,
     private val onNavigateToAlbum: (String) -> Unit = {},
+    private val onNavigateToArtist: (String) -> Unit = {},
     private val onShowPlaylistSelector: (Song) -> Unit = {},
     private val onShowDeleteConfirmation: (Song) -> Unit = {},
     private val onShowEditTags: (Song) -> Unit = {},
@@ -27,7 +28,9 @@ class SongMenuHandler(
     private val onShowSetRingtone: (Song) -> Unit = {},
     private val onShowEditAudio: (Song) -> Unit = {},
     private val onShowUpdateLyrics: (Song) -> Unit = {},
-    private val onShowSongInfo: (Song) -> Unit = {}
+    private val onShowSongInfo: (Song) -> Unit = {},
+    private val onToggleLike: (Long, Boolean) -> Unit = { _, _ -> },
+    private val onShare: (Song) -> Unit = {}
 ) {
 
     fun handleSetAsRingtone(song: Song) {
@@ -68,6 +71,18 @@ class SongMenuHandler(
         onNavigateToAlbum(song.album)
     }
 
+    fun handleGoToArtist(song: Song) {
+        onNavigateToArtist(song.artist)
+    }
+
+    fun handleToggleLike(song: Song) {
+        onToggleLike(song.id, song.isLiked)
+    }
+
+    fun handleShare(song: Song) {
+        onShare(song)
+    }
+
     fun handleEditAudio(song: Song) {
         // TODO: Determine what "Edit audio" should do
         // Possibly opens equalizer or audio effects
@@ -102,6 +117,7 @@ class SongMenuHandler(
 fun rememberSongMenuHandler(
     playbackRepository: PlaybackRepository,
     onNavigateToAlbum: (String) -> Unit = {},
+    onNavigateToArtist: (String) -> Unit = {},
     onShowPlaylistSelector: (Song) -> Unit = {},
     onShowDeleteConfirmation: (Song) -> Unit = {},
     onShowEditTags: (Song) -> Unit = {},
@@ -109,7 +125,9 @@ fun rememberSongMenuHandler(
     onShowSetRingtone: (Song) -> Unit = {},
     onShowEditAudio: (Song) -> Unit = {},
     onShowUpdateLyrics: (Song) -> Unit = {},
-    onShowSongInfo: (Song) -> Unit = {}
+    onShowSongInfo: (Song) -> Unit = {},
+    onToggleLike: (Long, Boolean) -> Unit = { _, _ -> },
+    onShare: (Song) -> Unit = {}
 ): SongMenuHandler {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -117,6 +135,7 @@ fun rememberSongMenuHandler(
     return remember(
         playbackRepository,
         onNavigateToAlbum,
+        onNavigateToArtist,
         onShowPlaylistSelector,
         onShowDeleteConfirmation,
         onShowSongInfo
@@ -126,6 +145,7 @@ fun rememberSongMenuHandler(
             coroutineScope = coroutineScope,
             playbackRepository = playbackRepository,
             onNavigateToAlbum = onNavigateToAlbum,
+            onNavigateToArtist = onNavigateToArtist,
             onShowPlaylistSelector = onShowPlaylistSelector,
             onShowDeleteConfirmation = onShowDeleteConfirmation,
             onShowEditTags = onShowEditTags,
@@ -133,7 +153,9 @@ fun rememberSongMenuHandler(
             onShowSetRingtone = onShowSetRingtone,
             onShowEditAudio = onShowEditAudio,
             onShowUpdateLyrics = onShowUpdateLyrics,
-            onShowSongInfo = onShowSongInfo
+            onShowSongInfo = onShowSongInfo,
+            onToggleLike = onToggleLike,
+            onShare = onShare
         )
     }
 }
