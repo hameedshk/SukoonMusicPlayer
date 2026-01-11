@@ -726,13 +726,13 @@ private fun FolderBrowserSongRow(
             )
         }
 
-        /*IconButton(onClick = onLikeClick) {
+        IconButton(onClick = onLikeClick) {
             Icon(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (song.isLiked) "Unlike" else "Like",
                 tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
-        }*/
+        }
     }
 
     if (showMenu) {

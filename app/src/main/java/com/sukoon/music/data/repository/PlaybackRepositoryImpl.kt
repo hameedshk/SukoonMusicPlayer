@@ -376,6 +376,11 @@ class PlaybackRepositoryImpl @Inject constructor(
     // Queue Management
 
     override suspend fun playSong(song: Song) {
+        // Guard: Don't restart if already playing this song
+        if (_playbackState.value.currentSong?.id == song.id) {
+            return
+        }
+
         mediaController?.let { controller ->
             try {
                 controller.setMediaItem(song.toMediaItem())
@@ -391,6 +396,11 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun playQueue(songs: List<Song>, startIndex: Int) {
+        // Guard: Don't restart if already playing the same song at startIndex
+        if (startIndex in songs.indices && _playbackState.value.currentSong?.id == songs[startIndex].id) {
+            return
+        }
+
         mediaController?.let { controller ->
             try {
                 controller.setMediaItems(

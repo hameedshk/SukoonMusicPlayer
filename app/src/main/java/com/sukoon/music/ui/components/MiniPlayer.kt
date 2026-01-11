@@ -143,20 +143,20 @@ fun MiniPlayer(
             // Large Play/Pause Button
             IconButton(
                 onClick = onPlayPauseClick,
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(40.dp)
             ) {
                 Icon(
                     imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
                     tint = accentColor,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(28.dp)
                 )
             }
 
             // Next Button
             IconButton(
                 onClick = onNextClick,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(36.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
@@ -177,7 +177,7 @@ fun MiniPlayer(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp),
+                    .height(2.dp),
                 color = accentColor,
                 trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
             )

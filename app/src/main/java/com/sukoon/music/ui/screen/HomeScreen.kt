@@ -197,10 +197,14 @@ fun HomeScreen(
                                 recentlyPlayed = recentlyPlayed,
                                 playbackState = playbackState,
                                 onSongClick = { song, index ->
-                                    viewModel.playQueue(songs, index)
+                                    if (playbackState.currentSong?.id != song.id) {
+                                        viewModel.playQueue(songs, index)
+                                    }
                                 },
                                 onRecentlyPlayedClick = { song ->
-                                    viewModel.playSong(song)
+                                    if (playbackState.currentSong?.id != song.id) {
+                                        viewModel.playSong(song)
+                                    }
                                 },
                                 onLikeClick = { song ->
                                     viewModel.toggleLike(song.id, song.isLiked)

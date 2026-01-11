@@ -31,7 +31,7 @@ val WidgetBannerHeight = 56.dp
 val WidgetBannerCornerRadius = 8.dp
 
 // Mini player
-val MiniPlayerHeight = 80.dp
+val MiniPlayerHeight = 64.dp
 val MiniPlayerCornerRadius = 12.dp
 val MiniPlayerAlbumArtSize = 56.dp
 
