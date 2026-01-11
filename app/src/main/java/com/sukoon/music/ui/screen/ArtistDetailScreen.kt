@@ -29,10 +29,8 @@ import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
-import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
-import com.sukoon.music.ui.components.MiniPlayer
-import com.sukoon.music.ui.components.BannerAdView
+
 
 /**
  * Artist Detail Screen - Shows artist info with Songs and Albums tabs.

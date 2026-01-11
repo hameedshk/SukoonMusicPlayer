@@ -14,11 +14,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
@@ -46,14 +52,30 @@ fun GenreDetailScreen(
     val genre by viewModel.genre.collectAsStateWithLifecycle()
     val songs by viewModel.genreSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
-    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var showSongContextSheet by remember { mutableStateOf<Song?>(null) }
-    var showDeleteConfirmDialog by remember { mutableStateOf<Song?>(null) }
-    var showAddToPlaylistDialog by remember { mutableStateOf<Song?>(null) }
+    var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
     var showError by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
-    val scope = rememberCoroutineScope()
+    // Delete result launcher
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadGenre(genreId)
+        }
+        songPendingDeletion = null
+    }
+
+    // Create menu handler for song context menu
+    val menuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository,
+        onShowSongInfo = { song -> /* TODO */ },
+        onShowDeleteConfirmation = { song -> songPendingDeletion = song },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) }
+    )
 
     // Error state handling - show error if genre not found after timeout
     LaunchedEffect(genreId, genre) {
@@ -145,134 +167,38 @@ fun GenreDetailScreen(
                 }
             }
 
-            // Song Context Bottom Sheet
-            if (showSongContextSheet != null) {
-                val song = showSongContextSheet!!
-                ModalBottomSheet(
-                    onDismissRequest = { showSongContextSheet = null }
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 32.dp)
-                    ) {
-                        // Top Row Actions
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            ContextTopAction(
-                                icon = Icons.Default.NotificationsActive,
-                                label = "Ringtone",
-                                onClick = { /* TODO */ showSongContextSheet = null }
-                            )
-                            ContextTopAction(
-                                icon = Icons.Default.Image,
-                                label = "Cover",
-                                onClick = { /* TODO */ showSongContextSheet = null }
-                            )
-                            ContextTopAction(
-                                icon = Icons.Default.Edit,
-                                label = "Tags",
-                                onClick = { /* TODO */ showSongContextSheet = null }
-                            )
-                        }
-
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                        // Full List Options
-                        ContextMenuItem(
-                            icon = Icons.Default.SkipNext,
-                            label = "Play next",
-                            onClick = {
-                                viewModel.playNext(song)
-                                showSongContextSheet = null
-                            }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.PlaylistAdd,
-                            label = "Add to queue",
-                            onClick = {
-                                viewModel.addToQueue(song)
-                                showSongContextSheet = null
-                            }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.QueueMusic,
-                            label = "Add to playlist",
-                            onClick = {
-                                showAddToPlaylistDialog = song
-                                showSongContextSheet = null
-                            }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.Album,
-                            label = "Go to album",
-                            onClick = { /* TODO */ showSongContextSheet = null }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.Audiotrack,
-                            label = "Edit audio",
-                            onClick = { /* TODO */ showSongContextSheet = null }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.Lyrics,
-                            label = "Update lyrics",
-                            onClick = { /* TODO */ showSongContextSheet = null }
-                        )
-                        ContextMenuItem(
-                            icon = Icons.Default.Delete,
-                            label = "Delete from device",
-                            isError = true,
-                            onClick = {
-                                showDeleteConfirmDialog = song
-                                showSongContextSheet = null
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Delete Confirmation Dialog
-            if (showDeleteConfirmDialog != null) {
-                val song = showDeleteConfirmDialog!!
-                AlertDialog(
-                    onDismissRequest = { showDeleteConfirmDialog = null },
-                    title = { Text("Delete '${song.title}'?") },
-                    text = {
-                        Text("This will permanently delete this song from your device. This action cannot be undone.")
-                    },
-                    confirmButton = {
-                        TextButton(
-                            onClick = {
-                                viewModel.deleteSong(song)
-                                showDeleteConfirmDialog = null
-                            }
-                        ) {
-                            Text("DELETE", color = MaterialTheme.colorScheme.error)
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { showDeleteConfirmDialog = null }) {
-                            Text("CANCEL")
-                        }
-                    }
+            // Song Context Menu
+            showSongContextSheet?.let { song ->
+                SongContextMenu(
+                    song = song,
+                    menuHandler = menuHandler,
+                    onDismiss = { showSongContextSheet = null }
                 )
             }
 
-            // Add to Playlist Dialog
-            if (showAddToPlaylistDialog != null) {
-                AddToPlaylistDialog(
-                    playlists = playlists,
-                    onPlaylistSelected = { playlistId ->
-                        scope.launch {
-                            playlistViewModel.addSongToPlaylist(playlistId, showAddToPlaylistDialog!!.id)
-                            showAddToPlaylistDialog = null
+            // Delete confirmation dialog
+            songPendingDeletion?.let { song ->
+                DeleteConfirmationDialog(
+                    song = song,
+                    onConfirm = {
+                        when (val result = menuHandler.performDelete(song)) {
+                            is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                deleteLauncher.launch(
+                                    IntentSenderRequest.Builder(result.intentSender).build()
+                                )
+                            }
+                            is DeleteHelper.DeleteResult.Success -> {
+                                Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                                viewModel.loadGenre(genreId)
+                                songPendingDeletion = null
+                            }
+                            is DeleteHelper.DeleteResult.Error -> {
+                                Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                                songPendingDeletion = null
+                            }
                         }
                     },
-                    onDismiss = { showAddToPlaylistDialog = null }
+                    onDismiss = { songPendingDeletion = null }
                 )
             }
         }
@@ -463,56 +389,4 @@ private fun SongRow(
             )
         }
     }
-}
-
-@Composable
-private fun ContextTopAction(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(24.dp)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun ContextMenuItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    isError: Boolean = false
-) {
-    ListItem(
-        headlineContent = { 
-            Text(
-                text = label,
-                color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-            ) 
-        },
-        leadingContent = { 
-            Icon(
-                imageVector = icon, 
-                contentDescription = null,
-                tint = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-            ) 
-        },
-        modifier = Modifier.clickable(onClick = onClick)
-    )
 }

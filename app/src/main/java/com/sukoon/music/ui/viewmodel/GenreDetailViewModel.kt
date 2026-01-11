@@ -22,7 +22,7 @@ import javax.inject.Inject
 @HiltViewModel
 class GenreDetailViewModel @Inject constructor(
     private val songRepository: SongRepository,
-    private val playbackRepository: PlaybackRepository,
+    val playbackRepository: PlaybackRepository,
     @ApplicationContext private val context: Context,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager
 ) : ViewModel() {

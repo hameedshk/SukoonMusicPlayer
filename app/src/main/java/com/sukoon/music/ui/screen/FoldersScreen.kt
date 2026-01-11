@@ -30,6 +30,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -74,9 +76,11 @@ fun FoldersScreen(
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var folderToDelete by remember { mutableStateOf<Long?>(null) }
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
-    // SAF delete permission launcher
+    // SAF delete permission launcher (for folders)
     val deletePermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
@@ -85,6 +89,18 @@ fun FoldersScreen(
         } else {
             viewModel.clearDeleteResult()
         }
+    }
+
+    // Song delete launcher
+    val songDeleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
     }
 
     // Handle delete result
@@ -129,7 +145,8 @@ fun FoldersScreen(
                 onFolderClick = onNavigateToFolder,
                 folderViewModel = viewModel,
                 menuHandler = rememberSongMenuHandler(
-                    playbackRepository = viewModel.playbackRepository
+                    playbackRepository = viewModel.playbackRepository,
+                    onShowDeleteConfirmation = { song -> songToDelete = song }
                 ),
                 onNavigateToNowPlaying = onNavigateToNowPlaying
             )
@@ -148,7 +165,7 @@ fun FoldersScreen(
         )
     }
 
-    // Delete confirmation dialog
+    // Delete confirmation dialog (for folders)
     folderToDelete?.let { folderId ->
         val allAvailableFolders = if (folderViewMode == FolderViewMode.DIRECTORIES) folders else hiddenFolders
         val folder = allAvailableFolders.find { it.id == folderId }
@@ -164,6 +181,31 @@ fun FoldersScreen(
                 }
             )
         }
+    }
+
+    // Delete confirmation dialog (for songs)
+    songToDelete?.let { song ->
+        com.sukoon.music.ui.components.DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        songDeleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
+        )
     }
 }
 
