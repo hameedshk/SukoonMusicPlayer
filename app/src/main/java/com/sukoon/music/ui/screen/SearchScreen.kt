@@ -40,6 +40,7 @@ import com.sukoon.music.ui.viewmodel.SearchViewModel
 @Composable
 fun SearchScreen(
     onBackClick: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -47,6 +48,7 @@ fun SearchScreen(
     val searchHistory by viewModel.searchHistory.collectAsStateWithLifecycle()
     val showLikedOnly by viewModel.showLikedOnly.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var showSortMenu by remember { mutableStateOf(false) }
 
@@ -136,7 +138,13 @@ fun SearchScreen(
                     SearchResultsContent(
                         songs = searchResults,
                         menuHandler = menuHandler,
-                        onSongClick = { song -> viewModel.playSong(song) },
+                        onSongClick = { song ->
+                            if (playbackState.currentSong?.id != song.id) {
+                                viewModel.playSong(song)
+                            } else {
+                                onNavigateToNowPlaying()
+                            }
+                        },
                         onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) }
                     )
                 }

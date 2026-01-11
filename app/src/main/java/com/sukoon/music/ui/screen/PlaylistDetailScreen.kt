@@ -99,7 +99,13 @@ fun PlaylistDetailScreen(
                 songs = songs,
                 onPlayAll = { viewModel.playPlaylist(playlistId) },
                 onShuffle = { viewModel.shufflePlaylist(playlistId) },
-                onSongClick = { song -> viewModel.playSong(song) },
+                onSongClick = { song ->
+                    if (playbackState.currentSong?.id != song.id) {
+                        viewModel.playSong(song)
+                    } else {
+                        onNavigateToNowPlaying()
+                    }
+                },
                 onRemoveSong = { song ->
                     viewModel.removeSongFromPlaylist(playlistId, song.id)
                 },

@@ -34,6 +34,7 @@ import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
 fun SmartPlaylistDetailScreen(
     smartPlaylistType: String,
     onBackClick: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit = {},
     viewModel: SmartPlaylistViewModel = hiltViewModel()
 ) {
     // Parse smart playlist type
@@ -81,7 +82,13 @@ fun SmartPlaylistDetailScreen(
             menuHandler = menuHandler,
             onPlayAll = { viewModel.playSmartPlaylist(playlistType) },
             onShuffle = { viewModel.shuffleSmartPlaylist(playlistType) },
-            onSongClick = { song -> viewModel.playSong(song) },
+            onSongClick = { song ->
+                if (playbackState.currentSong?.id != song.id) {
+                    viewModel.playSong(song)
+                } else {
+                    onNavigateToNowPlaying()
+                }
+            },
             onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
             modifier = Modifier.padding(paddingValues)
         )

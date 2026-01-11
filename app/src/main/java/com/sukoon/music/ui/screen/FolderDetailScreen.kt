@@ -50,6 +50,7 @@ fun FolderDetailScreen(
     onBackClick: () -> Unit,
     onNavigateToParent: (String?) -> Unit = { onBackClick() },
     onNavigateToSubfolder: (String) -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {},
     viewModel: FolderDetailViewModel = hiltViewModel()
 ) {
     // Load folder data (hierarchical or flat mode)
@@ -111,9 +112,13 @@ fun FolderDetailScreen(
                 menuHandler = menuHandler,
                 onFolderClick = onNavigateToSubfolder,
                 onSongClick = { song ->
-                    val allSongs = folderItems.filterIsInstance<FolderItem.SongType>()
-                        .map { it.song }
-                    viewModel.playSong(song, allSongs)
+                    if (playbackState.currentSong?.id != song.id) {
+                        val allSongs = folderItems.filterIsInstance<FolderItem.SongType>()
+                            .map { it.song }
+                        viewModel.playSong(song, allSongs)
+                    } else {
+                        onNavigateToNowPlaying()
+                    }
                 },
                 onToggleLike = { songId, isLiked ->
                     viewModel.toggleLike(songId, isLiked)
@@ -129,7 +134,13 @@ fun FolderDetailScreen(
                 menuHandler = menuHandler,
                 onPlayAll = { viewModel.playFolder(songs) },
                 onShuffle = { viewModel.shuffleFolder(songs) },
-                onSongClick = { song -> viewModel.playSong(song, songs) },
+                onSongClick = { song ->
+                    if (playbackState.currentSong?.id != song.id) {
+                        viewModel.playSong(song, songs)
+                    } else {
+                        onNavigateToNowPlaying()
+                    }
+                },
                 onToggleLike = { songId, isLiked ->
                     viewModel.toggleLike(songId, isLiked)
                 },

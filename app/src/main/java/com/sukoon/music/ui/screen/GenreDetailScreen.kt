@@ -132,7 +132,13 @@ fun GenreDetailScreen(
                         isPlaying = playbackState.isPlaying,
                         onPlayAll = { viewModel.playGenre(songs) },
                         onShuffle = { viewModel.shuffleGenre(songs) },
-                        onSongClick = { song -> viewModel.playSong(song, songs) },
+                        onSongClick = { song ->
+                            if (playbackState.currentSong?.id != song.id) {
+                                viewModel.playSong(song, songs)
+                            } else {
+                                onNavigateToNowPlaying()
+                            }
+                        },
                         onSongLongClick = { song -> showSongContextSheet = song },
                         onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) }
                     )

@@ -199,11 +199,15 @@ fun HomeScreen(
                                 onSongClick = { song, index ->
                                     if (playbackState.currentSong?.id != song.id) {
                                         viewModel.playQueue(songs, index)
+                                    } else {
+                                        onNavigateToNowPlaying()
                                     }
                                 },
                                 onRecentlyPlayedClick = { song ->
                                     if (playbackState.currentSong?.id != song.id) {
                                         viewModel.playSong(song)
+                                    } else {
+                                        onNavigateToNowPlaying()
                                     }
                                 },
                                 onLikeClick = { song ->
@@ -227,7 +231,11 @@ fun HomeScreen(
                                 songs = songs,
                                 playbackState = playbackState,
                                 onSongClick = { song, index ->
-                                    viewModel.playQueue(songs, index)
+                                    if (playbackState.currentSong?.id != song.id) {
+                                        viewModel.playQueue(songs, index)
+                                    } else {
+                                        onNavigateToNowPlaying()
+                                    }
                                 },
                                 onShuffleAllClick = { viewModel.shuffleAll() },
                                 onPlayAllClick = { viewModel.playAll() },

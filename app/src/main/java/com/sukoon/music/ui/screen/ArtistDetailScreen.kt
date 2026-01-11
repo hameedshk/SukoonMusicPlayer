@@ -107,7 +107,11 @@ fun ArtistDetailScreen(
                         isPlaying = playbackState.isPlaying,
                         menuHandler = menuHandler,
                         onSongClick = { song ->
-                            viewModel.playSong(song, artistSongs)
+                            if (playbackState.currentSong?.id != song.id) {
+                                viewModel.playSong(song, artistSongs)
+                            } else {
+                                onNavigateToNowPlaying()
+                            }
                         },
                         onLikeClick = { song ->
                             viewModel.toggleLike(song.id, song.isLiked)

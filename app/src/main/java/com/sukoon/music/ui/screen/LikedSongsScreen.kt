@@ -35,6 +35,7 @@ import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
 @Composable
 fun LikedSongsScreen(
     onBackClick: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit = {},
     viewModel: LikedSongsViewModel = hiltViewModel()
 ) {
     val likedSongs by viewModel.likedSongs.collectAsStateWithLifecycle()
@@ -43,6 +44,7 @@ fun LikedSongsScreen(
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val availableArtists by viewModel.availableArtists.collectAsStateWithLifecycle()
     val availableAlbums by viewModel.availableAlbums.collectAsStateWithLifecycle()
+    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
     var showSortMenu by remember { mutableStateOf(false) }
     var showArtistMenu by remember { mutableStateOf(false) }
@@ -99,7 +101,13 @@ fun LikedSongsScreen(
                 availableArtists = availableArtists,
                 availableAlbums = availableAlbums,
                 menuHandler = menuHandler,
-                onSongClick = { song -> viewModel.playSong(song) },
+                onSongClick = { song ->
+                    if (playbackState.currentSong?.id != song.id) {
+                        viewModel.playSong(song)
+                    } else {
+                        onNavigateToNowPlaying()
+                    }
+                },
                 onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
                 onPlayAll = { viewModel.playAll() },
                 onShuffleAll = { viewModel.shuffleAll() },

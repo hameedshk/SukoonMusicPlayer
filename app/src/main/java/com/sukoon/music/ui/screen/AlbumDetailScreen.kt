@@ -141,7 +141,11 @@ fun AlbumDetailScreen(
                     if (isSelectionMode) {
                         viewModel.toggleSongSelection(song.id)
                     } else {
-                        viewModel.playSong(song, songs)
+                        if (playbackState.currentSong?.id != song.id) {
+                            viewModel.playSong(song, songs)
+                        } else {
+                            onNavigateToNowPlaying()
+                        }
                     }
                 },
                 onToggleLike = { songId, isLiked ->

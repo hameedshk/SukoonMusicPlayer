@@ -128,9 +128,8 @@ class LyricsRepositoryImpl @Inject constructor(
             Log.d(TAG, "API Request: artist='$artist', track='$title', album='$album', duration=${duration}s")
 
 
-            val cleanArtist : String? = normalize(artist)
-            val cleanTitle  : String? = normalize(title)
-            val cleanAlbum  = normalize(album)
+            val cleanArtist = artist.trim().takeIf { it.isNotBlank() }
+            val cleanTitle  = title.trim()
             val safeDuration = duration.takeIf { it > 0 }
 
             // Validation: Title is mandatory for any lookup
@@ -143,14 +142,14 @@ class LyricsRepositoryImpl @Inject constructor(
             val lyricsResponse = try {
                 // Try precise lookup if we have artist metadata
                 if (!cleanArtist.isNullOrBlank()) {
-                    Log.d(TAG, "Trying precise lookup with artist='$cleanArtist', title='$cleanTitle', album='$cleanAlbum', duration=$safeDuration")
+                    Log.d(TAG, "Trying precise lookup with artist='$cleanArtist', title='$cleanTitle'")
                     val response = lyricsApi.getLyrics(
                         artistName = cleanArtist,
                         trackName = cleanTitle,
-                        albumName = cleanAlbum,
-                        duration = safeDuration
+                        albumName = null,
+                        duration = null
                     )
-                    Log.d(TAG, "✓ LRCLIB API success - precise lookup")
+                    Log.d(TAG, "✓ LRCLIB API success - precise lookup for artist='$cleanArtist', title='$cleanTitle' ")
                     response
                 } else {
                     Log.d(TAG, "Artist missing/invalid, going straight to search fallback")
@@ -158,7 +157,16 @@ class LyricsRepositoryImpl @Inject constructor(
                 }
             } catch (e: HttpException) {
                 Log.d(TAG, "✗ LRCLIB precise lookup failed: ${e.code()} ${e.message()}")
-                if (e.code() == 404) {
+                if (safeDuration != null) {
+                    // Retry without duration
+                    lyricsApi.getLyrics(
+                        artistName = cleanArtist,
+                        trackName = cleanTitle,
+                        albumName = null,
+                        duration = null
+                    )
+                }
+               /* if (e.code() == 404) {
                     // Step 5: Fallback to search if not found
                     Log.d(TAG, "Step 5: Trying LRCLIB search fallback...")
                     try {
@@ -176,7 +184,7 @@ class LyricsRepositoryImpl @Inject constructor(
                         Log.e(TAG, "✗ LRCLIB search failed", searchError)
                         null
                     }
-                } else {
+                }*/ else {
                     Log.e(TAG, "✗ LRCLIB API error", e)
                     throw e
                 }
@@ -207,7 +215,9 @@ class LyricsRepositoryImpl @Inject constructor(
                     Log.d(TAG, "Final search query: '$searchQuery'")
                     val searchResults = lyricsApi.searchLyrics(searchQuery)
                     Log.d(TAG, "✓ Final search returned ${searchResults.size} results")
-                    searchResults.firstOrNull()
+                    searchResults.firstOrNull{
+                        !it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank()
+                    }
                 } catch (searchError: Exception) {
                     Log.e(TAG, "✗ Final search failed", searchError)
                     null
@@ -239,7 +249,7 @@ class LyricsRepositoryImpl @Inject constructor(
                         val retryResponse = lyricsApi.getLyrics(
                             artistName = normalizedArtist,
                             trackName = normalizedTitle,
-                            albumName = normalizedAlbum,
+                            albumName = null,
                             duration = duration?.toInt()
                         )
 

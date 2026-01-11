@@ -8,7 +8,7 @@ interface LyricsApi {
 
     @GET("api/get")
     suspend fun getLyrics(
-        @Query("artist_name") artistName: String,
+        @Query("artist_name") artistName: String?,
         @Query("track_name") trackName: String,
         @Query("album_name") albumName: String? = null,
         @Query("duration") duration: Int?
