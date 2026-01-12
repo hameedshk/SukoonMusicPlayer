@@ -149,6 +149,9 @@ fun HomeScreen(
         songToDelete = null
     }
 
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
@@ -156,7 +159,7 @@ fun HomeScreen(
         onNavigateToArtist = onNavigateToArtistDetail,
         onShowDeleteConfirmation = { song -> songToDelete = song },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
-        onShare = { song -> /* TODO: Implement share */ }
+        onShare = shareHandler
     )
 
     val permissionState = rememberAudioPermissionState(
@@ -562,6 +565,9 @@ private fun SongsContent(
         songToDelete = null
     }
 
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
@@ -569,7 +575,7 @@ private fun SongsContent(
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
-        onShare = { song -> /* TODO: Implement share */ },
+        onShare = shareHandler,
         onShowDeleteConfirmation = { song -> songToDelete = song }
     )
 

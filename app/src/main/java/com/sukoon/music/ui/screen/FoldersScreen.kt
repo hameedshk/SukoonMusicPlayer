@@ -136,6 +136,9 @@ fun FoldersScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Share handler
+            val shareHandler = rememberShareHandler()
+
             FoldersContent(
                 folders = folders,
                 hiddenFolders = hiddenFolders,
@@ -146,7 +149,8 @@ fun FoldersScreen(
                 folderViewModel = viewModel,
                 menuHandler = rememberSongMenuHandler(
                     playbackRepository = viewModel.playbackRepository,
-                    onShowDeleteConfirmation = { song -> songToDelete = song }
+                    onShowDeleteConfirmation = { song -> songToDelete = song },
+                    onShare = shareHandler
                 ),
                 onNavigateToNowPlaying = onNavigateToNowPlaying
             )

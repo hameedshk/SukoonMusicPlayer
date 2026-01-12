@@ -166,10 +166,14 @@ private fun PlaylistDetailContent(
         songToDelete = null
     }
 
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onShowDeleteConfirmation = { song -> songToDelete = song }
+        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShare = shareHandler
     )
 
     LazyColumn(
