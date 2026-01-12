@@ -82,6 +82,7 @@ fun PlaylistsScreen(
     var importJson by remember { mutableStateOf("") }
     var importResult by remember { mutableStateOf<String?>(null) }
     var playlistToDelete by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
+    var playlistToRename by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
     var newPlaylistId by remember { mutableStateOf<Long?>(null) }
     var showAddSongsDialog by remember { mutableStateOf(false) }
 
@@ -170,7 +171,10 @@ fun PlaylistsScreen(
                                     PlaylistCard(
                                         playlist = playlist,
                                         onClick = { onNavigateToPlaylist(playlist.id) },
-                                        onDeleteClick = { playlistToDelete = playlist }
+                                        onDeleteClick = { playlistToDelete = playlist },
+                                        onPlayClick = { viewModel.playPlaylist(playlist.id) },
+                                        onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
+                                        onRenameClick = { playlistToRename = playlist }
                                     )
                                 }
                             }
@@ -250,6 +254,18 @@ fun PlaylistsScreen(
                 onConfirm = {
                     viewModel.deletePlaylist(playlist.id)
                     playlistToDelete = null
+                }
+            )
+        }
+
+        // Rename Dialog
+        playlistToRename?.let { playlist ->
+            RenamePlaylistDialog(
+                currentName = playlist.name,
+                onDismiss = { playlistToRename = null },
+                onConfirm = { newName ->
+                    viewModel.updatePlaylist(playlist.copy(name = newName))
+                    playlistToRename = null
                 }
             )
         }
@@ -483,7 +499,10 @@ private fun PlaylistsGrid(
 private fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onPlayClick: () -> Unit,
+    onPlayNextClick: () -> Unit,
+    onRenameClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -547,6 +566,27 @@ private fun PlaylistCard(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Play") },
+                            onClick = {
+                                onPlayClick()
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Play next") },
+                            onClick = {
+                                onPlayNextClick()
+                                showMenu = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Rename") },
+                            onClick = {
+                                onRenameClick()
+                                showMenu = false
+                            }
+                        )
                         DropdownMenuItem(
                             text = { Text("Delete") },
                             onClick = {
@@ -1283,7 +1323,10 @@ private fun PlaylistCardPreview() {
                 songCount = 42
             ),
             onClick = {},
-            onDeleteClick = {}
+            onDeleteClick = {},
+            onPlayClick = {},
+            onPlayNextClick = {},
+            onRenameClick = {}
         )
     }
 }

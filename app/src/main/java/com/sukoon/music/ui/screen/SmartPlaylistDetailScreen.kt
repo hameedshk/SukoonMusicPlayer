@@ -11,6 +11,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.IntentSenderRequest
+import android.widget.Toast
+import com.sukoon.music.data.mediastore.DeleteHelper
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -35,6 +41,8 @@ fun SmartPlaylistDetailScreen(
     smartPlaylistType: String,
     onBackClick: () -> Unit,
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToAlbumDetail: (Long) -> Unit = {},
+    onNavigateToArtistDetail: (Long) -> Unit = {},
     viewModel: SmartPlaylistViewModel = hiltViewModel()
 ) {
     // Parse smart playlist type
@@ -51,11 +59,33 @@ fun SmartPlaylistDetailScreen(
 
     val songs by viewModel.currentSmartPlaylistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
 
     val title = SmartPlaylist.getDisplayName(playlistType)
 
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
+    }
+
+    val shareHandler = rememberShareHandler()
+
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbumDetail,
+        onNavigateToArtist = onNavigateToArtistDetail,
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = shareHandler,
+        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowSongInfo = { song -> showInfoForSong = song }
     )
 
     Scaffold(
@@ -91,6 +121,39 @@ fun SmartPlaylistDetailScreen(
             },
             onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
             modifier = Modifier.padding(paddingValues)
+        )
+    }
+
+    // Delete confirmation dialog
+    songToDelete?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = menuHandler.performDelete(song)) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
+        )
+    }
+
+    // Song info dialog
+    showInfoForSong?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { showInfoForSong = null }
         )
     }
 }

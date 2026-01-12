@@ -504,12 +504,36 @@ internal fun LastAddedCard(
                         androidx.compose.ui.graphics.Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.5f)
+                                Color.Black.copy(alpha = 0.7f)
                             )
                         )
                     ),
                 contentAlignment = Alignment.BottomEnd
             ) {
+                // Text overlay
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.BottomStart)
+                        .padding(12.dp)
+                        .fillMaxWidth(0.75f)
+                ) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.album,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
                 IconButton(
                     onClick = onClick,
                     modifier = Modifier.padding(8.dp)

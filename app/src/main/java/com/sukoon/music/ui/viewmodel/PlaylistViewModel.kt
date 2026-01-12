@@ -316,6 +316,22 @@ class PlaylistViewModel @Inject constructor(
     }
 
     /**
+     * Add all songs from a playlist to play immediately after current song.
+     * @param playlistId ID of the playlist to add next
+     */
+    fun playNextPlaylist(playlistId: Long) {
+        viewModelScope.launch {
+            val songs = playlistRepository.getSongsInPlaylist(playlistId)
+                .stateIn(viewModelScope)
+                .value
+
+            if (songs.isNotEmpty()) {
+                playbackRepository.playNext(songs)
+            }
+        }
+    }
+
+    /**
      * Toggle between play and pause.
      */
     fun playPause() {
