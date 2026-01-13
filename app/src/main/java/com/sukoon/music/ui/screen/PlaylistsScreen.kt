@@ -487,7 +487,10 @@ private fun PlaylistsGrid(
                 PlaylistCard(
                     playlist = playlist,
                     onClick = { onPlaylistClick(playlist.id) },
-                    onDeleteClick = { onDeletePlaylist(playlist.id) }
+                    onDeleteClick = { onDeletePlaylist(playlist.id) },
+                    onPlayClick = {},
+                    onPlayNextClick = {},
+                    onRenameClick = {}
                 )
             }
         }
@@ -1408,7 +1411,10 @@ private fun PlaylistContent(
                                 PlaylistCard(
                                     playlist = playlist,
                                     onClick = { onPlaylistClick(playlist.id) },
-                                    onDeleteClick = { playlistToDelete = playlist }
+                                    onDeleteClick = { playlistToDelete = playlist },
+                                    onPlayClick = {},
+                                    onPlayNextClick = {},
+                                    onRenameClick = {}
                                 )
                             }
                         }
