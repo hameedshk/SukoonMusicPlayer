@@ -29,11 +29,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import android.widget.Toast
 import kotlin.math.abs
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,6 +76,7 @@ fun NowPlayingScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     // Queue modal state
     var showQueueModal by remember { mutableStateOf(false) }
@@ -172,7 +175,20 @@ fun NowPlayingScreen(
                             }
                         },
                         onShuffleClick = { viewModel.toggleShuffle() },
-                        onRepeatClick = { viewModel.toggleRepeat() },
+                        onRepeatClick = {
+                            viewModel.toggleRepeat()
+                            val nextMode = when (playbackState.repeatMode) {
+                                RepeatMode.OFF -> RepeatMode.ALL
+                                RepeatMode.ALL -> RepeatMode.ONE
+                                RepeatMode.ONE -> RepeatMode.OFF
+                            }
+                            val message = when (nextMode) {
+                                RepeatMode.OFF -> "Repeat is off"
+                                RepeatMode.ALL -> "Repeat is on"
+                                RepeatMode.ONE -> "Repeat one is on"
+                            }
+                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                        },
                         viewModel = viewModel
                     )
                 } else {
@@ -228,7 +244,7 @@ private fun NowPlayingContent(
         viewModel.fetchLyrics(song)
     }
 
-    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
+    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition, playbackState.repeatMode) {
         currentPosition = playbackState.currentPosition
         if (playbackState.isPlaying) {
             while (isActive && currentPosition < playbackState.duration) {
@@ -875,20 +891,25 @@ private fun ActionButtonsSection(
     onLyricsClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
-    // Animation state for like button
-    var likeAnimationTrigger by remember { mutableStateOf(false) }
+    // Animation state for like button - synced with song.isLiked
+    var prevLikedState by remember(song.id) { mutableStateOf(song.isLiked) }
+    var animTrigger by remember(song.id) { mutableStateOf(0) }
+
+    LaunchedEffect(song.id, song.isLiked) {
+        if (prevLikedState != song.isLiked) {
+            animTrigger++
+            prevLikedState = song.isLiked
+        }
+    }
+
     val likeScale by animateFloatAsState(
-        targetValue = if (likeAnimationTrigger) 1.2f else 1f,
+        targetValue = if (animTrigger % 2 == 0) 1f else 1.4f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessHigh
+            stiffness = Spring.StiffnessMedium
         ),
-        finishedListener = {
-            if (likeAnimationTrigger) {
-                likeAnimationTrigger = false
-            }
-        },
-        label = "like_scale"
+        label = "like_scale",
+        finishedListener = { if (animTrigger % 2 == 1) animTrigger++ }
     )
 
     // Horizontal Action Buttons Row
@@ -903,12 +924,7 @@ private fun ActionButtonsSection(
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            IconButton(
-                onClick = {
-                    likeAnimationTrigger = true
-                    onLikeClick()
-                }
-            ) {
+            IconButton(onClick = onLikeClick) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",

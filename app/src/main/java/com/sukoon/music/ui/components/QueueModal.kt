@@ -183,7 +183,7 @@ private fun QueueModalContent(
             }
             itemsIndexed(
                 items = upNextItems,
-                key = { index, song -> "${song.id}_${currentIndex + 1 + index}" }
+                key = { _, song -> "upnext_${song.id}" }
             ) { relativeIndex, song ->
                 val absoluteIndex = currentIndex + 1 + relativeIndex
                 QueueModalSongItem(
@@ -211,7 +211,7 @@ private fun QueueModalContent(
             }
             itemsIndexed(
                 items = previousItems,
-                key = { index, song -> "${song.id}_$index" }
+                key = { _, song -> "prev_${song.id}" }
             ) { index, song ->
                 QueueModalSongItem(
                     song = song,
