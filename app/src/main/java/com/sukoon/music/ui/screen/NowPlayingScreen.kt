@@ -226,8 +226,15 @@ private fun NowPlayingContent(
 ) {
     val song = playbackState.currentSong ?: return
 
-    // Real-time progress tracking
-    var currentPosition by remember { mutableLongStateOf(playbackState.currentPosition) }
+    // Real-time progress tracking using offset pattern (same as MiniPlayer)
+    var positionOffset by remember { mutableLongStateOf(0L) }
+    val currentPosition by remember {
+        derivedStateOf { playbackState.currentPosition + positionOffset }
+    }
+
+    // Seek state for slider interaction
+    var isSeeking by remember { mutableStateOf(false) }
+    var seekPosition by remember { mutableLongStateOf(0L) }
 
     // Immersive mode state (hides controls temporarily)
     var isImmersiveMode by remember { mutableStateOf(false) }
@@ -244,12 +251,13 @@ private fun NowPlayingContent(
         viewModel.fetchLyrics(song)
     }
 
+    // Position ticker - restarts when playbackState.currentPosition changes (e.g., on repeat)
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
-        currentPosition = playbackState.currentPosition
+        positionOffset = 0L
         if (playbackState.isPlaying) {
-            while (isActive && currentPosition < playbackState.duration) {
+            while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
                 delay(100)
-                currentPosition += 100
+                positionOffset += 100
             }
         }
     }
@@ -322,7 +330,17 @@ private fun NowPlayingContent(
                         currentPosition = currentPosition,
                         duration = playbackState.duration,
                         accentColor = accentColor,
-                        onSeekTo = onSeekTo
+                        isSeeking = isSeeking,
+                        seekPosition = seekPosition,
+                        onSeekStart = {
+                            isSeeking = true
+                            seekPosition = currentPosition
+                        },
+                        onSeekChange = { seekPosition = it },
+                        onSeekEnd = {
+                            onSeekTo(seekPosition)
+                            isSeeking = false
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -685,15 +703,24 @@ private fun SeekBarSection(
     currentPosition: Long,
     duration: Long,
     accentColor: Color,
-    onSeekTo: (Long) -> Unit
+    isSeeking: Boolean,
+    seekPosition: Long,
+    onSeekStart: () -> Unit,
+    onSeekChange: (Long) -> Unit,
+    onSeekEnd: () -> Unit
 ) {
+    val displayPosition = if (isSeeking) seekPosition else currentPosition
 
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
         Slider(
-            value = currentPosition.toFloat(),
-            onValueChange = { onSeekTo(it.toLong()) },
+            value = displayPosition.toFloat(),
+            onValueChange = {
+                if (!isSeeking) onSeekStart()
+                onSeekChange(it.toLong())
+            },
+            onValueChangeFinished = onSeekEnd,
             valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
             modifier = Modifier
                 .fillMaxWidth()
@@ -750,7 +777,7 @@ private fun SeekBarSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = formatDuration(currentPosition),
+                text = formatDuration(displayPosition),
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Medium // Better readability
                 ),
