@@ -227,10 +227,10 @@ private fun NowPlayingContent(
     val song = playbackState.currentSong ?: return
 
     // Real-time progress tracking using offset pattern (same as MiniPlayer)
-    var positionOffset by remember { mutableLongStateOf(0L) }
+   /* var positionOffset by remember { mutableLongStateOf(0L) }
     val currentPosition by remember {
         derivedStateOf { playbackState.currentPosition + positionOffset }
-    }
+    }*/
 
     // Seek state for slider interaction
     var isSeeking by remember { mutableStateOf(false) }
@@ -252,7 +252,7 @@ private fun NowPlayingContent(
     }
 
     // Position ticker - restarts when playbackState.currentPosition changes (e.g., on repeat)
-    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
+    /*LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         positionOffset = 0L
         if (playbackState.isPlaying) {
             while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
@@ -260,7 +260,7 @@ private fun NowPlayingContent(
                 positionOffset += 100
             }
         }
-    }
+    }*/
 
     // Auto-restore from immersive mode after 3 seconds
     LaunchedEffect(isImmersiveMode) {
@@ -284,7 +284,7 @@ private fun NowPlayingContent(
             onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
             showLyricsOverlay = showLyricsOverlay,
             lyricsState = lyricsState,
-            currentPosition = currentPosition,
+            currentPosition = playbackState.currentPosition ,
             accentColor = accentColor
         )
 
@@ -327,14 +327,14 @@ private fun NowPlayingContent(
                 ) {
                     // Seek Bar
                     SeekBarSection(
-                        currentPosition = currentPosition,
+                        currentPosition = playbackState.currentPosition,
                         duration = playbackState.duration,
                         accentColor = accentColor,
                         isSeeking = isSeeking,
                         seekPosition = seekPosition,
                         onSeekStart = {
                             isSeeking = true
-                            seekPosition = currentPosition
+                            seekPosition = playbackState.currentPosition
                         },
                         onSeekChange = { seekPosition = it },
                         onSeekEnd = {

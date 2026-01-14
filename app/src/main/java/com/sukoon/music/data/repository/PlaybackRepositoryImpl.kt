@@ -137,6 +137,11 @@ class PlaybackRepositoryImpl @Inject constructor(
             }
             updatePlaybackState()
         }
+
+        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+            updatePlaybackState()
+            savePlaybackStateForRecovery()
+        }
     }
 
     // Lifecycle Methods
