@@ -284,13 +284,17 @@ class PlaybackRepositoryImpl @Inject constructor(
             autoSaveQueue(queue)
         }
 
+        // Get current song ID for async liked status fetch
+        val currentMediaItem = controller.currentMediaItem
+        val currentSongBasic = currentMediaItem?.toSong()
+
         _playbackState.update { currentState ->
             currentState.copy(
                 isPlaying = controller.isPlaying,
                 isLoading = controller.playbackState == Player.STATE_BUFFERING,
                 currentPosition = controller.currentPosition,
                 duration = controller.duration.takeIf { it != C.TIME_UNSET } ?: 0L,
-                currentSong = controller.currentMediaItem?.toSong(),
+                currentSong = currentSongBasic,
                 playbackSpeed = controller.playbackParameters.speed,
                 repeatMode = controller.repeatMode.toRepeatMode(),
                 shuffleEnabled = controller.shuffleModeEnabled,
@@ -307,6 +311,23 @@ class PlaybackRepositoryImpl @Inject constructor(
                 pausedByAudioFocusLoss = pausedByAudioFocusLoss,
                 pausedByNoisyAudio = pausedByNoisyAudio
             )
+        }
+
+        // Fetch accurate liked status asynchronously for current song
+        if (currentSongBasic != null) {
+            scope.launch {
+                val songWithLikedStatus = songRepository.getSongById(currentSongBasic.id)
+                if (songWithLikedStatus != null) {
+                    _playbackState.update { currentState ->
+                        // Only update if this is still the current song (avoid race conditions)
+                        if (currentState.currentSong?.id == songWithLikedStatus.id) {
+                            currentState.copy(currentSong = songWithLikedStatus)
+                        } else {
+                            currentState
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -488,6 +509,20 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     override suspend fun setPlaybackSpeed(speed: Float) {
         mediaController?.setPlaybackSpeed(speed)
+    }
+
+    override suspend fun refreshCurrentSong() {
+        val currentSongId = _playbackState.value.currentSong?.id ?: return
+        val freshSong = songRepository.getSongById(currentSongId) ?: return
+
+        _playbackState.update { currentState ->
+            // Only update if this is still the current song
+            if (currentState.currentSong?.id == currentSongId) {
+                currentState.copy(currentSong = freshSong)
+            } else {
+                currentState
+            }
+        }
     }
 
     // Mapper Extensions

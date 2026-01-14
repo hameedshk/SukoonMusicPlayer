@@ -138,6 +138,8 @@ class HomeViewModel @Inject constructor(
     fun toggleLike(songId: Long, currentLikeStatus: Boolean) {
         viewModelScope.launch {
             songRepository.updateLikeStatus(songId, !currentLikeStatus)
+            // Refresh playback state to reflect the like status change
+            playbackRepository.refreshCurrentSong()
         }
     }
 

@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +31,27 @@ internal fun SongItem(
     onClick: () -> Unit,
     onLikeClick: () -> Unit
 ) {
+    // Animation state for like button
+    var prevLikedState by remember(song.id) { mutableStateOf(song.isLiked) }
+    var animTrigger by remember(song.id) { mutableStateOf(0) }
+
+    LaunchedEffect(song.id, song.isLiked) {
+        if (prevLikedState != song.isLiked) {
+            animTrigger++
+            prevLikedState = song.isLiked
+        }
+    }
+
+    val likeScale by animateFloatAsState(
+        targetValue = if (animTrigger % 2 == 0) 1f else 1.4f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "like_scale",
+        finishedListener = { if (animTrigger % 2 == 1) animTrigger++ }
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -93,7 +116,8 @@ internal fun SongItem(
             Icon(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.scale(likeScale)
             )
         }
     }

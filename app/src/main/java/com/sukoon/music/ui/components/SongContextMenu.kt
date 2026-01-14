@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -8,10 +9,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
@@ -109,6 +110,8 @@ fun SongContextMenu(
                 UtilityIconButton(
                     icon = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     label = "Like",
+                    isLiked = song.isLiked,
+                    songId = song.id,
                     onClick = {
                         menuHandler.handleToggleLike(song)
                     }
@@ -235,14 +238,41 @@ fun SongContextMenu(
 private fun UtilityIconButton(
     icon: ImageVector,
     label: String,
+    isLiked: Boolean? = null,
+    songId: Long? = null,
     onClick: () -> Unit
 ) {
+    // Animation state for like button (only if isLiked is provided)
+    var prevLikedState by remember(songId) { mutableStateOf(isLiked ?: false) }
+    var animTrigger by remember(songId) { mutableStateOf(0) }
+
+    LaunchedEffect(songId, isLiked) {
+        if (isLiked != null && prevLikedState != isLiked) {
+            animTrigger++
+            prevLikedState = isLiked
+        }
+    }
+
+    val likeScale by animateFloatAsState(
+        targetValue = if (isLiked != null && animTrigger % 2 == 1) 1.4f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "like_scale",
+        finishedListener = { if (animTrigger % 2 == 1) animTrigger++ }
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.width(64.dp)
     ) {
         IconButton(onClick = onClick) {
-            Icon(icon, contentDescription = label)
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = if (isLiked != null) Modifier.scale(likeScale) else Modifier
+            )
         }
         Text(
             text = label,

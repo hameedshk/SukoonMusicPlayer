@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.components
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,13 +10,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sukoon.music.domain.model.SmartPlaylistType
@@ -400,4 +403,47 @@ internal fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
         SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
         SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
     }
+}
+
+/**
+ * Reusable animated favorite icon with bounce effect.
+ * Automatically animates when isLiked state changes.
+ */
+@Composable
+fun AnimatedFavoriteIcon(
+    isLiked: Boolean,
+    songId: Long,
+    modifier: Modifier = Modifier,
+    tint: Color = if (isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+    size: Dp = 24.dp
+) {
+    // Animation state for like button
+    var prevLikedState by remember(songId) { mutableStateOf(isLiked) }
+    var animTrigger by remember(songId) { mutableStateOf(0) }
+
+    LaunchedEffect(songId, isLiked) {
+        if (prevLikedState != isLiked) {
+            animTrigger++
+            prevLikedState = isLiked
+        }
+    }
+
+    val likeScale by animateFloatAsState(
+        targetValue = if (animTrigger % 2 == 0) 1f else 1.4f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "like_scale",
+        finishedListener = { if (animTrigger % 2 == 1) animTrigger++ }
+    )
+
+    Icon(
+        imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+        contentDescription = if (isLiked) "Unlike" else "Like",
+        tint = tint,
+        modifier = modifier
+            .size(size)
+            .scale(likeScale)
+    )
 }

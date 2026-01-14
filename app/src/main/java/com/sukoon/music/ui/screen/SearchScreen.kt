@@ -587,11 +587,11 @@ private fun SearchResultItem(
 
             // Like Button
             IconButton(onClick = onLikeClick) {
-                Icon(
-                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
+                AnimatedFavoriteIcon(
+                    isLiked = song.isLiked,
+                    songId = song.id,
                     tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                    modifier = Modifier.size(24.dp)
+                    size = 24.dp
                 )
             }
         }

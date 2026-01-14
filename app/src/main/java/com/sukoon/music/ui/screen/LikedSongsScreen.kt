@@ -561,11 +561,11 @@ private fun LikedSongItem(
 
             // Like Button
             IconButton(onClick = onLikeClick) {
-                Icon(
-                    imageVector = Icons.Default.Favorite,
-                    contentDescription = "Unlike",
+                AnimatedFavoriteIcon(
+                    isLiked = song.isLiked,
+                    songId = song.id,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    size = 24.dp
                 )
             }
         }

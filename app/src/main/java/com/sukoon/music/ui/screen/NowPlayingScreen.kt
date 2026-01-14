@@ -118,7 +118,7 @@ fun NowPlayingScreen(
                             )
                         }
                     },
-                    actions = {
+                  /*  actions = {
                         // Queue button - opens modal
                         IconButton(onClick = { showQueueModal = true }) {
                             Icon(
@@ -126,7 +126,7 @@ fun NowPlayingScreen(
                                 contentDescription = "View Queue"
                             )
                         }
-                    },
+                    },*/
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent
                     )
@@ -184,8 +184,8 @@ fun NowPlayingScreen(
                             }
                             val message = when (nextMode) {
                                 RepeatMode.OFF -> "Repeat is off"
-                                RepeatMode.ALL -> "Repeat is on"
-                                RepeatMode.ONE -> "Repeat one is on"
+                                RepeatMode.ALL -> "All songs Repeat is on"
+                                RepeatMode.ONE -> "Current song Repeat is on"
                             }
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         },
@@ -244,7 +244,7 @@ private fun NowPlayingContent(
         viewModel.fetchLyrics(song)
     }
 
-    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition, playbackState.repeatMode) {
+    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         currentPosition = playbackState.currentPosition
         if (playbackState.isPlaying) {
             while (isActive && currentPosition < playbackState.duration) {
@@ -252,11 +252,6 @@ private fun NowPlayingContent(
                 currentPosition += 100
             }
         }
-    }
-
-    // Update position when playback state changes
-    LaunchedEffect(playbackState.currentPosition) {
-        currentPosition = playbackState.currentPosition
     }
 
     // Auto-restore from immersive mode after 3 seconds

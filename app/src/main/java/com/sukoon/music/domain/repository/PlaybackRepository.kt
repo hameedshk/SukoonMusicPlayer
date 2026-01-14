@@ -137,6 +137,12 @@ interface PlaybackRepository {
      */
     suspend fun setPlaybackSpeed(speed: Float)
 
+    /**
+     * Refresh the current song's metadata from database.
+     * Used after updating song properties (like isLiked) to sync playback state.
+     */
+    suspend fun refreshCurrentSong()
+
     // Lifecycle
 
     /**
