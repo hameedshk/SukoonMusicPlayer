@@ -53,11 +53,16 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.LyricsModalSheet
 import com.sukoon.music.ui.components.QueueModalSheet
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
-import com.sukoon.music.ui.util.accentColor
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import androidx.compose.ui.draw.blur
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import com.sukoon.music.ui.util.candidateAccent
+import com.sukoon.music.ui.util.AccentResolver
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.draw.blur
 
 /**
  * Now Playing Screen - Full-screen Spotify-style music player.
@@ -87,23 +92,15 @@ fun NowPlayingScreen(
 
     // Derive accent color from album art or deterministic fallback
     val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
-    val extractedAccent = palette.accentColor
-
-    // Deterministic fallback when no album art (matches placeholder gradient)
-    val fallbackAccent = remember(playbackState.currentSong?.id) {
-        playbackState.currentSong?.let { song ->
-            val seed = song.id.hashCode()
-            val hue = (seed % 360).toFloat()
-            Color.hsv(hue, 0.50f, 0.75f)
-        } ?: Color(0xFF1DB954)
-    }
-
-    // Use extracted if available, else deterministic fallback
-    val accentColor = if (extractedAccent != MaterialTheme.colorScheme.primary) {
-        extractedAccent
-    } else {
-        fallbackAccent
-    }
+val accentColor = remember(
+    playbackState.currentSong?.id,
+    palette.candidateAccent
+) {
+    AccentResolver.resolve(
+        extractedAccent = palette.candidateAccent,
+        fallbackSeed = (playbackState.currentSong?.id ?: 0L).toInt()
+    )
+}
 
     Box(
         modifier = Modifier
@@ -499,42 +496,46 @@ private fun AlbumArtSection(
             )
 
             // Lyrics Overlay
-            if (showLyricsOverlay) {
-                // Semi-transparent dark scrim
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.35f),
-                                    Color.Black.copy(alpha = 0.60f)
-                                )
-                            )
-                        )
-                         .blur(14.dp)
-                         Box(
-    modifier = Modifier
-        .fillMaxSize()
-        .background(Color.Black.copy(alpha = 0.25f))
-)
-                )
+if (showLyricsOverlay) {
 
-                // Lyrics content
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.8f)
-                        .align(Alignment.Center),
-                    contentAlignment = Alignment.Center
-                ) {
-                    LyricsOverlayContent(
-                        lyricsState = lyricsState,
-                        currentPosition = currentPosition,
-                        accentColor = accentColor
+    // Blurred background scrim
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.35f),
+                        Color.Black.copy(alpha = 0.60f)
                     )
-                }
-            }
+                )
+            )
+            .blur(14.dp)
+    )
+
+    // Foreground contrast scrim
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.25f))
+    )
+
+    // Lyrics content
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .fillMaxHeight(0.8f)
+            .align(Alignment.Center),
+        contentAlignment = Alignment.Center
+    ) {
+        LyricsOverlayContent(
+            lyricsState = lyricsState,
+            currentPosition = currentPosition,
+            accentColor = accentColor
+        )
+    }
+}
+
         }
     }
 }
@@ -979,7 +980,7 @@ IconButton(
             accentColor
         else
             MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-        modifier = Modifier.size(22.dp)
+        modifier = Modifier.size(24.dp)
     )
 }
 
@@ -1014,22 +1015,27 @@ val repeatScale by rememberPressScale()
                         RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
                         else -> accentColor
                     },
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onLikeClick,
-                modifier = Modifier.size(48.dp)
-            ) {
+            val likeScale by rememberPressScale()
+
+IconButton(
+    onClick = onLikeClick,
+    modifier = Modifier
+        .size(48.dp)
+        .scale(likeScale)
+)
+{
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
                     tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     modifier = Modifier
-                        .size(22.dp)
+                        .size(24.dp)
                         .scale(likeScale)
                 )
             }
@@ -1047,21 +1053,25 @@ val repeatScale by rememberPressScale()
                     imageVector = Icons.Default.Lyrics,
                     contentDescription = "Lyrics",
                     tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onQueueClick,
-                modifier = Modifier.size(48.dp)
-            ) {
+val queueScale by rememberPressScale()
+
+IconButton(
+    onClick = onQueueClick,
+    modifier = Modifier
+        .size(48.dp)
+        .scale(queueScale)
+){
                 Icon(
-                    imageVector = Icons.Default.QueueMusic,
+                    imageVector = Icons.Filled.QueueMusic,
                     contentDescription = "Queue",
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
@@ -1159,3 +1169,4 @@ private fun rememberPressScale(): State<Float> {
 
     return derivedStateOf { scale }
 }
+

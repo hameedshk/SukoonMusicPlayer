@@ -30,7 +30,9 @@ import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.TextPrimary
 import com.sukoon.music.ui.theme.TextSecondary
-import com.sukoon.music.ui.util.accentColor
+import androidx.compose.ui.graphics.Color
+import com.sukoon.music.ui.util.candidateAccent
+import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.util.rememberAlbumPalette
 
 /**
@@ -55,7 +57,15 @@ fun MiniPlayer(
     if (playbackState.currentSong == null) return
 
     val palette = rememberAlbumPalette(playbackState.currentSong.albumArtUri)
-    val accentColor = palette.accentColor
+   val song = playbackState.currentSong!!
+
+val accentColor = remember(song.id, palette.candidateAccent) {
+    AccentResolver.resolve(
+        extractedAccent = palette.candidateAccent,
+        fallbackSeed = song.id.toInt()
+    )
+}
+
 
     // Real-time position tracking - optimized with derivedStateOf
     // Only updates offset, not full recomposition of MiniPlayer

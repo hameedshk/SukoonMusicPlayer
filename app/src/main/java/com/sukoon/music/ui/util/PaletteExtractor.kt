@@ -177,7 +177,7 @@ fun rememberAlbumPalette(
  * Helper extension to get a suitable accent color from palette.
  * Prefers vibrant colors for UI accents.
  */
-val AlbumPalette.accentColor: Color
+val AlbumPalette.candidateAccent: Color
     get() = vibrant
 
 /**
