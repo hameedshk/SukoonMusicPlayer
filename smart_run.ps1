@@ -28,6 +28,7 @@ else {
         if (
             $file -match "AndroidManifest.xml" -or
             $file -match "^app/src/main/res/" -or
+			$file -match "^app/src/main/java/com/sukoon/music/" -or
             $file -match "build.gradle" -or
             $file -match "google-services.json"
         ) {

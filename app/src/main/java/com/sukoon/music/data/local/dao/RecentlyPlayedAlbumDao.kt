@@ -28,4 +28,23 @@ interface RecentlyPlayedAlbumDao {
      */
     @Query("DELETE FROM recently_played_albums")
     suspend fun clearAll()
+
+    /**
+     * Get albums to rediscover - played before but not in the last 30 days.
+     * Returns album names sorted by oldest last played (ASC) for true rediscovery.
+     */
+    @Query("""
+        SELECT albumName FROM recently_played_albums
+        WHERE lastPlayedAt < :thirtyDaysAgo
+        ORDER BY lastPlayedAt ASC
+        LIMIT 20
+    """)
+    fun getRediscoverAlbumNames(thirtyDaysAgo: Long = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000): Flow<List<String>>
+
+    /**
+     * Get all album names that have been played at least once.
+     * Used to identify never-played albums for fallback.
+     */
+    @Query("SELECT albumName FROM recently_played_albums")
+    fun getAllPlayedAlbumNames(): Flow<List<String>>
 }

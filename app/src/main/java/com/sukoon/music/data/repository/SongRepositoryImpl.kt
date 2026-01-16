@@ -2,11 +2,13 @@ package com.sukoon.music.data.repository
 
 import com.sukoon.music.data.local.dao.GenreCoverDao
 import com.sukoon.music.data.local.dao.PlaylistDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedAlbumDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.local.entity.GenreCoverEntity
 import com.sukoon.music.data.local.entity.PlaylistSongCrossRef
+import com.sukoon.music.data.local.entity.RecentlyPlayedAlbumEntity
 import com.sukoon.music.data.local.entity.RecentlyPlayedArtistEntity
 import com.sukoon.music.data.local.entity.RecentlyPlayedEntity
 import com.sukoon.music.data.local.entity.SongEntity
@@ -44,6 +46,7 @@ class SongRepositoryImpl @Inject constructor(
     private val songDao: SongDao,
     private val recentlyPlayedDao: RecentlyPlayedDao,
     private val recentlyPlayedArtistDao: RecentlyPlayedArtistDao,
+    private val recentlyPlayedAlbumDao: RecentlyPlayedAlbumDao,
     private val playlistDao: PlaylistDao,
     private val genreCoverDao: GenreCoverDao,
     private val mediaStoreScanner: MediaStoreScanner,
@@ -143,6 +146,12 @@ class SongRepositoryImpl @Inject constructor(
     override suspend fun logSongPlay(songId: Long) {
         withContext(Dispatchers.IO) {
             recentlyPlayedDao.logPlay(songId, System.currentTimeMillis())
+            // Also log album play for rediscover feature
+            songDao.getSongById(songId)?.let { song ->
+                recentlyPlayedAlbumDao.logAlbumPlay(
+                    RecentlyPlayedAlbumEntity(song.album, System.currentTimeMillis())
+                )
+            }
         }
     }
 
@@ -582,4 +591,36 @@ class SongRepositoryImpl @Inject constructor(
     override fun getRecentlyPlayedCount(): Flow<Int> = recentlyPlayedDao.getRecentlyPlayedCount()
 
     override fun getMostPlayedCount(): Flow<Int> = recentlyPlayedDao.getMostPlayedCount()
+
+    override fun getRediscoverAlbums(): Flow<List<Album>> {
+        val thirtyDaysAgo = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
+        return combine(
+            recentlyPlayedAlbumDao.getRediscoverAlbumNames(thirtyDaysAgo),
+            recentlyPlayedAlbumDao.getAllPlayedAlbumNames(),
+            getAllAlbums()
+        ) { rediscoverNames, allPlayedNames, allAlbums ->
+            // Tier 1: Albums played before but not in last 30 days (sorted by oldest)
+            val rediscoverList = rediscoverNames.toList()
+            val rediscovered = rediscoverList.mapNotNull { name ->
+                allAlbums.find { it.title == name }
+            }.take(10)
+
+            if (rediscovered.isNotEmpty()) {
+                return@combine rediscovered
+            }
+
+            // Tier 2: Albums never played (not in play history)
+            val playedSet = allPlayedNames.toSet()
+            val neverPlayed = allAlbums
+                .filter { it.title !in playedSet }
+                .take(10)
+
+            if (neverPlayed.isNotEmpty()) {
+                return@combine neverPlayed
+            }
+
+            // Tier 3: Random albums as final fallback
+            allAlbums.shuffled().take(10)
+        }
+    }
 }

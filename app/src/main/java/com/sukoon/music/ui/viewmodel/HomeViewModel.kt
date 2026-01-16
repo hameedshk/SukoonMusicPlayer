@@ -3,6 +3,7 @@ package com.sukoon.music.ui.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.LyricsState
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.ScanState
@@ -53,6 +54,14 @@ class HomeViewModel @Inject constructor(
 
     // Recently Played State
     val recentlyPlayed: StateFlow<List<Song>> = songRepository.getRecentlyPlayed()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    // Rediscover Albums State (albums not played in last 30 days)
+    val rediscoverAlbums: StateFlow<List<Album>> = songRepository.getRediscoverAlbums()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

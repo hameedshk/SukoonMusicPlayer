@@ -197,4 +197,9 @@ interface SongRepository {
     fun getLikedSongsCount(): Flow<Int>
     fun getRecentlyPlayedCount(): Flow<Int>
     fun getMostPlayedCount(): Flow<Int>
+
+    /**
+     * Get albums to rediscover - albums played before but not in the last 30 days.
+     */
+    fun getRediscoverAlbums(): Flow<List<Album>>
 }

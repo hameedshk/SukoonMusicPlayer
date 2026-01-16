@@ -114,6 +114,7 @@ fun HomeScreen(
 ) {
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
+    val rediscoverAlbums by viewModel.rediscoverAlbums.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
@@ -223,6 +224,7 @@ fun HomeScreen(
                             ForYouContent(
                                 songs = songs,
                                 recentlyPlayed = recentlyPlayed,
+                                rediscoverAlbums = rediscoverAlbums,
                                 playbackState = playbackState,
                                 onSongClick = { song, index ->
                                     if (playbackState.currentSong?.id != song.id) {
@@ -238,6 +240,7 @@ fun HomeScreen(
                                         onNavigateToNowPlaying()
                                     }
                                 },
+                                onAlbumClick = onNavigateToAlbumDetail,
                                 onLikeClick = { song ->
                                     viewModel.toggleLike(song.id, song.isLiked)
                                 },
@@ -451,9 +454,11 @@ private fun EmptyState(
 private fun ForYouContent(
     songs: List<Song>,
     recentlyPlayed: List<Song>,
+    rediscoverAlbums: List<Album>,
     playbackState: PlaybackState,
     onSongClick: (Song, Int) -> Unit,
     onRecentlyPlayedClick: (Song) -> Unit,
+    onAlbumClick: (Long) -> Unit,
     onLikeClick: (Song) -> Unit,
     onShuffleAllClick: () -> Unit,
     onPlayAllClick: () -> Unit,
@@ -501,26 +506,13 @@ private fun ForYouContent(
                 }
             }
         }
-        item {
-            Text(
-                text = "All Songs",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 12.dp)
-            )
-        }
-        items(
-            items = songs,
-            key = { it.id }
-        ) { song ->
-            val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
-            val index = songs.indexOf(song)
-
-            SongItem(
-                song = song,
-                isPlaying = isPlaying,
-                onClick = { onSongClick(song, index) },
-                onLikeClick = { onLikeClick(song) }
-            )
+        if (rediscoverAlbums.isNotEmpty()) {
+            item {
+                RediscoverAlbumsSection(
+                    albums = rediscoverAlbums,
+                    onAlbumClick = onAlbumClick
+                )
+            }
         }
     }
 }

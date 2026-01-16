@@ -9,6 +9,7 @@ import com.sukoon.music.data.local.dao.GenreCoverDao
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.dao.PlaylistDao
 import com.sukoon.music.data.local.dao.QueueDao
+import com.sukoon.music.data.local.dao.RecentlyPlayedAlbumDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SearchHistoryDao
@@ -99,6 +100,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideRecentlyPlayedArtistDao(database: SukoonDatabase) = database.recentlyPlayedArtistDao()
+
+    @Provides
+    @Singleton
+    fun provideRecentlyPlayedAlbumDao(database: SukoonDatabase) = database.recentlyPlayedAlbumDao()
 
     @Provides
     @Singleton
@@ -205,6 +210,7 @@ object AppModule {
         songDao: SongDao,
         recentlyPlayedDao: RecentlyPlayedDao,
         recentlyPlayedArtistDao: RecentlyPlayedArtistDao,
+        recentlyPlayedAlbumDao: RecentlyPlayedAlbumDao,
         playlistDao: PlaylistDao,
         genreCoverDao: GenreCoverDao,
         mediaStoreScanner: MediaStoreScanner,
@@ -212,13 +218,14 @@ object AppModule {
         @ApplicationScope scope: CoroutineScope
     ): SongRepository {
         return SongRepositoryImpl(
-            songDao, 
-            recentlyPlayedDao, 
-            recentlyPlayedArtistDao, 
-            playlistDao, 
+            songDao,
+            recentlyPlayedDao,
+            recentlyPlayedArtistDao,
+            recentlyPlayedAlbumDao,
+            playlistDao,
             genreCoverDao,
-            mediaStoreScanner, 
-            preferencesManager, 
+            mediaStoreScanner,
+            preferencesManager,
             scope
         )
     }
