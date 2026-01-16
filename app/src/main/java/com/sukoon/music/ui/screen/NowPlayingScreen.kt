@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
 import kotlin.math.abs
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -50,8 +53,14 @@ import com.sukoon.music.domain.model.LyricsState
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.LyricsModalSheet
 import com.sukoon.music.ui.components.QueueModalSheet
+import com.sukoon.music.ui.components.SongContextMenu
+import com.sukoon.music.ui.components.SongInfoDialog
+import com.sukoon.music.ui.components.rememberShareHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
@@ -79,6 +88,8 @@ import com.sukoon.music.ui.util.AccentResolver
 fun NowPlayingScreen(
     onBackClick: () -> Unit,
     onNavigateToQueue: () -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -169,6 +180,8 @@ val accentColor = remember(
                             }
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         },
+                        onNavigateToAlbum = onNavigateToAlbum,
+                        onNavigateToArtist = onNavigateToArtist,
                         viewModel = viewModel
                     )
                 } else {
@@ -192,18 +205,20 @@ val accentColor = remember(
 }
 
 /**
- * A. TopUtilityBar - Icon-only utility bar with back button.
+ * A. TopUtilityBar - Icon-only utility bar with back button and 3-dot menu.
  * Fixed height: 48dp, Icon size: 24dp, Touch target: 48dp
  */
 @Composable
 private fun TopUtilityBar(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onMoreClick: () -> Unit
 ) {
-    Box(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp),
-        contentAlignment = Alignment.CenterStart
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
             onClick = onBackClick,
@@ -212,6 +227,17 @@ private fun TopUtilityBar(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = "Back",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            )
+        }
+        IconButton(
+            onClick = onMoreClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More options",
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
@@ -231,6 +257,8 @@ private fun NowPlayingContent(
     onLikeClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit,
+    onNavigateToAlbum: (Long) -> Unit,
+    onNavigateToArtist: (Long) -> Unit,
     viewModel: HomeViewModel
 ) {
     val song = playbackState.currentSong ?: return
@@ -251,6 +279,37 @@ private fun NowPlayingContent(
     // Overlay states
     var showLyricsOverlay by remember { mutableStateOf(false) }
     var showQueueModal by remember { mutableStateOf(false) }
+    var showSongContextMenu by remember { mutableStateOf(false) }
+    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
+
+    val context = LocalContext.current
+
+    // Delete result launcher
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songToDelete = null
+    }
+
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
+    // Song menu handler
+    val songMenuHandler = rememberSongMenuHandler(
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
+        onShowSongInfo = { s -> showInfoForSong = s },
+        onShowDeleteConfirmation = { s -> songToDelete = s },
+        onToggleLike = { id, isLiked -> viewModel.toggleLike(id, isLiked) },
+        onShare = shareHandler
+    )
 
     // Lyrics state
     val lyricsState by viewModel.lyricsState.collectAsStateWithLifecycle()
@@ -298,7 +357,10 @@ private fun NowPlayingContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // A. TopUtilityBar
-        TopUtilityBar(onBackClick = onBackClick)
+        TopUtilityBar(
+            onBackClick = onBackClick,
+            onMoreClick = { showSongContextMenu = true }
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -419,6 +481,48 @@ private fun NowPlayingContent(
             onDismiss = { showQueueModal = false },
             onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
             onRemoveClick = { index -> viewModel.removeFromQueue(index) }
+        )
+    }
+
+    // Song Context Menu (3-dot menu)
+    if (showSongContextMenu) {
+        SongContextMenu(
+            song = song,
+            menuHandler = songMenuHandler,
+            onDismiss = { showSongContextMenu = false }
+        )
+    }
+
+    // Song info dialog
+    showInfoForSong?.let { infoSong ->
+        SongInfoDialog(
+            song = infoSong,
+            onDismiss = { showInfoForSong = null }
+        )
+    }
+
+    // Delete confirmation dialog
+    songToDelete?.let { deleteSong ->
+        DeleteConfirmationDialog(
+            song = deleteSong,
+            onConfirm = {
+                when (val result = songMenuHandler.performDelete(deleteSong)) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        deleteLauncher.launch(
+                            IntentSenderRequest.Builder(result.intentSender).build()
+                        )
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
         )
     }
 }
@@ -1115,6 +1219,8 @@ private fun NowPlayingScreenPreview() {
             onLikeClick = {},
             onShuffleClick = {},
             onRepeatClick = {},
+            onNavigateToAlbum = {},
+            onNavigateToArtist = {},
             viewModel = hiltViewModel()
         )
     }
