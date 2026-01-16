@@ -142,6 +142,14 @@ class PlaybackRepositoryImpl @Inject constructor(
             updatePlaybackState()
             savePlaybackStateForRecovery()
         }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int
+        ) {
+            updatePlaybackState()
+        }
     }
 
     // Lifecycle Methods

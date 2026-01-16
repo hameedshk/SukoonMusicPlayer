@@ -58,21 +58,18 @@ import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
-import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.ui.draw.blur
 
 /**
- * Now Playing Screen - Full-screen Spotify-style music player.
+ * Now Playing Screen - Full-screen best style music player.
  *
  * Features:
  * - Dynamic gradient background (extracted from album art)
  * - Large album art with rounded corners
  * - Song metadata with like button
  * - Interactive seek bar with real-time progress
- * - Spotify-green playback controls
+ * - Art based playback controls
  * - Shuffle and repeat toggles
  * - Lyrics and queue tabs
  * - Smooth animations
@@ -233,11 +230,11 @@ private fun NowPlayingContent(
 ) {
     val song = playbackState.currentSong ?: return
 
-    // Real-time progress tracking using offset pattern (same as MiniPlayer)
-   /* var positionOffset by remember { mutableLongStateOf(0L) }
-    val currentPosition by remember {
-        derivedStateOf { playbackState.currentPosition + positionOffset }
-    }*/
+    // Real-time progress tracking using offset pattern
+    var positionOffset by remember { mutableLongStateOf(0L) }
+    val currentPosition by remember(playbackState.currentPosition) {
+        derivedStateOf { (playbackState.currentPosition + positionOffset).coerceAtMost(playbackState.duration) }
+    }
 
     // Seek state for slider interaction
     var isSeeking by remember { mutableStateOf(false) }
@@ -259,15 +256,15 @@ private fun NowPlayingContent(
     }
 
     // Position ticker - restarts when playbackState.currentPosition changes (e.g., on repeat)
-    /*LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
+    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         positionOffset = 0L
-        if (playbackState.isPlaying) {
+        if (playbackState.isPlaying && !isSeeking) {
             while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
                 delay(100)
                 positionOffset += 100
             }
         }
-    }*/
+    }
 
     // Auto-restore from immersive mode after 3 seconds
     LaunchedEffect(isImmersiveMode) {
@@ -306,7 +303,7 @@ private fun NowPlayingContent(
             onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
             showLyricsOverlay = showLyricsOverlay,
             lyricsState = lyricsState,
-            currentPosition = playbackState.currentPosition,
+            currentPosition = currentPosition,
             accentColor = accentColor,
             modifier = Modifier.weight(0.40f)
         )
@@ -350,14 +347,14 @@ private fun NowPlayingContent(
                 ) {
                     // Seek Bar
                     SeekBarSection(
-                        currentPosition = playbackState.currentPosition,
+                        currentPosition = currentPosition,
                         duration = playbackState.duration,
                         accentColor = accentColor,
                         isSeeking = isSeeking,
                         seekPosition = seekPosition,
                         onSeekStart = {
                             isSeeking = true
-                            seekPosition = playbackState.currentPosition
+                            seekPosition = currentPosition
                         },
                         onSeekChange = { seekPosition = it },
                         onSeekEnd = {
@@ -771,6 +768,9 @@ private fun SeekBarSection(
     // Use seekPosition when seeking, otherwise use currentPosition
     val displayPosition = if (isSeeking) seekPosition.toFloat() else currentPosition.toFloat()
 
+    // Dedicated interaction source to isolate slider touch events
+    val sliderInteractionSource = remember { MutableInteractionSource() }
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -782,6 +782,7 @@ private fun SeekBarSection(
             },
             onValueChangeFinished = onSeekEnd,
             valueRange = 0f..duration.toFloat().coerceAtLeast(1f),
+            interactionSource = sliderInteractionSource,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
@@ -938,51 +939,26 @@ private fun SecondaryActionsSection(
     onLyricsClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
-    var prevLikedState by remember(song.id) { mutableStateOf(song.isLiked) }
-    var animTrigger by remember(song.id) { mutableStateOf(0) }
-
-    LaunchedEffect(song.id, song.isLiked) {
-        if (prevLikedState != song.isLiked) {
-            animTrigger++
-            prevLikedState = song.isLiked
-        }
-    }
-
-    val likeScale by animateFloatAsState(
-        targetValue = if (animTrigger % 2 == 0) 1f else 1.4f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "like_scale",
-        finishedListener = { if (animTrigger % 2 == 1) animTrigger++ }
-    )
-
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val shuffleScale by rememberPressScale()
-            
-
-IconButton(
-    onClick = onShuffleClick,
-    modifier = Modifier
-        .size(48.dp)
-        .scale(shuffleScale)
-) {
-    Icon(
-        imageVector = Icons.Default.Shuffle,
-        contentDescription = "Shuffle",
-        tint = if (playbackState.shuffleEnabled)
-            accentColor
-        else
-            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-        modifier = Modifier.size(24.dp)
-    )
-}
+            IconButton(
+                onClick = onShuffleClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (playbackState.shuffleEnabled)
+                        accentColor
+                    else
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
            /* IconButton(
                 onClick = onShuffleClick,
@@ -998,13 +974,10 @@ IconButton(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-val repeatScale by rememberPressScale()
-    IconButton(
-        onClick = onRepeatClick,
-        modifier = Modifier
-        .size(48.dp)
-        .scale(repeatScale)
-        ) {
+            IconButton(
+                onClick = onRepeatClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = when (playbackState.repeatMode) {
                         RepeatMode.ONE -> Icons.Default.RepeatOne
@@ -1021,34 +994,24 @@ val repeatScale by rememberPressScale()
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            val likeScale by rememberPressScale()
-
-IconButton(
-    onClick = onLikeClick,
-    modifier = Modifier
-        .size(48.dp)
-        .scale(likeScale)
-)
-{
+            IconButton(
+                onClick = onLikeClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
                     tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier
-                        .size(24.dp)
-                        .scale(likeScale)
+                    modifier = Modifier.size(24.dp)
                 )
             }
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-           val lyricsScale by rememberPressScale()
             IconButton(
-            onClick = onLyricsClick,
-            modifier = Modifier
-            .size(48.dp)
-            .scale(lyricsScale)
-        ) {
+                onClick = onLyricsClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Default.Lyrics,
                     contentDescription = "Lyrics",
@@ -1059,14 +1022,10 @@ IconButton(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-val queueScale by rememberPressScale()
-
-IconButton(
-    onClick = onQueueClick,
-    modifier = Modifier
-        .size(48.dp)
-        .scale(queueScale)
-){
+            IconButton(
+                onClick = onQueueClick,
+                modifier = Modifier.size(48.dp)
+            ) {
                 Icon(
                     imageVector = Icons.Filled.QueueMusic,
                     contentDescription = "Queue",
@@ -1156,17 +1115,4 @@ private fun NowPlayingScreenPreview() {
     }
 }
 
-@Composable
-private fun rememberPressScale(): State<Float> {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = tween(120),
-        label = "press_scale"
-    )
-
-    return derivedStateOf { scale }
-}
 
