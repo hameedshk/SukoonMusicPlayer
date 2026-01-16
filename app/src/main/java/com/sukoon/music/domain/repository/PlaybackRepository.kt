@@ -143,6 +143,12 @@ interface PlaybackRepository {
      */
     suspend fun refreshCurrentSong()
 
+    /**
+     * Force refresh playback state from MediaController.
+     * Call when UI becomes visible to get accurate current position.
+     */
+    fun refreshPlaybackState()
+
     // Lifecycle
 
     /**

@@ -538,6 +538,10 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun refreshPlaybackState() {
+        updatePlaybackState()
+    }
+
     // Mapper Extensions
 
     /**

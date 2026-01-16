@@ -84,6 +84,11 @@ fun NowPlayingScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // Refresh playback state when screen becomes visible to get accurate position
+    LaunchedEffect(Unit) {
+        viewModel.playbackRepository.refreshPlaybackState()
+    }
+
     // Queue modal state
     var showQueueModal by remember { mutableStateOf(false) }
 
