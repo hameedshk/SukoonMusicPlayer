@@ -35,4 +35,7 @@ interface SongDao {
 
     @Query("SELECT COUNT(*) FROM songs WHERE isLiked = 1")
     fun getLikedSongsCount(): Flow<Int>
+
+    @Query("DELETE FROM songs WHERE id NOT IN (:songIds)")
+    suspend fun deleteSongsNotIn(songIds: List<Long>)
 }

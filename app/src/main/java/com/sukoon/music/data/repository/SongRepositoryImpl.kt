@@ -100,6 +100,12 @@ class SongRepositoryImpl @Inject constructor(
 
                 if (songs.isNotEmpty()) {
                     songDao.insertSongs(songs)
+                    // Remove songs from DB that no longer exist in MediaStore
+                    val scannedSongIds = songs.map { it.id }
+                    songDao.deleteSongsNotIn(scannedSongIds)
+                } else {
+                    // If scan found no songs, clear the database
+                    songDao.deleteAllSongs()
                 }
 
                 _scanState.update {

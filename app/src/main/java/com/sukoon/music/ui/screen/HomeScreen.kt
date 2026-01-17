@@ -144,6 +144,7 @@ fun HomeScreen(
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.scanLocalMusic()
         } else {
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
@@ -327,6 +328,7 @@ fun HomeScreen(
                     }
                     is DeleteHelper.DeleteResult.Success -> {
                         Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        viewModel.scanLocalMusic()
                         songToDelete = null
                     }
                     is DeleteHelper.DeleteResult.Error -> {
