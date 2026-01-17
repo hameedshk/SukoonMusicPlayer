@@ -70,6 +70,8 @@ import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
+import com.sukoon.music.ui.components.LiquidMeshBackground
+import androidx.compose.animation.Crossfade
 
 /**
  * Now Playing Screen - Full-screen best style music player.
@@ -127,14 +129,25 @@ val accentColor = remember(
     )
 }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Scaffold(
-            containerColor = Color.Transparent
-        ) { paddingValues ->
+    Crossfade(
+        targetState = playbackState.currentSong?.id,
+        animationSpec = tween(durationMillis = 1000),
+        label = "nowPlayingCrossfade"
+    ) { _ ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            // Liquid Mesh Background
+            LiquidMeshBackground(
+                palette = palette,
+                songId = playbackState.currentSong?.id,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            Scaffold(
+                containerColor = Color.Transparent
+            ) { paddingValues ->
             // Swipe down gesture to collapse Now Playing screen
             var dragOffset by remember { mutableFloatStateOf(0f) }
 
@@ -213,6 +226,7 @@ val accentColor = remember(
                 onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
                 onRemoveClick = { index -> viewModel.removeFromQueue(index) }
             )
+        }
         }
     }
 }
