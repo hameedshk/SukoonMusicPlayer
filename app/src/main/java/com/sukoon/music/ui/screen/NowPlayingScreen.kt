@@ -129,14 +129,8 @@ val accentColor = remember(
     )
 }
 
-    // Calculate test color based on song ID
-    val testColorHue = ((playbackState.currentSong?.id?.hashCode() ?: 0) % 360).toFloat().coerceIn(0f, 360f)
-    val testBgColor = Color.hsv(testColorHue, 1f, 0.6f)
-
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(testBgColor)
+        modifier = Modifier.fillMaxSize()
     ) {
         // Liquid Mesh Background - persists outside Crossfade
         key(playbackState.currentSong?.id) {
@@ -146,16 +140,6 @@ val accentColor = remember(
                 modifier = Modifier.fillMaxSize()
             )
         }
-
-        // DEBUG: Display current song ID and color hex value
-        Text(
-            text = "SongID: ${playbackState.currentSong?.id ?: "null"} | HEX: ${testBgColor.value.toString(16)}",
-            modifier = Modifier
-                .align(androidx.compose.ui.Alignment.TopStart)
-                .padding(16.dp),
-            color = Color.White,
-            fontSize = 12.sp
-        )
 
         Crossfade(
             targetState = playbackState.currentSong?.id,

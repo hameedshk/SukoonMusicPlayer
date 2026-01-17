@@ -68,7 +68,7 @@ fun RediscoverAlbumsSection(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Rediscover",
+                    text = "Rediscover Albums",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
@@ -85,12 +85,12 @@ fun RediscoverAlbumsSection(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        Text(
+        /*Text(
             text = "Albums waiting to be rediscovered",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = SpacingLarge)
-        )
+        )*/
 
         Spacer(modifier = Modifier.height(SpacingMedium))
 
