@@ -181,13 +181,12 @@ fun HomeScreen(
                     onGlobalSearchClick = onNavigateToSearch,
                     onSettingsClick = onNavigateToSettings
                 )
-                Spacer(modifier = Modifier.height(16.dp))
                 TabPills(
                     tabs = tabs,
                     selectedTab = selectedTab,
                     onTabSelected = { selectedTab = it }
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
         },
