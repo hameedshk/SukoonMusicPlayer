@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -92,7 +93,10 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Global layout: NavHost + MiniPlayer + Ad
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.systemBars)
+                ) {
                     // Main navigation content with bottom padding
                     SukoonNavHost(
                         navController = navController,
@@ -131,27 +135,25 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Configure full screen immersive mode.
-     * Hides system bars while allowing them to be revealed with a swipe.
+     * Hides navigation bar only; keeps status bar visible.
      */
     private fun setupFullScreenMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+ (API 30+)
+            // Android 11+ (API 30+) - Hide navigation bar only, keep status bar
             window.insetsController?.let { controller ->
-                controller.hide(ViewInsets.Type.systemBars())
+                controller.hide(ViewInsets.Type.navigationBars())
                 controller.systemBarsBehavior =
                     WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
             }
         } else {
-            // Android 10 and below
+            // Android 10 and below - Hide navigation bar only, keep status bar
             @Suppress("DEPRECATION")
             window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_FULLSCREEN
-                or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
             )
         }
