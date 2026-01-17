@@ -223,7 +223,7 @@ fun SongContextMenu(
                 OptionItem(
                     icon = Icons.Default.Delete,
                     text = "Delete from Device",
-                    tint = Color.Red,
+                    tint = MaterialTheme.colorScheme.error,
                     onClick = {
                         menuHandler.handleDeleteFromDevice(song)
                         onDismiss()
