@@ -39,6 +39,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.Intent
 import android.widget.Toast
 import kotlin.math.abs
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -94,6 +95,17 @@ fun NowPlayingScreen(
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val context = LocalContext.current
+
+    // Share song functionality
+    fun shareSong(song: Song) {
+        val shareText = "${song.title} - ${song.artist}"
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_TEXT, shareText)
+            type = "text/plain"
+        }
+        context.startActivity(Intent.createChooser(shareIntent, "Share Song"))
+    }
 
     // Refresh playback state when screen becomes visible to get accurate position
     LaunchedEffect(Unit) {
@@ -180,6 +192,7 @@ val accentColor = remember(
                             }
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         },
+                        onShareClick = { playbackState.currentSong?.let { shareSong(it) } },
                         onNavigateToAlbum = onNavigateToAlbum,
                         onNavigateToArtist = onNavigateToArtist,
                         viewModel = viewModel
@@ -205,7 +218,7 @@ val accentColor = remember(
 }
 
 /**
- * A. TopUtilityBar - Icon-only utility bar with back button and 3-dot menu.
+ * A. TopUtilityBar - Icon-only utility bar with collapse button and 3-dot menu.
  * Fixed height: 48dp, Icon size: 24dp, Touch target: 48dp
  */
 @Composable
@@ -216,7 +229,8 @@ private fun TopUtilityBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(48.dp),
+            .height(48.dp)
+            .padding(horizontal = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -225,9 +239,9 @@ private fun TopUtilityBar(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Back",
-                modifier = Modifier.size(24.dp),
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Collapse",
+                modifier = Modifier.size(30.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
         }
@@ -238,7 +252,7 @@ private fun TopUtilityBar(
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "More options",
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(30.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
             )
         }
@@ -257,6 +271,7 @@ private fun NowPlayingContent(
     onLikeClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit,
+    onShareClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
     viewModel: HomeViewModel
@@ -375,7 +390,7 @@ private fun NowPlayingContent(
             modifier = Modifier.weight(0.40f)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // C. Track Metadata with animation
         AnimatedVisibility(
@@ -392,7 +407,7 @@ private fun NowPlayingContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Control Layer - Visually separated with subtle surface
         AnimatedVisibility(
@@ -410,7 +425,7 @@ private fun NowPlayingContent(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 8.dp)
+                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 12.dp)
                 ) {
                     // Seek Bar
                     SeekBarSection(
@@ -438,10 +453,12 @@ private fun NowPlayingContent(
                         accentColor = accentColor,
                         onPreviousClick = onPreviousClick,
                         onPlayPauseClick = onPlayPauseClick,
-                        onNextClick = onNextClick
+                        onNextClick = onNextClick,
+                        onShuffleClick = onShuffleClick,
+                        onRepeatClick = onRepeatClick
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
             }
         }
@@ -462,11 +479,10 @@ private fun NowPlayingContent(
                 song = song,
                 playbackState = playbackState,
                 accentColor = accentColor,
-                showLyricsOverlay = showLyricsOverlay,
-                onShuffleClick = onShuffleClick,
-                onRepeatClick = onRepeatClick,
-                onLikeClick = onLikeClick,
                 onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
+                showLyricsOverlay = showLyricsOverlay,
+                onLikeClick = onLikeClick,
+                onShareClick = onShareClick,
                 onQueueClick = { showQueueModal = true }
             )
         }
@@ -959,10 +975,10 @@ private fun SeekBarSection(
 }
 
 /**
- * D. PlaybackControlsSection - Progress bar and playback controls (Previous, Play/Pause, Next).
+ * D. PlaybackControlsSection - Primary playback controls (Shuffle, Previous, Play/Pause, Next, Lyrics).
  * Play/Pause: 64dp touch target, 48dp icon
- * Previous/Next: 56dp touch target, 30dp icon
- * Horizontal spacing: 24-32dp between controls
+ * Other buttons: 48dp touch target, 24dp icon
+ * Horizontal spacing: 16-24dp between controls
  */
 @Composable
 private fun PlaybackControlsSection(
@@ -970,13 +986,33 @@ private fun PlaybackControlsSection(
     accentColor: Color,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit
+    onNextClick: () -> Unit,
+    onShuffleClick: () -> Unit,
+    onRepeatClick: () -> Unit
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Shuffle Button
+        IconButton(
+            onClick = onShuffleClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Shuffle,
+                contentDescription = "Shuffle",
+                tint = if (playbackState.shuffleEnabled)
+                    accentColor
+                else
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
         IconButton(
             onClick = onPreviousClick,
             modifier = Modifier.size(56.dp)
@@ -985,11 +1021,11 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(40.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
         IconButton(
             onClick = onPlayPauseClick,
@@ -1014,7 +1050,7 @@ private fun PlaybackControlsSection(
             }
         }
 
-        Spacer(modifier = Modifier.width(24.dp))
+        Spacer(modifier = Modifier.width(16.dp))
 
         IconButton(
             onClick = onNextClick,
@@ -1024,124 +1060,115 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(40.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Repeat Button
+        IconButton(
+            onClick = onRepeatClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = when (playbackState.repeatMode) {
+                    RepeatMode.ONE -> Icons.Default.RepeatOne
+                    else -> Icons.Default.Repeat
+                },
+                contentDescription = "Repeat",
+                tint = when (playbackState.repeatMode) {
+                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    else -> accentColor
+                },
+                modifier = Modifier.size(24.dp)
             )
         }
     }
 }
 
 /**
- * E. SecondaryActionsSection - All secondary actions (Shuffle, Repeat, Favorite, Lyrics, Queue).
- * Icon size: 20-24dp
- * Touch target: 48dp
- * Lower visual priority than playback controls
+ * E. SecondaryActionsSection - Secondary actions (Lyrics, Like, Share, Queue).
+ * Icon sizes: 28dp (standard), 30dp (Like - focal point)
+ * Touch targets: 48dp (standard), 52dp (Like - anchor)
+ * Spacing: 20dp between buttons for cohesion
+ * Padding: 8dp vertical, 12dp horizontal for breathing room
  */
 @Composable
 private fun SecondaryActionsSection(
     song: Song,
     playbackState: PlaybackState,
     accentColor: Color,
-    showLyricsOverlay: Boolean,
-    onShuffleClick: () -> Unit,
-    onRepeatClick: () -> Unit,
-    onLikeClick: () -> Unit,
     onLyricsClick: () -> Unit,
+    showLyricsOverlay: Boolean,
+    onLikeClick: () -> Unit,
+    onShareClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        modifier = Modifier
+            .fillMaxWidth()
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .padding(vertical = 8.dp, horizontal = 12.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onShuffleClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = "Shuffle",
-                    tint = if (playbackState.shuffleEnabled)
-                        accentColor
-                    else
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-           /* IconButton(
-                onClick = onShuffleClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = "Shuffle",
-                    tint = if (playbackState.shuffleEnabled) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(22.dp)
-                )
-            }*/
+        // Lyrics Button
+        IconButton(
+            onClick = onLyricsClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lyrics,
+                contentDescription = "Lyrics",
+                tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.size(28.dp)
+            )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onRepeatClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = when (playbackState.repeatMode) {
-                        RepeatMode.ONE -> Icons.Default.RepeatOne
-                        else -> Icons.Default.Repeat
-                    },
-                    contentDescription = "Repeat",
-                    tint = when (playbackState.repeatMode) {
-                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                        else -> accentColor
-                    },
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+        Spacer(modifier = Modifier.width(20.dp))
+
+        // Like Button (Anchor point - slightly larger)
+        IconButton(
+            onClick = onLikeClick,
+            modifier = Modifier.size(52.dp)
+        ) {
+            Icon(
+                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = if (song.isLiked) "Unlike" else "Like",
+                tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.size(30.dp)
+            )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onLikeClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+        Spacer(modifier = Modifier.width(20.dp))
+
+        // Share Button
+        IconButton(
+            onClick = onShareClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Share,
+                contentDescription = "Share",
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.size(28.dp)
+            )
         }
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onLyricsClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Lyrics,
-                    contentDescription = "Lyrics",
-                    tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
+        Spacer(modifier = Modifier.width(20.dp))
 
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            IconButton(
-                onClick = onQueueClick,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Filled.QueueMusic,
-                    contentDescription = "Queue",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
+        // Queue Button
+        IconButton(
+            onClick = onQueueClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.QueueMusic,
+                contentDescription = "Queue",
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                modifier = Modifier.size(28.dp)
+            )
         }
     }
 }
@@ -1219,6 +1246,7 @@ private fun NowPlayingScreenPreview() {
             onLikeClick = {},
             onShuffleClick = {},
             onRepeatClick = {},
+            onShareClick = {},
             onNavigateToAlbum = {},
             onNavigateToArtist = {},
             viewModel = hiltViewModel()
