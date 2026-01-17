@@ -10,6 +10,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.sukoon.music.ui.screen.*
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
+import com.sukoon.music.data.preferences.PreferencesManager
+import dagger.hilt.android.EntryPointAccessors
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Main navigation graph for Sukoon Music app.
@@ -23,13 +27,38 @@ import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 @Composable
 fun SukoonNavHost(
     navController: NavHostController,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    startDestination: String = Routes.Home.route,
+    userPreferences: com.sukoon.music.domain.model.UserPreferences? = null
 ) {
+    val context = LocalContext.current
+
+    // Get PreferencesManager via Hilt
+    val preferencesManager = try {
+        EntryPointAccessors.fromApplication(context, PreferencesManagerEntryPoint::class.java).preferencesManager()
+    } catch (e: Exception) {
+        null
+    }
+
     NavHost(
         navController = navController,
-        startDestination = Routes.Home.route,
+        startDestination = startDestination,
         modifier = modifier
     ) {
+        // Onboarding Screen - Permission + Username setup
+        composable(route = Routes.Onboarding.route) {
+            if (preferencesManager != null) {
+                OnboardingScreen(
+                    onOnboardingComplete = {
+                        navController.navigate(Routes.Home.route) {
+                            popUpTo(Routes.Onboarding.route) { inclusive = true }
+                        }
+                    },
+                    preferencesManager = preferencesManager
+                )
+            }
+        }
+
         // Home Screen - Main entry point
         composable(route = Routes.Home.route) {
             HomeScreen(
@@ -74,7 +103,8 @@ fun SukoonNavHost(
                 },
                 onNavigateToGenreDetail = { genreId ->
                     navController.navigate(Routes.GenreDetail.createRoute(genreId))
-                }
+                },
+                username = userPreferences?.username ?: ""
             )
         }
 
@@ -395,4 +425,13 @@ fun SukoonNavHost(
             )
         }
     }
+}
+
+/**
+ * Hilt entry point for accessing PreferencesManager from non-injected context.
+ */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface PreferencesManagerEntryPoint {
+    fun preferencesManager(): PreferencesManager
 }

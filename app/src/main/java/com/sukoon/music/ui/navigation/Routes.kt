@@ -8,6 +8,11 @@ package com.sukoon.music.ui.navigation
  */
 sealed class Routes(val route: String) {
     /**
+     * Onboarding screen - Permission grant + optional username setup.
+     */
+    data object Onboarding : Routes("onboarding")
+
+    /**
      * Home screen - Main entry point showing song list, scan button, and mini player.
      */
     data object Home : Routes("home")

@@ -74,6 +74,10 @@ class PreferencesManager @Inject constructor(
         private val KEY_LAST_PLAYBACK_POSITION = stringPreferencesKey("last_playback_position_ms") // String to support Long
         private val KEY_LAST_QUEUE_INDEX = intPreferencesKey("last_queue_index")
         private val KEY_LAST_SONG_ID = stringPreferencesKey("last_song_id") // String to support Long
+
+        // Onboarding
+        private val KEY_USERNAME = stringPreferencesKey("username")
+        private val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
     }
 
     /**
@@ -102,7 +106,10 @@ class PreferencesManager @Inject constructor(
                 // Audio Quality
                 audioQuality = parseAudioQuality(preferences[KEY_AUDIO_QUALITY]),
                 audioBufferMs = preferences[KEY_AUDIO_BUFFER] ?: 500,
-                audioNormalizationEnabled = preferences[KEY_AUDIO_NORMALIZATION] ?: false
+                audioNormalizationEnabled = preferences[KEY_AUDIO_NORMALIZATION] ?: false,
+                // Onboarding
+                username = preferences[KEY_USERNAME] ?: "",
+                hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false
             )
         }
 
@@ -268,6 +275,26 @@ class PreferencesManager @Inject constructor(
     suspend fun setShowAllAudioFiles(show: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_SHOW_ALL_AUDIO_FILES] = show
+        }
+    }
+
+    /**
+     * Set user's display name.
+     *
+     * @param name User's display name (optional, can be empty)
+     */
+    suspend fun setUsername(name: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_USERNAME] = name
+        }
+    }
+
+    /**
+     * Mark onboarding as completed (user granted permission).
+     */
+    suspend fun setOnboardingCompleted() {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
         }
     }
 

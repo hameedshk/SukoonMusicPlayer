@@ -85,7 +85,18 @@ data class UserPreferences(
     /**
      * Whether to show all audio files including those in hidden folders.
      */
-    val showAllAudioFiles: Boolean = false
+    val showAllAudioFiles: Boolean = false,
+
+    // --- Onboarding ---
+    /**
+     * User's display name (optional).
+     */
+    val username: String = "",
+
+    /**
+     * Whether user has completed onboarding (permission granted).
+     */
+    val hasCompletedOnboarding: Boolean = false
 )
 
 /**

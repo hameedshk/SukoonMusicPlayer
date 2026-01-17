@@ -1,5 +1,6 @@
 package com.sukoon.music
 
+import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -20,6 +21,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
+import androidx.core.content.PermissionChecker
 import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,6 +72,25 @@ class MainActivity : ComponentActivity() {
                 AppTheme.SYSTEM -> isSystemInDarkTheme()
             }
 
+            // Check actual Android permission status
+            val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Manifest.permission.READ_MEDIA_AUDIO
+            } else {
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            }
+
+            val hasActualPermission = ContextCompat.checkSelfPermission(
+                this,
+                permission
+            ) == PermissionChecker.PERMISSION_GRANTED
+
+            // Determine start destination: show onboarding if permission not granted or not completed
+            val startDestination = if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
+                Routes.Home.route
+            } else {
+                Routes.Onboarding.route
+            }
+
             SukoonMusicPlayerTheme(
                 darkTheme = darkTheme,
                 dynamicColor = false
@@ -102,7 +124,9 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(bottom = bottomPadding)
+                            .padding(bottom = bottomPadding),
+                        startDestination = startDestination,
+                        userPreferences = userPreferences
                     )
 
                     // MiniPlayer above ad (z-index 1) - only when playing and not on NowPlayingScreen

@@ -108,6 +108,7 @@ fun HomeScreen(
     onNavigateToFolderDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToGenreDetail: (Long) -> Unit = {},
+    username: String = "",
     viewModel: HomeViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
     folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel = hiltViewModel()
@@ -118,8 +119,9 @@ fun HomeScreen(
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
-    val username = "Hameed"
-    var selectedTab by rememberSaveable { mutableStateOf("Hi $username") }
+    // Use provided username or default greeting
+    val displayUsername = username.ifBlank { "there" }
+    var selectedTab by rememberSaveable { mutableStateOf("Hi $displayUsername") }
 
     val handleTabSelection: (String) -> Unit = { tab ->
         selectedTab = tab
@@ -169,6 +171,28 @@ fun HomeScreen(
             viewModel.scanLocalMusic()
         }
     )
+
+    // Auto-scan on first load if songs are empty and permission is granted
+    LaunchedEffect(permissionState.hasPermission, songs.isEmpty()) {
+        if (songs.isEmpty() && permissionState.hasPermission && scanState is ScanState.Idle) {
+            viewModel.scanLocalMusic()
+        }
+    }
+
+    // Show toast when scan completes
+    LaunchedEffect(scanState) {
+        if (scanState is ScanState.Success) {
+            val totalSongs = (scanState as ScanState.Success).totalSongs
+            Toast.makeText(
+                context,
+                "Scan completed: $totalSongs songs found",
+                Toast.LENGTH_LONG
+            ).show()
+        } else if (scanState is ScanState.Error) {
+            val errorMsg = (scanState as ScanState.Error).error
+            Toast.makeText(context, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
+        }
+    }
 
     Scaffold(
         topBar = {

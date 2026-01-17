@@ -1006,8 +1006,10 @@ private fun PlaybackControlsSection(
     onRepeatClick: () -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Shuffle Button
@@ -1026,8 +1028,6 @@ private fun PlaybackControlsSection(
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
-
         IconButton(
             onClick = onPreviousClick,
             modifier = Modifier.size(56.dp)
@@ -1039,8 +1039,6 @@ private fun PlaybackControlsSection(
                 modifier = Modifier.size(40.dp)
             )
         }
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         IconButton(
             onClick = onPlayPauseClick,
@@ -1065,8 +1063,6 @@ private fun PlaybackControlsSection(
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
-
         IconButton(
             onClick = onNextClick,
             modifier = Modifier.size(56.dp)
@@ -1078,8 +1074,6 @@ private fun PlaybackControlsSection(
                 modifier = Modifier.size(40.dp)
             )
         }
-
-        Spacer(modifier = Modifier.width(16.dp))
 
         // Repeat Button
         IconButton(
@@ -1123,9 +1117,8 @@ private fun SecondaryActionsSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .wrapContentWidth(Alignment.CenterHorizontally)
             .padding(vertical = 8.dp, horizontal = 12.dp),
-        horizontalArrangement = Arrangement.Center,
+        horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Lyrics Button
@@ -1141,8 +1134,6 @@ private fun SecondaryActionsSection(
             )
         }
 
-        Spacer(modifier = Modifier.width(20.dp))
-
         // Like Button (Anchor point - slightly larger)
         IconButton(
             onClick = onLikeClick,
@@ -1156,8 +1147,6 @@ private fun SecondaryActionsSection(
             )
         }
 
-        Spacer(modifier = Modifier.width(20.dp))
-
         // Share Button
         IconButton(
             onClick = onShareClick,
@@ -1170,8 +1159,6 @@ private fun SecondaryActionsSection(
                 modifier = Modifier.size(28.dp)
             )
         }
-
-        Spacer(modifier = Modifier.width(20.dp))
 
         // Queue Button
         IconButton(
