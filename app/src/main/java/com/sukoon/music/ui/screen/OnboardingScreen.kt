@@ -1,11 +1,10 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
@@ -13,6 +12,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sukoon.music.R
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -60,49 +62,19 @@ fun OnboardingScreen(
         onPermissionDenied = {}
     )
 
-    val scrollState = rememberScrollState()
-
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState),
-        contentAlignment = Alignment.TopCenter
+            .background(MaterialTheme.colorScheme.background),
+        contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.95f)
                 .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Progress indicator
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 32.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Step 1 of 1",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                LinearProgressIndicator(
-                    progress = { 1.0f },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(4.dp)
-                        .padding(horizontal = 16.dp)
-                        .clip(RoundedCornerShape(2.dp))
-                )
-                Text(
-                    text = "100%",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
             // App branding
             Text(
                 text = "Sukoon",
@@ -112,19 +84,28 @@ fun OnboardingScreen(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Music Player",
+                text = "Offline Music Player",
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 24.dp)
             )
 
-            // Header
+            // Symbol image
+            Image(
+                painter = painterResource(R.drawable.symbol),
+                contentDescription = "Sukoon Music Player",
+                modifier = Modifier
+                    .size(180.dp)
+                    .padding(bottom = 24.dp),
+                contentScale = ContentScale.Fit
+            )
+
+            // Metadata tags
             Text(
-                text = "Let's Get Started!",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
+                text = "Offline • Private • On-device",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(bottom = 32.dp)
             )

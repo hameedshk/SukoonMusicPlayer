@@ -181,8 +181,55 @@ val AlbumPalette.candidateAccent: Color
     get() = vibrant
 
 /**
+ * Helper extension to get a desaturated slider color for the progress bar.
+ * Reduces saturation by 40% to balance vibrancy with subtlety.
+ * Returns a muted version of the vibrant accent color (60% saturation).
+ */
+val AlbumPalette.desaturatedSliderColor: Color
+    get() = vibrant.desaturate(0.40f)
+
+/**
  * Helper extension to get a suitable background color from palette.
  * Prefers muted dark colors for backgrounds.
  */
 val AlbumPalette.backgroundColor: Color
     get() = mutedDark
+
+/**
+ * Desaturate a color by reducing its saturation value.
+ * Desaturation amount: 0f = fully saturated, 1f = grayscale.
+ *
+ * @param desaturationAmount Amount to reduce saturation (0f-1f)
+ * @return Desaturated color
+ */
+private fun Color.desaturate(desaturationAmount: Float): Color {
+    // Convert sRGB to HSV
+    val r = this.red
+    val g = this.green
+    val b = this.blue
+    val a = this.alpha
+
+    val max = maxOf(r, g, b)
+    val min = minOf(r, g, b)
+    val delta = max - min
+
+    // Compute hue
+    val hue = when {
+        delta == 0f -> 0f
+        max == r -> (60f * ((g - b) / delta) + 360f) % 360f
+        max == g -> (60f * ((b - r) / delta) + 120f) % 360f
+        else -> (60f * ((r - g) / delta) + 240f) % 360f
+    }
+
+    // Compute saturation
+    val saturation = if (max == 0f) 0f else delta / max
+
+    // Compute value
+    val value = max
+
+    // Apply desaturation by reducing saturation
+    val newSaturation = (saturation * (1f - desaturationAmount)).coerceIn(0f, 1f)
+
+    // Convert back to RGB using HSV
+    return Color.hsv(hue, newSaturation, value, a)
+}

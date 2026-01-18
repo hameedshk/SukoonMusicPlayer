@@ -69,6 +69,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.util.candidateAccent
+import com.sukoon.music.ui.util.desaturatedSliderColor
 import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
@@ -181,6 +182,7 @@ val accentColor = remember(
                     NowPlayingContent(
                         playbackState = playbackState,
                         accentColor = accentColor,
+                        sliderColor = palette.desaturatedSliderColor,
                         onBackClick = onBackClick,
                         onPlayPauseClick = { viewModel.playPause() },
                         onNextClick = { viewModel.seekToNext() },
@@ -278,6 +280,7 @@ private fun TopUtilityBar(
 private fun NowPlayingContent(
     playbackState: PlaybackState,
     accentColor: Color,
+    sliderColor: Color = accentColor,
     onBackClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -392,7 +395,7 @@ private fun NowPlayingContent(
             onMoreClick = { showSongContextMenu = true }
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // B. Album Art - 40-50% of vertical space
         AlbumArtSection(
@@ -405,7 +408,7 @@ private fun NowPlayingContent(
             modifier = Modifier.weight(0.40f)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // C. Track Metadata with animation
         AnimatedVisibility(
@@ -422,7 +425,7 @@ private fun NowPlayingContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Control Layer - Visually separated with subtle surface
         AnimatedVisibility(
@@ -446,7 +449,7 @@ private fun NowPlayingContent(
                     SeekBarSection(
                         currentPosition = currentPosition,
                         duration = playbackState.duration,
-                        accentColor = accentColor,
+                        sliderColor = sliderColor,
                         isSeeking = isSeeking,
                         seekPosition = seekPosition,
                         onSeekStart = {
@@ -855,9 +858,10 @@ private fun CompactLyricsNotAvailable() {
 
 /**
  * C. TrackMetadataSection - Displays song title and artist name.
- * Title: 18-20sp SemiBold/Bold, Max 2 lines
- * Artist: 14-16sp Regular/Medium, 70-80% opacity, Max 1 line
- * Internal spacing: 4-8dp
+ * Title: 18sp SemiBold, lineHeight 22sp, 1 line with ellipsis
+ * Artist: 13sp Normal, 70% opacity, 1 line with ellipsis
+ * Internal spacing: 4dp (compact Spotify-style, proportional for all text lengths)
+ * Width: 95% to prevent edge clipping on long text
  */
 @Composable
 private fun TrackMetadataSection(
@@ -871,24 +875,27 @@ private fun TrackMetadataSection(
             text = song.title,
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = FontWeight.SemiBold,
-                fontSize = 20.sp
+                fontSize = 18.sp,
+                lineHeight = 22.sp
             ),
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.95f),
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.95f)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = song.artist,
             style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp
+                fontWeight = FontWeight.Normal,
+                fontSize = 13.sp
             ),
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.95f)
         )
     }
 }
@@ -898,7 +905,7 @@ private fun TrackMetadataSection(
 private fun SeekBarSection(
     currentPosition: Long,
     duration: Long,
-    accentColor: Color,
+    sliderColor: Color,
     isSeeking: Boolean,
     seekPosition: Long,
     onSeekStart: () -> Unit,
@@ -927,15 +934,15 @@ private fun SeekBarSection(
                 .fillMaxWidth()
                 .height(48.dp),
             colors = SliderDefaults.colors(
-                thumbColor = accentColor,
-                activeTrackColor = accentColor,
+                thumbColor = sliderColor,
+                activeTrackColor = sliderColor,
                 inactiveTrackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.32f)
             ),
             thumb = {
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(accentColor, CircleShape)
+                        .background(sliderColor, CircleShape)
                         .clip(CircleShape)
                 )
             },
@@ -961,7 +968,7 @@ private fun SeekBarSection(
                         modifier = Modifier
                             .fillMaxWidth(fraction.coerceIn(0f, 1f))
                             .fillMaxHeight()
-                            .background(accentColor, CircleShape)
+                            .background(sliderColor, CircleShape)
                     )
                 }
             }
@@ -1220,6 +1227,7 @@ private fun formatDuration(durationMs: Long): String {
 @Composable
 private fun NowPlayingScreenPreview() {
     SukoonMusicPlayerTheme(darkTheme = true) {
+        val previewAccentColor = MaterialTheme.colorScheme.primary
         NowPlayingContent(
             playbackState = PlaybackState(
                 isPlaying = true,
@@ -1239,7 +1247,8 @@ private fun NowPlayingScreenPreview() {
                     isLiked = true
                 )
             ),
-            accentColor = MaterialTheme.colorScheme.primary, // Preview with theme primary color
+            accentColor = previewAccentColor,
+            sliderColor = previewAccentColor.copy(alpha = 0.6f), // Simulated desaturation for preview
             onBackClick = {},
             onPlayPauseClick = {},
             onNextClick = {},
