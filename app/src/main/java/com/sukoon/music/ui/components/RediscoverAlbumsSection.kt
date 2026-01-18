@@ -69,7 +69,7 @@ fun RediscoverAlbumsSection(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Rediscover Albums",
+                    text = "You Loved This Before",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),

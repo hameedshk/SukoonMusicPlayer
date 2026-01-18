@@ -140,7 +140,9 @@ fun rememberSongMenuHandler(
         onNavigateToArtist,
         onShowPlaylistSelector,
         onShowDeleteConfirmation,
-        onShowSongInfo
+        onShowSongInfo,
+        onToggleLike,
+        onShare
     ) {
         SongMenuHandler(
             context = context,

@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -52,6 +54,8 @@ import com.sukoon.music.util.DevLogger
 @Composable
 fun SongsScreen(
     onBackClick: () -> Unit,
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val songs by viewModel.songs.collectAsStateWithLifecycle()
@@ -59,6 +63,7 @@ fun SongsScreen(
 
     var searchQuery by remember { mutableStateOf("") }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
+    var sortOrder by remember { mutableStateOf(false) } // false = A-Z, true = Z-A
 
     // Share handler
     val shareHandler = rememberShareHandler()
@@ -66,20 +71,27 @@ fun SongsScreen(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { song -> showInfoForSong = song },
         onShare = shareHandler
     )
 
     // Sort songs alphabetically and filter by search query
-    val filteredSongs = remember(songs, searchQuery) {
-        songs
-            .sortedBy { it.title.lowercase() }
+    val filteredSongs = remember(songs, searchQuery, sortOrder) {
+        val filtered = songs
             .filter { song ->
                 searchQuery.isEmpty() ||
                 song.title.contains(searchQuery, ignoreCase = true) ||
                 song.artist.contains(searchQuery, ignoreCase = true) ||
                 song.album.contains(searchQuery, ignoreCase = true)
             }
+
+        if (sortOrder) {
+            filtered.sortedByDescending { it.title.lowercase() }
+        } else {
+            filtered.sortedBy { it.title.lowercase() }
+        }
     }
 
     // Get available letters from filtered songs
@@ -92,108 +104,131 @@ fun SongsScreen(
 
     val lazyListState = rememberLazyListState()
 
-    Scaffold(
-        topBar = {
-            Column {
-                // Top App Bar
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "Songs",
-                            style = MaterialTheme.typography.headlineSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Back"
-                              )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+    if (filteredSongs.isEmpty()) {
+        // Empty state
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(SpacingMedium)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MusicNote,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                // Search Bar
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { searchQuery = it },
-                    onClearQuery = { searchQuery = "" }
+                Text(
+                    text = if (searchQuery.isEmpty()) "No songs found" else "No results for \"$searchQuery\"",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
-    ) { paddingValues ->
-        if (filteredSongs.isEmpty()) {
-            // Empty state
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
+    } else {
+        // Songs List with Alphabetical Index
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp, end = 24.dp),
+                state = lazyListState
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SpacingMedium)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = if (searchQuery.isEmpty()) "No songs found" else "No results for \"$searchQuery\"",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        } else {
-            // Songs List with Alphabetical Index
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize(),
-                    contentPadding = PaddingValues(vertical = 8.dp, end = 24.dp),
-                    state = lazyListState
-                ) {
-                    items(
-                        items = filteredSongs,
-                        key = { it.id }
-                    ) { song ->
-                        val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
-                        val index = songs.indexOf(song)
-
-                        SongListItem(
-                            song = song,
-                            isPlaying = isPlaying,
-                            menuHandler = menuHandler,
-                            onClick = {
-                                viewModel.playQueue(songs, index)
+                // Header: Back button, Title, and Search Bar (scrolls with content)
+                item {
+                    Column {
+                        // Top App Bar
+                        TopAppBar(
+                            title = {
+                                Text(
+                                    text = "Songs",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold
+                                )
                             },
-                            onLikeClick = {
-                                viewModel.toggleLike(song.id, song.isLiked)
-                            }
+                            navigationIcon = {
+                                IconButton(onClick = onBackClick) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "Back"
+                                    )
+                                }
+                            },
+                            colors = TopAppBarDefaults.topAppBarColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+
+                        // Search Bar
+                        SearchBar(
+                            query = searchQuery,
+                            onQueryChange = { searchQuery = it },
+                            onClearQuery = { searchQuery = "" }
                         )
                     }
                 }
 
-                // Alphabetical Index on the Right
-                if (availableLetters.isNotEmpty()) {
-                    AlphabeticalIndex(
-                        letters = availableLetters,
-                        songs = filteredSongs,
-                        lazyListState = lazyListState,
-                        modifier = Modifier.align(Alignment.CenterEnd)
+                // Song Count Header
+                item {
+                    Text(
+                        text = "${filteredSongs.size} ${if (filteredSongs.size == 1) "song" else "songs"}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
+
+                // Play All and Shuffle buttons
+                if (filteredSongs.isNotEmpty()) {
+                    item {
+                        SongsPlayControlButtons(
+                            onPlayAll = { viewModel.playAll() },
+                            onShuffleAll = { viewModel.shuffleAll() },
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // Sort button
+                item {
+                    SongsSortButton(
+                        sortOrder = sortOrder,
+                        onSortChange = { sortOrder = !sortOrder },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
+                // Song items
+                items(
+                    items = filteredSongs,
+                    key = { it.id }
+                ) { song ->
+                    val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
+                    val index = songs.indexOf(song)
+
+                    SongListItem(
+                        song = song,
+                        isPlaying = isPlaying,
+                        menuHandler = menuHandler,
+                        onClick = {
+                            viewModel.playQueue(songs, index)
+                        },
+                        onLikeClick = {
+                            viewModel.toggleLike(song.id, song.isLiked)
+                        }
+                    )
+                }
+            }
+
+            // Alphabetical Index on the Right (overlaid, doesn't scroll)
+            if (availableLetters.isNotEmpty()) {
+                AlphabeticalIndex(
+                    letters = availableLetters,
+                    songs = filteredSongs,
+                    lazyListState = lazyListState,
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
             }
         }
     }
@@ -393,7 +428,68 @@ private fun SongListItem(
 }
 
 /**
+ * Play All and Shuffle buttons for Songs Screen.
+ */
+@Composable
+private fun SongsPlayControlButtons(
+    onPlayAll: () -> Unit,
+    onShuffleAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Button(
+            onClick = onPlayAll,
+            modifier = Modifier.weight(1f),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Icon(Icons.Default.PlayArrow, "Play All", Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Play All")
+        }
+
+        OutlinedButton(
+            onClick = onShuffleAll,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.Shuffle, "Shuffle", Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text("Shuffle")
+        }
+    }
+}
+
+/**
+ * Sort button for Songs Screen (A-Z / Z-A toggle).
+ */
+@Composable
+private fun SongsSortButton(
+    sortOrder: Boolean,
+    onSortChange: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedButton(
+            onClick = onSortChange,
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.Sort, contentDescription = null, Modifier.size(20.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(if (sortOrder) "Z - A" else "A - Z")
+        }
+    }
+}
+
+/**
  * Alphabetical index for quick navigation through song list.
+ * Displays A-Z letters on the right side for fast scrolling.
  */
 @Composable
 private fun AlphabeticalIndex(
@@ -403,23 +499,26 @@ private fun AlphabeticalIndex(
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
+    var selectedLetter by remember { mutableStateOf<Char?>(null) }
 
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .width(24.dp)
-            .padding(vertical = 8.dp, horizontal = 4.dp),
-        verticalArrangement = Arrangement.Center,
+            .padding(vertical = 16.dp, horizontal = 2.dp),
+        verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         letters.forEach { letter ->
+            val isSelected = selectedLetter == letter
+
             Text(
                 text = letter.toString(),
                 modifier = Modifier
-                    .size(18.dp)
+                    .size(20.dp)
+                    .clip(RoundedCornerShape(4.dp))
                     .clickable {
+                        selectedLetter = letter
                         coroutineScope.launch {
-                            // Find first song starting with this letter
                             val index = songs.indexOfFirst {
                                 it.title.firstOrNull()?.uppercaseChar() == letter
                             }
@@ -427,11 +526,12 @@ private fun AlphabeticalIndex(
                                 lazyListState.scrollToItem(index)
                             }
                         }
-                    },
+                    }
+                    .padding(2.dp),
                 style = MaterialTheme.typography.labelSmall,
                 fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }

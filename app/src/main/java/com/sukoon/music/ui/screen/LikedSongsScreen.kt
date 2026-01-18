@@ -27,6 +27,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.LikedSongsViewModel
 import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
+import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
 /**
  * Enhanced Liked Songs Screen - Shows all user-favorited songs with filtering and sorting.
@@ -36,7 +37,10 @@ import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
 fun LikedSongsScreen(
     onBackClick: () -> Unit,
     onNavigateToNowPlaying: () -> Unit = {},
-    viewModel: LikedSongsViewModel = hiltViewModel()
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
+    viewModel: LikedSongsViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val likedSongs by viewModel.likedSongs.collectAsStateWithLifecycle()
     val selectedArtist by viewModel.selectedArtist.collectAsStateWithLifecycle()
@@ -49,9 +53,21 @@ fun LikedSongsScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showArtistMenu by remember { mutableStateOf(false) }
     var showAlbumMenu by remember { mutableStateOf(false) }
+    var showSongInfo by remember { mutableStateOf<Song?>(null) }
+    var showPlaylistSelector by remember { mutableStateOf<Song?>(null) }
 
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
+    // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
+        onShowSongInfo = { song -> showSongInfo = song },
+        onShowPlaylistSelector = { song -> showPlaylistSelector = song },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = shareHandler
     )
 
     Scaffold(
@@ -153,6 +169,26 @@ fun LikedSongsScreen(
                 )
             }
         }
+    }
+
+    // Song info dialog
+    showSongInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { showSongInfo = null }
+        )
+    }
+
+    // Add to playlist dialog
+    showPlaylistSelector?.let { song ->
+        AddToPlaylistDialog(
+            playlists = playlistViewModel.playlists.collectAsStateWithLifecycle().value,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                showPlaylistSelector = null
+            },
+            onDismiss = { showPlaylistSelector = null }
+        )
     }
 }
 

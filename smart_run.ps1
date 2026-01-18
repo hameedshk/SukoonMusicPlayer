@@ -10,6 +10,31 @@ $STATE_FILE=".last_successful_commit"
 $PAIR_TIMEOUT   = 60   # seconds
 
 # -------- DEVICE STATUS --------
+function Prompt-For-AdbTarget {
+    $ip = Read-Host "Enter device IP address (example: 192.168.0.140)"
+    $port = Read-Host "Enter ADB port (example: 5555 or pairing port)"
+
+    if (-not $ip -or -not $port) {
+        Write-Error "IP and port are required"
+        exit 1
+    }
+
+    return @{
+        ip = $ip
+        port = [int]$port
+    }
+}
+
+function Try-Adb-Connect {
+    param (
+        [string]$Ip,
+        [int]$Port
+    )
+    Write-Host "🔄 Trying adb connect to ${Ip}:${Port} ..." -ForegroundColor Cyan
+    adb connect "${Ip}:${Port}" | Out-Null
+    Start-Sleep -Seconds 2
+}
+
 function Get-Device-Status {
     $devices = adb devices
 
@@ -29,60 +54,6 @@ function Get-Device-Status {
     return "NONE"
 }
 
-
-# -------- PAIRING DISCOVERY --------
-function Get-PairingPort {
-    $services = adb mdns services
-    foreach ($line in $services) {
-        if ($line -match "_adb-pairing\._tcp\." -and $line -match ":(\d+)") {
-            return $matches[1]
-        }
-    }
-    return $null
-}
-
-
-function Wait-For-PairingService {
-    Write-Host ""
-    Write-Host "🔐 ACTION REQUIRED ON PHONE" -ForegroundColor Yellow
-    Write-Host "--------------------------------------------"
-    Write-Host "1. Open Settings → Developer Options"
-    Write-Host "2. Open Wireless Debugging"
-    Write-Host "3. Tap 'Pair device with pairing code'"
-    Write-Host "4. KEEP THIS SCREEN OPEN"
-    Write-Host "--------------------------------------------"
-    Write-Host ""
-
-    $elapsed = 0
-    while ($elapsed -lt $PAIR_TIMEOUT) {
-        adb start-server | Out-Null
-        $pairingPort = Get-PairingPort
-        if ($pairingPort) { return $pairingPort }
-
-        Start-Sleep -Seconds 3
-        $elapsed += 3
-    }
-
-    Write-Error "❌ Pairing service not detected. Toggle Wireless Debugging and retry."
-    exit 1
-}
-
-
-function Pair-Device {
-    $pairingPort = Wait-For-PairingService
-    $pairCode = Read-Host "Enter 6-digit pairing code"
-
-    adb pair "localhost:$pairingPort" $pairCode
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Error "❌ Pairing failed. Code expired or incorrect."
-        exit 1
-    }
-
-    Write-Host "✅ Pairing successful (one-time)" -ForegroundColor Green
-}
-
-
 # -------- MAIN FLOW --------
 
 Write-Host "📱 Starting adb..." -ForegroundColor Cyan
@@ -91,15 +62,12 @@ Start-Sleep -Seconds 2
 
 $status = Get-Device-Status
 
-switch ($status) {
-
-    "ONLINE" {
+if ($status -eq "ONLINE") {
         Write-Host "✅ Device already connected via wireless TLS" -ForegroundColor Green
         # DO NOTHING — connection is valid
     }
-
-    "OFFLINE" {
-        Write-Error @"
+else {
+    Write-Host @"
 ⚠️ Device is OFFLINE.
 
 Fix on phone:
@@ -109,20 +77,19 @@ Fix on phone:
 
 Do NOT pair in this state.
 "@
-        exit 1
-    }
+	$config = Prompt-For-AdbTarget 
+    Try-Adb-Connect -Ip $config.ip -Port $config.port
 
-    "UNAUTHORIZED" {
-        Write-Error "🔐 Accept debugging authorization on phone"
-        exit 1
+    if ((Get-Device-Status) -eq "ONLINE") {
+        Write-Host "✅ Connection successful — saving device info"
+        #Save-AdbConfig -Ip $config.ip -Port $config.port
     }
-
-    "NONE" {
-        Write-Host "❌ No device detected"
-        Write-Host "🔐 Pairing required" -ForegroundColor Yellow
-        Pair-Device
+    else {
+        Write-Host "⚠️ adb connect did not succeed (TLS device or port closed)"
+        Write-Host "ℹ️ Falling back to pairing / adb auto-discovery"
+        # DO NOT fail here — allow pairing logic to run
     }
-}
+    }		
 
 $needsBuild = $false
 

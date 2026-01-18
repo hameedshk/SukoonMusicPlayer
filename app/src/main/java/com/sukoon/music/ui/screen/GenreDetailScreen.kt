@@ -41,6 +41,8 @@ fun GenreDetailScreen(
     genreId: Long,
     onBackClick: () -> Unit,
     onNavigateToNowPlaying: () -> Unit,
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: GenreDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -55,8 +57,13 @@ fun GenreDetailScreen(
 
     var showSongContextSheet by remember { mutableStateOf<Song?>(null) }
     var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
+    var showSongInfo by remember { mutableStateOf<Song?>(null) }
+    var showPlaylistSelector by remember { mutableStateOf<Song?>(null) }
     var showError by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    // Share handler
+    val shareHandler = rememberShareHandler()
 
     // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -72,9 +79,13 @@ fun GenreDetailScreen(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onShowSongInfo = { song -> /* TODO */ },
-        onShowDeleteConfirmation = { song -> songPendingDeletion = song },
-        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) }
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
+        onShowSongInfo = { song -> showSongInfo = song; showSongContextSheet = null },
+        onShowDeleteConfirmation = { song -> songPendingDeletion = song; showSongContextSheet = null },
+        onShowPlaylistSelector = { song -> showPlaylistSelector = song; showSongContextSheet = null },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = shareHandler
     )
 
     // Error state handling - show error if genre not found after timeout
@@ -168,9 +179,11 @@ fun GenreDetailScreen(
             }
 
             // Song Context Menu
-            showSongContextSheet?.let { song ->
+            showSongContextSheet?.let { selectedSong ->
+                // Get the latest song state from the songs list to reflect like status changes
+                val currentSong = songs.find { it.id == selectedSong.id } ?: selectedSong
                 SongContextMenu(
-                    song = song,
+                    song = currentSong,
                     menuHandler = menuHandler,
                     onDismiss = { showSongContextSheet = null }
                 )
@@ -199,6 +212,26 @@ fun GenreDetailScreen(
                         }
                     },
                     onDismiss = { songPendingDeletion = null }
+                )
+            }
+
+            // Song info dialog
+            showSongInfo?.let { song ->
+                SongInfoDialog(
+                    song = song,
+                    onDismiss = { showSongInfo = null }
+                )
+            }
+
+            // Add to playlist dialog
+            showPlaylistSelector?.let { song ->
+                AddToPlaylistDialog(
+                    playlists = playlistViewModel.playlists.collectAsStateWithLifecycle().value,
+                    onPlaylistSelected = { playlistId ->
+                        playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                        showPlaylistSelector = null
+                    },
+                    onDismiss = { showPlaylistSelector = null }
                 )
             }
         }
