@@ -62,6 +62,8 @@ import androidx.compose.material.icons.filled.ArrowUpward
 fun FoldersScreen(
     onNavigateToFolder: (Long) -> Unit,
     onNavigateToNowPlaying: () -> Unit,
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     onBackClick: () -> Unit,
     viewModel: FolderViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
@@ -151,6 +153,8 @@ fun FoldersScreen(
                 folderViewModel = viewModel,
                 menuHandler = rememberSongMenuHandler(
                     playbackRepository = viewModel.playbackRepository,
+                    onNavigateToAlbum = onNavigateToAlbum,
+                    onNavigateToArtist = onNavigateToArtist,
                     onShowDeleteConfirmation = { song -> songToDelete = song },
                     onShare = shareHandler
                 ),

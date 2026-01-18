@@ -116,6 +116,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToQueue = {
                     navController.navigate(Routes.Queue.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -153,6 +159,12 @@ fun SukoonNavHost(
                 playlistId = playlistId,
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },
                 onBackClick = {
                     navController.navigateUp()
@@ -199,6 +211,15 @@ fun SukoonNavHost(
             LikedSongsScreen(
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -208,6 +229,15 @@ fun SukoonNavHost(
             SearchScreen(
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -217,6 +247,12 @@ fun SukoonNavHost(
             SongsScreen(
                 onBackClick = {
                     navController.navigateUp()
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -276,6 +312,9 @@ fun SukoonNavHost(
                 navController = navController,
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -332,6 +371,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -344,6 +389,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },
                 onBackClick = {
                     navController.navigateUp()
@@ -369,6 +420,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToSubfolder = { folderPath ->
                     navController.navigate(Routes.FolderDetailByPath.createRoute(folderPath))
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -400,6 +457,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToSubfolder = { subfolderPath ->
                     navController.navigate(Routes.FolderDetailByPath.createRoute(subfolderPath))
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -421,6 +484,12 @@ fun SukoonNavHost(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
+                },
+                onNavigateToAlbum = { albumId ->
+                    navController.navigate(Routes.AlbumDetail.createRoute(albumId))
+                },
+                onNavigateToArtist = { artistId ->
+                    navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 }
             )
         }

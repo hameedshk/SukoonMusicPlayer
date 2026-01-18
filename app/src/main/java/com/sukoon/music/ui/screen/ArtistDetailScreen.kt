@@ -58,6 +58,7 @@ fun ArtistDetailScreen(
 
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
         onShowDeleteConfirmation = { song -> songToDelete = song }
     )
 

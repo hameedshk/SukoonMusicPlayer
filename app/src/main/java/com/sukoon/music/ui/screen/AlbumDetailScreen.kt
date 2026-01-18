@@ -57,6 +57,7 @@ fun AlbumDetailScreen(
     onBackClick: () -> Unit,
     navController: NavController,
     onNavigateToNowPlaying: () -> Unit,
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     // Load album data
@@ -92,6 +93,7 @@ fun AlbumDetailScreen(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { song ->
             songForInfo = song
         },

@@ -54,6 +54,8 @@ import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 fun PlaylistDetailScreen(
     playlistId: Long,
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     onBackClick: () -> Unit,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -115,6 +117,8 @@ fun PlaylistDetailScreen(
                 onRemoveSong = { song ->
                     viewModel.removeSongFromPlaylist(playlistId, song.id)
                 },
+                onNavigateToAlbum = onNavigateToAlbum,
+                onNavigateToArtist = onNavigateToArtist,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -146,6 +150,8 @@ private fun PlaylistDetailContent(
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
     onRemoveSong: (Song) -> Unit,
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -172,6 +178,8 @@ private fun PlaylistDetailContent(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
         onShowDeleteConfirmation = { song -> songToDelete = song },
         onShare = shareHandler
     )

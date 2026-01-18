@@ -734,7 +734,7 @@ private fun SongsContent(
                     ) {
                         Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("Shuffle", style = MaterialTheme.typography.bodyLarge)
+                        Text("Shuffle All", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
                 Surface(

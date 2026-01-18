@@ -47,6 +47,8 @@ import com.sukoon.music.ui.viewmodel.SearchViewModel
 fun SearchScreen(
     onBackClick: () -> Unit,
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -74,6 +76,8 @@ fun SearchScreen(
 
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist,
         onShowDeleteConfirmation = { song -> songToDelete = song },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)

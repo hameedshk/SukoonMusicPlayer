@@ -51,6 +51,8 @@ fun FolderDetailScreen(
     onNavigateToParent: (String?) -> Unit = { onBackClick() },
     onNavigateToSubfolder: (String) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: FolderDetailViewModel = hiltViewModel()
 ) {
     // Load folder data (hierarchical or flat mode)
@@ -70,7 +72,9 @@ fun FolderDetailScreen(
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist
     )
 
     // Handle case where folder is deleted or excluded while viewing

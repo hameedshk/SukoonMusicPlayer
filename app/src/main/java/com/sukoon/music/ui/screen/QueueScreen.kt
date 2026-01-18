@@ -38,6 +38,8 @@ import org.burnoutcrew.reorderable.*
 fun QueueScreen(
     onBackClick: () -> Unit,
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToArtist: (Long) -> Unit = {},
     viewModel: QueueViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -49,7 +51,9 @@ fun QueueScreen(
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository
+        playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToArtist = onNavigateToArtist
     )
 
     // Show snackbar for messages
