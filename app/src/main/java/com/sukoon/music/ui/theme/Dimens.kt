@@ -36,8 +36,8 @@ val MiniPlayerCornerRadius = 12.dp
 val MiniPlayerAlbumArtSize = 56.dp
 
 // Last added card
-val LastAddedCardWidth = 160.dp
-val LastAddedCardHeight = 160.dp
+val LastAddedCardWidth = 140.dp
+val LastAddedCardHeight = 140.dp
 
 // Shapes
 val CardShape = RoundedCornerShape(CardCornerRadius)

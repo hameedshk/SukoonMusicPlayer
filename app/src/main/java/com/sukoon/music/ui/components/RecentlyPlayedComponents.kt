@@ -105,7 +105,7 @@ fun RecentlyPlayedSongCard(
     onClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.width(160.dp)
+        modifier = Modifier.width(LastAddedCardWidth)
     ) {
         Surface(
             modifier = Modifier

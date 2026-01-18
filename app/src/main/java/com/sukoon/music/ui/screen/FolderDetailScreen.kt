@@ -273,7 +273,7 @@ private fun FolderDetailContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp)
+        contentPadding = PaddingValues(vertical = 12.dp)
     ) {
         // Folder Header
         item {
@@ -321,7 +321,7 @@ private fun FolderHeader(
     ) {
         // Folder Cover / Icon
         Card(
-            modifier = Modifier.size(200.dp),
+            modifier = Modifier.size(160.dp),
             shape = RoundedCornerShape(12.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
@@ -346,8 +346,8 @@ private fun FolderHeader(
                             Icon(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription = null,
-                                modifier = Modifier.size(96.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     )
@@ -355,8 +355,8 @@ private fun FolderHeader(
                     Icon(
                         imageVector = Icons.Default.Folder,
                         contentDescription = null,
-                        modifier = Modifier.size(96.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -395,17 +395,17 @@ private fun FolderHeader(
             Text(
                 text = "${folder.songCount} songs",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = " • ",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = folder.formattedDuration(),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 

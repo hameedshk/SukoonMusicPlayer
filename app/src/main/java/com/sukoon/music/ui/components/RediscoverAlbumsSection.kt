@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
+import com.sukoon.music.ui.theme.LastAddedCardWidth
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -130,7 +131,7 @@ fun RediscoverAlbumCard(
     modifier: Modifier = Modifier
 ) {
     Column(
-        modifier = modifier.width(160.dp)
+        modifier = modifier.width(LastAddedCardWidth)
     ) {
         Surface(
             modifier = Modifier

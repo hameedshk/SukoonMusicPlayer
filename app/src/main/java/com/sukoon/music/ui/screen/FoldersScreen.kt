@@ -42,6 +42,8 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.theme.SpacingLarge
+import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.viewmodel.FolderViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
@@ -389,7 +391,7 @@ private fun FoldersContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // ⬆️ Global UP button

@@ -173,7 +173,7 @@ private fun FolderIconPlaceholder() {
     Icon(
         imageVector = Icons.Default.Folder,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-        modifier = Modifier.size(28.dp)
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(48.dp)
     )
 }

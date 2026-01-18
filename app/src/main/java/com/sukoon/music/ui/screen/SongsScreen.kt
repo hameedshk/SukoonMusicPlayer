@@ -321,12 +321,20 @@ private fun SongListItem(
                 )
             }
 
+            // Duration
+            Text(
+                text = song.durationFormatted(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 8.dp)
+            )
+
             // Like button
             IconButton(onClick = onLikeClick) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
