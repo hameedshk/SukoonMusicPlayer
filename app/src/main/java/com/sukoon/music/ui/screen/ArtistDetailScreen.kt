@@ -35,6 +35,7 @@ import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
+import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.data.mediastore.DeleteHelper
 
 
@@ -48,18 +49,33 @@ fun ArtistDetailScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
-    viewModel: ArtistDetailViewModel = hiltViewModel()
+    viewModel: ArtistDetailViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val artistSongs by viewModel.artistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     val context = LocalContext.current
+
+    val shareHandler = rememberShareHandler()
 
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
-        onShowDeleteConfirmation = { song -> songToDelete = song }
+        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowSongInfo = { song -> showInfoForSong = song },
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
+        },
+        onToggleLike = { id, isLiked -> viewModel.toggleLike(id, isLiked) },
+        onShare = shareHandler
     )
 
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -162,6 +178,30 @@ fun ArtistDetailScreen(
                     }
                 },
                 onDismiss = { songToDelete = null }
+            )
+        }
+
+        // Song info dialog
+        showInfoForSong?.let { song ->
+            SongInfoDialog(
+                song = song,
+                onDismiss = { showInfoForSong = null }
+            )
+        }
+
+        // Add to playlist dialog
+        if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+            AddToPlaylistDialog(
+                playlists = playlists,
+                onPlaylistSelected = { playlistId ->
+                    playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                    showAddToPlaylistDialog = false
+                    songToAddToPlaylist = null
+                },
+                onDismiss = {
+                    showAddToPlaylistDialog = false
+                    songToAddToPlaylist = null
+                }
             )
         }
     }

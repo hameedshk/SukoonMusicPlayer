@@ -86,8 +86,7 @@ Do NOT pair in this state.
     }
     else {
         Write-Host "⚠️ adb connect did not succeed (TLS device or port closed)"
-        Write-Host "ℹ️ Falling back to pairing / adb auto-discovery"
-        # DO NOT fail here — allow pairing logic to run
+        Write-Host "ℹ️ Falling back to pairing / adb auto-discovery"        
     }
     }		
 

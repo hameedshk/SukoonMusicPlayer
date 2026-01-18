@@ -43,6 +43,7 @@ import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -75,7 +76,11 @@ fun AlbumDetailScreen(
     var showSortDialog by remember { mutableStateOf(false) }
     var songForInfo by remember { mutableStateOf<Song?>(null) }
     var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     val context = LocalContext.current
+    val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -93,7 +98,12 @@ fun AlbumDetailScreen(
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
+        onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtist,
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
+        },
         onShowSongInfo = { song ->
             songForInfo = song
         },
@@ -204,6 +214,22 @@ fun AlbumDetailScreen(
         SongInfoDialog(
             song = song,
             onDismiss = { songForInfo = null }
+        )
+    }
+
+    // Add to Playlist Dialog
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
         )
     }
 
