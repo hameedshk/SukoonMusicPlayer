@@ -1,5 +1,5 @@
 ﻿param(
-    [switch]$FullBuild = $true,
+    [switch]$FullBuild = $false,
 	[string]$PhoneIP = "192.168.0.140"
 )
 
@@ -7,20 +7,32 @@
 $APP_ID="com.sukoon.music"
 $MAIN_ACTIVITY=".MainActivity"
 $STATE_FILE=".last_successful_commit"
-
-$ADB_PORT=5555
 $PAIR_TIMEOUT   = 60   # seconds
 
-
-function Is-Device-Connected {
+# -------- DEVICE STATUS --------
+function Get-Device-Status {
     $devices = adb devices
-    return ($devices | Select-String "_adb")
+
+    foreach ($line in $devices) {
+        if ($line -match "List of devices") { continue }
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+
+        $parts = $line -split "\s+"
+        if ($parts.Length -ge 2) {
+            switch ($parts[1]) {
+                "device"       { return "ONLINE" }
+                "offline"      { return "OFFLINE" }
+                "unauthorized" { return "UNAUTHORIZED" }
+            }
+        }
+    }
+    return "NONE"
 }
 
 
+# -------- PAIRING DISCOVERY --------
 function Get-PairingPort {
     $services = adb mdns services
-
     foreach ($line in $services) {
         if ($line -match "_adb-pairing\._tcp\." -and $line -match ":(\d+)") {
             return $matches[1]
@@ -33,71 +45,83 @@ function Get-PairingPort {
 function Wait-For-PairingService {
     Write-Host ""
     Write-Host "🔐 ACTION REQUIRED ON PHONE" -ForegroundColor Yellow
-    Write-Host "------------------------------------------------"
+    Write-Host "--------------------------------------------"
     Write-Host "1. Open Settings → Developer Options"
     Write-Host "2. Open Wireless Debugging"
     Write-Host "3. Tap 'Pair device with pairing code'"
-    Write-Host "4. Keep this screen OPEN"
-    Write-Host "------------------------------------------------"
+    Write-Host "4. KEEP THIS SCREEN OPEN"
+    Write-Host "--------------------------------------------"
     Write-Host ""
 
     $elapsed = 0
     while ($elapsed -lt $PAIR_TIMEOUT) {
+        adb start-server | Out-Null
         $pairingPort = Get-PairingPort
-        if ($pairingPort) {
-            return $pairingPort
-        }
-        Start-Sleep -Seconds 2
-        $elapsed += 2
+        if ($pairingPort) { return $pairingPort }
+
+        Start-Sleep -Seconds 3
+        $elapsed += 3
     }
 
-    Write-Error "❌ Pairing service not detected within $PAIR_TIMEOUT seconds."
+    Write-Error "❌ Pairing service not detected. Toggle Wireless Debugging and retry."
     exit 1
 }
 
 
 function Pair-Device {
     $pairingPort = Wait-For-PairingService
+    $pairCode = Read-Host "Enter 6-digit pairing code"
 
-    Write-Host "🔐 Pairing service detected on port $pairingPort" -ForegroundColor Cyan
-    $pairCode = Read-Host "Enter the 6-digit pairing code shown on phone"
-
-    adb pair "${PhoneIP}:${pairingPort}" $pairCode
+    adb pair "localhost:$pairingPort" $pairCode
 
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "❌ Pairing failed. Code may be wrong or expired."
+        Write-Error "❌ Pairing failed. Code expired or incorrect."
         exit 1
     }
 
-    Write-Host "✅ Pairing successful (this is required only once)" -ForegroundColor Green
+    Write-Host "✅ Pairing successful (one-time)" -ForegroundColor Green
 }
 
 
-function Connect-Device {
-    adb connect "${PhoneIP}:${ADB_PORT}" | Out-Null
-    Start-Sleep -Seconds 2
+# -------- MAIN FLOW --------
 
-    if (-not (Is-Device-Connected)) {
-        Write-Error "❌ Device not connected after pairing"
+Write-Host "📱 Starting adb..." -ForegroundColor Cyan
+adb start-server | Out-Null
+Start-Sleep -Seconds 2
+
+$status = Get-Device-Status
+
+switch ($status) {
+
+    "ONLINE" {
+        Write-Host "✅ Device already connected via wireless TLS" -ForegroundColor Green
+        # DO NOTHING — connection is valid
+    }
+
+    "OFFLINE" {
+        Write-Error @"
+⚠️ Device is OFFLINE.
+
+Fix on phone:
+• Unlock screen
+• Toggle Wi-Fi once
+• Toggle Wireless Debugging OFF → ON
+
+Do NOT pair in this state.
+"@
         exit 1
     }
 
-    Write-Host "🚀 Device connected via wireless ADB" -ForegroundColor Green
-}
+    "UNAUTHORIZED" {
+        Write-Error "🔐 Accept debugging authorization on phone"
+        exit 1
+    }
 
-
-# ---------------- MAIN FLOW ----------------
-
-Write-Host ""
-Write-Host "📱 Checking ADB connection..." -ForegroundColor Cyan
-
-if (Is-Device-Connected) {
-    Write-Host "✅ Device already paired & connected (auto-reuse keys)" -ForegroundColor Green
-}
-else {
-    Write-Host "⚠️ Device not connected. Pairing required." -ForegroundColor Yellow
-    Pair-Device
-    Connect-Device
+    "NONE" {
+        Write-Host "❌ No device detected"
+        Write-Host "🔐 Pairing required" -ForegroundColor Yellow
+        Pair-Device
+    }
 }
 
 $needsBuild = $false

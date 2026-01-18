@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -65,6 +67,8 @@ class MainActivity : ComponentActivity() {
                 initialValue = com.sukoon.music.domain.model.UserPreferences()
             )
 
+            android.util.Log.d("MainActivity", "userPreferences.hasCompletedOnboarding = ${userPreferences.hasCompletedOnboarding}")
+
             // Determine dark theme based on user preference
             val darkTheme = when (userPreferences.theme) {
                 AppTheme.LIGHT -> false
@@ -84,11 +88,17 @@ class MainActivity : ComponentActivity() {
                 permission
             ) == PermissionChecker.PERMISSION_GRANTED
 
-            // Determine start destination: show onboarding if permission not granted or not completed
-            val startDestination = if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
-                Routes.Home.route
-            } else {
-                Routes.Onboarding.route
+            android.util.Log.d("MainActivity", "hasActualPermission = $hasActualPermission")
+
+            // Determine initial start destination on first app launch only
+            val startDestination = remember(userPreferences.hasCompletedOnboarding, hasActualPermission) {
+                val destination = if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
+                    Routes.Home.route
+                } else {
+                    Routes.Onboarding.route
+                }
+                android.util.Log.d("MainActivity", "startDestination = $destination")
+                destination
             }
 
             SukoonMusicPlayerTheme(
@@ -96,6 +106,17 @@ class MainActivity : ComponentActivity() {
                 dynamicColor = false
             ) {
                 val navController = rememberNavController()
+
+                // Navigate away from Onboarding if preferences indicate completion
+                LaunchedEffect(userPreferences.hasCompletedOnboarding, hasActualPermission) {
+                    if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
+                        if (navController.currentDestination?.route == Routes.Onboarding.route) {
+                            navController.navigate(Routes.Home.route) {
+                                popUpTo(Routes.Onboarding.route) { inclusive = true }
+                            }
+                        }
+                    }
+                }
 
                 // Observe current route for ad reload trigger
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()

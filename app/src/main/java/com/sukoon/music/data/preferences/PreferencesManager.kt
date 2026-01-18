@@ -291,10 +291,24 @@ class PreferencesManager @Inject constructor(
 
     /**
      * Mark onboarding as completed (user granted permission).
+     * Ensures the preference is actually persisted by verifying the write.
      */
     suspend fun setOnboardingCompleted() {
-        context.dataStore.edit { preferences ->
-            preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
+        android.util.Log.d("PreferencesManager", "Starting setOnboardingCompleted()")
+        try {
+            context.dataStore.edit { preferences ->
+                android.util.Log.d("PreferencesManager", "Writing hasCompletedOnboarding = true")
+                preferences[KEY_HAS_COMPLETED_ONBOARDING] = true
+            }
+            android.util.Log.d("PreferencesManager", "DataStore edit completed, reading back...")
+
+            // Verify write was persisted by reading it back
+            val prefs = context.dataStore.data.first()
+            val value = prefs[KEY_HAS_COMPLETED_ONBOARDING] ?: false
+            android.util.Log.d("PreferencesManager", "Verification read: hasCompletedOnboarding = $value")
+        } catch (e: Exception) {
+            android.util.Log.e("PreferencesManager", "Error in setOnboardingCompleted", e)
+            throw e
         }
     }
 

@@ -3,8 +3,10 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
@@ -62,235 +64,241 @@ fun OnboardingScreen(
         onPermissionDenied = {}
     )
 
-    Box(
+    val scrollState = rememberScrollState()
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background),
-        contentAlignment = Alignment.Center
+            .background(MaterialTheme.colorScheme.background)
+            .verticalScroll(scrollState)
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
     ) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // App branding
+        Text(
+            text = "Sukoon",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Offline Music Player",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
+
+        // Symbol image
+        Image(
+            painter = painterResource(R.drawable.symbol),
+            contentDescription = "Sukoon Music Player",
+            modifier = Modifier
+                .size(180.dp)
+                .padding(bottom = 24.dp),
+            contentScale = ContentScale.Fit
+        )
+
+        // Metadata tags
+        Text(
+            text = "Offline • Private • On-device",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Normal,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 32.dp, top = 12.dp)
+        )
+
+        // Step 1: Permission
         Column(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
         ) {
-            // App branding
             Text(
-                text = "Sukoon",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                textAlign = TextAlign.Center
+                text = "Step 1: Find Your Music",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
-                text = "Offline Music Player",
-                fontSize = 12.sp,
+                text = "To play your offline songs, Sukoon needs permission to access your device library.",
+                fontSize = 14.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
-
-            // Symbol image
-            Image(
-                painter = painterResource(R.drawable.symbol),
-                contentDescription = "Sukoon Music Player",
-                modifier = Modifier
-                    .size(180.dp)
-                    .padding(bottom = 24.dp),
-                contentScale = ContentScale.Fit
-            )
-
-            // Metadata tags
-            Text(
-                text = "Offline • Private • On-device",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(bottom = 32.dp)
-            )
-
-            // Step 1: Permission
-            Column(
+            
+            Button(
+                onClick = { permissionState.requestPermission() },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 16.dp)
+                    .height(48.dp),
+                enabled = !permissionState.hasPermission,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary
+                )
             ) {
                 Text(
-                    text = "Step 1: Find Your Music",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "To play your offline songs, Sukoon needs permission to access your device library.",
+                    text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
                     fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+                    fontWeight = FontWeight.SemiBold
                 )
+            }
 
-                Button(
-                    onClick = { permissionState.requestPermission() },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(48.dp),
-                    enabled = !permissionState.hasPermission,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
+            Text(
+                text = "*This is required to load your music",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Step 2: Username (Optional)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp)
+        ) {
+            Text(
+                text = "Step 2: Personalize Your Library",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "What name should we use for your playlists and greetings?",
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
+            )
+
+            TextField(
+                value = username,
+                onValueChange = { newValue ->
+                    // Only allow alphabets, limit to 10 characters
+                    val filtered = newValue.filter { it.isLetter() }
+                    if (filtered.length <= 10) {
+                        username = filtered
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                placeholder = {
                     Text(
-                        text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.SemiBold
+                        "Your name",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
+                },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                shape = RoundedCornerShape(12.dp),
+                isError = usernameError.isNotEmpty(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedIndicatorColor = if (usernameError.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
+                    errorIndicatorColor = MaterialTheme.colorScheme.error
+                )
+            )
 
+            // Error message or info text
+            if (usernameError.isNotEmpty()) {
                 Text(
-                    text = "*This is required to load your music",
+                    text = usernameError,
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 8.dp)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Step 2: Username (Optional)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp)
-            ) {
-                Text(
-                    text = "Step 2: Personalize Your Library",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = "What name should we use for your playlists and greetings?",
-                    fontSize = 14.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
-                )
-
-                TextField(
-                    value = username,
-                    onValueChange = { newValue ->
-                        // Only allow alphabets, limit to 10 characters
-                        val filtered = newValue.filter { it.isLetter() }
-                        if (filtered.length <= 10) {
-                            username = filtered
-                        }
-                    },
+            } else {
+                if (username.isNotEmpty()) {
+                    Text(
+                        text = "Display name: $displayUsername",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    placeholder = {
-                        Text(
-                            "Your name",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    shape = RoundedCornerShape(12.dp),
-                    isError = usernameError.isNotEmpty(),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        focusedIndicatorColor = if (usernameError.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                        errorIndicatorColor = MaterialTheme.colorScheme.error
+                        .padding(top = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                )
-
-                // Error message or info text
-                if (usernameError.isNotEmpty()) {
                     Text(
-                        text = usernameError,
+                        text = "Your name is only stored locally on the device",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(top = 8.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
-                } else {
-                    if (username.isNotEmpty()) {
-                        Text(
-                            text = "Display name: $displayUsername",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(top = 8.dp),
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "Your name is only stored locally on the device",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 8.dp)
-                        )
-                    }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-            // Start Listening Button
-            Button(
-                onClick = {
-                    scope.launch {
+        // Start Listening Button
+        Button(
+            onClick = {
+                scope.launch {
+                    try {
                         // Mark onboarding as complete first
                         preferencesManager.setOnboardingCompleted()
                         // Save username in CamelCase if provided
                         if (username.isNotBlank()) {
                             preferencesManager.setUsername(displayUsername)
                         }
-                        // Wait a bit to ensure DataStore persists before navigating
-                        kotlinx.coroutines.delay(100)
+                        // Critical: Wait longer to ensure DataStore actually persists to disk
+                        kotlinx.coroutines.delay(1000)
+                        onOnboardingComplete()
+                    } catch (e: Exception) {
+                        // Log error but still navigate
+                        android.util.Log.e("OnboardingScreen", "Error saving preferences", e)
                         onOnboardingComplete()
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                enabled = permissionState.hasPermission && isUsernameValid,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-                )
-            ) {
-                Text(
-                    text = "Start Listening",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
-
-            Text(
-                text = "Both steps must be completed to use app",
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp)
+                }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp),
+            enabled = permissionState.hasPermission && isUsernameValid,
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
             )
-
-            Spacer(modifier = Modifier.height(24.dp))
+        ) {
+            Text(
+                text = "Start Listening",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold
+            )
         }
+
+        Text(
+            text = "Grant permission is mandatory to use app",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
