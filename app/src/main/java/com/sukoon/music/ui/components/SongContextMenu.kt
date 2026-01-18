@@ -113,7 +113,7 @@ fun SongContextMenu(
                     isLiked = song.isLiked,
                     songId = song.id,
                     onClick = {
-                        menuHandler.handleToggleLike(song)
+                        menuHandler.handleToggleLike(song, song.isLiked)
                     }
                 )
                 UtilityIconButton(
@@ -292,10 +292,11 @@ private fun OptionItem(
     onClick: () -> Unit
 ) {
     Surface(
-        onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
+            .clickable(onClick = onClick),
+        color = Color.Transparent
     ) {
         Row(
             modifier = Modifier

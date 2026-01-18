@@ -31,6 +31,7 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
+import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
 /**
  * Smart Playlist Detail Screen - Shows songs in a smart playlist.
@@ -43,7 +44,8 @@ fun SmartPlaylistDetailScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToArtistDetail: (Long) -> Unit = {},
-    viewModel: SmartPlaylistViewModel = hiltViewModel()
+    viewModel: SmartPlaylistViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     // Parse smart playlist type
     val playlistType = try {
@@ -62,6 +64,8 @@ fun SmartPlaylistDetailScreen(
     val context = LocalContext.current
     var songToDelete by remember { mutableStateOf<Song?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
 
     val title = SmartPlaylist.getDisplayName(playlistType)
 
@@ -83,6 +87,10 @@ fun SmartPlaylistDetailScreen(
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
+        },
         onShare = shareHandler,
         onShowDeleteConfirmation = { song -> songToDelete = song },
         onShowSongInfo = { song -> showInfoForSong = song }
@@ -154,6 +162,23 @@ fun SmartPlaylistDetailScreen(
         SongInfoDialog(
             song = song,
             onDismiss = { showInfoForSong = null }
+        )
+    }
+
+    // Add to Playlist Dialog
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
         )
     }
 }

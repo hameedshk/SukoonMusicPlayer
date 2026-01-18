@@ -77,8 +77,8 @@ class SongMenuHandler(
         onNavigateToArtist(artistId)
     }
 
-    fun handleToggleLike(song: Song) {
-        onToggleLike(song.id, song.isLiked)
+    fun handleToggleLike(song: Song, isLiked: Boolean) {
+        onToggleLike(song.id, isLiked)
     }
 
     fun handleShare(song: Song) {

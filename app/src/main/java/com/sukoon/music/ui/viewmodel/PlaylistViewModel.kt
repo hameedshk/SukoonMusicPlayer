@@ -438,4 +438,19 @@ class PlaylistViewModel @Inject constructor(
             playlistRepository.clearTrash()
         }
     }
+
+    // ============================================
+    // SONG ACTIONS
+    // ============================================
+
+    /**
+     * Toggle like/favorite status for a song.
+     * @param songId ID of the song to toggle
+     * @param isCurrentlyLiked Current like status (to know what state to set)
+     */
+    fun toggleLike(songId: Long, isCurrentlyLiked: Boolean) {
+        viewModelScope.launch {
+            songRepository.updateLikeStatus(songId, !isCurrentlyLiked)
+        }
+    }
 }

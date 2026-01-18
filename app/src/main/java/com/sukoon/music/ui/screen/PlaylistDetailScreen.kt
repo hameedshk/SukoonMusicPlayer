@@ -119,7 +119,8 @@ fun PlaylistDetailScreen(
                 },
                 onNavigateToAlbum = onNavigateToAlbum,
                 onNavigateToArtist = onNavigateToArtist,
-                modifier = Modifier.padding(paddingValues)
+                modifier = Modifier.padding(paddingValues),
+                viewModel = viewModel
             )
         }
 
@@ -153,11 +154,14 @@ private fun PlaylistDetailContent(
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
     modifier: Modifier = Modifier,
-    viewModel: PlaylistViewModel = hiltViewModel()
+    viewModel: PlaylistViewModel
 ) {
     var showAddSongsDialog by remember { mutableStateOf(false) }
     val availableSongs by viewModel.songsNotInPlaylist.collectAsStateWithLifecycle()
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songForInfo by remember { mutableStateOf<Song?>(null) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Delete result launcher
@@ -180,7 +184,15 @@ private fun PlaylistDetailContent(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToArtist = onNavigateToArtist,
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
+        },
+        onShowSongInfo = { song -> songForInfo = song },
         onShowDeleteConfirmation = { song -> songToDelete = song },
+        onToggleLike = { songId, isLiked ->
+            viewModel.toggleLike(songId, isLiked)
+        },
         onShare = shareHandler
     )
 
@@ -255,6 +267,31 @@ private fun PlaylistDetailContent(
                 }
             },
             onDismiss = { songToDelete = null }
+        )
+    }
+
+    // Song Info Dialog
+    songForInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songForInfo = null }
+        )
+    }
+
+    // Add to Playlist Dialog
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        val allPlaylists by viewModel.playlists.collectAsStateWithLifecycle()
+        AddToPlaylistDialog(
+            playlists = allPlaylists,
+            onPlaylistSelected = { playlistId ->
+                viewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
         )
     }
 }
