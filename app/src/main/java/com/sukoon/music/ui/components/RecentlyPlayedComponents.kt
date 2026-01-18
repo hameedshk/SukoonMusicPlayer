@@ -55,7 +55,7 @@ fun <T> RecentlyPlayedSection(
                 Icon(
                     imageVector = Icons.Default.History,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
@@ -86,6 +86,13 @@ fun <T> RecentlyPlayedSection(
                 itemContent(items[index]) { onItemClick(items[index]) }
             }
         }
+
+        Spacer(modifier = Modifier.height(SpacingLarge))
+        Divider(
+            modifier = Modifier.padding(horizontal = SpacingLarge),
+            color = MaterialTheme.colorScheme.outlineVariant,
+            thickness = 1.dp
+        )
     }
 }
 
@@ -172,12 +179,12 @@ fun RecentlyPlayedSongCard(
                     ) {
                         Surface(
                             shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface
+                            color = MaterialTheme.colorScheme.surfaceVariant
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
                                 contentDescription = "Play",
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .padding(8.dp)
                                     .size(20.dp)

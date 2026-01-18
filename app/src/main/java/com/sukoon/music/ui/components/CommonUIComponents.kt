@@ -154,9 +154,9 @@ internal fun TabPills(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 8.dp)
+        contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         items(
             count = tabs.size,
@@ -171,20 +171,20 @@ internal fun TabPills(
                     .clickable { onTabSelected(tab) },
                 shape = PillShape,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = if (isSelected) 4.dp else 0.dp,
-                shadowElevation = if (isSelected) 2.dp else 0.dp
+                tonalElevation = 0.dp,
+                shadowElevation = 0.dp
             ) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = tab,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if (isSelected) Color.White
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
