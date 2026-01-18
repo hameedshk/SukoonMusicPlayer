@@ -860,7 +860,7 @@ private fun CompactLyricsNotAvailable() {
  * C. TrackMetadataSection - Displays song title and artist name.
  * Title: 18sp SemiBold, lineHeight 22sp, 1 line with ellipsis
  * Artist: 13sp Normal, 70% opacity, 1 line with ellipsis
- * Internal spacing: 4dp (compact Spotify-style, proportional for all text lengths)
+ * Internal spacing: 4dp (compact S-style, proportional for all text lengths)
  * Width: 95% to prevent edge clipping on long text
  */
 @Composable

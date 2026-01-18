@@ -22,7 +22,7 @@ import com.sukoon.music.domain.model.Song
 
 /**
  * Hybrid Bottom Sheet context menu for a Song.
- * Combines Spotify's scannability with offline-first utility.
+ * Combines S's scannability with offline-first utility.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

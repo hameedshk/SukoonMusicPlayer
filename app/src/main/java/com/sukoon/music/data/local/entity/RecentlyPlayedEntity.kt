@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 /**
  * Entity for tracking recently played songs.
- * Used to display the "Recently Played" 2x3 grid on the Home screen (Spotify-style).
+ * Used to display the "Recently Played" 2x3 grid on the Home screen (S-style).
  *
  * Design:
  * - Each time a song is played (not just started, but actually listened to for a significant duration),

@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
 private val DarkColorScheme = darkColorScheme(
-    // Brand colors - Spotify green
+    // Brand colors - S green
     primary = androidx.compose.ui.graphics.Color(0xFF1DB954),
     primaryContainer = androidx.compose.ui.graphics.Color(0xFF1AA34A),
     onPrimary = androidx.compose.ui.graphics.Color(0xFF000000),
@@ -33,7 +33,7 @@ private val DarkColorScheme = darkColorScheme(
     onTertiary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
     onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
 
-    // Background and surfaces - Spotify flat dark (#121212 base, minimal elevation)
+    // Background and surfaces - S flat dark (#121212 base, minimal elevation)
     background = androidx.compose.ui.graphics.Color(0xFF121212),
     onBackground = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
 

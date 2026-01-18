@@ -4,7 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -21,7 +23,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -76,6 +81,16 @@ fun SongsScreen(
                 song.album.contains(searchQuery, ignoreCase = true)
             }
     }
+
+    // Get available letters from filtered songs
+    val availableLetters = remember(filteredSongs) {
+        filteredSongs
+            .mapNotNull { it.title.firstOrNull()?.uppercaseChar() }
+            .distinct()
+            .sorted()
+    }
+
+    val lazyListState = rememberLazyListState()
 
     Scaffold(
         topBar = {
@@ -137,30 +152,46 @@ fun SongsScreen(
                 }
             }
         } else {
-            // Songs List
-            LazyColumn(
+            // Songs List with Alphabetical Index
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(vertical = 8.dp)
+                    .padding(paddingValues)
             ) {
-                items(
-                    items = filteredSongs,
-                    key = { it.id }
-                ) { song ->
-                    val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
-                    val index = songs.indexOf(song)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 8.dp, end = 24.dp),
+                    state = lazyListState
+                ) {
+                    items(
+                        items = filteredSongs,
+                        key = { it.id }
+                    ) { song ->
+                        val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
+                        val index = songs.indexOf(song)
 
-                    SongListItem(
-                        song = song,
-                        isPlaying = isPlaying,
-                        menuHandler = menuHandler,
-                        onClick = {
-                            viewModel.playQueue(songs, index)
-                        },
-                        onLikeClick = {
-                            viewModel.toggleLike(song.id, song.isLiked)
-                        }
+                        SongListItem(
+                            song = song,
+                            isPlaying = isPlaying,
+                            menuHandler = menuHandler,
+                            onClick = {
+                                viewModel.playQueue(songs, index)
+                            },
+                            onLikeClick = {
+                                viewModel.toggleLike(song.id, song.isLiked)
+                            }
+                        )
+                    }
+                }
+
+                // Alphabetical Index on the Right
+                if (availableLetters.isNotEmpty()) {
+                    AlphabeticalIndex(
+                        letters = availableLetters,
+                        songs = filteredSongs,
+                        lazyListState = lazyListState,
+                        modifier = Modifier.align(Alignment.CenterEnd)
                     )
                 }
             }
@@ -358,5 +389,51 @@ private fun SongListItem(
             menuHandler = menuHandler,
             onDismiss = { showMenu = false }
         )
+    }
+}
+
+/**
+ * Alphabetical index for quick navigation through song list.
+ */
+@Composable
+private fun AlphabeticalIndex(
+    letters: List<Char>,
+    songs: List<Song>,
+    lazyListState: LazyListState,
+    modifier: Modifier = Modifier
+) {
+    val coroutineScope = rememberCoroutineScope()
+
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .width(24.dp)
+            .padding(vertical = 8.dp, horizontal = 4.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        letters.forEach { letter ->
+            Text(
+                text = letter.toString(),
+                modifier = Modifier
+                    .size(18.dp)
+                    .clickable {
+                        coroutineScope.launch {
+                            // Find first song starting with this letter
+                            val index = songs.indexOfFirst {
+                                it.title.firstOrNull()?.uppercaseChar() == letter
+                            }
+                            if (index >= 0) {
+                                lazyListState.scrollToItem(index)
+                            }
+                        }
+                    },
+                style = MaterialTheme.typography.labelSmall,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
+        }
     }
 }

@@ -812,7 +812,7 @@ private fun AboutDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "An offline-only local music player with Spotify-like experience.",
+                    text = "An offline-only local music player with best experience.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface
                 )

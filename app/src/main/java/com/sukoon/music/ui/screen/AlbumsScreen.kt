@@ -48,7 +48,7 @@ import com.sukoon.music.ui.screen.albums.*
  * Albums Screen - Shows all albums in a grid view.
  *
  * Features:
- * - 2-column grid layout (Spotify-style)
+ * - 2-column grid layout (S-style)
  * - Album cards with cover art, title, artist, and song count
  * - Context menu for play/shuffle options
  * - Empty state when no albums exist

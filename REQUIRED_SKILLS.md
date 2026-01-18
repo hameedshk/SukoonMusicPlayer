@@ -1,5 +1,5 @@
 # Required Skills - Sukoon Music Player
-*Offline-only Spotify replica with advanced audio features*
+*Offline-only S replica with advanced audio features*
 
 ## 🎯 Critical Core Skills (MANDATORY)
 

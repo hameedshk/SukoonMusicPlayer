@@ -1,7 +1,7 @@
 # Project: Sukoon Music Player
 
 ## 🎯 Project Overview
-An exact offline-only replica of the Spotify Android experience. The application focuses on local media discovery, high-fidelity UI replication, and background playback stability without internet dependency.
+An exact offline-only replica of the S Android experience. The application focuses on local media discovery, high-fidelity UI replication, and background playback stability without internet dependency.
 - **App Name:** Sukoon Music Player
 - **Package Name:** com.sukoon.music
 - **Version:** 1.0.0
@@ -74,7 +74,7 @@ An exact offline-only replica of the Spotify Android experience. The application
 - **Recently Played**: Auto-logging via MediaController listener
 - **Private Session Mode**: Respects privacy flag to disable history tracking
 - **Database**: RecentlyPlayedEntity with timestamp, keeps last 50 plays
-- **UI**: 2x3 grid on HomeScreen (Spotify-style Bento layout)
+- **UI**: 2x3 grid on HomeScreen (S-style Bento layout)
 
 #### Settings & Preferences
 - **DataStore Integration**: All 14 user preferences persisted reactively
@@ -262,9 +262,9 @@ An exact offline-only replica of the Spotify Android experience. The application
 ### State Management
 - Use `StateFlow` and `collectAsStateWithLifecycle` in Compose.
 
-## 🎨 Visual Standards (The Spotify Look)
+## 🎨 Visual Standards (The S Look)
 
-- **Color Strategy:** Base palette mirrors Spotify dark theme.
+- **Color Strategy:** Base palette mirrors S dark theme.
 	-Final surfaces adapt via Material 3 dynamic colors with contrast guarantees.
 - **Typography:** Sans-serif (Circular-style spacing). Headers 24sp Bold.
 - **Home Layout:** Must feature the 2x3 "Recently Played" grid at the top.
@@ -276,7 +276,7 @@ An exact offline-only replica of the Spotify Android experience. The application
 - **Workflow:** Always run `./gradlew lint` after logic changes.
 
 ### [UX Designer]
-- **Focus:** Exact pixel replication of Spotify Android UI. 
+- **Focus:** Exact pixel replication of S Android UI. 
 - **Requirement:** Every UI change must include a `@Preview` function.
 
 ### [Marketing Specialist]

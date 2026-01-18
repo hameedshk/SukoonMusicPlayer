@@ -10,7 +10,7 @@ Add selection mode UI and recently played albums to AlbumsScreen, reusing existi
    - 3-dot menu → Bottom sheet with 7 actions (a2 snapshot):
      - Play, Play next, Add to queue, Add to playlist
      - Edit tags, Change cover, Delete from device
-3. **Selection Mode** - Icon next to sort triggers multi-select (like Spotify a4)
+3. **Selection Mode** - Icon next to sort triggers multi-select (like S a4)
 4. **Selection Actions** - Bottom bar: Play | Add to playlist | Delete | More
 5. **Add to Playlist** - Bottom sheet dialog (reuse AddToPlaylistDialog)
 
