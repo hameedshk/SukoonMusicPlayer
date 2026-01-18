@@ -67,8 +67,6 @@ class MainActivity : ComponentActivity() {
                 initialValue = com.sukoon.music.domain.model.UserPreferences()
             )
 
-            android.util.Log.d("MainActivity", "userPreferences.hasCompletedOnboarding = ${userPreferences.hasCompletedOnboarding}")
-
             // Determine dark theme based on user preference
             val darkTheme = when (userPreferences.theme) {
                 AppTheme.LIGHT -> false
@@ -88,17 +86,13 @@ class MainActivity : ComponentActivity() {
                 permission
             ) == PermissionChecker.PERMISSION_GRANTED
 
-            android.util.Log.d("MainActivity", "hasActualPermission = $hasActualPermission")
-
             // Determine initial start destination on first app launch only
             val startDestination = remember(userPreferences.hasCompletedOnboarding, hasActualPermission) {
-                val destination = if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
+                if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
                     Routes.Home.route
                 } else {
                     Routes.Onboarding.route
                 }
-                android.util.Log.d("MainActivity", "startDestination = $destination")
-                destination
             }
 
             SukoonMusicPlayerTheme(
