@@ -95,10 +95,13 @@ fun AlbumDetailScreen(
         songPendingDeletion = null
     }
 
+    // Share handler
+    val shareHandler = rememberShareHandler()
+
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onNavigateToAlbum = onNavigateToAlbumDetail,
+        onNavigateToAlbum = { /* Already on album detail, skip navigation */ },
         onNavigateToArtist = onNavigateToArtist,
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
@@ -112,7 +115,8 @@ fun AlbumDetailScreen(
         },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)
-        }
+        },
+        onShare = shareHandler
     )
 
     Scaffold(

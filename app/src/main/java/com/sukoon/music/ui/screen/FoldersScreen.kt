@@ -81,6 +81,9 @@ fun FoldersScreen(
 
     var folderToDelete by remember { mutableStateOf<Long?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songForInfo by remember { mutableStateOf<Song?>(null) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -155,7 +158,17 @@ fun FoldersScreen(
                     playbackRepository = viewModel.playbackRepository,
                     onNavigateToAlbum = onNavigateToAlbum,
                     onNavigateToArtist = onNavigateToArtist,
+                    onShowPlaylistSelector = { song ->
+                        songToAddToPlaylist = song
+                        showAddToPlaylistDialog = true
+                    },
+                    onShowSongInfo = { song ->
+                        songForInfo = song
+                    },
                     onShowDeleteConfirmation = { song -> songToDelete = song },
+                    onToggleLike = { songId, isLiked ->
+                        viewModel.toggleLike(songId, isLiked)
+                    },
                     onShare = shareHandler
                 ),
                 onNavigateToNowPlaying = onNavigateToNowPlaying
@@ -164,7 +177,31 @@ fun FoldersScreen(
         }
     }
 
-    // Add to playlist dialog
+    // Song Info Dialog
+    songForInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songForInfo = null }
+        )
+    }
+
+    // Add to Playlist Dialog (for songs)
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
+        )
+    }
+
+    // Add to playlist dialog (for folders)
     if (selectedFolderForPlaylist != null) {
         AddToPlaylistDialog(
             playlists = playlists,
