@@ -93,25 +93,40 @@ Do NOT pair in this state.
 $needsBuild = $false
 
 if ($FullBuild) {
-    Write-Host "FullBuild flag passed : forcing installDebug"
+    Write-Host "🔄 FullBuild flag passed : forcing installDebug" -ForegroundColor Cyan
     $needsBuild = $true
 }
 elseif (!(Test-Path $STATE_FILE)) {
-    Write-Host "First run : full build required"
+    Write-Host "🆕 First run : full build required" -ForegroundColor Cyan
     $needsBuild = $true
 }
 else {
+    # Check for committed changes
     $LAST_COMMIT = Get-Content $STATE_FILE
-    $changedFiles = git diff --name-only $LAST_COMMIT HEAD
+    $committedChanges = git diff --name-only $LAST_COMMIT HEAD
 
-    foreach ($file in $changedFiles) {
+    # Check for uncommitted changes (staged + unstaged)
+    $uncommittedChanges = git status --porcelain | ForEach-Object { $_.Substring(3) }
+
+    # Combine both
+    $allChanges = @($committedChanges) + @($uncommittedChanges) | Where-Object { $_ }
+
+    if ($allChanges.Count -gt 0) {
+        Write-Host "📝 Detected changes:" -ForegroundColor Yellow
+        foreach ($file in $allChanges) {
+            Write-Host "   • $file" -ForegroundColor Gray
+        }
+    }
+
+    foreach ($file in $allChanges) {
         if (
             $file -match "AndroidManifest.xml" -or
             $file -match "^app/src/main/res/" -or
-			$file -match "^app/src/main/java/" -or
+			#$file -match "^app/src/main/java/" -or
             $file -match "build.gradle" -or
             $file -match "google-services.json"
         ) {
+            Write-Host "⚡ Build-critical file changed: $file" -ForegroundColor Yellow
             $needsBuild = $true
             break
         }
@@ -119,10 +134,38 @@ else {
 }
 
 if ($needsBuild) {
-    Write-Host "Running full build (installDebug)"
-    ./gradlew installDebug --daemon
+    Write-Host "🔨 Running full build..." -ForegroundColor Cyan
+
+    # Clean build cache
+    Write-Host "🧹 Cleaning build cache..." -ForegroundColor Cyan
+    ./gradlew clean
+
+    # Assemble fresh APK
+    Write-Host "📦 Building APK..." -ForegroundColor Cyan
+    ./gradlew assembleDebug
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Build failed" -ForegroundColor Red
+        exit 1
+    }
+
+    # Uninstall old APK
+    Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
+    adb uninstall $APP_ID | Out-Null
+    Start-Sleep -Seconds 1
+
+    # Install fresh APK
+    Write-Host "📥 Installing fresh APK..." -ForegroundColor Cyan
+    adb install "app/build/outputs/apk/debug/app-debug.apk"
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Installation failed" -ForegroundColor Red
+        exit 1
+    }
+
+    Write-Host "✅ Installation successful" -ForegroundColor Green
 } else {
-    Write-Host "Code-only changes : fast restart"
+    Write-Host "⚡ Code-only changes : fast restart" -ForegroundColor Cyan
 }
 
 adb shell am force-stop $APP_ID
