@@ -56,22 +56,26 @@ class AlbumDetailViewModel @Inject constructor(
     val albumSongs: StateFlow<List<Song>> = combine(
         _albumId,
         _sortMode
-    ) { id, sortMode ->
-        if (id == -1L) emptyList()
-        else {
-            val songs = songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            when (sortMode) {
-                AlbumSongSortMode.TRACK_NUMBER -> songs // Keep original order (usually track number)
-                AlbumSongSortMode.TITLE -> songs.sortedBy { it.title.lowercase() }
-                AlbumSongSortMode.ARTIST -> songs.sortedBy { it.artist.lowercase() }
-                AlbumSongSortMode.DURATION -> songs.sortedByDescending { it.duration }
+    ) { id, sortMode -> Pair(id, sortMode) }
+        .flatMapLatest { (id, sortMode) ->
+            if (id == -1L) {
+                flowOf(emptyList())
+            } else {
+                songRepository.getSongsByAlbumId(id).map { songs ->
+                    when (sortMode) {
+                        AlbumSongSortMode.TRACK_NUMBER -> songs // Keep original order (usually track number)
+                        AlbumSongSortMode.TITLE -> songs.sortedBy { it.title.lowercase() }
+                        AlbumSongSortMode.ARTIST -> songs.sortedBy { it.artist.lowercase() }
+                        AlbumSongSortMode.DURATION -> songs.sortedByDescending { it.duration }
+                    }
+                }
             }
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
