@@ -56,14 +56,18 @@ fun SongsScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var sortOrder by remember { mutableStateOf(false) } // false = A-Z, true = Z-A
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
 
     // Share handler
     val shareHandler = rememberShareHandler()
@@ -74,7 +78,7 @@ fun SongsScreen(
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { song -> showInfoForSong = song },
-        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },        
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
@@ -243,6 +247,22 @@ fun SongsScreen(
         SongInfoDialog(
             song = song,
             onDismiss = { showInfoForSong = null }
+        )
+    }
+
+    // Add to playlist dialog
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
         )
     }
 }

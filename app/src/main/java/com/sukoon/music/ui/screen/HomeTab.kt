@@ -1,0 +1,91 @@
+package com.sukoon.music.ui.screen
+
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.sukoon.music.domain.model.Album
+import com.sukoon.music.domain.model.PlaybackState
+import com.sukoon.music.domain.model.SmartPlaylistType
+import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.ActionButtonGrid
+import com.sukoon.music.ui.components.LastAddedSection
+import com.sukoon.music.ui.components.RecentlyPlayedSection
+import com.sukoon.music.ui.components.RecentlyPlayedSongCard
+import com.sukoon.music.ui.components.RediscoverAlbumsSection
+import com.sukoon.music.ui.viewmodel.HomeViewModel
+
+@Composable
+fun HomeTab(
+    songs: List<Song>,
+    recentlyPlayed: List<Song>,
+    rediscoverAlbums: List<Album>,
+    playbackState: PlaybackState,
+    viewModel: HomeViewModel,
+    onNavigateToNowPlaying: () -> Unit,
+    onNavigateToAlbumDetail: (Long) -> Unit,
+    onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
+    onSettingsClick: () -> Unit = {}
+) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 8.dp)
+    ) {
+        item {
+            ActionButtonGrid(
+                onShuffleAllClick = { viewModel.shuffleAll() },
+                onPlayAllClick = { viewModel.playAll() },
+                onScanClick = { viewModel.scanLocalMusic() },
+                onSettingsClick = onSettingsClick
+            )
+        }
+        if (songs.isNotEmpty()) {
+            item {
+                LastAddedSection(
+                    songs = songs,
+                    onSongClick = { song ->
+                        val index = songs.indexOf(song)
+                        if (playbackState.currentSong?.id != song.id) {
+                            viewModel.playQueue(songs, index)
+                        } else {
+                            onNavigateToNowPlaying()
+                        }
+                    },
+                    onHeaderClick = {
+                        onNavigateToSmartPlaylist(SmartPlaylistType.LAST_ADDED)
+                    }
+                )
+            }
+        }
+        if (recentlyPlayed.isNotEmpty()) {
+            item {
+                RecentlyPlayedSection(
+                    items = recentlyPlayed,
+                    onItemClick = { song ->
+                        if (playbackState.currentSong?.id != song.id) {
+                            viewModel.playSong(song)
+                        } else {
+                            onNavigateToNowPlaying()
+                        }
+                    },
+                    onHeaderClick = {
+                        onNavigateToSmartPlaylist(SmartPlaylistType.RECENTLY_PLAYED)
+                    }
+                ) { song, onClick ->
+                    RecentlyPlayedSongCard(song = song, onClick = onClick)
+                }
+            }
+        }
+        if (rediscoverAlbums.isNotEmpty()) {
+            item {
+                RediscoverAlbumsSection(
+                    albums = rediscoverAlbums,
+                    onAlbumClick = onNavigateToAlbumDetail
+                )
+            }
+        }
+    }
+}
