@@ -703,7 +703,8 @@ private fun SongsContent(
     var showSortDialog by remember { mutableStateOf(false) }
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedSongIds by remember { mutableStateOf(setOf<Long>()) }
-    var showMenuForSong by remember { mutableStateOf<Song?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
+    var selectedSongId by remember { mutableStateOf<Long?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
     val scrollState = rememberLazyListState()
@@ -726,16 +727,16 @@ private fun SongsContent(
 
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
-        onShowSongInfo = { song -> showInfoForSong = song },
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
-        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
-        onShare = shareHandler,
-        onShowDeleteConfirmation = { song -> songToDelete = song },
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
-        }
+        },
+        onShowSongInfo = { song -> showInfoForSong = song },
+        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShare = shareHandler
     )
 
     val sortedSongs = remember(songs, sortMode, sortOrder) {
@@ -924,7 +925,10 @@ private fun SongsContent(
                             song = song,
                             isPlaying = isPlaying,
                             onClick = { onSongClick(song, index) },
-                            onMenuClick = { showMenuForSong = song }
+                            onMenuClick = {
+                                showMenu = true
+                                selectedSongId = song.id
+                            }
                         )
                     }
                 }
@@ -1026,12 +1030,15 @@ private fun SongsContent(
         )
     }
 
-    showMenuForSong?.let { song ->
-        SongContextMenu(
-            song = song,
-            menuHandler = menuHandler,
-            onDismiss = { showMenuForSong = null }
-        )
+    if (showMenu && selectedSongId != null) {
+        val freshSong = sortedSongs.find { it.id == selectedSongId }
+        if (freshSong != null) {
+            SongContextMenu(
+                song = freshSong,
+                menuHandler = menuHandler,
+                onDismiss = { showMenu = false }
+            )
+        }
     }
 
     if (showAddToPlaylistDialog && songToAddToPlaylist != null) {

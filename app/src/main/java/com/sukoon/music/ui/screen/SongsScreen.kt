@@ -77,12 +77,12 @@ fun SongsScreen(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToArtist = onNavigateToArtist,
-        onShowSongInfo = { song -> showInfoForSong = song },
-        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
         },
+        onShowSongInfo = { song -> showInfoForSong = song },
+        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
     )
 
