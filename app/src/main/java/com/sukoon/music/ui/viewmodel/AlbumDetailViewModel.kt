@@ -199,4 +199,46 @@ class AlbumDetailViewModel @Inject constructor(
             toggleSelectionMode(false)
         }
     }
+
+    fun playSelectedSongsNext(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playNext(selectedSongs)
+            }
+        }
+    }
+
+    fun addSelectedSongsToQueueBatch(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            selectedSongs.forEach { song ->
+                playbackRepository.addToQueue(song)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun deleteSelectedSongsWithResult(allSongs: List<Song>, context: android.content.Context, onResult: (com.sukoon.music.data.mediastore.DeleteHelper.DeleteResult) -> Unit) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                val result = com.sukoon.music.data.mediastore.DeleteHelper.deleteSongs(
+                    context,
+                    selectedSongs
+                )
+                onResult(result)
+                toggleSelectionMode(false)
+            }
+        }
+    }
 }

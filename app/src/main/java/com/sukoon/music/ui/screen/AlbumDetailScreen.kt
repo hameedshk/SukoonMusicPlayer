@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,6 +45,7 @@ import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -79,6 +81,9 @@ fun AlbumDetailScreen(
     var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
+    var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var songsPendingDeletion by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
@@ -94,6 +99,20 @@ fun AlbumDetailScreen(
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songPendingDeletion = null
+    }
+
+    // Delete launcher for multi-select
+    val multiSelectDeleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadAlbum(albumId)
+            songsPendingDeletion = false
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            songsPendingDeletion = false
+        }
     }
 
     // Share handler
@@ -119,6 +138,73 @@ fun AlbumDetailScreen(
         },
         onShare = shareHandler
     )
+
+    // Playlist Dialog for selected songs
+    if (showPlaylistDialogForSelection) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                songsPendingPlaylistAdd.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                }
+                showPlaylistDialogForSelection = false
+                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                viewModel.toggleSelectionMode(false)
+            },
+            onDismiss = { showPlaylistDialogForSelection = false }
+        )
+    }
+
+    // Delete confirmation dialog for selected songs
+    if (songsPendingDeletion) {
+        AlertDialog(
+            onDismissRequest = { songsPendingDeletion = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text("Delete ${selectedSongIds.size} song(s)?")
+            },
+            text = {
+                Text("These songs will be permanently deleted from your device. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSelectedSongsWithResult(songs, context) { deleteResult ->
+                            when (deleteResult) {
+                                is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                    multiSelectDeleteLauncher.launch(
+                                        IntentSenderRequest.Builder(deleteResult.intentSender).build()
+                                    )
+                                }
+                                is DeleteHelper.DeleteResult.Success -> {
+                                    Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+                                    songsPendingDeletion = false
+                                }
+                                is DeleteHelper.DeleteResult.Error -> {
+                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                    songsPendingDeletion = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songsPendingDeletion = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -161,11 +247,15 @@ fun AlbumDetailScreen(
         },
         bottomBar = {
             if (isSelectionMode && selectedSongIds.isNotEmpty()) {
-                SongSelectionBottomBar(
+                MultiSelectActionBottomBar(
                     onPlay = { viewModel.playSelectedSongs(songs) },
-                    onAddToQueue = { viewModel.addSelectedToQueue(songs) },
-                    onDelete = { viewModel.deleteSelectedSongs() },
-                    onMore = { /* TODO: Show more options */ }
+                    onAddToPlaylist = {
+                        songsPendingPlaylistAdd = songs.filter { selectedSongIds.contains(it.id) }
+                        showPlaylistDialogForSelection = true
+                    },
+                    onDelete = { songsPendingDeletion = true },
+                    onPlayNext = { viewModel.playSelectedSongsNext(songs) },
+                    onAddToQueue = { viewModel.addSelectedSongsToQueueBatch(songs) }
                 )
             }
         },

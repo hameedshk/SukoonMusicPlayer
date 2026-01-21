@@ -58,6 +58,18 @@ class GenreDetailViewModel @Inject constructor(
 
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
+    /**
+     * Selection mode state for multi-select functionality.
+     */
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
+
+    /**
+     * Selected song IDs for batch operations.
+     */
+    private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedSongIds: StateFlow<Set<Long>> = _selectedSongIds.asStateFlow()
+
     fun loadGenre(genreId: Long) {
         _genreId.value = genreId
     }
@@ -124,5 +136,105 @@ class GenreDetailViewModel @Inject constructor(
 
     fun resetDeleteResult() {
         _deleteResult.value = null
+    }
+
+    /**
+     * Toggle selection mode on/off.
+     */
+    fun toggleSelectionMode(enabled: Boolean) {
+        _isSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedSongIds.value = emptySet()
+        }
+    }
+
+    /**
+     * Toggle selection of a specific song.
+     */
+    fun toggleSongSelection(songId: Long) {
+        val current = _selectedSongIds.value
+        _selectedSongIds.value = if (current.contains(songId)) {
+            current - songId
+        } else {
+            current + songId
+        }
+    }
+
+    /**
+     * Select all songs in the genre.
+     */
+    fun selectAllSongs(songs: List<Song>) {
+        _selectedSongIds.value = songs.map { it.id }.toSet()
+    }
+
+    /**
+     * Clear all selections.
+     */
+    fun clearSelection() {
+        _selectedSongIds.value = emptySet()
+    }
+
+    /**
+     * Play selected songs from the beginning.
+     */
+    fun playSelectedSongs(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playQueue(selectedSongs, startIndex = 0)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    /**
+     * Play selected songs next in queue.
+     */
+    fun playSelectedSongsNext(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playNext(selectedSongs)
+            }
+        }
+    }
+
+    /**
+     * Add selected songs to queue.
+     */
+    fun addSelectedSongsToQueueBatch(allSongs: List<Song>) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            selectedSongs.forEach { song ->
+                playbackRepository.addToQueue(song)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    /**
+     * Delete selected songs with result handling for permissions.
+     */
+    fun deleteSelectedSongsWithResult(allSongs: List<Song>, onResult: (DeleteHelper.DeleteResult) -> Unit) {
+        val ids = _selectedSongIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val selectedSongs = allSongs.filter { ids.contains(it.id) }
+            if (selectedSongs.isNotEmpty()) {
+                val result = DeleteHelper.deleteSongs(context, selectedSongs)
+                onResult(result)
+                toggleSelectionMode(false)
+            }
+        }
     }
 }

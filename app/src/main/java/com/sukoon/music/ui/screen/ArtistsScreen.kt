@@ -52,10 +52,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -80,6 +83,8 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
+import com.sukoon.music.ui.components.AddToPlaylistDialog
+import androidx.compose.material3.ButtonDefaults
 
 @Composable
 fun ArtistsScreen(
@@ -120,12 +125,12 @@ fun ArtistsScreen(
                 // Multi-select: get all selected artists' songs
                 if (selectedArtistIds.isNotEmpty()) {
                     val allSongs = selectedArtistIds.flatMap { artistId ->
-                        viewModel.getSongsForArtist(artistId).toList()
+                        viewModel.getSongsForArtist(artistId)
                     }
                     artistSongsForPlaylist = allSongs
                     showPlaylistDialog = true
+                    pendingArtistForPlaylist = null
                 }
-                pendingArtistForPlaylist = null
             } else {
                 // Single artist from context menu
                 artistSongsForPlaylist = viewModel.getSongsForArtist(pendingArtistForPlaylist!!)
@@ -351,6 +356,57 @@ private fun ArtistsContent(
         )
     }
 
+    // Playlist Dialog
+    if (showPlaylistDialog) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                artistSongsForPlaylist.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                }
+                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                onPlaylistSelected(playlistId)
+                onPlaylistDialogDismiss()
+            },
+            onDismiss = { onPlaylistDialogDismiss() }
+        )
+    }
+
+    // Delete confirmation dialog
+    if (artistsPendingDeletion) {
+        AlertDialog(
+            onDismissRequest = { onDeleteDismissed() },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text("Delete ${selectedArtistIds.size} artist(s)?")
+            },
+            text = {
+                Text("All songs by these artists will be permanently deleted from your device. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteConfirmed()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDeleteDismissed() }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     // Sort dialog
     if (showSortDialog) {
         ArtistSortDialog(
@@ -522,11 +578,11 @@ private fun ArtistSortHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
-            IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
-            }
             IconButton(onClick = onSortClick) {
                 Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+            IconButton(onClick = onSelectionClick) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
             }
         }
     }

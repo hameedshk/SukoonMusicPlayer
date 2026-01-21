@@ -37,6 +37,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.data.mediastore.DeleteHelper
+import androidx.compose.material3.ButtonDefaults
 
 
 /**
@@ -55,12 +56,17 @@ fun ArtistDetailScreen(
     val artist by viewModel.artist.collectAsStateWithLifecycle()
     val artistSongs by viewModel.artistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var songToDelete by remember { mutableStateOf<Song?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
+    var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var songsPendingDeletion by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val shareHandler = rememberShareHandler()
@@ -89,24 +95,135 @@ fun ArtistDetailScreen(
         songToDelete = null
     }
 
+    // Delete launcher for multi-select
+    val multiSelectDeleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+            songsPendingDeletion = false
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            songsPendingDeletion = false
+        }
+    }
+
     // Load artist when screen opens
     LaunchedEffect(artistId) {
         viewModel.loadArtist(artistId)
     }
 
+    // Playlist Dialog for selected songs
+    if (showPlaylistDialogForSelection) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                songsPendingPlaylistAdd.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                }
+                showPlaylistDialogForSelection = false
+                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                viewModel.toggleSelectionMode(false)
+            },
+            onDismiss = { showPlaylistDialogForSelection = false }
+        )
+    }
+
+    // Delete confirmation dialog for selected songs
+    if (songsPendingDeletion) {
+        AlertDialog(
+            onDismissRequest = { songsPendingDeletion = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text("Delete ${selectedSongIds.size} song(s)?")
+            },
+            text = {
+                Text("These songs will be permanently deleted from your device. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSelectedSongsWithResult(artistSongs, context) { deleteResult ->
+                            when (deleteResult) {
+                                is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                    multiSelectDeleteLauncher.launch(
+                                        IntentSenderRequest.Builder(deleteResult.intentSender).build()
+                                    )
+                                }
+                                is DeleteHelper.DeleteResult.Success -> {
+                                    Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+                                    songsPendingDeletion = false
+                                }
+                                is DeleteHelper.DeleteResult.Error -> {
+                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                    songsPendingDeletion = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songsPendingDeletion = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Artist") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${selectedSongIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = { Text("Artist") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        },
+        bottomBar = {
+            if (isSelectionMode && selectedSongIds.isNotEmpty()) {
+                MultiSelectActionBottomBar(
+                    onPlay = { viewModel.playSelectedSongs(artistSongs) },
+                    onAddToPlaylist = {
+                        songsPendingPlaylistAdd = artistSongs.filter { selectedSongIds.contains(it.id) }
+                        showPlaylistDialogForSelection = true
+                    },
+                    onDelete = { songsPendingDeletion = true },
+                    onPlayNext = { viewModel.playSelectedSongsNext(artistSongs) },
+                    onAddToQueue = { viewModel.addSelectedSongsToQueueBatch(artistSongs) }
+                )
+            }
         }
     ) { paddingValues ->
         if (artist == null) {
@@ -142,15 +259,22 @@ fun ArtistDetailScreen(
                         isPlaying = playbackState.isPlaying,
                         menuHandler = menuHandler,
                         onSongClick = { song ->
-                            if (playbackState.currentSong?.id != song.id) {
-                                viewModel.playSong(song, artistSongs)
+                            if (isSelectionMode) {
+                                viewModel.toggleSongSelection(song.id)
                             } else {
-                                onNavigateToNowPlaying()
+                                if (playbackState.currentSong?.id != song.id) {
+                                    viewModel.playSong(song, artistSongs)
+                                } else {
+                                    onNavigateToNowPlaying()
+                                }
                             }
                         },
                         onLikeClick = { song ->
                             viewModel.toggleLike(song.id, song.isLiked)
-                        }
+                        },
+                        isSelectionMode = isSelectionMode,
+                        selectedSongIds = selectedSongIds,
+                        onSelectionChange = { viewModel.toggleSongSelection(it) }
                     )
                 }
             }
@@ -338,7 +462,10 @@ private fun SongsList(
     isPlaying: Boolean,
     menuHandler: SongMenuHandler,
     onSongClick: (Song) -> Unit,
-    onLikeClick: (Song) -> Unit
+    onLikeClick: (Song) -> Unit,
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<Long> = emptySet(),
+    onSelectionChange: (Long) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -354,7 +481,10 @@ private fun SongsList(
                 isPlaying = isPlaying && song.id == currentSongId,
                 menuHandler = menuHandler,
                 onClick = { onSongClick(song) },
-                onLikeClick = { onLikeClick(song) }
+                onLikeClick = { onLikeClick(song) },
+                isSelectionMode = isSelectionMode,
+                isSelected = selectedSongIds.contains(song.id),
+                onSelectionChange = { onSelectionChange(song.id) }
             )
         }
     }
@@ -368,7 +498,10 @@ private fun SongItem(
     isPlaying: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionChange: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
