@@ -258,15 +258,6 @@ private fun ArtistsContent(
                         onQueryChange = { viewModel.setSearchQuery(it) }
                     )
                 }
-                item {
-                    SelectAllArtistsRow(
-                        isAllSelected = selectedIds.size == artists.size && artists.isNotEmpty(),
-                        onToggleSelectAll = {
-                            if (selectedIds.size == artists.size) viewModel.clearSelection()
-                            else viewModel.selectAllArtists()
-                        }
-                    )
-                }
             }
 
             // Recently played section
@@ -609,30 +600,6 @@ private fun ArtistSearchBar(
             unfocusedBorderColor = MaterialTheme.colorScheme.outline
         )
     )
-}
-
-@Composable
-private fun SelectAllArtistsRow(
-    isAllSelected: Boolean,
-    onToggleSelectAll: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggleSelectAll)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = if (isAllSelected) "Deselect all" else "Select all",
-            style = MaterialTheme.typography.bodyLarge
-        )
-        RadioButton(
-            selected = isAllSelected,
-            onClick = null
-        )
-    }
 }
 
 @Composable

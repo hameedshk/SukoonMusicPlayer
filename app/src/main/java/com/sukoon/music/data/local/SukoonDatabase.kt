@@ -45,7 +45,7 @@ import com.sukoon.music.data.local.entity.SongEntity
         QueueItemEntity::class,
         GenreCoverEntity::class
     ],
-    version = 15,
+    version = 13,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
