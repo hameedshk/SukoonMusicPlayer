@@ -172,22 +172,18 @@ private fun GenresContent(
                 }
             },
             bottomBar = {
-                Column {
-                    // Bulk action bar in selection mode
-                    if (isSelectionMode && selectedGenreIds.isNotEmpty()) {
-                        GenreSelectionBottomBar(
-                            selectedCount = selectedGenreIds.size,
-                            onPlay = { viewModel.playSelectedGenres() },
-                            onAddToPlaylist = {
-                                showAddToPlaylistDialog = selectedGenreIds.toList()
-                            },
-                            onDelete = {
-                                genresToDelete = genres.filter { it.id in selectedGenreIds }
-                            },
-                            onPlayNext = { viewModel.playSelectedNext() },
-                            onAddToQueue = { viewModel.addSelectedToQueue() }
-                        )
-                    }
+                if (isSelectionMode && selectedGenreIds.isNotEmpty()) {
+                    MultiSelectActionBottomBar(
+                        onPlay = { viewModel.playSelectedGenres() },
+                        onAddToPlaylist = {
+                            showAddToPlaylistDialog = selectedGenreIds.toList()
+                        },
+                        onDelete = {
+                            genresToDelete = genres.filter { it.id in selectedGenreIds }
+                        },
+                        onPlayNext = { viewModel.playSelectedNext() },
+                        onAddToQueue = { viewModel.addSelectedToQueue() }
+                    )
                 }
             }
         ) { paddingValues ->
