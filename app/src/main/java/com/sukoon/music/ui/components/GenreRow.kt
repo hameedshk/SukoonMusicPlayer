@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,35 +62,27 @@ fun GenreRow(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Leading: RadioButton or Icon
-            if (isSelectionMode) {
-                RadioButton(
-                    selected = isSelected,
-                    onClick = { onSelectionToggle() },
-                    modifier = Modifier.padding(end = 16.dp)
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (genre.artworkUri != null) {
-                        SubcomposeAsyncImage(
-                            model = genre.artworkUri,
-                            contentDescription = null,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            error = { GenreIconPlaceholder() }
-                        )
-                    } else {
-                        GenreIconPlaceholder()
-                    }
+            // Leading: Genre Icon (always shown)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                if (genre.artworkUri != null) {
+                    SubcomposeAsyncImage(
+                        model = genre.artworkUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = { GenreIconPlaceholder() }
+                    )
+                } else {
+                    GenreIconPlaceholder()
                 }
-                Spacer(modifier = Modifier.width(16.dp))
             }
+            Spacer(modifier = Modifier.width(16.dp))
 
             // Middle: Info
             Column(
@@ -111,8 +104,20 @@ fun GenreRow(
                 )
             }
 
-            // Trailing: Menu Button
-            if (!isSelectionMode) {
+            // Trailing: RadioButton/Checkbox in selection mode, Menu Button otherwise
+            if (isSelectionMode) {
+                if (isSelected) {
+                    Checkbox(
+                        checked = true,
+                        onCheckedChange = { onSelectionToggle() }
+                    )
+                } else {
+                    RadioButton(
+                        selected = false,
+                        onClick = { onSelectionToggle() }
+                    )
+                }
+            } else {
                 IconButton(onClick = { onMoreClick(genre) }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,

@@ -535,10 +535,17 @@ private fun ArtistListItem(
         }
 
         if (isSelectionMode) {
-            RadioButton(
-                selected = isSelected,
-                onClick = { onClick() }
-            )
+            if (isSelected) {
+                Checkbox(
+                    checked = true,
+                    onCheckedChange = { onClick() }
+                )
+            } else {
+                RadioButton(
+                    selected = false,
+                    onClick = { onClick() }
+                )
+            }
         } else {
             IconButton(onClick = { onMenuClick() }) {
                 Icon(

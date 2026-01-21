@@ -216,9 +216,7 @@ private fun GenresContent(
                                         isSelectionMode = isSelectionMode,
                                         selectedCount = selectedGenreIds.size,
                                         onSortClick = { showSortDialog = true },
-                                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
-                                        onSelectAllClick = { viewModel.selectAllGenres() },
-                                        onSelectNoneClick = { viewModel.clearSelection() }
+                                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
                                     )
                                 }
 
@@ -461,9 +459,7 @@ private fun GenresContent(
         isSelectionMode: Boolean = false,
         selectedCount: Int = 0,
         onSortClick: () -> Unit,
-        onSelectionClick: () -> Unit = {},
-        onSelectAllClick: () -> Unit = {},
-        onSelectNoneClick: () -> Unit = {}
+        onSelectionClick: () -> Unit = {}
     ) {
         Row(
             modifier = Modifier
@@ -482,14 +478,7 @@ private fun GenresContent(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (isSelectionMode) {
-                Row {
-                    TextButton(onClick = onSelectNoneClick) {
-                        Text("None")
-                    }
-                    TextButton(onClick = onSelectAllClick) {
-                        Text("All")
-                    }
-                }
+                // No select all/none buttons - selection is done via individual rows
             } else {
                 Row {
                     IconButton(onClick = onSortClick) {
