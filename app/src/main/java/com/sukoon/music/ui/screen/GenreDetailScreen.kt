@@ -57,6 +57,7 @@ fun GenreDetailScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var showSongContextSheet by remember { mutableStateOf<Song?>(null) }
@@ -67,6 +68,7 @@ fun GenreDetailScreen(
     var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Share handler
@@ -307,7 +309,10 @@ fun GenreDetailScreen(
                         onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
                         isSelectionMode = isSelectionMode,
                         selectedSongIds = selectedSongIds,
-                        onSelectionChange = { viewModel.toggleSongSelection(it) }
+                        onSelectionChange = { viewModel.toggleSongSelection(it) },
+                        sortMode = sortMode,
+                        onSortClick = { showSortDialog = true },
+                        onSelectionModeClick = { viewModel.toggleSelectionMode(true) }
                     )
                 }
             }
@@ -368,6 +373,18 @@ fun GenreDetailScreen(
                     onDismiss = { showPlaylistSelector = null }
                 )
             }
+
+            // Sort dialog
+            if (showSortDialog) {
+                GenreSongSortDialog(
+                    currentMode = sortMode,
+                    onDismiss = { showSortDialog = false },
+                    onModeSelect = { mode ->
+                        viewModel.setSortMode(mode)
+                        showSortDialog = false
+                    }
+                )
+            }
         }
     }
 }
@@ -385,9 +402,19 @@ private fun GenreDetailContent(
     onLikeClick: (Song) -> Unit,
     isSelectionMode: Boolean = false,
     selectedSongIds: Set<Long> = emptySet(),
-    onSelectionChange: (Long) -> Unit = {}
+    onSelectionChange: (Long) -> Unit = {},
+    sortMode: com.sukoon.music.ui.viewmodel.GenreSongSortMode = com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE,
+    onSortClick: () -> Unit = {},
+    onSelectionModeClick: () -> Unit = {}
 ) {
     val albumCount = remember(songs) { songs.map { it.album }.distinct().size }
+
+    val sortedSongs = when (sortMode) {
+        com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE -> songs.sortedBy { it.title.lowercase() }
+        com.sukoon.music.ui.viewmodel.GenreSongSortMode.ARTIST -> songs.sortedBy { it.artist.lowercase() }
+        com.sukoon.music.ui.viewmodel.GenreSongSortMode.ALBUM -> songs.sortedBy { it.album.lowercase() }
+        com.sukoon.music.ui.viewmodel.GenreSongSortMode.DURATION -> songs.sortedByDescending { it.duration }
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -405,16 +432,16 @@ private fun GenreDetailContent(
                     genreName = genre.name,
                     modifier = Modifier.size(120.dp)
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Text(
                     text = genre.name,
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
-                
+
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -435,9 +462,9 @@ private fun GenreDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -455,7 +482,7 @@ private fun GenreDetailContent(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text("Shuffle")
                     }
-                    
+
                     Button(
                         onClick = onPlayAll,
                         modifier = Modifier.weight(1f),
@@ -469,8 +496,35 @@ private fun GenreDetailContent(
             }
         }
 
+        // Sort header with count and buttons
+        if (!isSelectionMode && sortedSongs.isNotEmpty()) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${sortedSongs.size} song${if (sortedSongs.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row {
+                        IconButton(onClick = onSortClick) {
+                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                        }
+                        IconButton(onClick = onSelectionModeClick) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")
+                        }
+                    }
+                }
+            }
+        }
+
         // Songs List
-        if (songs.isEmpty()) {
+        if (sortedSongs.isEmpty()) {
             item {
                 Box(
                     modifier = Modifier
@@ -487,7 +541,7 @@ private fun GenreDetailContent(
             }
         } else {
             itemsIndexed(
-                items = songs,
+                items = sortedSongs,
                 key = { _, song -> song.id }
             ) { _, song ->
                 val isCurrentSong = song.id == currentSongId
@@ -548,7 +602,7 @@ private fun SongRow(
                 overflow = TextOverflow.Ellipsis
             )
         }
-        
+
         IconButton(onClick = onLikeClick) {
             Icon(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
@@ -565,4 +619,52 @@ private fun SongRow(
             )
         }
     }
+}
+
+@Composable
+private fun GenreSongSortDialog(
+    currentMode: com.sukoon.music.ui.viewmodel.GenreSongSortMode,
+    onDismiss: () -> Unit,
+    onModeSelect: (com.sukoon.music.ui.viewmodel.GenreSongSortMode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort by") },
+        text = {
+            Column {
+                com.sukoon.music.ui.viewmodel.GenreSongSortMode.values().forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModeSelect(mode) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = when (mode) {
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE -> "Title (A-Z)"
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ARTIST -> "Artist (A-Z)"
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ALBUM -> "Album (A-Z)"
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.DURATION -> "Duration"
+                            }
+                        )
+                        if (mode == currentMode) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }

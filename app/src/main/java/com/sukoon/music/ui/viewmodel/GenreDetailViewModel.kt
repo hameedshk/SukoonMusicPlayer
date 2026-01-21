@@ -17,6 +17,16 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * Sort modes for genre songs.
+ */
+enum class GenreSongSortMode {
+    TITLE,
+    ARTIST,
+    ALBUM,
+    DURATION
+}
+
+/**
  * ViewModel for Genre Detail screen.
  */
 @HiltViewModel
@@ -69,6 +79,12 @@ class GenreDetailViewModel @Inject constructor(
      */
     private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedSongIds: StateFlow<Set<Long>> = _selectedSongIds.asStateFlow()
+
+    /**
+     * Sort mode for songs.
+     */
+    private val _sortMode = MutableStateFlow(GenreSongSortMode.TITLE)
+    val sortMode: StateFlow<GenreSongSortMode> = _sortMode.asStateFlow()
 
     fun loadGenre(genreId: Long) {
         _genreId.value = genreId
@@ -236,5 +252,12 @@ class GenreDetailViewModel @Inject constructor(
                 toggleSelectionMode(false)
             }
         }
+    }
+
+    /**
+     * Set the sort mode for songs.
+     */
+    fun setSortMode(mode: GenreSongSortMode) {
+        _sortMode.value = mode
     }
 }

@@ -18,6 +18,16 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
+ * Sort modes for artist songs.
+ */
+enum class ArtistSongSortMode {
+    TITLE,
+    ARTIST,
+    ALBUM,
+    DURATION
+}
+
+/**
  * ViewModel for Artist Detail screen.
  *
  * Responsibilities:
@@ -70,6 +80,12 @@ class ArtistDetailViewModel @Inject constructor(
      */
     private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
     val selectedSongIds: StateFlow<Set<Long>> = _selectedSongIds.asStateFlow()
+
+    /**
+     * Sort mode for songs.
+     */
+    private val _sortMode = MutableStateFlow(ArtistSongSortMode.TITLE)
+    val sortMode: StateFlow<ArtistSongSortMode> = _sortMode.asStateFlow()
 
     /**
      * Load artist, songs, and albums by ID.
@@ -310,5 +326,12 @@ class ArtistDetailViewModel @Inject constructor(
                 toggleSelectionMode(false)
             }
         }
+    }
+
+    /**
+     * Set the sort mode for songs.
+     */
+    fun setSortMode(mode: ArtistSongSortMode) {
+        _sortMode.value = mode
     }
 }

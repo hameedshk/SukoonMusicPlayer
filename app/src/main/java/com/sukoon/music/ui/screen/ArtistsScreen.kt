@@ -38,6 +38,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -426,14 +427,14 @@ private fun ArtistCard(
 ) {
     Column(
         modifier = Modifier
-            .width(120.dp)
+            .width(140.dp)
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(120.dp)
-                .clip(CircleShape)
+                .size(140.dp)
+                .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -543,9 +544,9 @@ private fun ArtistListItem(
         }
 
         if (isSelectionMode) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onClick() }
+            RadioButton(
+                selected = isSelected,
+                onClick = { onClick() }
             )
         } else {
             IconButton(onClick = { onMenuClick() }) {
@@ -627,9 +628,9 @@ private fun SelectAllArtistsRow(
             text = if (isAllSelected) "Deselect all" else "Select all",
             style = MaterialTheme.typography.bodyLarge
         )
-        Checkbox(
-            checked = isAllSelected,
-            onCheckedChange = null
+        RadioButton(
+            selected = isAllSelected,
+            onClick = null
         )
     }
 }

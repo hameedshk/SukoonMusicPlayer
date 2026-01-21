@@ -58,6 +58,7 @@ fun ArtistDetailScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var songToDelete by remember { mutableStateOf<Song?>(null) }
@@ -67,6 +68,7 @@ fun ArtistDetailScreen(
     var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val shareHandler = rememberShareHandler()
@@ -274,7 +276,10 @@ fun ArtistDetailScreen(
                         },
                         isSelectionMode = isSelectionMode,
                         selectedSongIds = selectedSongIds,
-                        onSelectionChange = { viewModel.toggleSongSelection(it) }
+                        onSelectionChange = { viewModel.toggleSongSelection(it) },
+                        sortMode = sortMode,
+                        onSortClick = { showSortDialog = true },
+                        onSelectionModeClick = { viewModel.toggleSelectionMode(true) }
                     )
                 }
             }
@@ -325,6 +330,18 @@ fun ArtistDetailScreen(
                 onDismiss = {
                     showAddToPlaylistDialog = false
                     songToAddToPlaylist = null
+                }
+            )
+        }
+
+        // Sort dialog
+        if (showSortDialog) {
+            ArtistSongSortDialog(
+                currentMode = sortMode,
+                onDismiss = { showSortDialog = false },
+                onModeSelect = { mode ->
+                    viewModel.setSortMode(mode)
+                    showSortDialog = false
                 }
             )
         }
@@ -465,14 +482,51 @@ private fun SongsList(
     onLikeClick: (Song) -> Unit,
     isSelectionMode: Boolean = false,
     selectedSongIds: Set<Long> = emptySet(),
-    onSelectionChange: (Long) -> Unit = {}
+    onSelectionChange: (Long) -> Unit = {},
+    sortMode: com.sukoon.music.ui.viewmodel.ArtistSongSortMode = com.sukoon.music.ui.viewmodel.ArtistSongSortMode.TITLE,
+    onSortClick: () -> Unit = {},
+    onSelectionModeClick: () -> Unit = {}
 ) {
+    val sortedSongs = when (sortMode) {
+        com.sukoon.music.ui.viewmodel.ArtistSongSortMode.TITLE -> songs.sortedBy { it.title.lowercase() }
+        com.sukoon.music.ui.viewmodel.ArtistSongSortMode.ARTIST -> songs.sortedBy { it.artist.lowercase() }
+        com.sukoon.music.ui.viewmodel.ArtistSongSortMode.ALBUM -> songs.sortedBy { it.album.lowercase() }
+        com.sukoon.music.ui.viewmodel.ArtistSongSortMode.DURATION -> songs.sortedByDescending { it.duration }
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = 80.dp)
     ) {
+        // Sort header with count and buttons
+        if (!isSelectionMode) {
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${sortedSongs.size} song${if (sortedSongs.size != 1) "s" else ""}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row {
+                        IconButton(onClick = onSortClick) {
+                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                        }
+                        IconButton(onClick = onSelectionModeClick) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")
+                        }
+                    }
+                }
+            }
+        }
+
         items(
-            items = songs,
+            items = sortedSongs,
             key = { song -> song.id }
         ) { song ->
             SongItem(
@@ -691,4 +745,52 @@ private fun EmptyStateMessage(message: String) {
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
     }
+}
+
+@Composable
+private fun ArtistSongSortDialog(
+    currentMode: com.sukoon.music.ui.viewmodel.ArtistSongSortMode,
+    onDismiss: () -> Unit,
+    onModeSelect: (com.sukoon.music.ui.viewmodel.ArtistSongSortMode) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Sort by") },
+        text = {
+            Column {
+                com.sukoon.music.ui.viewmodel.ArtistSongSortMode.values().forEach { mode ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onModeSelect(mode) }
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = when (mode) {
+                                com.sukoon.music.ui.viewmodel.ArtistSongSortMode.TITLE -> "Title (A-Z)"
+                                com.sukoon.music.ui.viewmodel.ArtistSongSortMode.ARTIST -> "Artist (A-Z)"
+                                com.sukoon.music.ui.viewmodel.ArtistSongSortMode.ALBUM -> "Album (A-Z)"
+                                com.sukoon.music.ui.viewmodel.ArtistSongSortMode.DURATION -> "Duration"
+                            }
+                        )
+                        if (mode == currentMode) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }

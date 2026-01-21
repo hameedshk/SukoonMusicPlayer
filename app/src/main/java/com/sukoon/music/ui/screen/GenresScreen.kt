@@ -11,6 +11,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -202,49 +203,23 @@ private fun GenresContent(
                     )
                 } else {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        if (isSelectionMode) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        if (selectedGenreIds.size == genres.size && genres.isNotEmpty()) {
-                                            viewModel.clearSelection()
-                                        } else {
-                                            viewModel.selectAllGenres()
-                                        }
-                                    }
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Checkbox(
-                                    checked = selectedGenreIds.size == genres.size && genres.isNotEmpty(),
-                                    onCheckedChange = {
-                                        if (it) viewModel.selectAllGenres() else viewModel.clearSelection()
-                                    }
-                                )
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = "Select all",
-                                    style = MaterialTheme.typography.bodyLarge
-                                )
-                            }
-                        }
-
                         Box(modifier = Modifier.weight(1f)) {
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 80.dp)
                             ) {
-                                // Sort Header
-                                if (!isSelectionMode) {
-                                    item {
-                                        GenreSortHeader(
-                                            genreCount = genres.size,
-                                            onSortClick = { showSortDialog = true },
-                                            onSelectionClick = { viewModel.toggleSelectionMode(true) }
-                                        )
-                                    }
+                                // Sort Header / Selection Header
+                                item {
+                                    GenreSortHeader(
+                                        genreCount = genres.size,
+                                        isSelectionMode = isSelectionMode,
+                                        selectedCount = selectedGenreIds.size,
+                                        onSortClick = { showSortDialog = true },
+                                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
+                                        onSelectAllClick = { viewModel.selectAllGenres() },
+                                        onSelectNoneClick = { viewModel.clearSelection() }
+                                    )
                                 }
 
                                 items(
@@ -483,8 +458,12 @@ private fun GenresContent(
     @Composable
     private fun GenreSortHeader(
         genreCount: Int,
+        isSelectionMode: Boolean = false,
+        selectedCount: Int = 0,
         onSortClick: () -> Unit,
-        onSelectionClick: () -> Unit = {}
+        onSelectionClick: () -> Unit = {},
+        onSelectAllClick: () -> Unit = {},
+        onSelectNoneClick: () -> Unit = {}
     ) {
         Row(
             modifier = Modifier
@@ -494,16 +473,31 @@ private fun GenresContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "$genreCount ${if (genreCount == 1) "genre" else "genres"}",
+                text = if (isSelectionMode) {
+                    "$selectedCount selected"
+                } else {
+                    "$genreCount ${if (genreCount == 1) "genre" else "genres"}"
+                },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Row {
-                IconButton(onClick = onSelectionClick) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+            if (isSelectionMode) {
+                Row {
+                    TextButton(onClick = onSelectNoneClick) {
+                        Text("None")
+                    }
+                    TextButton(onClick = onSelectAllClick) {
+                        Text("All")
+                    }
                 }
-                IconButton(onClick = onSortClick) {
-                    Icon(Icons.Default.Sort, contentDescription = "Sort")
+            } else {
+                Row {
+                    IconButton(onClick = onSortClick) {
+                        Icon(Icons.Default.Sort, contentDescription = "Sort")
+                    }
+                    IconButton(onClick = onSelectionClick) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                    }
                 }
             }
         }
