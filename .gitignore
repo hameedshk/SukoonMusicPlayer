@@ -15,3 +15,10 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Kotlin compiler error cache
+.kotlin/errors
+.kotlin/sessions
+
+#buil script
+.last_successful_commit

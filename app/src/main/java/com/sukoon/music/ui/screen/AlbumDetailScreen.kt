@@ -562,10 +562,13 @@ private fun AlbumSongItemRow(
     ) {
         // Dash, Playing Indicator, or Checkbox
         if (isSelectionMode) {
-            Checkbox(
-                checked = isSelected,
-                onCheckedChange = { onClick() },
-                modifier = Modifier.size(24.dp)
+            Icon(
+                imageVector = if (isSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                contentDescription = if (isSelected) "Checked" else "Unchecked",
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onClick() },
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
             )
         } else if (isCurrentlyPlaying) {
             Icon(

@@ -1,8 +1,6 @@
 package com.sukoon.music.ui.screen
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -312,7 +310,8 @@ fun GenreDetailScreen(
                         onSelectionChange = { viewModel.toggleSongSelection(it) },
                         sortMode = sortMode,
                         onSortClick = { showSortDialog = true },
-                        onSelectionModeClick = { viewModel.toggleSelectionMode(true) }
+                        onSelectionModeClick = { viewModel.toggleSelectionMode(true) },
+                        menuHandler = menuHandler
                     )
                 }
             }
@@ -405,7 +404,8 @@ private fun GenreDetailContent(
     onSelectionChange: (Long) -> Unit = {},
     sortMode: com.sukoon.music.ui.viewmodel.GenreSongSortMode = com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE,
     onSortClick: () -> Unit = {},
-    onSelectionModeClick: () -> Unit = {}
+    onSelectionModeClick: () -> Unit = {},
+    menuHandler: SongMenuHandler
 ) {
     val albumCount = remember(songs) { songs.map { it.album }.distinct().size }
 
@@ -546,53 +546,77 @@ private fun GenreDetailContent(
             ) { _, song ->
                 val isCurrentSong = song.id == currentSongId
 
-                SongRow(
+                GenreSongItemRow(
                     song = song,
-                    isCurrent = isCurrentSong,
-                    isPlaying = isCurrentSong && isPlaying,
-                    onClick = { onSongClick(song) },
-                    onLongClick = { onSongLongClick(song) },
-                    onLikeClick = { onLikeClick(song) },
+                    isCurrentlyPlaying = isCurrentSong && isPlaying,
                     isSelectionMode = isSelectionMode,
                     isSelected = selectedSongIds.contains(song.id),
-                    onSelectionChange = { onSelectionChange(song.id) }
+                    menuHandler = menuHandler,
+                    onClick = { onSongClick(song) },
+                    onToggleLike = { onLikeClick(song) }
                 )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun SongRow(
+private fun GenreSongItemRow(
     song: Song,
-    isCurrent: Boolean,
-    isPlaying: Boolean,
+    isCurrentlyPlaying: Boolean,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
+    menuHandler: SongMenuHandler,
     onClick: () -> Unit,
-    onLongClick: () -> Unit,
-    onLikeClick: () -> Unit,
-    isSelectionMode: Boolean = false,
-    isSelected: Boolean = false,
-    onSelectionChange: () -> Unit = {}
+    onToggleLike: () -> Unit
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = onLongClick
-            )
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
+        // Checkbox, Playing Indicator, or Dash
+        if (isSelectionMode) {
+            Icon(
+                imageVector = if (isSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
+                contentDescription = if (isSelected) "Checked" else "Unchecked",
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable { onClick() },
+                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+            )
+        } else if (isCurrentlyPlaying) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(16.dp)
+            )
+        } else {
+            Text(
+                text = "-",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Song Info
+        Column(
+            modifier = Modifier.weight(1f)
+        ) {
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.bodyLarge,
-                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
-                color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.Bold,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "${song.artist} • ${song.album}",
@@ -603,21 +627,24 @@ private fun SongRow(
             )
         }
 
-        IconButton(onClick = onLikeClick) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        // More options button - hide in selection mode
+        if (!isSelectionMode) {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
+    }
 
-        IconButton(onClick = onLongClick) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    if (showMenu && !isSelectionMode) {
+        SongContextMenu(
+            song = song,
+            menuHandler = menuHandler,
+            onDismiss = { showMenu = false }
+        )
     }
 }
 
