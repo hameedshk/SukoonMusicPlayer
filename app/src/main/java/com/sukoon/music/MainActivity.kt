@@ -87,7 +87,7 @@ class MainActivity : ComponentActivity() {
             ) == PermissionChecker.PERMISSION_GRANTED
 
             // Determine initial start destination on first app launch only
-            val startDestination = remember(userPreferences.hasCompletedOnboarding, hasActualPermission) {
+            val startDestination = remember(Unit) {
                 if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
                     Routes.Home.route
                 } else {
@@ -101,10 +101,11 @@ class MainActivity : ComponentActivity() {
             ) {
                 val navController = rememberNavController()
 
-                // Navigate away from Onboarding if preferences indicate completion
-                LaunchedEffect(userPreferences.hasCompletedOnboarding, hasActualPermission) {
+                // Navigate away from Onboarding if preferences indicate completion (only on initial transition)
+                LaunchedEffect(userPreferences.hasCompletedOnboarding) {
                     if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
-                        if (navController.currentDestination?.route == Routes.Onboarding.route) {
+                        val currentRoute = navController.currentDestination?.route
+                        if (currentRoute == Routes.Onboarding.route) {
                             navController.navigate(Routes.Home.route) {
                                 popUpTo(Routes.Onboarding.route) { inclusive = true }
                             }

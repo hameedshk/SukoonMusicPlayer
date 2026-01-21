@@ -118,10 +118,20 @@ fun HomeScreen(
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
-    var selectedTab by rememberSaveable { mutableStateOf("Hi $displayUsername") }
+    val defaultTab = "Hi $username"
+
+    // Use ViewModel's tab state (persisted to DataStore, survives app restart)
+    val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
+
+    // Set initial tab on first app launch if nothing saved yet
+    LaunchedEffect(Unit) {
+        if (selectedTab == null) {
+            viewModel.setSelectedTab(defaultTab)
+        }
+    }
 
     val handleTabSelection: (String) -> Unit = { tab ->
-        selectedTab = tab
+        viewModel.setSelectedTab(tab)
     }
 
     val tabs = listOf(
@@ -170,9 +180,12 @@ fun HomeScreen(
     )
 
     // Auto-scan on first load if songs are empty and permission is granted
-    LaunchedEffect(permissionState.hasPermission, songs.isEmpty()) {
-        if (songs.isEmpty() && permissionState.hasPermission && scanState is ScanState.Idle) {
+    // Only trigger once on initial composition to prevent repeated scans
+    val hasInitialized = remember { mutableStateOf(false) }
+    LaunchedEffect(permissionState.hasPermission) {
+        if (!hasInitialized.value && songs.isEmpty() && permissionState.hasPermission && scanState is ScanState.Idle) {
             viewModel.scanLocalMusic()
+            hasInitialized.value = true
         }
     }
 
@@ -205,8 +218,8 @@ fun HomeScreen(
                 )
                 TabPills(
                     tabs = tabs,
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it }
+                    selectedTab = selectedTab ?: defaultTab,
+                    onTabSelected = { handleTabSelection(it) }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -240,7 +253,7 @@ fun HomeScreen(
                     )
                 }
                 else -> {
-                    when (selectedTab) {
+                    when (selectedTab ?: defaultTab) {
                         "Hi $username" -> {
                             HomeTab(
                                 songs = songs,

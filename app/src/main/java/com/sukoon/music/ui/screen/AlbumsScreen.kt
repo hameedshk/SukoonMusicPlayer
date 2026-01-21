@@ -28,10 +28,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.AlphabetScrollBar
+import com.sukoon.music.ui.components.MultiSelectActionBottomBar
+import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -74,14 +82,42 @@ fun AlbumsScreen(
     var albumSongsForPlaylist by remember { mutableStateOf<List<com.sukoon.music.domain.model.Song>>(emptyList()) }
     var pendingAlbumForPlaylist by remember { mutableStateOf<Long?>(null) }
     var showSortDialog by remember { mutableStateOf(false) }
+    var albumsPendingDeletion by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Delete launcher for handling file deletion permissions
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Albums deleted successfully", Toast.LENGTH_SHORT).show()
+            albumsPendingDeletion = false
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        albumsPendingDeletion = false
+    }
 
 
-    // Handle pending album for playlist
-    LaunchedEffect(pendingAlbumForPlaylist) {
-        pendingAlbumForPlaylist?.let { albumId ->
-            albumSongsForPlaylist = viewModel.getSongsForAlbum(albumId)
-            showPlaylistDialog = true
-            pendingAlbumForPlaylist = null
+    // Handle pending album(s) for playlist - support multi-album selection
+    LaunchedEffect(pendingAlbumForPlaylist, selectedAlbumIds) {
+        if (pendingAlbumForPlaylist != null) {
+            if (pendingAlbumForPlaylist == -1L) {
+                // Multi-select: get all selected albums' songs
+                if (selectedAlbumIds.isNotEmpty()) {
+                    val allSongs = selectedAlbumIds.flatMap { albumId ->
+                        viewModel.getSongsForAlbum(albumId).toList()
+                    }
+                    albumSongsForPlaylist = allSongs
+                    showPlaylistDialog = true
+                }
+                pendingAlbumForPlaylist = null
+            } else {
+                // Single album from context menu
+                albumSongsForPlaylist = viewModel.getSongsForAlbum(pendingAlbumForPlaylist!!)
+                showPlaylistDialog = true
+                pendingAlbumForPlaylist = null
+            }
         }
     }
 
@@ -109,17 +145,15 @@ fun AlbumsScreen(
         },
         bottomBar = {
             if (isSelectionMode && selectedAlbumIds.isNotEmpty()) {
-                AlbumSelectionBottomBar(
+                MultiSelectActionBottomBar(
                     onPlay = { viewModel.playSelectedAlbums() },
                     onAddToPlaylist = {
-                        // TODO: Handle multiple albums for playlist
-                        val firstAlbumId = selectedAlbumIds.firstOrNull()
-                        if (firstAlbumId != null) {
-                            pendingAlbumForPlaylist = firstAlbumId
-                        }
+                        // Trigger LaunchedEffect to load all selected albums' songs
+                        pendingAlbumForPlaylist = -1L // Use sentinel value to trigger
                     },
-                    onDelete = { viewModel.deleteSelectedAlbums() },
-                    onMore = { /* TODO: Show more options */ }
+                    onDelete = { albumsPendingDeletion = true },
+                    onPlayNext = { viewModel.playSelectedAlbumsNext() },
+                    onAddToQueue = { viewModel.addSelectedAlbumsToQueue() }
                 )
             }
         }
@@ -214,8 +248,63 @@ fun AlbumsScreen(
                         playlistViewModel.addSongToPlaylist(playlistId, song.id)
                     }
                     showPlaylistDialog = false
+                    Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                    viewModel.toggleSelectionMode(false)
                 },
                 onDismiss = { showPlaylistDialog = false }
+            )
+        }
+
+        // Delete confirmation dialog
+        if (albumsPendingDeletion) {
+            AlertDialog(
+                onDismissRequest = { albumsPendingDeletion = false },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                },
+                title = {
+                    Text("Delete ${selectedAlbumIds.size} album(s)?")
+                },
+                text = {
+                    Text("All songs in these albums will be permanently deleted from your device. This cannot be undone.")
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            // Get all songs from selected albums and delete them
+                            val selectedAlbumsList = selectedAlbumIds.toList()
+                            viewModel.deleteSelectedAlbumsWithResult { deleteResult ->
+                                when (deleteResult) {
+                                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                        deleteLauncher.launch(
+                                            IntentSenderRequest.Builder(deleteResult.intentSender).build()
+                                        )
+                                    }
+                                    is DeleteHelper.DeleteResult.Success -> {
+                                        Toast.makeText(context, "Albums deleted successfully", Toast.LENGTH_SHORT).show()
+                                        albumsPendingDeletion = false
+                                    }
+                                    is DeleteHelper.DeleteResult.Error -> {
+                                        Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                        albumsPendingDeletion = false
+                                    }
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { albumsPendingDeletion = false }) {
+                        Text("Cancel")
+                    }
+                }
             )
         }
 
@@ -664,92 +753,6 @@ private fun AlbumContextMenuBottomSheet(
     }
 }
 
-@Composable
-private fun AlbumSelectionBottomBar(
-    onPlay: () -> Unit,
-    onAddToPlaylist: () -> Unit,
-    onDelete: () -> Unit,
-    onMore: () -> Unit
-) {
-    Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable(onClick = onPlay)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Play",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Play",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable(onClick = onAddToPlaylist)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlaylistAdd,
-                    contentDescription = "Add to playlist",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Add to playlist",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable(onClick = onDelete)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.error
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Delete",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.clickable(onClick = onMore)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More",
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "More",
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun AlbumSortHeader(
@@ -770,11 +773,11 @@ private fun AlbumSortHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
-            IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
-            }
             IconButton(onClick = onSortClick) {
                 Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+            IconButton(onClick = onSelectionClick) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
             }
             /*IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
                 Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")

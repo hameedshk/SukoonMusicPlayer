@@ -73,17 +73,67 @@ import com.sukoon.music.ui.components.SortOption
 import com.sukoon.music.ui.viewmodel.ArtistSortMode
 import com.sukoon.music.ui.viewmodel.ArtistsViewModel
 import androidx.compose.material3.Scaffold
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import android.widget.Toast
+import androidx.compose.ui.platform.LocalContext
+import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 
 @Composable
 fun ArtistsScreen(
     onNavigateToArtistDetail: (Long) -> Unit,
     onBackClick: () -> Unit,
-    viewModel: ArtistsViewModel = hiltViewModel()
+    viewModel: ArtistsViewModel = hiltViewModel(),
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
     val artists by viewModel.artists.collectAsStateWithLifecycle()
     val recentlyPlayedArtists by viewModel.recentlyPlayedArtists.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedArtistIds by viewModel.selectedArtistIds.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+
+    var showPlaylistDialog by remember { mutableStateOf(false) }
+    var artistSongsForPlaylist by remember { mutableStateOf<List<com.sukoon.music.domain.model.Song>>(emptyList()) }
+    var pendingArtistForPlaylist by remember { mutableStateOf<Long?>(null) }
+    var artistsPendingDeletion by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Delete launcher for handling file deletion permissions
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+            artistsPendingDeletion = false
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        artistsPendingDeletion = false
+    }
+
+    // Handle pending artist(s) for playlist - support multi-artist selection
+    LaunchedEffect(pendingArtistForPlaylist, selectedArtistIds) {
+        if (pendingArtistForPlaylist != null) {
+            if (pendingArtistForPlaylist == -1L) {
+                // Multi-select: get all selected artists' songs
+                if (selectedArtistIds.isNotEmpty()) {
+                    val allSongs = selectedArtistIds.flatMap { artistId ->
+                        viewModel.getSongsForArtist(artistId).toList()
+                    }
+                    artistSongsForPlaylist = allSongs
+                    showPlaylistDialog = true
+                }
+                pendingArtistForPlaylist = null
+            } else {
+                // Single artist from context menu
+                artistSongsForPlaylist = viewModel.getSongsForArtist(pendingArtistForPlaylist!!)
+                showPlaylistDialog = true
+                pendingArtistForPlaylist = null
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -99,12 +149,15 @@ fun ArtistsScreen(
         },
         bottomBar = {
             if (isSelectionMode && selectedArtistIds.isNotEmpty()) {
-                ArtistSelectionBottomBar(
+                MultiSelectActionBottomBar(
                     onPlay = { viewModel.playSelectedArtists() },
                     onAddToPlaylist = {
-                        // keep existing logic (if any)
+                        // Trigger LaunchedEffect to load all selected artists' songs
+                        pendingArtistForPlaylist = -1L // Use sentinel value to trigger
                     },
-                    onDelete = { viewModel.clearDeleteResult() }
+                    onDelete = { artistsPendingDeletion = true },
+                    onPlayNext = { viewModel.playSelectedArtistsNext() },
+                    onAddToQueue = { viewModel.addSelectedArtistsToQueue() }
                 )
             }
         }
@@ -114,7 +167,40 @@ fun ArtistsScreen(
             recentlyPlayedArtists = recentlyPlayedArtists,
             onArtistClick = onNavigateToArtistDetail,
             viewModel = viewModel,
-            modifier = Modifier.padding(padding)
+            modifier = Modifier.padding(padding),
+            playlistViewModel = playlistViewModel,
+            showPlaylistDialog = showPlaylistDialog,
+            artistSongsForPlaylist = artistSongsForPlaylist,
+            onPlaylistDialogDismiss = { showPlaylistDialog = false },
+            onPlaylistSelected = { playlistId ->
+                artistSongsForPlaylist.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                }
+                showPlaylistDialog = false
+                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                viewModel.toggleSelectionMode(false)
+            },
+            artistsPendingDeletion = artistsPendingDeletion,
+            onDeleteConfirmed = {
+                viewModel.deleteSelectedArtistsWithResult { deleteResult ->
+                    when (deleteResult) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(deleteResult.intentSender).build()
+                            )
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+                            artistsPendingDeletion = false
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                            artistsPendingDeletion = false
+                        }
+                    }
+                }
+            },
+            onDeleteDismissed = { artistsPendingDeletion = false }
         )
     }
 }
@@ -129,10 +215,21 @@ private fun ArtistsContent(
     recentlyPlayedArtists: List<Artist>,
     onArtistClick: (Long) -> Unit,
     viewModel: ArtistsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
+    showPlaylistDialog: Boolean = false,
+    artistSongsForPlaylist: List<com.sukoon.music.domain.model.Song> = emptyList(),
+    onPlaylistDialogDismiss: () -> Unit = {},
+    onPlaylistSelected: (Long) -> Unit = {},
+    artistsPendingDeletion: Boolean = false,
+    onDeleteConfirmed: () -> Unit = {},
+    onDeleteDismissed: () -> Unit = {}
 ) {
     var showMenuForArtist by remember { mutableStateOf<Artist?>(null) }
     var showSortDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val selectedArtistIds by viewModel.selectedArtistIds.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()

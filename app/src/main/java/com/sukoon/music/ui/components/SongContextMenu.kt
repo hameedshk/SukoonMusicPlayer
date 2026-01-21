@@ -113,7 +113,7 @@ fun SongContextMenu(
                     isLiked = song.isLiked,
                     songId = song.id,
                     onClick = {
-                        menuHandler.handleToggleLike(song, !song.isLiked)
+                        menuHandler.handleToggleLike(song, song.isLiked)
                     }
                 )
                 UtilityIconButton(

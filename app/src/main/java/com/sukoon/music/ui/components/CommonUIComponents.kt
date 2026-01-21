@@ -396,6 +396,80 @@ internal fun SelectionBottomBarItem(
     }
 }
 
+/**
+ * Reusable multi-select action bottom bar for any tab (Albums, Artists, Playlists, etc.)
+ * Shows Play, Add to Playlist, Delete, and More (with Play Next & Add to Queue submenu).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MultiSelectActionBottomBar(
+    onPlay: () -> Unit,
+    onAddToPlaylist: () -> Unit,
+    onDelete: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit
+) {
+    var showMoreMenu by remember { mutableStateOf(false) }
+
+    Surface(
+        tonalElevation = 8.dp,
+        shadowElevation = 8.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlayArrow,
+                label = "Play",
+                onClick = onPlay
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlaylistAdd,
+                label = "Add to playlist",
+                onClick = onAddToPlaylist
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.Delete,
+                label = "Delete",
+                onClick = onDelete
+            )
+            Box {
+                SelectionBottomBarItem(
+                    icon = Icons.Default.MoreVert,
+                    label = "More",
+                    onClick = { showMoreMenu = true }
+                )
+                DropdownMenu(
+                    expanded = showMoreMenu,
+                    onDismissRequest = { showMoreMenu = false },
+                    modifier = Modifier.width(180.dp)
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Play next") },
+                        leadingIcon = { Icon(Icons.Default.SkipNext, null) },
+                        onClick = {
+                            onPlayNext()
+                            showMoreMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Add to queue") },
+                        leadingIcon = { Icon(Icons.Default.QueueMusic, null) },
+                        onClick = {
+                            onAddToQueue()
+                            showMoreMenu = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
 internal fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
     return when (type) {
         SmartPlaylistType.MY_FAVOURITE -> Icons.Default.Favorite

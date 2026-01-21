@@ -29,19 +29,32 @@ class HomeViewModel @Inject constructor(
     private val songRepository: SongRepository,
     val playbackRepository: PlaybackRepository,
     private val lyricsRepository: LyricsRepository,
-    val adMobManager: com.sukoon.music.data.ads.AdMobManager
+    val adMobManager: com.sukoon.music.data.ads.AdMobManager,
+    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "HomeViewModel"
     }
 
-    // Tab State Management
-    private val _selectedTab = MutableStateFlow("For you")
-    val selectedTab: StateFlow<String> = _selectedTab.asStateFlow()
+    // Tab State Management (persisted to DataStore, survives app restart)
+    private val _selectedTab = MutableStateFlow<String?>(null)
+    val selectedTab: StateFlow<String?> = _selectedTab.asStateFlow()
+
+    init {
+        // Load saved tab from DataStore on ViewModel creation
+        viewModelScope.launch {
+            preferencesManager.getSelectedHomeTabFlow().collect { savedTab ->
+                _selectedTab.value = savedTab
+            }
+        }
+    }
 
     fun setSelectedTab(tab: String) {
         _selectedTab.value = tab
+        viewModelScope.launch {
+            preferencesManager.setSelectedHomeTab(tab)
+        }
     }
 
     // Song List State

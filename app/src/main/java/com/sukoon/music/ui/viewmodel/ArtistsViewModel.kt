@@ -179,7 +179,7 @@ class ArtistsViewModel @Inject constructor(
     fun playSelectedArtists() {
         val ids = _selectedArtistIds.value
         if (ids.isEmpty()) return
-        
+
         viewModelScope.launch {
             val allSelectedSongs = ids.flatMap { id ->
                 songRepository.getSongsByArtistId(id).firstOrNull() ?: emptyList()
@@ -190,6 +190,39 @@ class ArtistsViewModel @Inject constructor(
             }
         }
     }
+
+    fun playSelectedArtistsNext() {
+        val ids = _selectedArtistIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByArtistId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.playNext(allSelectedSongs)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    fun addSelectedArtistsToQueue() {
+        val ids = _selectedArtistIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByArtistId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.addToQueue(allSelectedSongs)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    suspend fun getSongsForArtist(artistId: Long) =
+        songRepository.getSongsByArtistId(artistId).firstOrNull() ?: emptyList()
 
     fun deleteArtist(artistId: Long) {
         viewModelScope.launch {
@@ -206,6 +239,21 @@ class ArtistsViewModel @Inject constructor(
         }
     }
 
+    fun deleteSelectedArtistsWithResult(onResult: (DeleteHelper.DeleteResult) -> Unit) {
+        val ids = _selectedArtistIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByArtistId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                val result = DeleteHelper.deleteSongs(context, allSelectedSongs)
+                onResult(result)
+                toggleSelectionMode(false)
+            }
+        }
+    }
 
     fun clearDeleteResult() {
         _deleteResult.value = null

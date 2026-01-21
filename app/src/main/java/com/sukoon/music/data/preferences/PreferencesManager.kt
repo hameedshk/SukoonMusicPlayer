@@ -78,6 +78,9 @@ class PreferencesManager @Inject constructor(
         // Onboarding
         private val KEY_USERNAME = stringPreferencesKey("username")
         private val KEY_HAS_COMPLETED_ONBOARDING = booleanPreferencesKey("has_completed_onboarding")
+
+        // UI State
+        private val KEY_SELECTED_HOME_TAB = stringPreferencesKey("selected_home_tab")
     }
 
     /**
@@ -300,6 +303,26 @@ class PreferencesManager @Inject constructor(
         // Wait for the updated value to be emitted from the flow
         context.dataStore.data.first { preferences ->
             preferences[KEY_HAS_COMPLETED_ONBOARDING] == true
+        }
+    }
+
+    /**
+     * Get the last selected home tab as a Flow.
+     * Returns null if no tab was previously selected.
+     */
+    fun getSelectedHomeTabFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SELECTED_HOME_TAB]
+        }
+    }
+
+    /**
+     * Save the selected home tab.
+     * @param tabName Name of the selected tab
+     */
+    suspend fun setSelectedHomeTab(tabName: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SELECTED_HOME_TAB] = tabName
         }
     }
 

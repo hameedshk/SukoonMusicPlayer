@@ -1,12 +1,15 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -24,6 +27,7 @@ enum class AlbumSortMode {
  */
 @HiltViewModel
 class AlbumsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val songRepository: SongRepository,
     private val playbackRepository: PlaybackRepository
 ) : ViewModel() {
@@ -194,10 +198,10 @@ class AlbumsViewModel @Inject constructor(
             val allSelectedSongs = ids.flatMap { id ->
                 songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
             }
-            allSelectedSongs.forEach { song ->
-                playbackRepository.addToQueue(song)
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.addToQueue(allSelectedSongs)
+                toggleSelectionMode(false)
             }
-            toggleSelectionMode(false)
         }
     }
 
@@ -206,9 +210,44 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            // TODO: Implement delete functionality via SongRepository
-            // For now, just clear selection
-            toggleSelectionMode(false)
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                DeleteHelper.deleteSongs(context, allSelectedSongs)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    fun deleteSelectedAlbumsWithResult(onResult: (DeleteHelper.DeleteResult) -> Unit) {
+        val ids = _selectedAlbumIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                val result = DeleteHelper.deleteSongs(context, allSelectedSongs)
+                onResult(result)
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
+    fun playSelectedAlbumsNext() {
+        val ids = _selectedAlbumIds.value
+        if (ids.isEmpty()) return
+
+        viewModelScope.launch {
+            val allSelectedSongs = ids.flatMap { id ->
+                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
+            }
+            if (allSelectedSongs.isNotEmpty()) {
+                playbackRepository.playNext(allSelectedSongs)
+                toggleSelectionMode(false)
+            }
         }
     }
 
