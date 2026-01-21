@@ -31,6 +31,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.GenreDetailViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.material3.ButtonDefaults
 
 /**
  * Genre Detail Screen - Shows songs in a specific genre.
@@ -54,12 +55,18 @@ fun GenreDetailScreen(
     val genre by viewModel.genre.collectAsStateWithLifecycle()
     val songs by viewModel.genreSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
+    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     var showSongContextSheet by remember { mutableStateOf<Song?>(null) }
     var songPendingDeletion by remember { mutableStateOf<Song?>(null) }
     var showSongInfo by remember { mutableStateOf<Song?>(null) }
     var showPlaylistSelector by remember { mutableStateOf<Song?>(null) }
     var showError by remember { mutableStateOf(false) }
+    var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
+    var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
+    var songsPendingDeletion by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Share handler
@@ -74,6 +81,20 @@ fun GenreDetailScreen(
             viewModel.loadGenre(genreId)
         }
         songPendingDeletion = null
+    }
+
+    // Delete launcher for multi-select
+    val multiSelectDeleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadGenre(genreId)
+            songsPendingDeletion = false
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            songsPendingDeletion = false
+        }
     }
 
     // Create menu handler for song context menu
@@ -100,22 +121,121 @@ fun GenreDetailScreen(
         }
     }
 
+    // Playlist Dialog for selected songs
+    if (showPlaylistDialogForSelection) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                songsPendingPlaylistAdd.forEach { song ->
+                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                }
+                showPlaylistDialogForSelection = false
+                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                viewModel.toggleSelectionMode(false)
+            },
+            onDismiss = { showPlaylistDialogForSelection = false }
+        )
+    }
+
+    // Delete confirmation dialog for selected songs
+    if (songsPendingDeletion) {
+        AlertDialog(
+            onDismissRequest = { songsPendingDeletion = false },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text("Delete ${selectedSongIds.size} song(s)?")
+            },
+            text = {
+                Text("These songs will be permanently deleted from your device. This cannot be undone.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteSelectedSongsWithResult(songs) { deleteResult ->
+                            when (deleteResult) {
+                                is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                    multiSelectDeleteLauncher.launch(
+                                        IntentSenderRequest.Builder(deleteResult.intentSender).build()
+                                    )
+                                }
+                                is DeleteHelper.DeleteResult.Success -> {
+                                    Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+                                    viewModel.loadGenre(genreId)
+                                    songsPendingDeletion = false
+                                }
+                                is DeleteHelper.DeleteResult.Error -> {
+                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                    songsPendingDeletion = false
+                                }
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { songsPendingDeletion = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(genre?.name ?: "Genre") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+            if (isSelectionMode) {
+                TopAppBar(
+                    title = { Text("${selectedSongIds.size} selected") },
+                    navigationIcon = {
+                        IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Exit selection"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
-            )
+            } else {
+                TopAppBar(
+                    title = { Text(genre?.name ?: "Genre") },
+                    navigationIcon = {
+                        IconButton(onClick = onBackClick) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            }
+        },
+        bottomBar = {
+            if (isSelectionMode && selectedSongIds.isNotEmpty()) {
+                MultiSelectActionBottomBar(
+                    onPlay = { viewModel.playSelectedSongs(songs) },
+                    onAddToPlaylist = {
+                        songsPendingPlaylistAdd = songs.filter { selectedSongIds.contains(it.id) }
+                        showPlaylistDialogForSelection = true
+                    },
+                    onDelete = { songsPendingDeletion = true },
+                    onPlayNext = { viewModel.playSelectedSongsNext(songs) },
+                    onAddToQueue = { viewModel.addSelectedSongsToQueueBatch(songs) }
+                )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -166,14 +286,28 @@ fun GenreDetailScreen(
                         onPlayAll = { viewModel.playGenre(songs) },
                         onShuffle = { viewModel.shuffleGenre(songs) },
                         onSongClick = { song ->
-                            if (playbackState.currentSong?.id != song.id) {
-                                viewModel.playSong(song, songs)
+                            if (isSelectionMode) {
+                                viewModel.toggleSongSelection(song.id)
                             } else {
-                                onNavigateToNowPlaying()
+                                if (playbackState.currentSong?.id != song.id) {
+                                    viewModel.playSong(song, songs)
+                                } else {
+                                    onNavigateToNowPlaying()
+                                }
                             }
                         },
-                        onSongLongClick = { song -> showSongContextSheet = song },
-                        onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) }
+                        onSongLongClick = { song ->
+                            if (!isSelectionMode) {
+                                viewModel.toggleSelectionMode(true)
+                                viewModel.toggleSongSelection(song.id)
+                            } else {
+                                showSongContextSheet = song
+                            }
+                        },
+                        onLikeClick = { song -> viewModel.toggleLike(song.id, song.isLiked) },
+                        isSelectionMode = isSelectionMode,
+                        selectedSongIds = selectedSongIds,
+                        onSelectionChange = { viewModel.toggleSongSelection(it) }
                     )
                 }
             }
@@ -248,7 +382,10 @@ private fun GenreDetailContent(
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
     onSongLongClick: (Song) -> Unit,
-    onLikeClick: (Song) -> Unit
+    onLikeClick: (Song) -> Unit,
+    isSelectionMode: Boolean = false,
+    selectedSongIds: Set<Long> = emptySet(),
+    onSelectionChange: (Long) -> Unit = {}
 ) {
     val albumCount = remember(songs) { songs.map { it.album }.distinct().size }
 
@@ -354,14 +491,17 @@ private fun GenreDetailContent(
                 key = { _, song -> song.id }
             ) { _, song ->
                 val isCurrentSong = song.id == currentSongId
-                
+
                 SongRow(
                     song = song,
                     isCurrent = isCurrentSong,
                     isPlaying = isCurrentSong && isPlaying,
                     onClick = { onSongClick(song) },
                     onLongClick = { onSongLongClick(song) },
-                    onLikeClick = { onLikeClick(song) }
+                    onLikeClick = { onLikeClick(song) },
+                    isSelectionMode = isSelectionMode,
+                    isSelected = selectedSongIds.contains(song.id),
+                    onSelectionChange = { onSelectionChange(song.id) }
                 )
             }
         }
@@ -376,7 +516,10 @@ private fun SongRow(
     isPlaying: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectionChange: () -> Unit = {}
 ) {
     Row(
         modifier = Modifier
