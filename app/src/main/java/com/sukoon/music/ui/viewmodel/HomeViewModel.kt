@@ -1,8 +1,10 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.LyricsState
 import com.sukoon.music.domain.model.PlaybackState
@@ -14,6 +16,7 @@ import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -34,7 +37,9 @@ class HomeViewModel @Inject constructor(
     private val lyricsRepository: LyricsRepository,
     private val listeningStatsRepository: ListeningStatsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager,
-    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
+    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+    private val sessionController: com.sukoon.music.domain.usecase.SessionController,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     companion object {
@@ -132,6 +137,15 @@ class HomeViewModel @Inject constructor(
     // Playback State
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
+    // Private Session State (for visual indicator)
+    val sessionState: StateFlow<com.sukoon.music.domain.model.PlaybackSessionState> =
+        sessionController.sessionState()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = com.sukoon.music.domain.model.PlaybackSessionState()
+            )
+
     // Lyrics State
     private val _lyricsState = MutableStateFlow<LyricsState>(LyricsState.Loading)
     val lyricsState: StateFlow<LyricsState> = _lyricsState.asStateFlow()
@@ -142,6 +156,13 @@ class HomeViewModel @Inject constructor(
     // Listening Stats State
     private val _listeningStats = MutableStateFlow<ListeningStatsSnapshot?>(null)
     val listeningStats: StateFlow<ListeningStatsSnapshot?> = _listeningStats.asStateFlow()
+
+    // Song Selection State
+    private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedSongIds: StateFlow<Set<Long>> = _selectedSongIds.asStateFlow()
+
+    private val _isSongSelectionMode = MutableStateFlow(false)
+    val isSongSelectionMode: StateFlow<Boolean> = _isSongSelectionMode.asStateFlow()
 
     // User Actions
 
@@ -316,6 +337,78 @@ class HomeViewModel @Inject constructor(
     fun jumpToQueueIndex(index: Int) {
         viewModelScope.launch {
             playbackRepository.seekToQueueIndex(index)
+        }
+    }
+
+    // Song Selection Methods
+    fun toggleSongSelectionMode(enabled: Boolean) {
+        _isSongSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedSongIds.value = emptySet()
+        }
+    }
+
+    fun toggleSongSelection(songId: Long) {
+        val current = _selectedSongIds.value.toMutableSet()
+        if (current.contains(songId)) {
+            current.remove(songId)
+        } else {
+            current.add(songId)
+        }
+        _selectedSongIds.value = current
+    }
+
+    fun selectAllSongs() {
+        _selectedSongIds.value = songs.value.map { it.id }.toSet()
+    }
+
+    fun clearSongSelection() {
+        _selectedSongIds.value = emptySet()
+    }
+
+    fun playSelectedSongs() {
+        viewModelScope.launch {
+            val selectedSongs = songs.value.filter { it.id in _selectedSongIds.value }
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playQueue(selectedSongs)
+                _isSongSelectionMode.value = false
+                _selectedSongIds.value = emptySet()
+            }
+        }
+    }
+
+    fun playSelectedSongsNext() {
+        viewModelScope.launch {
+            val selectedSongs = songs.value.filter { it.id in _selectedSongIds.value }
+            if (selectedSongs.isNotEmpty()) {
+                selectedSongs.forEach { song ->
+                    playbackRepository.playNext(song)
+                }
+            }
+        }
+    }
+
+    fun addSelectedSongsToQueue() {
+        viewModelScope.launch {
+            val selectedSongs = songs.value.filter { it.id in _selectedSongIds.value }
+            if (selectedSongs.isNotEmpty()) {
+                selectedSongs.forEach { song ->
+                    playbackRepository.addToQueue(song)
+                }
+            }
+        }
+    }
+
+    fun deleteSelectedSongsWithResult(onResult: (DeleteHelper.DeleteResult) -> Unit) {
+        viewModelScope.launch {
+            val selectedSongsList = _selectedSongIds.value.toList()
+            val selectedSongs = songs.value.filter { it.id in selectedSongsList }
+            if (selectedSongs.isNotEmpty()) {
+                val result = DeleteHelper.deleteSongs(context, selectedSongs)
+                onResult(result)
+                _selectedSongIds.value = emptySet()
+                _isSongSelectionMode.value = false
+            }
         }
     }
 }

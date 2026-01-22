@@ -25,7 +25,8 @@ import javax.inject.Inject
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
-    private val songRepository: SongRepository
+    private val songRepository: SongRepository,
+    private val sessionController: com.sukoon.music.domain.usecase.SessionController
 ) : ViewModel() {
 
     // --- User Preferences ---
@@ -36,6 +37,16 @@ class SettingsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = UserPreferences()
         )
+
+    // --- Private Session State ---
+
+    val sessionState: StateFlow<com.sukoon.music.domain.model.PlaybackSessionState> =
+        sessionController.sessionState()
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = com.sukoon.music.domain.model.PlaybackSessionState()
+            )
 
     // --- Storage Stats ---
 
@@ -61,11 +72,24 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Toggle private session mode.
+     * - If turning ON: start session-scoped private session with auto-expiry
+     * - If turning OFF: stop session and clear private mode
+     * Also updates DataStore preference for UI synchronization.
      */
     fun togglePrivateSession() {
         viewModelScope.launch {
             val currentValue = userPreferences.value.isPrivateSessionEnabled
-            settingsRepository.setPrivateSessionEnabled(!currentValue)
+            val newValue = !currentValue
+
+            // Update DataStore preference (for UI toggle persistence)
+            settingsRepository.setPrivateSessionEnabled(newValue)
+
+            // Update session controller
+            if (newValue) {
+                sessionController.startPrivateSession()
+            } else {
+                sessionController.stopPrivateSession()
+            }
         }
     }
 

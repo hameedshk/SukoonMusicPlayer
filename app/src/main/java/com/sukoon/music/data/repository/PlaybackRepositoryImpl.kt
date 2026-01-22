@@ -46,7 +46,8 @@ class PlaybackRepositoryImpl @Inject constructor(
     private val songRepository: com.sukoon.music.domain.repository.SongRepository,
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
     private val queueRepository: com.sukoon.music.domain.repository.QueueRepository,
-    private val listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository
+    private val listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
+    private val sessionController: com.sukoon.music.domain.usecase.SessionController
 ) : PlaybackRepository {
 
     // State Management
@@ -97,12 +98,12 @@ class PlaybackRepositoryImpl @Inject constructor(
                 // Only record if user listened for at least 1 second (ignore accidental skips)
                 if (actualListeningDurationMs >= 1000) {
                     scope.launch {
-                        preferencesManager.userPreferencesFlow.collect { prefs ->
-                            if (!prefs.isPrivateSessionEnabled) {
-                                listeningStatsRepository.recordPlayEvent(currentSongArtist, actualListeningDurationMs)
-                            }
-                            return@collect
+                        // Check if private session is active before logging stats
+                        if (!sessionController.isSessionPrivate()) {
+                            listeningStatsRepository.recordPlayEvent(currentSongArtist, actualListeningDurationMs)
                         }
+                        // Refresh inactivity timer on playback event
+                        sessionController.refreshInactivityTimer()
                     }
                 }
             }
@@ -115,12 +116,11 @@ class PlaybackRepositoryImpl @Inject constructor(
 
                     // Check private session mode before logging
                     scope.launch {
-                        preferencesManager.userPreferencesFlow.collect { prefs ->
-                            if (!prefs.isPrivateSessionEnabled) {
-                                songRepository.logSongPlay(songId)
-                            }
-                            return@collect
+                        if (!sessionController.isSessionPrivate()) {
+                            songRepository.logSongPlay(songId)
                         }
+                        // Refresh inactivity timer on playback event
+                        sessionController.refreshInactivityTimer()
                     }
                 }
             }

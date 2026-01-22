@@ -2,21 +2,25 @@ package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.filled.Sort
@@ -62,6 +66,8 @@ fun SongsScreen(
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+    val isSongSelectionMode by viewModel.isSongSelectionMode.collectAsStateWithLifecycle()
 
     var searchQuery by remember { mutableStateOf("") }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
@@ -138,15 +144,62 @@ fun SongsScreen(
         }
     } else {
         // Songs List with Alphabetical Index
+        Scaffold(
+            topBar = {
+                if (isSongSelectionMode) {
+                    TopAppBar(
+                        title = {
+                            Text(
+                                text = "${selectedSongIds.size} selected",
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        },
+                        navigationIcon = {
+                            IconButton(onClick = {
+                                viewModel.toggleSongSelectionMode(false)
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.ArrowBack,
+                                    contentDescription = "Exit selection"
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+                }
+            },
+            bottomBar = {
+                if (isSongSelectionMode && selectedSongIds.isNotEmpty()) {
+                    MultiSelectActionBottomBar(
+                        onPlay = { viewModel.playSelectedSongs() },
+                        onAddToPlaylist = { songToAddToPlaylist = null },
+                        onDelete = { },
+                        onPlayNext = { viewModel.playSelectedSongsNext() },
+                        onAddToQueue = { viewModel.addSelectedSongsToQueue() }
+                    )
+                }
+            }
+        ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp, end = 24.dp),
+                contentPadding = PaddingValues(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding() + 8.dp,
+                    end = 24.dp
+                ),
                 state = lazyListState
             ) {
-                // Header: Back button, Title, and Search Bar (scrolls with content)
-                item {
-                    Column {
+                // Header: Back button, Title (non-scrolling)
+                stickyHeader(key = "header") {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
+                    ) {
                         // Top App Bar
                         TopAppBar(
                             title = {
@@ -170,22 +223,26 @@ fun SongsScreen(
                         )
 
                         // Search Bar
-                        SearchBar(
-                            query = searchQuery,
-                            onQueryChange = { searchQuery = it },
-                            onClearQuery = { searchQuery = "" }
-                        )
-                    }
-                }
+                        if (!isSongSelectionMode) {
+                            SearchBar(
+                                query = searchQuery,
+                                onQueryChange = { searchQuery = it },
+                                onClearQuery = { searchQuery = "" }
+                            )
+                        }
 
-                // Song Count Header
-                item {
-                    Text(
-                        text = "${filteredSongs.size} ${if (filteredSongs.size == 1) "song" else "songs"}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
-                    )
+                        // Song Count Header with Sort and Selection buttons
+                        if (!isSongSelectionMode) {
+                            SongSortHeader(
+                                songCount = filteredSongs.size,
+                                onSortClick = { sortOrder = !sortOrder },
+                                onSelectionClick = { viewModel.toggleSongSelectionMode(true) },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
+                            )
+                        }
+                    }
                 }
 
                 // Play All and Shuffle buttons
@@ -199,15 +256,6 @@ fun SongsScreen(
                     }
                 }
 
-                // Sort button
-                item {
-                    SongsSortButton(
-                        sortOrder = sortOrder,
-                        onSortChange = { sortOrder = !sortOrder },
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-
                 // Song items
                 items(
                     items = filteredSongs,
@@ -215,13 +263,27 @@ fun SongsScreen(
                 ) { song ->
                     val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
                     val index = songs.indexOf(song)
+                    val isSelected = song.id in selectedSongIds
 
                     SongListItem(
                         song = song,
                         isPlaying = isPlaying,
+                        isSelected = isSelected,
+                        isSelectionMode = isSongSelectionMode,
                         menuHandler = menuHandler,
                         onClick = {
-                            viewModel.playQueue(songs, index)
+                            if (isSongSelectionMode) {
+                                viewModel.toggleSongSelection(song.id)
+                            } else {
+                                viewModel.playQueue(songs, index)
+                            }
+                        },
+                        onCheckboxClick = {
+                            viewModel.toggleSongSelection(song.id)
+                        },
+                        onLongPress = {
+                            viewModel.toggleSongSelectionMode(true)
+                            viewModel.toggleSongSelection(song.id)
                         },
                         onLikeClick = {
                             viewModel.toggleLike(song.id, song.isLiked)
@@ -239,6 +301,7 @@ fun SongsScreen(
                     modifier = Modifier.align(Alignment.CenterEnd)
                 )
             }
+        }
         }
     }
 
@@ -335,15 +398,25 @@ private fun SearchBar(
 private fun SongListItem(
     song: Song,
     isPlaying: Boolean,
+    isSelected: Boolean,
+    isSelectionMode: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
+    onCheckboxClick: () -> Unit,
+    onLongPress: () -> Unit,
     onLikeClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Surface(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onLongPress() }
+                )
+            },
         color = MaterialTheme.colorScheme.surface
     ) {
         Row(
@@ -420,25 +493,39 @@ private fun SongListItem(
                 modifier = Modifier.padding(end = 8.dp)
             )
 
-            // Like button
-            IconButton(onClick = onLikeClick) {
+            // Like button or Checkbox
+            if (isSelectionMode) {
                 Icon(
-                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = if (isSelected) "Deselect" else "Select",
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clickable { onCheckboxClick() }
+                        .padding(end = 8.dp)
                 )
+            } else {
+                IconButton(onClick = onLikeClick) {
+                    Icon(
+                        imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (song.isLiked) "Unlike" else "Like",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
-            // More options menu
-            IconButton(onClick = {
-                showMenu = true
-                DevLogger.click("SongMenu", "More options for: ${song.title}", handled = true)
-            }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            // More options menu (only when not in selection mode)
+            if (!isSelectionMode) {
+                IconButton(onClick = {
+                    showMenu = true
+                    DevLogger.click("SongMenu", "More options for: ${song.title}", handled = true)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -489,25 +576,34 @@ private fun SongsPlayControlButtons(
 }
 
 /**
- * Sort button for Songs Screen (A-Z / Z-A toggle).
+ * Sort header for Songs Screen showing song count and action buttons.
  */
 @Composable
-private fun SongsSortButton(
-    sortOrder: Boolean,
-    onSortChange: () -> Unit,
+private fun SongSortHeader(
+    songCount: Int,
+    onSortClick: () -> Unit,
+    onSelectionClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        OutlinedButton(
-            onClick = onSortChange,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(Icons.Default.Sort, contentDescription = null, Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(if (sortOrder) "Z - A" else "A - Z")
+        Text(
+            text = "$songCount ${if (songCount == 1) "song" else "songs"}",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Row {
+            IconButton(onClick = onSortClick) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort")
+            }
+            IconButton(onClick = onSelectionClick) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+            }
         }
     }
 }

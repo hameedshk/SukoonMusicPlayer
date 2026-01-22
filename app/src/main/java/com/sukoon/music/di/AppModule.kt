@@ -200,9 +200,10 @@ object AppModule {
         songRepository: SongRepository,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
         queueRepository: QueueRepository,
-        listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository
+        listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
+        sessionController: com.sukoon.music.domain.usecase.SessionController
     ): PlaybackRepository {
-        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository, listeningStatsRepository)
+        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository, listeningStatsRepository, sessionController)
     }
 
     @Provides
@@ -391,6 +392,12 @@ object AppModule {
         val adMobManager = com.sukoon.music.data.ads.AdMobManager(context)
         adMobManager.initialize()
         return adMobManager
+    }
+
+    @Provides
+    @Singleton
+    fun provideSessionController(): com.sukoon.music.domain.usecase.SessionController {
+        return com.sukoon.music.data.usecase.SessionControllerImpl()
     }
 
     @Provides

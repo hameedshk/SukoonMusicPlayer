@@ -521,3 +521,58 @@ fun AnimatedFavoriteIcon(
             .scale(likeScale)
     )
 }
+
+/**
+ * Persistent visual indicator for active private session.
+ * Displayed as a chip at the top of HomeScreen when session is active.
+ * Shows remaining time before auto-expiry.
+ */
+@Composable
+fun PrivateSessionIndicator(
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState,
+    modifier: Modifier = Modifier
+) {
+    if (!sessionState.isActive) return
+
+    val remainingMs by remember(sessionState.startedAtMs) {
+        derivedStateOf { sessionState.getTimeRemainingMs() }
+    }
+    val remainingMinutes = (remainingMs / 1000 / 60).toInt()
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Private Session Active",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(20.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Private Session Active",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    fontWeight = FontWeight.Medium
+                )
+                Text(
+                    text = "No listening history recorded • Expires in $remainingMinutes min",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}

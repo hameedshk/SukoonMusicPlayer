@@ -15,6 +15,7 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.ActionButtonGrid
 import com.sukoon.music.ui.components.LastAddedSection
 import com.sukoon.music.ui.components.ListeningStatsCard
+import com.sukoon.music.ui.components.PrivateSessionIndicator
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
@@ -35,10 +36,18 @@ fun HomeTab(
     // Collect listening stats from ViewModel
     val listeningStats = viewModel.listeningStats.collectAsStateWithLifecycle().value
 
+    // Collect private session state
+    val sessionState = viewModel.sessionState.collectAsStateWithLifecycle().value
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
+        // Private session indicator - shown at top when active
+        item(key = "private_indicator") {
+            PrivateSessionIndicator(sessionState = sessionState)
+        }
+
         item {
             ActionButtonGrid(
                 onShuffleAllClick = { viewModel.shuffleAll() },
@@ -65,11 +74,15 @@ fun HomeTab(
                 )
             }
         }
-        // Listening Stats Card - appears above Recently Played
-        item {
-            ListeningStatsCard(stats = listeningStats)
+        // Listening Stats Card - appears above Recently Played (hidden when private session is active)
+        if (!sessionState.isActive) {
+            item {
+                ListeningStatsCard(stats = listeningStats)
+            }
         }
-        if (recentlyPlayed.isNotEmpty()) {
+
+        // Recently Played Grid - hidden when private session is active
+        if (recentlyPlayed.isNotEmpty() && !sessionState.isActive) {
             item {
                 RecentlyPlayedSection(
                     items = recentlyPlayed,
