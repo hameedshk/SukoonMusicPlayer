@@ -65,7 +65,7 @@ fun GenreRow(
             // Leading: Genre Icon (always shown)
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center

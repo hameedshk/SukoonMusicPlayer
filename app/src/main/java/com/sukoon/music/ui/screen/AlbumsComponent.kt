@@ -55,7 +55,7 @@ internal fun AlbumRow(
     ) {
         Box(
             modifier = Modifier
-                .size(60.dp)
+                .size(48.dp)
                 .clip(RoundedCornerShape(4.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center

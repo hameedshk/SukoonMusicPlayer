@@ -86,6 +86,8 @@ import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.animation.*
+import androidx.compose.foundation.lazy.rememberLazyListState
 
 @Composable
 fun ArtistsScreen(
@@ -243,10 +245,13 @@ private fun ArtistsContent(
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedIds by viewModel.selectedArtistIds.collectAsStateWithLifecycle()
 
+    val scrollState = rememberLazyListState()
+
     if (artists.isEmpty() && searchQuery.isEmpty()) {
         EmptyArtistsContentState()
     } else {
         LazyColumn(
+            state = scrollState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 80.dp)
         ) {
@@ -289,13 +294,16 @@ private fun ArtistsContent(
                 }
             }
 
-            // Sort Header
+            // Sort Header (sticky)
             if (!isSelectionMode) {
-                item {
+                stickyHeader(key = "header") {
                     ArtistSortHeader(
                         artistCount = artists.size,
                         onSortClick = { showSortDialog = true },
-                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
+                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface)
                     )
                 }
             }
@@ -562,12 +570,13 @@ private fun ArtistListItem(
 private fun ArtistSortHeader(
     artistCount: Int,
     onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit = {}
+    onSelectionClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

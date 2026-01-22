@@ -46,6 +46,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.animation.*
 import com.sukoon.music.ui.components.AlphabetScroller
 import com.sukoon.music.ui.components.RecentlyPlayedAlbumCard
 import com.sukoon.music.ui.components.RecentlyPlayedSection
@@ -177,7 +178,10 @@ fun AlbumsScreen(
                 }
 
 // Main Albums List
+                val scrollState = rememberLazyListState()
+
                 LazyColumn(
+                    state = scrollState,
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(bottom = 80.dp)
                 ) {
@@ -198,7 +202,7 @@ fun AlbumsScreen(
                     }
 
                     if (!isSelectionMode) {
-                        item {
+                        stickyHeader(key = "header") {
                             AlbumSortHeader(
                                 albumCount = albums.size,
                                 onSortClick = {
@@ -206,7 +210,10 @@ fun AlbumsScreen(
                                 },
                                 onSelectionClick = {
                                     viewModel.toggleSelectionMode(true)
-                                }
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface)
                             )
                         }
                     }
@@ -758,12 +765,13 @@ private fun AlbumContextMenuBottomSheet(
 private fun AlbumSortHeader(
     albumCount: Int,
     onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit = {}
+    onSelectionClick: () -> Unit = {},
+    modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {

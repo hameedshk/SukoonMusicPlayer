@@ -4,11 +4,13 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
@@ -33,77 +35,8 @@ import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Genres Content - Displays genres in a list.
  * Genres Screen - Redesigned with Alphabet Scroll Bar, Selection Mode, and Search.
- *
  */
-@Composable
-private fun GenresContent(
-    genres: List<Genre>,
-    isSelectionMode: Boolean,
-    selectedGenreIds: Set<Long>,
-    onGenreClick: (Long) -> Unit,
-    onGenreLongClick: (Long) -> Unit,
-    onToggleSelection: (Long) -> Unit,
-    onSelectAllToggle: () -> Unit,
-    onPlayGenre: (Long) -> Unit,
-    onPlayNextGenre: (Long) -> Unit,
-    onAddToQueue: (Long) -> Unit,
-    onAddToPlaylist: (Long) -> Unit
-) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        if (genres.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No genres found",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
-            ) {
-                // Genre Header with Selection Button
-                if (!isSelectionMode) {
-                    item {
-                        GenreHeader(
-                            genreCount = genres.size,
-                            onSelectionClick = onSelectAllToggle
-                        )
-                    }
-                    items(
-                        items = genres,
-                        key = { it.id }
-                    ) { genre ->
-                        GenreRow(
-                            genre = genre,
-                            isSelected = selectedGenreIds.contains(genre.id),
-                            isSelectionMode = isSelectionMode,
-                            onClick = {
-                                if (isSelectionMode) onToggleSelection(genre.id)
-                                else onGenreClick(genre.id)
-                            },
-                            onSelectionToggle = onSelectAllToggle,
-                            onPlayClick = { onPlayGenre(genre.id) },
-                            onPlayNextClick = { onPlayNextGenre(genre.id) },
-                            onAddToQueueClick = { onAddToQueue(genre.id) },
-                            onAddToPlaylistClick = { onAddToPlaylist(genre.id) },
-                            onDeleteClick = { /* Handled via selection mode */ }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-    /**
-     * Genres Screen - Redesigned with Alphabet Scroll Bar, Selection Mode, and Search.
-     */
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun GenresScreen(
@@ -253,14 +186,17 @@ private fun GenresContent(
                                 modifier = Modifier.fillMaxSize(),
                                 contentPadding = PaddingValues(bottom = 80.dp)
                             ) {
-                                // Sort Header / Selection Header
-                                item {
+                                // Sort Header / Selection Header (sticky)
+                                stickyHeader(key = "header") {
                                     GenreSortHeader(
                                         genreCount = genres.size,
                                         isSelectionMode = isSelectionMode,
                                         selectedCount = selectedGenreIds.size,
                                         onSortClick = { showSortDialog = true },
-                                        onSelectionClick = { viewModel.toggleSelectionMode(true) }
+                                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.surface)
                                     )
                                 }
 
@@ -499,12 +435,13 @@ private fun GenresContent(
     @Composable
     fun GenreHeader(
         genreCount: Int,
-        onSelectionClick: () -> Unit = {}
+        onSelectionClick: () -> Unit = {},
+        modifier: Modifier = Modifier
     ) {
         Row(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -525,12 +462,12 @@ private fun GenresContent(
         isSelectionMode: Boolean = false,
         selectedCount: Int = 0,
         onSortClick: () -> Unit,
-        onSelectionClick: () -> Unit = {}
+        onSelectionClick: () -> Unit = {},
+        modifier: Modifier = Modifier
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = modifier
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
