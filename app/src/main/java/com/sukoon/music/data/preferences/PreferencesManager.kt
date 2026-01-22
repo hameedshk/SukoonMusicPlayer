@@ -283,12 +283,17 @@ class PreferencesManager @Inject constructor(
 
     /**
      * Set user's display name.
+     * Waits for the update to propagate through DataStore before returning.
      *
      * @param name User's display name (optional, can be empty)
      */
     suspend fun setUsername(name: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_USERNAME] = name
+        }
+        // Wait for the updated value to be emitted from the flow
+        context.dataStore.data.first { preferences ->
+            preferences[KEY_USERNAME] == name
         }
     }
 

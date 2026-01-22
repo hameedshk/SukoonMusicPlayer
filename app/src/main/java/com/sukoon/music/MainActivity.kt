@@ -9,6 +9,7 @@ import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,11 +18,13 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
@@ -63,16 +66,28 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             // Observe user preferences for theme selection
-            val userPreferences by preferencesManager.userPreferencesFlow.collectAsStateWithLifecycle(
-                initialValue = com.sukoon.music.domain.model.UserPreferences()
+            // Use null as initialValue so we can detect when preferences are actually loaded
+            val userPreferencesState by preferencesManager.userPreferencesFlow.collectAsStateWithLifecycle(
+                initialValue = null
             )
 
-            // Determine dark theme based on user preference
-            val darkTheme = when (userPreferences.theme) {
-                AppTheme.LIGHT -> false
-                AppTheme.DARK -> true
-                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            // Show splash screen until preferences are loaded from DataStore
+            if (userPreferencesState == null) {
+                SukoonMusicPlayerTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(color = Color.Black),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // Splash screen while loading preferences
+                    }
+                }
+                return@setContent
             }
+
+            // Extract non-null preferences (guaranteed after null check)
+            val userPreferences = userPreferencesState!!
 
             // Check actual Android permission status
             val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -86,8 +101,9 @@ class MainActivity : ComponentActivity() {
                 permission
             ) == PermissionChecker.PERMISSION_GRANTED
 
-            // Determine initial start destination on first app launch only
-            val startDestination = remember(Unit) {
+            // Lock in start destination on first valid emission to prevent flicker
+            // Once computed, this value persists even if preferences change during startup
+            val startDestination = remember {
                 if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
                     Routes.Home.route
                 } else {
@@ -95,23 +111,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            // Determine dark theme based on user preference (can update during app lifecycle)
+            val darkTheme = when (userPreferences.theme) {
+                AppTheme.LIGHT -> false
+                AppTheme.DARK -> true
+                AppTheme.SYSTEM -> isSystemInDarkTheme()
+            }
+
             SukoonMusicPlayerTheme(
                 darkTheme = darkTheme,
                 dynamicColor = false
             ) {
                 val navController = rememberNavController()
-
-                // Navigate away from Onboarding if preferences indicate completion (only on initial transition)
-                LaunchedEffect(userPreferences.hasCompletedOnboarding) {
-                    if (userPreferences.hasCompletedOnboarding && hasActualPermission) {
-                        val currentRoute = navController.currentDestination?.route
-                        if (currentRoute == Routes.Onboarding.route) {
-                            navController.navigate(Routes.Home.route) {
-                                popUpTo(Routes.Onboarding.route) { inclusive = true }
-                            }
-                        }
-                    }
-                }
 
                 // Observe current route for ad reload trigger
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()

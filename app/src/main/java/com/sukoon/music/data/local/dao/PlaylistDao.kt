@@ -132,6 +132,19 @@ interface PlaylistDao {
     suspend fun addSongToPlaylist(crossRef: PlaylistSongCrossRef)
 
     /**
+     * Add a song to a playlist with transactional safety.
+     * Ensures duplicate check and insertion happen atomically, preventing race conditions
+     * when multiple songs are added simultaneously.
+     */
+    @Transaction
+    suspend fun addSongToPlaylistTransactional(playlistId: Long, songId: Long, timestamp: Long) {
+        if (!isSongInPlaylist(playlistId, songId)) {
+            val position = getPlaylistSongCount(playlistId)
+            addSongToPlaylist(PlaylistSongCrossRef(playlistId, songId, timestamp, position))
+        }
+    }
+
+    /**
      * Remove a song from a playlist.
      */
     @Query("DELETE FROM playlist_song_cross_ref WHERE playlistId = :playlistId AND songId = :songId")

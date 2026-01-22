@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -47,6 +48,15 @@ class HomeViewModel @Inject constructor(
     init {
         // Load saved tab from DataStore on ViewModel creation
         viewModelScope.launch {
+            // First, load the saved tab value immediately (or null if not set)
+            try {
+                val savedTab = preferencesManager.getSelectedHomeTabFlow().first()
+                _selectedTab.value = savedTab
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading selected tab", e)
+            }
+
+            // Then collect for any future updates
             preferencesManager.getSelectedHomeTabFlow().collect { savedTab ->
                 _selectedTab.value = savedTab
             }

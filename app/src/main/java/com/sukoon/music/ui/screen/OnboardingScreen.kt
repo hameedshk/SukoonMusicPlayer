@@ -257,14 +257,14 @@ fun OnboardingScreen(
             onClick = {
                 scope.launch {
                     try {
-                        // Mark onboarding as complete first
+                        // Mark onboarding as complete first (waits for flow emission)
                         preferencesManager.setOnboardingCompleted()
-                        // Save username in CamelCase if provided
+                        // Save username in CamelCase if provided (waits for flow emission)
                         if (username.isNotBlank()) {
                             preferencesManager.setUsername(displayUsername)
                         }
-                        // Critical: Wait longer to ensure DataStore actually persists to disk
-                        kotlinx.coroutines.delay(1000)
+                        // Both setOnboardingCompleted() and setUsername() now wait for flow emission
+                        // so navigation will happen only after DataStore propagation is complete
                         onOnboardingComplete()
                     } catch (e: Exception) {
                         // Log error but still navigate

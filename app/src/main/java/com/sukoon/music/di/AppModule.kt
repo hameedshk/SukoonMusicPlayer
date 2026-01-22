@@ -81,7 +81,9 @@ object AppModule {
             SukoonDatabase.MIGRATION_10_11,
             SukoonDatabase.MIGRATION_11_12,
             SukoonDatabase.MIGRATION_12_13,
-            SukoonDatabase.MIGRATION_13_14
+            SukoonDatabase.MIGRATION_13_14,
+            SukoonDatabase.MIGRATION_14_15,
+            SukoonDatabase.MIGRATION_15_16
         )
         .fallbackToDestructiveMigration()
         .build()

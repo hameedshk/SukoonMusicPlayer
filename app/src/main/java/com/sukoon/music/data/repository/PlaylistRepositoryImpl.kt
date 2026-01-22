@@ -129,16 +129,7 @@ class PlaylistRepositoryImpl @Inject constructor(
 
     override suspend fun addSongToPlaylist(playlistId: Long, songId: Long) {
         withContext(Dispatchers.IO) {
-            if (!playlistDao.isSongInPlaylist(playlistId, songId)) {
-                val position = playlistDao.getPlaylistSongCount(playlistId)
-                val crossRef = PlaylistSongCrossRef(
-                    playlistId = playlistId,
-                    songId = songId,
-                    addedAt = System.currentTimeMillis(),
-                    position = position
-                )
-                playlistDao.addSongToPlaylist(crossRef)
-            }
+            playlistDao.addSongToPlaylistTransactional(playlistId, songId, System.currentTimeMillis())
         }
     }
 
