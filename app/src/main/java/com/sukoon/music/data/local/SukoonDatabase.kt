@@ -7,6 +7,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.sukoon.music.data.local.dao.DeletedPlaylistDao
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
 import com.sukoon.music.data.local.dao.GenreCoverDao
+import com.sukoon.music.data.local.dao.ListeningStatsDao
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.dao.PlaylistDao
 import com.sukoon.music.data.local.dao.QueueDao
@@ -18,6 +19,7 @@ import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.local.entity.DeletedPlaylistEntity
 import com.sukoon.music.data.local.entity.EqualizerPresetEntity
 import com.sukoon.music.data.local.entity.GenreCoverEntity
+import com.sukoon.music.data.local.entity.ListeningStatsEntity
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.local.entity.PlaylistEntity
 import com.sukoon.music.data.local.entity.PlaylistSongCrossRef
@@ -43,9 +45,10 @@ import com.sukoon.music.data.local.entity.SongEntity
         DeletedPlaylistEntity::class,
         QueueEntity::class,
         QueueItemEntity::class,
-        GenreCoverEntity::class
+        GenreCoverEntity::class,
+        ListeningStatsEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
@@ -60,6 +63,7 @@ abstract class SukoonDatabase : RoomDatabase() {
     abstract fun deletedPlaylistDao(): DeletedPlaylistDao
     abstract fun queueDao(): QueueDao
     abstract fun genreCoverDao(): GenreCoverDao
+    abstract fun listeningStatsDao(): ListeningStatsDao
 
     companion object {
         const val DATABASE_NAME = "sukoon_music_db"
@@ -262,6 +266,30 @@ abstract class SukoonDatabase : RoomDatabase() {
                         customArtworkUri TEXT NOT NULL
                     )
                 """)
+            }
+        }
+
+        /**
+         * Migration from version 13 to 14.
+         * Adds the listening_stats table for tracking daily listening statistics.
+         */
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS listening_stats (
+                        dateMs INTEGER PRIMARY KEY NOT NULL,
+                        totalDurationMs INTEGER NOT NULL,
+                        topArtist TEXT,
+                        topArtistCount INTEGER NOT NULL,
+                        peakTimeOfDay TEXT NOT NULL,
+                        playCount INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL
+                    )
+                """)
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_listening_stats_dateMs " +
+                    "ON listening_stats(dateMs)"
+                )
             }
         }
     }

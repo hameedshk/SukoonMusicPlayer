@@ -8,6 +8,8 @@ import com.sukoon.music.domain.model.LyricsState
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.domain.repository.ListeningStatsRepository
+import com.sukoon.music.domain.repository.ListeningStatsSnapshot
 import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
@@ -29,6 +31,7 @@ class HomeViewModel @Inject constructor(
     private val songRepository: SongRepository,
     val playbackRepository: PlaybackRepository,
     private val lyricsRepository: LyricsRepository,
+    private val listeningStatsRepository: ListeningStatsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager,
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
 ) : ViewModel() {
@@ -47,6 +50,38 @@ class HomeViewModel @Inject constructor(
             preferencesManager.getSelectedHomeTabFlow().collect { savedTab ->
                 _selectedTab.value = savedTab
             }
+        }
+
+        // Load listening stats on HomeScreen open (lazy computation)
+        viewModelScope.launch {
+            loadListeningStats()
+        }
+    }
+
+    /**
+     * Load today's listening stats for the card.
+     * Cleanup old data in background.
+     */
+    private suspend fun loadListeningStats() {
+        try {
+            // Clean up old data (older than 7 days)
+            listeningStatsRepository.cleanupOldStats()
+
+            // Get today's or most recent stats
+            val totalTime = listeningStatsRepository.getTotalListeningTime7Days()
+            val topArtist = listeningStatsRepository.getTopArtist7Days()
+            val timeOfDay = listeningStatsRepository.getPeakTimeOfDay7Days()
+
+            // Show card if user has at least 30 minutes of listening time
+            if (totalTime >= 30) {
+                _listeningStats.value = ListeningStatsSnapshot(
+                    totalListeningTimeMinutes = totalTime,
+                    topArtist = topArtist,
+                    peakTimeOfDay = timeOfDay ?: "unknown"
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading listening stats", e)
         }
     }
 
@@ -93,6 +128,10 @@ class HomeViewModel @Inject constructor(
 
     // Track lyrics fetch job to prevent race conditions
     private var lyricsFetchJob: Job? = null
+
+    // Listening Stats State
+    private val _listeningStats = MutableStateFlow<ListeningStatsSnapshot?>(null)
+    val listeningStats: StateFlow<ListeningStatsSnapshot?> = _listeningStats.asStateFlow()
 
     // User Actions
 

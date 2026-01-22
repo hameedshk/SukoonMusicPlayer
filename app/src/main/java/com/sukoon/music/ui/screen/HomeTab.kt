@@ -7,12 +7,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.ActionButtonGrid
 import com.sukoon.music.ui.components.LastAddedSection
+import com.sukoon.music.ui.components.ListeningStatsCard
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
@@ -30,6 +32,9 @@ fun HomeTab(
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
     onSettingsClick: () -> Unit = {}
 ) {
+    // Collect listening stats from ViewModel
+    val listeningStats = viewModel.listeningStats.collectAsStateWithLifecycle().value
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
@@ -59,6 +64,10 @@ fun HomeTab(
                     }
                 )
             }
+        }
+        // Listening Stats Card - appears above Recently Played
+        item {
+            ListeningStatsCard(stats = listeningStats)
         }
         if (recentlyPlayed.isNotEmpty()) {
             item {

@@ -1,6 +1,6 @@
 ﻿param(
     [switch]$FullBuild = $false,
-	[string]$PhoneIP = "192.168.0.140"
+	[string]$PhoneIP = "192.168.0.152"
 )
 
 # ===== CONFIG =====
@@ -122,7 +122,7 @@ else {
         if (
             $file -match "AndroidManifest.xml" -or
             $file -match "^app/src/main/res/" -or
-			#$file -match "^app/src/main/java/" -or
+			$file -match "^app/src/main/java/" -or
             $file -match "build.gradle" -or
             $file -match "google-services.json"
         ) {
@@ -151,7 +151,7 @@ if ($needsBuild) {
 
     # Uninstall old APK
     Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
-    adb uninstall $APP_ID | Out-Null
+    adb uninstall -r $APP_ID | Out-Null
     Start-Sleep -Seconds 1
 
     # Install fresh APK

@@ -325,6 +325,27 @@ class GenresViewModel @Inject constructor(
         }
     }
 
+    fun deleteGenres(genreIds: List<Long>) {
+        if (genreIds.isEmpty()) return
+
+        viewModelScope.launch {
+            val songs = genreIds.flatMap { id ->
+                songRepository.getSongsByGenreId(id).firstOrNull() ?: emptyList()
+            }
+
+            if (songs.isEmpty()) {
+                _deleteResult.value = DeleteHelper.DeleteResult.Success
+                return@launch
+            }
+
+            val result = DeleteHelper.deleteSongs(context, songs)
+            _deleteResult.value = result
+            if (result is DeleteHelper.DeleteResult.Success && _isSelectionMode.value) {
+                toggleSelectionMode(false)
+            }
+        }
+    }
+
     fun clearDeleteResult() {
         _deleteResult.value = null
     }

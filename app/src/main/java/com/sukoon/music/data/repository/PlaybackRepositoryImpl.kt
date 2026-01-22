@@ -45,7 +45,8 @@ class PlaybackRepositoryImpl @Inject constructor(
     @ApplicationScope private val scope: CoroutineScope,
     private val songRepository: com.sukoon.music.domain.repository.SongRepository,
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
-    private val queueRepository: com.sukoon.music.domain.repository.QueueRepository
+    private val queueRepository: com.sukoon.music.domain.repository.QueueRepository,
+    private val listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository
 ) : PlaybackRepository {
 
     // State Management
@@ -62,6 +63,11 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     // Recently Played Tracking
     private var lastLoggedSongId: Long? = null
+
+    // Listening Stats Tracking - track actual playback duration per song
+    private var currentSongId: Long? = null
+    private var currentSongStartTimeMs: Long = 0L
+    private var currentSongArtist: String = ""
 
     // Queue Auto-Save Tracking
     private var queueAutoSaveJob: Job? = null
@@ -85,23 +91,47 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            // Log to recently played when a new song starts
+            // Record previous song's actual listening duration (if any)
+            if (currentSongId != null && currentSongArtist.isNotEmpty()) {
+                val actualListeningDurationMs = System.currentTimeMillis() - currentSongStartTimeMs
+                // Only record if user listened for at least 1 second (ignore accidental skips)
+                if (actualListeningDurationMs >= 1000) {
+                    scope.launch {
+                        preferencesManager.userPreferencesFlow.collect { prefs ->
+                            if (!prefs.isPrivateSessionEnabled) {
+                                listeningStatsRepository.recordPlayEvent(currentSongArtist, actualListeningDurationMs)
+                            }
+                            return@collect
+                        }
+                    }
+                }
+            }
+
+            // Log new song to recently played
             mediaItem?.mediaId?.toLongOrNull()?.let { songId ->
                 // Only log if it's a different song than the last one we logged
                 if (songId != lastLoggedSongId) {
                     lastLoggedSongId = songId
+
                     // Check private session mode before logging
                     scope.launch {
                         preferencesManager.userPreferencesFlow.collect { prefs ->
                             if (!prefs.isPrivateSessionEnabled) {
                                 songRepository.logSongPlay(songId)
                             }
-                            // Cancel collection after first emit
                             return@collect
                         }
                     }
                 }
             }
+
+            // Update tracking for current song
+            mediaItem?.mediaId?.toLongOrNull()?.let { songId ->
+                currentSongId = songId
+                currentSongArtist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
+                currentSongStartTimeMs = System.currentTimeMillis()
+            }
+
             updatePlaybackState()
             savePlaybackStateForRecovery()
         }

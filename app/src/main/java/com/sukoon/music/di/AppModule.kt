@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
 import com.sukoon.music.data.local.dao.GenreCoverDao
+import com.sukoon.music.data.local.dao.ListeningStatsDao
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.dao.PlaylistDao
 import com.sukoon.music.data.local.dao.QueueDao
@@ -79,7 +80,8 @@ object AppModule {
             SukoonDatabase.MIGRATION_9_10,
             SukoonDatabase.MIGRATION_10_11,
             SukoonDatabase.MIGRATION_11_12,
-            SukoonDatabase.MIGRATION_12_13
+            SukoonDatabase.MIGRATION_12_13,
+            SukoonDatabase.MIGRATION_13_14
         )
         .fallbackToDestructiveMigration()
         .build()
@@ -128,6 +130,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGenreCoverDao(database: SukoonDatabase) = database.genreCoverDao()
+
+    @Provides
+    @Singleton
+    fun provideListeningStatsDao(database: SukoonDatabase) = database.listeningStatsDao()
 
     @Provides
     @Singleton
@@ -191,9 +197,10 @@ object AppModule {
         @ApplicationScope scope: CoroutineScope,
         songRepository: SongRepository,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
-        queueRepository: QueueRepository
+        queueRepository: QueueRepository,
+        listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository
     ): PlaybackRepository {
-        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository)
+        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository, listeningStatsRepository)
     }
 
     @Provides
@@ -382,6 +389,14 @@ object AppModule {
         val adMobManager = com.sukoon.music.data.ads.AdMobManager(context)
         adMobManager.initialize()
         return adMobManager
+    }
+
+    @Provides
+    @Singleton
+    fun provideListeningStatsRepository(
+        listeningStatsDao: ListeningStatsDao
+    ): com.sukoon.music.domain.repository.ListeningStatsRepository {
+        return com.sukoon.music.data.repository.ListeningStatsRepositoryImpl(listeningStatsDao)
     }
 }
 

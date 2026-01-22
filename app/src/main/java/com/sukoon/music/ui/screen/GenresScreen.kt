@@ -1,6 +1,9 @@
 package com.sukoon.music.ui.screen
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,10 +18,13 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.widget.Toast
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.GenreSortMode
@@ -111,6 +117,7 @@ private fun GenresContent(
         val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
         val selectedGenreIds by viewModel.selectedGenreIds.collectAsStateWithLifecycle()
         val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+        val deleteResult by viewModel.deleteResult.collectAsStateWithLifecycle()
 
         val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
@@ -119,6 +126,46 @@ private fun GenresContent(
         var showAddToPlaylistDialog by remember { mutableStateOf<List<Long>?>(null) }
         var genresToDelete by remember { mutableStateOf<List<Genre>?>(null) }
         var genreToEdit by remember { mutableStateOf<Genre?>(null) }
+        var genresPendingDeletion by remember { mutableStateOf(false) }
+
+        val context = LocalContext.current
+
+        // Delete launcher for handling file deletion permissions
+        val deleteLauncher = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == android.app.Activity.RESULT_OK) {
+                Toast.makeText(context, "Genres deleted successfully", Toast.LENGTH_SHORT).show()
+                genresPendingDeletion = false
+            } else {
+                Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            }
+            genresPendingDeletion = false
+        }
+
+        // Handle delete result
+        LaunchedEffect(deleteResult) {
+            when (val result = deleteResult) {
+                is DeleteHelper.DeleteResult.RequiresPermission -> {
+                    deleteLauncher.launch(
+                        IntentSenderRequest.Builder(result.intentSender).build()
+                    )
+                }
+                is DeleteHelper.DeleteResult.Success -> {
+                    if (genresPendingDeletion) {
+                        Toast.makeText(context, "Genres deleted successfully", Toast.LENGTH_SHORT).show()
+                        genresPendingDeletion = false
+                        viewModel.clearDeleteResult()
+                    }
+                }
+                is DeleteHelper.DeleteResult.Error -> {
+                    Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                    genresPendingDeletion = false
+                    viewModel.clearDeleteResult()
+                }
+                null -> {}
+            }
+        }
 
         val listState = rememberLazyListState()
         val scope = rememberCoroutineScope()
@@ -180,6 +227,7 @@ private fun GenresContent(
                         },
                         onDelete = {
                             genresToDelete = genres.filter { it.id in selectedGenreIds }
+                            genresPendingDeletion = true
                         },
                         onPlayNext = { viewModel.playSelectedNext() },
                         onAddToQueue = { viewModel.addSelectedToQueue() }
@@ -237,7 +285,10 @@ private fun GenresContent(
                                         onAddToPlaylistClick = {
                                             showAddToPlaylistDialog = listOf(genre.id)
                                         },
-                                        onDeleteClick = { genresToDelete = listOf(genre) },
+                                        onDeleteClick = {
+                                            genresToDelete = listOf(genre)
+                                            genresPendingDeletion = true
+                                        },
                                         onMoreClick = { genreForMore = it }
                                     )
                                 }
@@ -275,7 +326,11 @@ private fun GenresContent(
                             // TODO: Implement cover picker with gallery integration
                             genreForMore = null
                         },
-                        onDelete = { genresToDelete = listOf(genreForMore!!) }
+                        onDelete = {
+                            genresToDelete = listOf(genreForMore!!)
+                            genresPendingDeletion = true
+                            genreForMore = null
+                        }
                     )
                 }
 
@@ -302,29 +357,44 @@ private fun GenresContent(
                     )
                 }
 
-                // Delete Confirmation
-                if (genresToDelete != null) {
+                // Delete Confirmation Dialog
+                if (genresPendingDeletion && genresToDelete != null) {
                     AlertDialog(
-                        onDismissRequest = { genresToDelete = null },
+                        onDismissRequest = {
+                            genresPendingDeletion = false
+                            genresToDelete = null
+                        },
+                        icon = {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        },
                         title = {
                             val count = genresToDelete!!.size
                             Text("Delete ${if (count == 1) "Genre" else "$count Genres"}?")
                         },
-                        text = { Text("Are you sure you want to delete the selected genre(s) and all their songs? This action cannot be undone.") },
+                        text = {
+                            Text("All songs in these genres will be permanently deleted from your device. This cannot be undone.")
+                        },
                         confirmButton = {
-                            TextButton(onClick = {
-                                if (isSelectionMode) {
-                                    viewModel.deleteSelectedGenres()
-                                } else {
-                                    // Single genre deletion logic
-                                }
-                                genresToDelete = null
-                            }) {
-                                Text("Delete", color = MaterialTheme.colorScheme.error)
+                            TextButton(
+                                onClick = {
+                                    genresToDelete?.let { genres ->
+                                        viewModel.deleteGenres(genres.map { it.id })
+                                    }
+                                },
+                                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            ) {
+                                Text("Delete")
                             }
                         },
                         dismissButton = {
-                            TextButton(onClick = { genresToDelete = null }) {
+                            TextButton(onClick = {
+                                genresPendingDeletion = false
+                                genresToDelete = null
+                            }) {
                                 Text("Cancel")
                             }
                         }
