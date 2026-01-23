@@ -94,52 +94,109 @@ internal fun SelectionActionButton(
     }
 }
 
+/**
+ * Persistent global indicator strip for private session.
+ * Displayed in the top bar on all screens when session is active.
+ * Compact version showing lock icon + status + countdown.
+ */
+@Composable
+internal fun PrivateSessionIndicatorStrip(
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState,
+    modifier: Modifier = Modifier
+) {
+    if (!sessionState.isActive) return
+
+    val remainingMs by remember(sessionState.startedAtMs) {
+        derivedStateOf { sessionState.getTimeRemainingMs() }
+    }
+    val remainingMinutes = (remainingMs / 1000 / 60).toInt()
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lock,
+                contentDescription = "Private Session Active",
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Private Session",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "$remainingMinutes min",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
+            )
+        }
+    }
+}
+
 @Composable
 internal fun RedesignedTopBar(
     onPremiumClick: () -> Unit,
     onGlobalSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit
+    onSettingsClick: () -> Unit,
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "Sukoon Music",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary
-        )
-
+    Column(modifier = Modifier.fillMaxWidth()) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-          /*  IconButton(onClick = onPremiumClick) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = "Premium",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }*/
-            IconButton(onClick = onGlobalSearchClick) {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            IconButton(onClick = onSettingsClick) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = "Settings",
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
+            Text(
+                text = "Sukoon Music",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+              /*  IconButton(onClick = onPremiumClick) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = "Premium",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }*/
+                IconButton(onClick = onGlobalSearchClick) {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
+                IconButton(onClick = onSettingsClick) {
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
+
+        // Persistent global indicator strip - shown when private session is active
+        PrivateSessionIndicatorStrip(sessionState = sessionState)
     }
 }
 

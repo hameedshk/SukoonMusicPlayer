@@ -15,7 +15,6 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.ActionButtonGrid
 import com.sukoon.music.ui.components.LastAddedSection
 import com.sukoon.music.ui.components.ListeningStatsCard
-import com.sukoon.music.ui.components.PrivateSessionIndicator
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
@@ -43,11 +42,6 @@ fun HomeTab(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        // Private session indicator - shown at top when active
-        item(key = "private_indicator") {
-            PrivateSessionIndicator(sessionState = sessionState)
-        }
-
         item {
             ActionButtonGrid(
                 onShuffleAllClick = { viewModel.shuffleAll() },

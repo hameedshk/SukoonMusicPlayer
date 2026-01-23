@@ -117,6 +117,15 @@ class PreferencesManager @Inject constructor(
         }
 
     /**
+     * Observe notification controls visibility preference as a reactive Flow.
+     * Used by MusicPlaybackService to gate notification display.
+     */
+    val showNotificationsFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[KEY_SHOW_NOTIFICATIONS] ?: true
+        }
+
+    /**
      * Update private session setting.
      *
      * @param enabled True to enable private session (don't save listening history)

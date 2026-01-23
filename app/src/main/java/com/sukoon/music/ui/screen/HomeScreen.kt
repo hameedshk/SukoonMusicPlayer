@@ -116,6 +116,7 @@ fun HomeScreen(
     val rediscoverAlbums by viewModel.rediscoverAlbums.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
@@ -208,7 +209,8 @@ fun HomeScreen(
                 RedesignedTopBar(
                     onPremiumClick = { },
                     onGlobalSearchClick = onNavigateToSearch,
-                    onSettingsClick = onNavigateToSettings
+                    onSettingsClick = onNavigateToSettings,
+                    sessionState = sessionState
                 )
                 TabPills(
                     tabs = tabs,

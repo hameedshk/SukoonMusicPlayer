@@ -59,13 +59,34 @@ class MusicPlaybackService : MediaSessionService() {
     // Audio noisy receiver for headphone unplug detection
     private var audioNoisyReceiver: BroadcastReceiver? = null
 
+    // Preference: pause playback when audio becomes noisy (headphones unplugged)
+    private var pauseOnAudioNoisy = true
+
+    // Preference: resume playback when audio focus is regained
+    private var resumeOnAudioFocus = false
+
     // Audio focus state tracking
-    private var wasPlayingBeforeAudioFocusLoss = false
+    private enum class PauseReason {
+        NONE,                    // Not paused or paused by user
+        AUDIO_FOCUS_LOSS,        // Paused due to permanent audio focus loss
+        AUDIO_BECOMING_NOISY,    // Paused due to headphones unplugging
+        USER_PAUSE               // Explicitly paused by user
+    }
+
+    private var currentPauseReason = PauseReason.NONE
     private var currentAudioFocusState = AudioManager.AUDIOFOCUS_NONE
+    private var audioManager: AudioManager? = null
 
     // Volume state for ducking
     private var normalVolume = 1.0f
     private var isDucked = false
+
+    // Notification visibility state
+    private var isNotificationVisible = true
+
+    // Crossfade manager for smooth track transitions
+    private var crossfadeManager: com.sukoon.music.data.audio.CrossfadeManager? = null
+    private var currentCrossfadeDurationMs: Int = 0
 
     companion object {
         private const val NOTIFICATION_ID = 101
@@ -77,12 +98,16 @@ class MusicPlaybackService : MediaSessionService() {
         super.onCreate()
 
         try {
+            // Initialize AudioManager for focus change callbacks
+            audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
             // Create ExoPlayer instance - this MUST happen in the service, not via DI
             player = ExoPlayer.Builder(this).build()
 
             createNotificationChannel()
             initializePlayer()
             registerAudioNoisyReceiver()
+            observeResumeOnAudioFocusSetting()
         } catch (e: Exception) {
             DevLogger.e("MusicPlaybackService", "Failed to initialize service", e)
             // If initialization fails, stop the service
@@ -119,8 +144,24 @@ class MusicPlaybackService : MediaSessionService() {
         // ExoPlayer handles audio focus automatically when second param is true
         player.setAudioAttributes(audioAttributes, true)
 
+        // Request audio focus with our listener to handle focus changes
+        audioManager?.requestAudioFocus(
+            audioFocusChangeListener,
+            AudioManager.STREAM_MUSIC,
+            AudioManager.AUDIOFOCUS_GAIN
+        )
+
         // Add listener to track audio focus changes
         player.addListener(audioFocusListener)
+
+        // Initialize crossfade manager
+        crossfadeManager = com.sukoon.music.data.audio.CrossfadeManager(player, scope)
+
+        // Add listener for crossfade transitions
+        player.addListener(crossfadeListener)
+
+        // Observe crossfade setting
+        observeCrossfadeSetting()
 
         // Create MediaSession with callback for activity intent
         val intent = Intent(this, MainActivity::class.java)
@@ -180,6 +221,12 @@ class MusicPlaybackService : MediaSessionService() {
 
         // Initialize audio effects (equalizer)
         initializeAudioEffects()
+
+        // Observe notification visibility preference
+        observeNotificationVisibility()
+
+        // Observe pause on audio noisy preference
+        observePauseOnAudioNoisySetting()
     }
 
     /**
@@ -216,22 +263,135 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /**
+     * Observe notification visibility preference and gate notification display.
+     * When disabled, notification is hidden but playback continues.
+     * When enabled, notification is shown with playback controls.
+     */
+    private fun observeNotificationVisibility() {
+        scope.launch {
+            preferencesManager.showNotificationsFlow.collect { shouldShowNotification ->
+                isNotificationVisible = shouldShowNotification
+                notificationManager?.let { manager ->
+                    if (shouldShowNotification) {
+                        // Show notification by binding player
+                        manager.setPlayer(player)
+                        DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
+                    } else {
+                        // Hide notification by unbinding player (playback continues)
+                        manager.setPlayer(null)
+                        DevLogger.d("MusicPlaybackService", "Notification visibility disabled")
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Observe crossfade setting and track current duration for transitions.
+     * Crossfade works via volume animation at track boundaries.
+     */
+    private fun observeCrossfadeSetting() {
+        scope.launch {
+            preferencesManager.userPreferencesFlow.collect { preferences ->
+                currentCrossfadeDurationMs = preferences.crossfadeDurationMs
+
+                val isCrossfadeEnabled = currentCrossfadeDurationMs > 0
+                if (isCrossfadeEnabled) {
+                    DevLogger.d("MusicPlaybackService", "Crossfade enabled: ${currentCrossfadeDurationMs}ms")
+                } else {
+                    DevLogger.d("MusicPlaybackService", "Crossfade disabled")
+                }
+            }
+        }
+    }
+
+    /**
+     * Observe pause on audio noisy setting.
+     * When headphones disconnect (ACTION_AUDIO_BECOMING_NOISY), playback will pause only if enabled.
+     */
+    private fun observePauseOnAudioNoisySetting() {
+        scope.launch {
+            preferencesManager.userPreferencesFlow.collect { preferences ->
+                pauseOnAudioNoisy = preferences.pauseOnAudioNoisy
+                DevLogger.d("MusicPlaybackService", "Pause on audio noisy: $pauseOnAudioNoisy")
+            }
+        }
+    }
+
+    /**
+     * Observe resume on audio focus setting.
+     * When enabled, playback will resume when audio focus is regained (if paused due to focus loss).
+     */
+    private fun observeResumeOnAudioFocusSetting() {
+        scope.launch {
+            preferencesManager.userPreferencesFlow.collect { preferences ->
+                resumeOnAudioFocus = preferences.resumeOnAudioFocus
+                DevLogger.d("MusicPlaybackService", "Resume on audio focus: $resumeOnAudioFocus")
+            }
+        }
+    }
+
+    /**
+     * Audio focus change listener to handle focus gain and resumption.
+     * Only resumes if:
+     * - Feature is enabled
+     * - Pause reason was AUDIO_FOCUS_LOSS (not user pause or headphone unplug)
+     * - Player is not already playing
+     */
+    private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN -> {
+                // Audio focus regained
+                if (resumeOnAudioFocus &&
+                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS &&
+                    !player.isPlaying) {
+                    DevLogger.d("MusicPlaybackService", "Audio focus regained, resuming playback")
+                    player.play()
+                    currentPauseReason = PauseReason.NONE
+                } else {
+                    val reason = if (!resumeOnAudioFocus) "feature disabled"
+                                 else if (currentPauseReason != PauseReason.AUDIO_FOCUS_LOSS) "pause reason is ${currentPauseReason.name}"
+                                 else "already playing"
+                    DevLogger.d("MusicPlaybackService", "Audio focus regained but not resuming ($reason)")
+                }
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
+                // Transient focus loss - ignore for resume purposes
+                DevLogger.d("MusicPlaybackService", "Transient audio focus loss, ignoring")
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                // Can duck - reduce volume instead of pausing
+                DevLogger.d("MusicPlaybackService", "Can duck audio, reducing volume")
+                isDucked = true
+                if (player.isPlaying) {
+                    player.volume = DUCK_VOLUME
+                }
+            }
+        }
+    }
+
+    /**
      * Player listener to track audio focus state changes and errors.
      * ExoPlayer automatically pauses on audio focus loss.
-     * We track the state to prevent auto-resume and handle ducking.
+     * We track the state to conditionally resume when focus is regained.
      */
     private val audioFocusListener = object : Player.Listener {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             when (reason) {
                 Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> {
-                    // Audio focus was lost - track that we should not auto-resume
-                    wasPlayingBeforeAudioFocusLoss = player.isPlaying
-                    DevLogger.d("MusicPlaybackService", "Audio focus lost, was playing: $wasPlayingBeforeAudioFocusLoss")
+                    // Audio focus was lost - set pause reason to enable conditional resume
+                    currentPauseReason = PauseReason.AUDIO_FOCUS_LOSS
+                    DevLogger.d("MusicPlaybackService", "Audio focus lost, set pause reason to AUDIO_FOCUS_LOSS")
                 }
                 Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> {
-                    // User explicitly played/paused - reset audio focus state
-                    wasPlayingBeforeAudioFocusLoss = false
-                    DevLogger.d("MusicPlaybackService", "User action: playWhenReady=$playWhenReady")
+                    // User explicitly played/paused - mark reason as user pause
+                    if (!playWhenReady) {
+                        currentPauseReason = PauseReason.USER_PAUSE
+                        DevLogger.d("MusicPlaybackService", "User paused playback")
+                    } else {
+                        currentPauseReason = PauseReason.NONE
+                        DevLogger.d("MusicPlaybackService", "User resumed playback")
+                    }
                 }
             }
         }
@@ -252,18 +412,46 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /**
+     * Player listener to trigger crossfade animation on media item transitions.
+     */
+    private val crossfadeListener = object : Player.Listener {
+        override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
+            DevLogger.d("MusicPlaybackService", "onMediaItemTransition: reason=$reason, AUTO=${Player.MEDIA_ITEM_TRANSITION_REASON_AUTO}, durationMs=$currentCrossfadeDurationMs")
+
+            // Apply crossfade on natural track transitions (reason 0, 1, 2)
+            // Skip only on explicit playlist changes or unknown reasons
+            val shouldCrossfade = reason in 0..2
+
+            if (shouldCrossfade) {
+                DevLogger.d("MusicPlaybackService", "Triggering crossfade with duration: $currentCrossfadeDurationMs")
+                crossfadeManager?.applyCrossfade(currentCrossfadeDurationMs)
+            } else {
+                DevLogger.d("MusicPlaybackService", "Skipping crossfade: reason=$reason")
+            }
+        }
+    }
+
+    /**
      * Register BroadcastReceiver for ACTION_AUDIO_BECOMING_NOISY.
      * This handles headphone unplugging.
+     * Only pauses playback if the preference is enabled AND playback is currently active.
      */
     private fun registerAudioNoisyReceiver() {
         audioNoisyReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
-                    // Pause playback immediately
-                    player.pause()
+                    // Only pause if setting is enabled and playback is active
+                    if (pauseOnAudioNoisy && player.isPlaying) {
+                        DevLogger.d("MusicPlaybackService", "Headphones disconnected, pausing playback")
+                        player.pause()
 
-                    // Mark that we should NOT auto-resume
-                    wasPlayingBeforeAudioFocusLoss = false
+                        // Mark pause reason as headphone unplug - DO NOT resume on this
+                        currentPauseReason = PauseReason.AUDIO_BECOMING_NOISY
+                    } else if (!pauseOnAudioNoisy) {
+                        DevLogger.d("MusicPlaybackService", "Headphones disconnected, but pause on audio noisy is disabled")
+                    } else {
+                        DevLogger.d("MusicPlaybackService", "Headphones disconnected, but playback already paused")
+                    }
                 }
             }
         }
@@ -386,9 +574,16 @@ class MusicPlaybackService : MediaSessionService() {
     override fun onDestroy() {
         unregisterAudioNoisyReceiver()
 
+        // Abandon audio focus
+        audioManager?.abandonAudioFocus(audioFocusChangeListener)
+
         // Release audio effects
         audioEffectManager?.release()
         audioEffectManager = null
+
+        // Release crossfade manager
+        crossfadeManager?.release()
+        crossfadeManager = null
 
         // Clean up notification manager
         notificationManager?.setPlayer(null)
@@ -401,6 +596,7 @@ class MusicPlaybackService : MediaSessionService() {
 
         mediaSession?.run {
             player.removeListener(audioFocusListener)
+            player.removeListener(crossfadeListener)
             player.release()
             release()
             mediaSession = null
