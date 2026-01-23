@@ -45,6 +45,14 @@ class SettingsRepositoryImpl @Inject constructor(
         preferencesManager.setScanOnStartup(enabled)
     }
 
+    override suspend fun getLastScanTime(): Long {
+        return preferencesManager.getLastScanTime()
+    }
+
+    override suspend fun setLastScanTime(timeMs: Long) {
+        preferencesManager.setLastScanTime(timeMs)
+    }
+
     override suspend fun setShowNotificationControls(enabled: Boolean) {
         preferencesManager.setShowNotificationControls(enabled)
     }

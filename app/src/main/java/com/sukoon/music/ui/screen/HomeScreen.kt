@@ -115,6 +115,7 @@ fun HomeScreen(
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val rediscoverAlbums by viewModel.rediscoverAlbums.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
+    val isUserInitiatedScan by viewModel.isUserInitiatedScan.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
@@ -174,28 +175,27 @@ fun HomeScreen(
         }
     )
 
-    // Auto-scan on first load if songs are empty and permission is granted
-    // Only trigger once on initial composition to prevent repeated scans
-    val hasInitialized = remember { mutableStateOf(false) }
-    LaunchedEffect(permissionState.hasPermission) {
-        if (!hasInitialized.value && songs.isEmpty() && permissionState.hasPermission && scanState is ScanState.Idle) {
-            viewModel.scanLocalMusic()
-            hasInitialized.value = true
-        }
-    }
+    // Auto-scan on startup is now handled by HomeViewModel.tryStartupScan()
+    // This prevents duplicate scans and respects the scanOnStartup preference + 30-min deduplication
 
-    // Show toast when scan completes
-    LaunchedEffect(scanState) {
-        if (scanState is ScanState.Success) {
-            val totalSongs = (scanState as ScanState.Success).totalSongs
-            Toast.makeText(
-                context,
-                "Scan completed: $totalSongs songs found",
-                Toast.LENGTH_LONG
-            ).show()
-        } else if (scanState is ScanState.Error) {
-            val errorMsg = (scanState as ScanState.Error).error
-            Toast.makeText(context, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
+    // Show toast only for user-initiated scans (not startup scans)
+    LaunchedEffect(scanState, isUserInitiatedScan) {
+        if (isUserInitiatedScan) {
+            if (scanState is ScanState.Success) {
+                val totalSongs = (scanState as ScanState.Success).totalSongs
+                Toast.makeText(
+                    context,
+                    "Scan completed: $totalSongs songs found",
+                    Toast.LENGTH_LONG
+                ).show()
+                // Reset flag after showing toast
+                viewModel.resetUserInitiatedScanFlag()
+            } else if (scanState is ScanState.Error) {
+                val errorMsg = (scanState as ScanState.Error).error
+                Toast.makeText(context, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
+                // Reset flag after showing toast
+                viewModel.resetUserInitiatedScanFlag()
+            }
         }
     }
 

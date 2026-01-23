@@ -41,6 +41,21 @@ interface SettingsRepository {
     suspend fun setScanOnStartup(enabled: Boolean)
 
     /**
+     * Get the last scan time in milliseconds since epoch.
+     *
+     * @return Last scan time in ms, or 0 if never scanned
+     */
+    suspend fun getLastScanTime(): Long
+
+    /**
+     * Update the last scan time to current system time.
+     * Call this after a successful MediaStore scan.
+     *
+     * @param timeMs Time in milliseconds since epoch (defaults to current time)
+     */
+    suspend fun setLastScanTime(timeMs: Long = System.currentTimeMillis())
+
+    /**
      * Update notification controls setting.
      *
      * @param enabled True to show playback controls in notification

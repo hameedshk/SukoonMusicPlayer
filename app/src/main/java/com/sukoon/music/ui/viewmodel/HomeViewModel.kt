@@ -14,6 +14,7 @@ import com.sukoon.music.domain.repository.ListeningStatsRepository
 import com.sukoon.music.domain.repository.ListeningStatsSnapshot
 import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -36,6 +37,7 @@ class HomeViewModel @Inject constructor(
     val playbackRepository: PlaybackRepository,
     private val lyricsRepository: LyricsRepository,
     private val listeningStatsRepository: ListeningStatsRepository,
+    private val settingsRepository: SettingsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager,
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController,
@@ -71,6 +73,11 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             loadListeningStats()
         }
+
+        // Conditional startup scan: check preference and dedup by time
+        viewModelScope.launch {
+            tryStartupScan()
+        }
     }
 
     /**
@@ -97,6 +104,34 @@ class HomeViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading listening stats", e)
+        }
+    }
+
+    /**
+     * Conditional startup scan: check if scanOnStartup is enabled and last scan was > 30 min ago.
+     * Launches scan asynchronously without blocking UI.
+     */
+    private suspend fun tryStartupScan() {
+        try {
+            // Check if user has enabled "Scan on Startup"
+            val preferences = preferencesManager.userPreferencesFlow.first()
+            if (!preferences.scanOnStartup) {
+                return // User disabled auto-scan
+            }
+
+            // Check if enough time has passed since last scan (30 minutes)
+            val lastScanTime = settingsRepository.getLastScanTime()
+            val timeSinceLastScan = System.currentTimeMillis() - lastScanTime
+            val thirtyMinutesMs = 30 * 60 * 1000L
+
+            if (timeSinceLastScan < thirtyMinutesMs) {
+                return // Last scan was recent, skip
+            }
+
+            // Trigger scan in background (non-blocking)
+            songRepository.scanLocalMusic()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in startup scan", e)
         }
     }
 
@@ -134,6 +169,10 @@ class HomeViewModel @Inject constructor(
     // Scan State
     val scanState: StateFlow<ScanState> = songRepository.scanState
 
+    // Track if current scan was user-initiated (for toast visibility)
+    private val _isUserInitiatedScan = MutableStateFlow(false)
+    val isUserInitiatedScan: StateFlow<Boolean> = _isUserInitiatedScan.asStateFlow()
+
     // Playback State
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
 
@@ -166,10 +205,21 @@ class HomeViewModel @Inject constructor(
 
     // User Actions
 
+    /**
+     * Manual scan triggered by user (shows toast on completion).
+     */
     fun scanLocalMusic() {
         viewModelScope.launch {
+            _isUserInitiatedScan.value = true
             songRepository.scanLocalMusic()
         }
+    }
+
+    /**
+     * Reset the user-initiated scan flag after toast is shown.
+     */
+    fun resetUserInitiatedScanFlag() {
+        _isUserInitiatedScan.value = false
     }
 
     fun playSong(song: Song) {

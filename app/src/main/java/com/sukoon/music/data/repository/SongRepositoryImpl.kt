@@ -61,14 +61,24 @@ class SongRepositoryImpl @Inject constructor(
     // Song Queries
 
     override fun getAllSongs(): Flow<List<Song>> {
-        return songDao.getAllSongs().map { entities ->
-            entities.map { it.toSong() }
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .map { it.toSong() }
         }
     }
 
     override fun getLikedSongs(): Flow<List<Song>> {
-        return songDao.getLikedSongs().map { entities ->
-            entities.map { it.toSong() }
+        return combine(
+            songDao.getLikedSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .map { it.toSong() }
         }
     }
 
@@ -92,7 +102,12 @@ class SongRepositoryImpl @Inject constructor(
 
                 _scanState.update { ScanState.Scanning(scannedCount = 0) }
 
-                val songs = mediaStoreScanner.scanAudioFiles { count, title ->
+                // Get current preference for showing all audio files
+                val showAllAudioFiles = preferencesManager.userPreferencesFlow.first().showAllAudioFiles
+
+                val songs = mediaStoreScanner.scanAudioFiles(
+                    showAllAudioFiles = showAllAudioFiles
+                ) { count, title ->
                     _scanState.update {
                         ScanState.Scanning(scannedCount = count, message = title)
                     }
@@ -111,6 +126,9 @@ class SongRepositoryImpl @Inject constructor(
                 _scanState.update {
                     ScanState.Success(totalSongs = songs.size)
                 }
+
+                // Update last scan time after successful scan
+                preferencesManager.setLastScanTime()
 
                 true
 
@@ -170,8 +188,12 @@ class SongRepositoryImpl @Inject constructor(
     // Albums
 
     override fun getAllAlbums(): Flow<List<Album>> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.album }
                 .map { (albumName, songs) -> createAlbumFromSongs(albumName, songs) }
                 .sortedBy { it.title.lowercase() }
@@ -179,8 +201,12 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getAlbumById(albumId: Long): Flow<Album?> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.album }
                 .map { (albumName, songs) -> createAlbumFromSongs(albumName, songs) }
                 .find { it.id == albumId }
@@ -188,13 +214,18 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getSongsByAlbumId(albumId: Long): Flow<List<Song>> {
-        return songDao.getAllSongs().map { entities ->
-            val albums = entities.groupBy { it.album }
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            val albums = entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .groupBy { it.album }
             val targetAlbumTitle = albums.keys.find { it.hashCode().toLong() == albumId }
-            
+
             if (targetAlbumTitle != null) {
                 entities
-                    .filter { it.album == targetAlbumTitle }
+                    .filter { it.album == targetAlbumTitle && shouldIncludeSong(it, preferences) }
                     .map { it.toSong() }
                     .sortedBy { it.title.lowercase() }
             } else {
@@ -206,8 +237,12 @@ class SongRepositoryImpl @Inject constructor(
     // Artists
 
     override fun getAllArtists(): Flow<List<Artist>> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.artist }
                 .map { (artistName, songs) -> createArtistFromSongs(artistName, songs) }
                 .sortedBy { it.name.lowercase() }
@@ -215,8 +250,12 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getArtistById(artistId: Long): Flow<Artist?> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.artist }
                 .map { (artistName, songs) -> createArtistFromSongs(artistName, songs) }
                 .find { it.id == artistId }
@@ -224,13 +263,18 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getSongsByArtistId(artistId: Long): Flow<List<Song>> {
-        return songDao.getAllSongs().map { entities ->
-            val artists = entities.groupBy { it.artist }
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            val artists = entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .groupBy { it.artist }
             val targetArtistName = artists.keys.find { it.hashCode().toLong() == artistId }
 
             if (targetArtistName != null) {
                 entities
-                    .filter { it.artist == targetArtistName }
+                    .filter { it.artist == targetArtistName && shouldIncludeSong(it, preferences) }
                     .map { it.toSong() }
                     .sortedBy { it.title.lowercase() }
             } else {
@@ -240,13 +284,18 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getAlbumsByArtistId(artistId: Long): Flow<List<Album>> {
-        return songDao.getAllSongs().map { entities ->
-            val artists = entities.groupBy { it.artist }
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            val artists = entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .groupBy { it.artist }
             val targetArtistName = artists.keys.find { it.hashCode().toLong() == artistId }
 
             if (targetArtistName != null) {
                 entities
-                    .filter { it.artist == targetArtistName }
+                    .filter { it.artist == targetArtistName && shouldIncludeSong(it, preferences) }
                     .groupBy { it.album }
                     .map { (albumName, songs) -> createAlbumFromSongs(albumName, songs) }
                     .sortedBy { it.title.lowercase() }
@@ -259,9 +308,11 @@ class SongRepositoryImpl @Inject constructor(
     override fun getRecentlyPlayedArtists(): Flow<List<Artist>> {
         return combine(
             recentlyPlayedArtistDao.getRecentlyPlayedArtists(),
-            songDao.getAllSongs()
-        ) { history, allSongs ->
-            val artistGroups = allSongs.groupBy { it.artist }
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { history, allSongs, preferences ->
+            val filteredSongs = allSongs.filter { shouldIncludeSong(it, preferences) }
+            val artistGroups = filteredSongs.groupBy { it.artist }
             history.mapNotNull { record ->
                 artistGroups[record.artistName]?.let { songs ->
                     createArtistFromSongs(record.artistName, songs)
@@ -279,8 +330,12 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getAllGenres(): Flow<List<Genre>> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.genre }
                 .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
                 .sortedBy { it.name.lowercase() }
@@ -288,8 +343,12 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getGenreById(genreId: Long): Flow<Genre?> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.genre }
                 .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
                 .find { it.id == genreId }
@@ -297,8 +356,12 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getGenreByName(genreName: String): Flow<Genre?> {
-        return songDao.getAllSongs().map { entities ->
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
             entities
+                .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.genre }
                 .map { (name, songs) -> createGenreFromSongs(name, songs) }
                 .find { it.name.equals(genreName, ignoreCase = true) }
@@ -306,13 +369,18 @@ class SongRepositoryImpl @Inject constructor(
     }
 
     override fun getSongsByGenreId(genreId: Long): Flow<List<Song>> {
-        return songDao.getAllSongs().map { entities ->
-            val genres = entities.groupBy { it.genre }
+        return combine(
+            songDao.getAllSongs(),
+            preferencesManager.userPreferencesFlow
+        ) { entities, preferences ->
+            val genres = entities
+                .filter { shouldIncludeSong(it, preferences) }
+                .groupBy { it.genre }
             val targetGenreName = genres.keys.find { Genre.generateId(it) == genreId }
 
             if (targetGenreName != null) {
                 entities
-                    .filter { it.genre == targetGenreName }
+                    .filter { it.genre == targetGenreName && shouldIncludeSong(it, preferences) }
                     .map { it.toSong() }
                     .sortedBy { it.title.lowercase() }
             } else {

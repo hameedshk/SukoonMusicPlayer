@@ -200,11 +200,15 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Toggle show all audio files setting.
+     * When toggled, triggers a full rescan to include/exclude non-music audio files.
      */
     fun toggleShowAllAudioFiles() {
         viewModelScope.launch {
             val currentValue = userPreferences.value.showAllAudioFiles
             settingsRepository.setShowAllAudioFiles(!currentValue)
+
+            // Trigger library rescan to update the database with the new filter setting
+            songRepository.scanLocalMusic()
         }
     }
 

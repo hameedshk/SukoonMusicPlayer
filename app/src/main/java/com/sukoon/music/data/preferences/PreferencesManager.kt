@@ -42,6 +42,7 @@ class PreferencesManager @Inject constructor(
 
         // Library
         private val KEY_SCAN_ON_STARTUP = booleanPreferencesKey("scan_on_startup")
+        private val KEY_LAST_SCAN_TIME = stringPreferencesKey("last_scan_time_ms") // String to support Long
         private val KEY_EXCLUDED_FOLDER_PATHS = stringSetPreferencesKey("excluded_folder_paths")
         private val KEY_FOLDER_SORT_MODE = stringPreferencesKey("folder_sort_mode")
         private val KEY_MINIMUM_AUDIO_DURATION = intPreferencesKey("minimum_audio_duration_seconds")
@@ -155,6 +156,26 @@ class PreferencesManager @Inject constructor(
     suspend fun setScanOnStartup(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_SCAN_ON_STARTUP] = enabled
+        }
+    }
+
+    /**
+     * Get the last scan time in milliseconds since epoch.
+     *
+     * @return Last scan time in ms, or 0 if never scanned
+     */
+    suspend fun getLastScanTime(): Long {
+        val preferences = context.dataStore.data.first()
+        return preferences[KEY_LAST_SCAN_TIME]?.toLongOrNull() ?: 0L
+    }
+
+    /**
+     * Update the last scan time to current system time.
+     * Call this after a successful MediaStore scan.
+     */
+    suspend fun setLastScanTime(timeMs: Long = System.currentTimeMillis()) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_LAST_SCAN_TIME] = timeMs.toString()
         }
     }
 

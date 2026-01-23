@@ -30,34 +30,19 @@ class CrossfadeManager(
         if (durationMs <= 0) {
             // Crossfade disabled - ensure volume is at normal level
             player.volume = 1.0f
-            DevLogger.d("CrossfadeManager", "Crossfade disabled")
             return
         }
 
-        DevLogger.d("CrossfadeManager", "Starting crossfade: ${durationMs}ms, current volume: ${player.volume}")
-
         crossfadeJob = scope.launch {
             try {
-                // Save current volume state
-                val startVolume = player.volume
-                val endVolume = 1.0f
+                // New track just started playing, immediately set to silent
+                // Then fade in over the full duration
+                player.volume = 0.0f
 
-                DevLogger.d("CrossfadeManager", "Fade out phase starting: $startVolume → 0.0f")
+                // Fade in new track over full duration
+                animateVolume(0.0f, 1.0f, durationMs.toLong())
 
-                // Fade out phase (first half)
-                val fadeOutDuration = durationMs / 2L
-                animateVolume(startVolume, 0.0f, fadeOutDuration)
-
-                DevLogger.d("CrossfadeManager", "Fade out complete, volume now: ${player.volume}")
-
-                // New track starts playing here (volume is at 0)
-                // Fade in phase (second half)
-                val fadeInDuration = durationMs - fadeOutDuration
-
-                DevLogger.d("CrossfadeManager", "Fade in phase starting: 0.0f → $endVolume")
-                animateVolume(0.0f, endVolume, fadeInDuration)
-
-                DevLogger.d("CrossfadeManager", "Crossfade completed: ${durationMs}ms, final volume: ${player.volume}")
+                DevLogger.d("CrossfadeManager", "Crossfade fade-in completed: ${durationMs}ms")
             } catch (e: Exception) {
                 DevLogger.e("CrossfadeManager", "Crossfade interrupted", e)
                 // Restore normal volume on error

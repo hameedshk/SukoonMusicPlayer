@@ -416,17 +416,10 @@ class MusicPlaybackService : MediaSessionService() {
      */
     private val crossfadeListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
-            DevLogger.d("MusicPlaybackService", "onMediaItemTransition: reason=$reason, AUTO=${Player.MEDIA_ITEM_TRANSITION_REASON_AUTO}, durationMs=$currentCrossfadeDurationMs")
-
             // Apply crossfade on natural track transitions (reason 0, 1, 2)
             // Skip only on explicit playlist changes or unknown reasons
-            val shouldCrossfade = reason in 0..2
-
-            if (shouldCrossfade) {
-                DevLogger.d("MusicPlaybackService", "Triggering crossfade with duration: $currentCrossfadeDurationMs")
+            if (reason in 0..2) {
                 crossfadeManager?.applyCrossfade(currentCrossfadeDurationMs)
-            } else {
-                DevLogger.d("MusicPlaybackService", "Skipping crossfade: reason=$reason")
             }
         }
     }

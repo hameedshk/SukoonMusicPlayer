@@ -60,14 +60,16 @@ class MediaStoreScanner @Inject constructor(
      *
      * Query Strategy:
      * - URI: MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-     * - Selection: IS_MUSIC = 1 (filter non-music audio files)
+     * - Selection: IS_MUSIC = 1 (filter non-music audio files) OR all audio files if showAllAudioFiles is true
      * - Sort Order: DATE_ADDED DESC (newest first)
      *
+     * @param showAllAudioFiles If true, includes ringtones, notifications, and system sounds
      * @param onProgress Callback invoked for each song scanned with (count, title)
      * @return List of SongEntity objects representing scanned audio files
      * @throws SecurityException if permissions are not granted
      */
     suspend fun scanAudioFiles(
+        showAllAudioFiles: Boolean = false,
         onProgress: (scannedCount: Int, songTitle: String) -> Unit = { _, _ -> }
     ): List<SongEntity> {
         // Permission check
@@ -96,8 +98,12 @@ class MediaStoreScanner @Inject constructor(
             }
         }.toTypedArray()
 
-        // Selection criteria: Only music files
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} = 1"
+        // Selection criteria: Only music files by default, all audio files if showAllAudioFiles is true
+        val selection = if (showAllAudioFiles) {
+            null  // No filter - include all audio files
+        } else {
+            "${MediaStore.Audio.Media.IS_MUSIC} = 1"  // Only music files
+        }
 
         // Sort order: Newest first
         val sortOrder = "${MediaStore.Audio.Media.DATE_ADDED} DESC"
