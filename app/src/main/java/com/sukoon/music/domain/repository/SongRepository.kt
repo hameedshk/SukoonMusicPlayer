@@ -20,6 +20,12 @@ interface SongRepository {
     val scanState: StateFlow<ScanState>
 
     /**
+     * Reactive flag indicating if a scan is currently in progress.
+     * Used to prevent concurrent scans and provide UI feedback.
+     */
+    val isScanning: StateFlow<Boolean>
+
+    /**
      * Observe all songs from the local database.
      */
     fun getAllSongs(): Flow<List<Song>>

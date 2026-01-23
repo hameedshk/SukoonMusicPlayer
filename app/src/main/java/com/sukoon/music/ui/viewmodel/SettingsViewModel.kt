@@ -64,6 +64,22 @@ class SettingsViewModel @Inject constructor(
     private val _isClearingData = MutableStateFlow(false)
     val isClearingData: StateFlow<Boolean> = _isClearingData.asStateFlow()
 
+    // --- Library Scan State ---
+
+    val scanState: StateFlow<com.sukoon.music.domain.model.ScanState> = songRepository.scanState
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = com.sukoon.music.domain.model.ScanState.Idle
+        )
+
+    val isScanning: StateFlow<Boolean> = songRepository.isScanning
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
     init {
         loadStorageStats()
     }
@@ -113,12 +129,12 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
-     * Toggle notification controls setting.
+     * Set notification controls visibility directly (from UI parameter).
+     * Avoids race condition from reading stale StateFlow value.
      */
-    fun toggleNotificationControls() {
+    fun setShowNotificationControls(enabled: Boolean) {
         viewModelScope.launch {
-            val currentValue = userPreferences.value.showNotificationControls
-            settingsRepository.setShowNotificationControls(!currentValue)
+            settingsRepository.setShowNotificationControls(enabled)
         }
     }
 

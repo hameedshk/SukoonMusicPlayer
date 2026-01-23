@@ -142,6 +142,11 @@ sealed class Routes(val route: String) {
     data object ExcludedFolders : Routes("excluded_folders")
 
     /**
+     * About screen - App information, version, and links.
+     */
+    data object About : Routes("about")
+
+    /**
      * Queue screen - Shows current playback queue with reordering and saved queues.
      */
     data object Queue : Routes("queue")

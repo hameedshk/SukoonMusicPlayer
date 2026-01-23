@@ -36,6 +36,9 @@ interface SongDao {
     @Query("SELECT COUNT(*) FROM songs WHERE isLiked = 1")
     fun getLikedSongsCount(): Flow<Int>
 
+    @Query("SELECT COALESCE(SUM(size), 0) FROM songs")
+    suspend fun getTotalAudioSize(): Long
+
     @Query("DELETE FROM songs WHERE id NOT IN (:songIds)")
     suspend fun deleteSongsNotIn(songIds: List<Long>)
 }

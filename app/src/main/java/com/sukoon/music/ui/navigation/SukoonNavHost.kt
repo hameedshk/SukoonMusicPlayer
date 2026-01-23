@@ -268,6 +268,18 @@ fun SukoonNavHost(
                 },
                 onNavigateToExcludedFolders = {
                     navController.navigate(Routes.ExcludedFolders.route)
+                },
+                onNavigateToAbout = {
+                    navController.navigate(Routes.About.route)
+                }
+            )
+        }
+
+        // About Screen - App information and links
+        composable(route = Routes.About.route) {
+            AboutScreen(
+                onBackClick = {
+                    navController.navigateUp()
                 }
             )
         }

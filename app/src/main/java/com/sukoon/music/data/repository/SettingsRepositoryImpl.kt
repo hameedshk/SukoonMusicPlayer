@@ -3,6 +3,7 @@ package com.sukoon.music.data.repository
 import android.content.Context
 import coil.ImageLoader
 import com.sukoon.music.data.local.SukoonDatabase
+import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
@@ -27,7 +28,8 @@ class SettingsRepositoryImpl @Inject constructor(
     private val context: Context,
     private val preferencesManager: PreferencesManager,
     private val database: SukoonDatabase,
-    private val imageLoader: ImageLoader
+    private val imageLoader: ImageLoader,
+    private val songDao: SongDao
 ) : SettingsRepository {
 
     override val userPreferences: Flow<UserPreferences> =
@@ -96,10 +98,12 @@ class SettingsRepositoryImpl @Inject constructor(
     override suspend fun getStorageStats(): StorageStats = withContext(Dispatchers.IO) {
         val databaseSize = getDatabaseSize()
         val cacheSize = getCacheSize()
+        val audioSize = getAudioLibrarySize()
 
         StorageStats(
             databaseSizeBytes = databaseSize,
-            cacheSizeBytes = cacheSize
+            cacheSizeBytes = cacheSize,
+            audioLibrarySizeBytes = audioSize
         )
     }
 
@@ -137,5 +141,12 @@ class SettingsRepositoryImpl @Inject constructor(
      */
     private fun getCacheSize(): Long {
         return context.cacheDir.walkTopDown().filter { it.isFile }.map { it.length() }.sum()
+    }
+
+    /**
+     * Get total audio library size in bytes by summing all song file sizes.
+     */
+    private suspend fun getAudioLibrarySize(): Long {
+        return songDao.getTotalAudioSize()
     }
 }

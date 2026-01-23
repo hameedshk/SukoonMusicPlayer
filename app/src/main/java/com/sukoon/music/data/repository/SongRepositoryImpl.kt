@@ -58,6 +58,10 @@ class SongRepositoryImpl @Inject constructor(
     private val _scanState = MutableStateFlow<ScanState>(ScanState.Idle)
     override val scanState: StateFlow<ScanState> = _scanState.asStateFlow()
 
+    // Concurrent Scan Prevention
+    private val _isScanning = MutableStateFlow(false)
+    override val isScanning: StateFlow<Boolean> = _isScanning.asStateFlow()
+
     // Song Queries
 
     override fun getAllSongs(): Flow<List<Song>> {
@@ -92,6 +96,16 @@ class SongRepositoryImpl @Inject constructor(
 
     override suspend fun scanLocalMusic(): Boolean {
         return withContext(Dispatchers.IO) {
+            // Prevent concurrent scans
+            if (_isScanning.value) {
+                _scanState.update {
+                    ScanState.Error("Scan already in progress.")
+                }
+                return@withContext false
+            }
+
+            _isScanning.value = true
+
             try {
                 if (!mediaStoreScanner.hasAudioPermission()) {
                     _scanState.update {
@@ -137,6 +151,8 @@ class SongRepositoryImpl @Inject constructor(
                     ScanState.Error("Scan failed: ${e.message}")
                 }
                 false
+            } finally {
+                _isScanning.value = false
             }
         }
     }

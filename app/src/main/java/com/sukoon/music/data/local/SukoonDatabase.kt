@@ -48,7 +48,7 @@ import com.sukoon.music.data.local.entity.SongEntity
         GenreCoverEntity::class,
         ListeningStatsEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
@@ -380,6 +380,57 @@ abstract class SukoonDatabase : RoomDatabase() {
                 """)
 
                 // Restore data (this will succeed because CASCADE allows deletion)
+                database.execSQL("INSERT INTO playlist_song_cross_ref SELECT * FROM playlist_song_cross_ref_backup")
+
+                // Clean up backup
+                database.execSQL("DROP TABLE playlist_song_cross_ref_backup")
+
+                // Recreate index
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_playlist_song_cross_ref_songId " +
+                    "ON playlist_song_cross_ref(songId)"
+                )
+            }
+        }
+
+        /**
+         * Migration from version 16 to 17.
+         * Changes songId foreign key in playlist_song_cross_ref from CASCADE to NO_ACTION.
+         * This prevents automatic deletion of playlist entries when songs are removed during media scan.
+         * Orphaned playlist-song references are preserved, allowing users to manually remove them.
+         * Fixes bug: "Songs disappearing from playlists after media rescan"
+         */
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Backup existing data
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS playlist_song_cross_ref_backup (
+                        playlistId INTEGER NOT NULL,
+                        songId INTEGER NOT NULL,
+                        addedAt INTEGER NOT NULL,
+                        position INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(playlistId, songId)
+                    )
+                """)
+                database.execSQL("INSERT INTO playlist_song_cross_ref_backup SELECT * FROM playlist_song_cross_ref")
+
+                // Drop old table
+                database.execSQL("DROP TABLE playlist_song_cross_ref")
+
+                // Create new table with NO_ACTION constraint on songId
+                database.execSQL("""
+                    CREATE TABLE playlist_song_cross_ref (
+                        playlistId INTEGER NOT NULL,
+                        songId INTEGER NOT NULL,
+                        addedAt INTEGER NOT NULL,
+                        position INTEGER NOT NULL DEFAULT 0,
+                        PRIMARY KEY(playlistId, songId),
+                        FOREIGN KEY(playlistId) REFERENCES playlists(id) ON DELETE CASCADE,
+                        FOREIGN KEY(songId) REFERENCES songs(id) ON DELETE NO ACTION
+                    )
+                """)
+
+                // Restore data
                 database.execSQL("INSERT INTO playlist_song_cross_ref SELECT * FROM playlist_song_cross_ref_backup")
 
                 // Clean up backup

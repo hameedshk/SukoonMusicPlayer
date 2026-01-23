@@ -83,7 +83,8 @@ object AppModule {
             SukoonDatabase.MIGRATION_12_13,
             SukoonDatabase.MIGRATION_13_14,
             SukoonDatabase.MIGRATION_14_15,
-            SukoonDatabase.MIGRATION_15_16
+            SukoonDatabase.MIGRATION_15_16,
+            SukoonDatabase.MIGRATION_16_17
         )
         .fallbackToDestructiveMigration()
         .build()
@@ -374,13 +375,15 @@ object AppModule {
         @ApplicationContext context: Context,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
         database: SukoonDatabase,
-        imageLoader: coil.ImageLoader
+        imageLoader: coil.ImageLoader,
+        songDao: com.sukoon.music.data.local.dao.SongDao
     ): com.sukoon.music.domain.repository.SettingsRepository {
         return com.sukoon.music.data.repository.SettingsRepositoryImpl(
             context,
             preferencesManager,
             database,
-            imageLoader
+            imageLoader,
+            songDao
         )
     }
 

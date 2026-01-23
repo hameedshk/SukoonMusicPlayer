@@ -27,7 +27,7 @@ import androidx.room.Index
             entity = SongEntity::class,
             parentColumns = ["id"],
             childColumns = ["songId"],
-            onDelete = ForeignKey.CASCADE
+            onDelete = ForeignKey.NO_ACTION
         )
     ],
     indices = [Index("songId")]  // Index for faster reverse lookups (find playlists containing a song)

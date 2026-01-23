@@ -139,11 +139,13 @@ interface SettingsRepository {
  */
 data class StorageStats(
     val databaseSizeBytes: Long,
-    val cacheSizeBytes: Long
+    val cacheSizeBytes: Long,
+    val audioLibrarySizeBytes: Long = 0
 ) {
-    val totalSizeBytes: Long get() = databaseSizeBytes + cacheSizeBytes
+    val totalSizeBytes: Long get() = databaseSizeBytes + cacheSizeBytes + audioLibrarySizeBytes
 
     fun databaseSizeMB(): String = "%.2f MB".format(databaseSizeBytes / 1024.0 / 1024.0)
     fun cacheSizeMB(): String = "%.2f MB".format(cacheSizeBytes / 1024.0 / 1024.0)
+    fun audioLibrarySizeMB(): String = "%.2f MB".format(audioLibrarySizeBytes / 1024.0 / 1024.0)
     fun totalSizeMB(): String = "%.2f MB".format(totalSizeBytes / 1024.0 / 1024.0)
 }

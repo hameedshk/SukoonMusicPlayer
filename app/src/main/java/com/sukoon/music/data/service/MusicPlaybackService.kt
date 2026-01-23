@@ -205,7 +205,11 @@ class MusicPlaybackService : MediaSessionService() {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         isForeground = false
                     }
-                    stopSelf()
+                    // Only stop service if user dismissed; if programmatically cancelled
+                    // (e.g., setPlayer(null) from notification visibility toggle), keep service alive
+                    if (dismissedByUser) {
+                        stopSelf()
+                    }
                 }
             })
             .build()

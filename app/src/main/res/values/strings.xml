@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">Sukoon Music Player</string>
+    <string name="about_app_description">An offline-only local music player with high-fidelity UI and background playback.</string>
+    <string name="rate_us">Rate us</string>
+    <string name="rate_us_description">Share your feedback on Google Play</string>
+    <string name="share_app">Share Sukoon Music Player</string>
+    <string name="share_app_description">Share with friends and family</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="terms_of_service">Terms of Service</string>
+    <string name="open_source_licenses">Open Source Licenses</string>
 </resources>

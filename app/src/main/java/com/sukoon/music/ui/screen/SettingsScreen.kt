@@ -50,15 +50,17 @@ fun SettingsScreen(
     onBackClick: () -> Unit,
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToExcludedFolders: () -> Unit = {},
+    onNavigateToAbout: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
     val storageStats by viewModel.storageStats.collectAsStateWithLifecycle()
     val isClearingCache by viewModel.isClearingCache.collectAsStateWithLifecycle()
     val isClearingData by viewModel.isClearingData.collectAsStateWithLifecycle()
+    val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
+    val scanState by viewModel.scanState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
-    var showAboutDialog by remember { mutableStateOf(false) }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showAudioQualityDialog by remember { mutableStateOf(false) }
     var showCrossfadeDialog by remember { mutableStateOf(false) }
@@ -134,7 +136,7 @@ fun SettingsScreen(
                     title = "Show Notification Controls",
                     description = "Display playback controls in notification",
                     checked = userPreferences.showNotificationControls,
-                    onCheckedChange = { viewModel.toggleNotificationControls() }
+                    onCheckedChange = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) }
                 )
             }
 
@@ -262,8 +264,9 @@ fun SettingsScreen(
                 SettingsItem(
                     icon = Icons.Default.Search,
                     title = "Rescan Library",
-                    description = "Manually search for new music files",
-                    onClick = { showRescanDialog = true }
+                    description = if (isScanning) "Scanning..." else "Manually search for new music files",
+                    onClick = { if (!isScanning) showRescanDialog = true },
+                    showLoading = isScanning
                 )
             }
 
@@ -290,8 +293,17 @@ fun SettingsScreen(
             item {
                 SettingsItem(
                     icon = Icons.Default.Storage,
-                    title = "Storage Used",
+                    title = "Total Storage Used",
                     description = storageStats?.totalSizeMB() ?: "Calculating...",
+                    onClick = { viewModel.loadStorageStats() }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.MusicNote,
+                    title = "Music Library Size",
+                    description = storageStats?.audioLibrarySizeMB() ?: "Calculating...",
                     onClick = { viewModel.loadStorageStats() }
                 )
             }
@@ -334,7 +346,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Info,
                     title = "About",
                     description = "Version ${viewModel.getAppVersion()}",
-                    onClick = { showAboutDialog = true }
+                    onClick = onNavigateToAbout
                 )
             }
 
@@ -365,14 +377,6 @@ fun SettingsScreen(
         }
 
         // Dialogs
-        if (showAboutDialog) {
-            AboutDialog(
-                version = viewModel.getAppVersion(),
-                packageName = viewModel.getPackageName(),
-                onDismiss = { showAboutDialog = false }
-            )
-        }
-
         if (showThemeDialog) {
             ThemeSelectionDialog(
                 currentTheme = userPreferences.theme,
@@ -469,14 +473,16 @@ fun SettingsScreen(
         }
 
         if (showRescanDialog) {
-            ConfirmationDialog(
-                title = "Rescan Library?",
-                message = "This will scan your device for new music files. It may take a moment.",
-                icon = Icons.Default.Search,
-                onDismiss = { showRescanDialog = false },
+            RescanDialog(
+                isScanning = isScanning,
+                scanState = scanState,
                 onConfirm = {
                     viewModel.rescanLibrary()
-                    showRescanDialog = false
+                },
+                onDismiss = {
+                    if (!isScanning) {
+                        showRescanDialog = false
+                    }
                 }
             )
         }
@@ -773,61 +779,6 @@ private fun ConfirmationDialog(
 }
 
 @Composable
-private fun AboutDialog(
-    version: String,
-    packageName: String,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.MusicNote,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        title = {
-            Text(
-                text = "Sukoon Music Player",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-        },
-        text = {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = "Version $version",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = packageName,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "An offline-only local music player with best experience.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("OK")
-            }
-        },
-        shape = RoundedCornerShape(16.dp)
-    )
-}
-
-@Composable
 private fun AudioQualityDialog(
     currentQuality: AudioQuality,
     onDismiss: () -> Unit,
@@ -979,6 +930,111 @@ private fun getAudioQualityDescription(quality: AudioQuality): String = when (qu
     AudioQuality.MEDIUM -> "Medium (192 kbps)"
     AudioQuality.HIGH -> "High (320 kbps)"
     AudioQuality.LOSSLESS -> "Lossless (Original)"
+}
+
+@Composable
+private fun RescanDialog(
+    isScanning: Boolean,
+    scanState: com.sukoon.music.domain.model.ScanState,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = {
+            // Only dismiss if not scanning
+            if (!isScanning) {
+                onDismiss()
+            }
+        },
+        title = { Text("Rescan Library?") },
+        text = {
+            Column {
+                when {
+                    isScanning -> {
+                        Text("Scanning your device for music files...")
+                        Spacer(modifier = Modifier.height(16.dp))
+                        when (scanState) {
+                            is com.sukoon.music.domain.model.ScanState.Scanning -> {
+                                LinearProgressIndicator(
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Found ${scanState.scannedCount} file(s)",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                if (!scanState.message.isNullOrEmpty()) {
+                                    Text(
+                                        text = scanState.message ?: "",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                    )
+                                }
+                            }
+                            is com.sukoon.music.domain.model.ScanState.Success -> {
+                                Text(
+                                    text = "✓ Found ${scanState.totalSongs} songs",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "Tap Done to close",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            is com.sukoon.music.domain.model.ScanState.Error -> {
+                                Text(
+                                    text = "✗ Error: ${scanState.error}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.error
+                                )
+                            }
+                            else -> {
+                                CircularProgressIndicator()
+                            }
+                        }
+                    }
+                    else -> {
+                        Text("This will scan your device for new music files. It may take a moment.")
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    // Check result states first (after scan completes)
+                    if (scanState is com.sukoon.music.domain.model.ScanState.Success || scanState is com.sukoon.music.domain.model.ScanState.Error) {
+                        onDismiss()
+                    } else if (!isScanning) {
+                        // Start scan only if not already scanning and no result state
+                        onConfirm()
+                    }
+                },
+                enabled = true
+            ) {
+                Text(
+                    when {
+                        isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning -> "Scanning..."
+                        scanState is com.sukoon.music.domain.model.ScanState.Success -> "Done"
+                        scanState is com.sukoon.music.domain.model.ScanState.Error -> "Done"
+                        else -> "Start Scan"
+                    }
+                )
+            }
+        },
+        dismissButton = {
+            if (!isScanning) {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF121212)

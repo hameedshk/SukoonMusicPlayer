@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -153,44 +154,86 @@ internal fun RedesignedTopBar(
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
+        // Main header container with surface
+        Surface(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 2.dp
         ) {
-            Text(
-                text = "Sukoon Music",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
-                verticalAlignment = Alignment.CenterVertically
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-              /*  IconButton(onClick = onPremiumClick) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = "Premium",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }*/
-                IconButton(onClick = onGlobalSearchClick) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                IconButton(onClick = onSettingsClick) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onBackground
-                    )
+                // App name - stronger visual presence
+                Text(
+                    text = "Sukoon Music",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(bottom = 12.dp)
+                )
+
+                // Search bar and settings row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Search bar - prominent with visual affordance
+                    Surface(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clickable(onClick = onGlobalSearchClick),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 1.dp
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Search songs, artists...",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
+
+                    // Settings icon button - enhanced affordance
+                    Surface(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clickable(onClick = onSettingsClick),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        tonalElevation = 1.dp
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -631,5 +674,18 @@ fun PrivateSessionIndicator(
                 )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun RedesignedTopBarPreview() {
+    SukoonMusicPlayerTheme {
+        RedesignedTopBar(
+            onPremiumClick = {},
+            onGlobalSearchClick = {},
+            onSettingsClick = {},
+            sessionState = com.sukoon.music.domain.model.PlaybackSessionState()
+        )
     }
 }
