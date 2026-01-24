@@ -59,45 +59,45 @@ private val MidnightColorScheme = darkColorScheme(
 )
 
 private val AmoledColorScheme = darkColorScheme(
-    // Brand colors - S green (brightness boosted for OLED pure black)
-    primary = androidx.compose.ui.graphics.Color(0xFF1DB954),
-    primaryContainer = androidx.compose.ui.graphics.Color(0xFF1AA34A),
+    // Brand colors - Bright vibrant green on pure black for maximum contrast
+    primary = androidx.compose.ui.graphics.Color(0xFF1FDB5A),  // Brighter Spotify green
+    primaryContainer = androidx.compose.ui.graphics.Color(0xFF2EE76D), // Bright accent
     onPrimary = androidx.compose.ui.graphics.Color(0xFF000000),
-    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    onPrimaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-    // Secondary colors - bright green on pure black
-    secondary = androidx.compose.ui.graphics.Color(0xFF1ED760),
-    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF1AA34A),
+    // Secondary colors - Bright lime accent on pure black
+    secondary = androidx.compose.ui.graphics.Color(0xFF2EE76D),  // Bright lime green
+    secondaryContainer = androidx.compose.ui.graphics.Color(0xFF1FDB5A),
     onSecondary = androidx.compose.ui.graphics.Color(0xFF000000),
-    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
+    onSecondaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-    // Tertiary colors - slightly brighter for contrast on pure black
-    tertiary = androidx.compose.ui.graphics.Color(0xFF707070),
-    tertiaryContainer = androidx.compose.ui.graphics.Color(0xFF505050),
-    onTertiary = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-    onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFFDDDDDD),
+    // Tertiary colors - Bright cyan for maximum vibrancy
+    tertiary = androidx.compose.ui.graphics.Color(0xFF00E5FF),  // Bright cyan
+    tertiaryContainer = androidx.compose.ui.graphics.Color(0xFF80DEEA),
+    onTertiary = androidx.compose.ui.graphics.Color(0xFF000000),
+    onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
     // Background and surfaces - Pure AMOLED black (#000000) for maximum battery on OLED devices
     background = androidx.compose.ui.graphics.Color(0xFF000000),
-    onBackground = androidx.compose.ui.graphics.Color(0xFFC0C0C0),
+    onBackground = androidx.compose.ui.graphics.Color(0xFFE8E8E8),  // Brighter text
 
     surface = androidx.compose.ui.graphics.Color(0xFF000000),
     surfaceVariant = androidx.compose.ui.graphics.Color(0xFF000000),
-    surfaceContainer = androidx.compose.ui.graphics.Color(0xFF0A0A0A),
-    surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF121212),
-    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF121212),
-    onSurface = androidx.compose.ui.graphics.Color(0xFFC0C0C0),
-    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF909090),
+    surfaceContainer = androidx.compose.ui.graphics.Color(0xFF0F0F0F),  // Slightly brighter for definition
+    surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF1A1A1A),
+    surfaceContainerHighest = androidx.compose.ui.graphics.Color(0xFF242424),
+    onSurface = androidx.compose.ui.graphics.Color(0xFFE8E8E8),  // Brighter text
+    onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFA0A0A0),
 
-    // Error colors
-    error = androidx.compose.ui.graphics.Color(0xFFCF6679),
-    errorContainer = androidx.compose.ui.graphics.Color(0xFF93000A),
+    // Error colors - Brighter red for AMOLED
+    error = androidx.compose.ui.graphics.Color(0xFFFF6B6B),
+    errorContainer = androidx.compose.ui.graphics.Color(0xFFFF6B6B),
     onError = androidx.compose.ui.graphics.Color(0xFF000000),
-    onErrorContainer = androidx.compose.ui.graphics.Color(0xFFFFDAD6),
+    onErrorContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-    // Outline
-    outline = androidx.compose.ui.graphics.Color(0xFF909090),
-    outlineVariant = androidx.compose.ui.graphics.Color(0xFF505050)
+    // Outline - Brighter for visibility on pure black
+    outline = androidx.compose.ui.graphics.Color(0xFFA8A8A8),
+    outlineVariant = androidx.compose.ui.graphics.Color(0xFF606060)
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -145,9 +145,9 @@ private val LightColorScheme = lightColorScheme(
 private val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
-    medium = RoundedCornerShape(12.dp),
+    medium = RoundedCornerShape(16.dp),  // Increased for glassmorphism aesthetic
     large = RoundedCornerShape(24.dp),
-    extraLarge = RoundedCornerShape(28.dp)
+    extraLarge = RoundedCornerShape(32.dp)  // Increased for prominent glass containers
 )
 
 @Composable
@@ -181,10 +181,11 @@ fun SukoonMusicPlayerTheme(
             dynamicLightColorScheme(context)
         }
 
-        // Static color schemes
-        isDarkTheme && theme == AppTheme.DARK -> MidnightColorScheme
-        isDarkTheme -> MidnightColorScheme
-        else -> LightColorScheme
+        // Static color schemes - exhaustive matching
+        theme == AppTheme.DARK -> MidnightColorScheme
+        theme == AppTheme.LIGHT -> LightColorScheme
+        theme == AppTheme.SYSTEM -> if (isDarkTheme) MidnightColorScheme else LightColorScheme
+        else -> LightColorScheme // Fallback (should not reach)
     }
 
     MaterialTheme(

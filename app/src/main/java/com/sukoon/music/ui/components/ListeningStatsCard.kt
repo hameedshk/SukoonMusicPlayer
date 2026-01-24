@@ -42,13 +42,10 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
         return  // Don't render if no data
     }
 
-    Surface(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = SpacingMedium, vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.15f),
-        tonalElevation = 4.dp
+            .padding(horizontal = SpacingMedium, vertical = 8.dp)
     ) {
         Column(
             modifier = Modifier

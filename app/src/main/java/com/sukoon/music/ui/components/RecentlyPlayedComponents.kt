@@ -97,7 +97,7 @@ fun <T> RecentlyPlayedSection(
 }
 
 /**
- * Recently Played Song Card
+ * Recently Played Song Card - Uses glassmorphic styling
  */
 @Composable
 fun RecentlyPlayedSongCard(
@@ -107,13 +107,11 @@ fun RecentlyPlayedSongCard(
     Column(
         modifier = Modifier.width(LastAddedCardWidth)
     ) {
-        Surface(
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+                .clickable(onClick = onClick)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art
@@ -241,7 +239,7 @@ fun RecentlyPlayedSongCard(
 }
 
 /**
- * Recently Played Album Card
+ * Recently Played Album Card - Uses glassmorphic styling
  */
 @Composable
 fun RecentlyPlayedAlbumCard(
@@ -253,27 +251,28 @@ fun RecentlyPlayedAlbumCard(
             .width(140.dp)
             .clickable(onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+        GlassCard(
+            modifier = Modifier.size(140.dp)
         ) {
-            SubcomposeAsyncImage(
-                model = album.albumArtUri,
-                contentDescription = null,
+            Box(
                 modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = {
-                    Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            )
+                contentAlignment = Alignment.Center
+            ) {
+                SubcomposeAsyncImage(
+                    model = album.albumArtUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    error = {
+                        Icon(
+                            imageVector = Icons.Default.Album,
+                            contentDescription = null,
+                            modifier = Modifier.size(64.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    }
+                )
+            }
         }
         Spacer(modifier = Modifier.height(8.dp))
         Text(

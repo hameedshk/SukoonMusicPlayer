@@ -56,6 +56,7 @@ import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.ui.components.GlassCard
 import com.sukoon.music.ui.components.LyricsModalSheet
 import com.sukoon.music.ui.components.QueueModalSheet
 import com.sukoon.music.ui.components.SongContextMenu
@@ -439,10 +440,8 @@ private fun NowPlayingContent(
                 animationSpec = tween(200, easing = FastOutSlowInEasing)
             )
         ) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.05f),
-                shape = RoundedCornerShape(16.dp)
+            GlassCard(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(vertical = 16.dp, horizontal = 12.dp)
@@ -573,8 +572,8 @@ private fun AlbumArtSection(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
-    // Enhanced album art with deeper elevation for visual separation and tap gesture
-    Card(
+    // Enhanced album art with glassmorphic styling and tap gesture
+    GlassCard(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
@@ -582,14 +581,10 @@ private fun AlbumArtSection(
                 onClick = onAlbumArtClick,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+            )
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             // Album Art Background
