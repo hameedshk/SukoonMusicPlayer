@@ -31,6 +31,7 @@ import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderDetailViewModel
+import com.sukoon.music.ui.theme.*
 
 /**
  * Folder Detail Screen - Shows songs in a specific folder.

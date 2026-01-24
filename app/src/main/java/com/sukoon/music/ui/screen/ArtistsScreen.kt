@@ -88,6 +88,7 @@ import com.sukoon.music.ui.components.AddToPlaylistDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.animation.*
 import androidx.compose.foundation.lazy.rememberLazyListState
+import com.sukoon.music.ui.theme.*
 
 @Composable
 fun ArtistsScreen(

@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.util.rememberAlbumPalette
+import com.sukoon.music.ui.theme.*
 
 /**
  * Redesigned Mini Player component for global use.

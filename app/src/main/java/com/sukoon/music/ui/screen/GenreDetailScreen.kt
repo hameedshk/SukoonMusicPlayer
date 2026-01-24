@@ -30,6 +30,7 @@ import com.sukoon.music.ui.viewmodel.GenreDetailViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ButtonDefaults
+import com.sukoon.music.ui.theme.*
 
 /**
  * Genre Detail Screen - Shows songs in a specific genre.

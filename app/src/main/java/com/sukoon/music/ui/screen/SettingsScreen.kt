@@ -36,6 +36,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.ComponentActivity
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import com.sukoon.music.ui.theme.*
 
 /**
  * Enhanced Settings Screen with functional preferences and storage management.

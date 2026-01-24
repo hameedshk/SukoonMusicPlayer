@@ -19,6 +19,7 @@ import coil.request.SuccessResult
 import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import com.sukoon.music.ui.theme.*
 
 /**
  * LRU cache for extracted album palettes.

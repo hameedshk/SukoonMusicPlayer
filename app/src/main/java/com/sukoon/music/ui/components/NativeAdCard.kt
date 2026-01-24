@@ -20,6 +20,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.nativead.NativeAd
 import androidx.compose.ui.viewinterop.AndroidView
 import com.google.android.gms.ads.nativead.NativeAdView
+import com.sukoon.music.ui.theme.*
 
 /**
  * Native Ad Card that mimics the song row UI.

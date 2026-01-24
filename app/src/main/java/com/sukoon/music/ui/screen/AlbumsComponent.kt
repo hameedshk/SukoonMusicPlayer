@@ -36,6 +36,7 @@ import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.components.SelectionBottomBarItem
 import com.sukoon.music.ui.components.SortOption
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
+import com.sukoon.music.ui.theme.*
 
 @Composable
 internal fun AlbumRow(

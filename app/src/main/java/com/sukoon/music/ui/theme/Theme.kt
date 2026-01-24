@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.ui.theme.*
 
 private val MidnightColorScheme = darkColorScheme(
     // Brand colors - S green

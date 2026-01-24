@@ -48,9 +48,11 @@ import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.theme.*
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
 import com.sukoon.music.ui.components.rememberShareHandler
+import com.sukoon.music.ui.theme.*
 
 /**
  * Album Detail Screen - Shows songs in a specific album.

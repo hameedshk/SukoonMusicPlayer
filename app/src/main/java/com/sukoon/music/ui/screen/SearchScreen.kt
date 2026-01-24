@@ -39,6 +39,7 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
+import com.sukoon.music.ui.theme.*
 
 /**
  * Enhanced Search Screen - Search and filter local music library with history and sorting.

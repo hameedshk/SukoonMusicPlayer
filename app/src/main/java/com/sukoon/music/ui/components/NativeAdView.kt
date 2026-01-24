@@ -15,6 +15,7 @@ import com.google.android.gms.ads.nativead.NativeAdView
 import com.sukoon.music.R
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.util.DevLogger
+import com.sukoon.music.ui.theme.*
 
 /**
  * Native Ad composable component.

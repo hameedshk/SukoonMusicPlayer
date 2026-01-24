@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Artist
+import com.sukoon.music.ui.theme.*
 
 /**
  * A horizontal scrollable row showing recently played artists.

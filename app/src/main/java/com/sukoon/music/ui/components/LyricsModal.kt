@@ -21,6 +21,7 @@ import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.domain.model.LyricLine
 import com.sukoon.music.domain.model.LyricsState
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.theme.*
 
 /**
  * Lyrics Modal Bottom Sheet - Full-screen overlay for lyrics display.

@@ -31,6 +31,7 @@ import com.sukoon.music.ui.theme.LastAddedCardWidth
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.theme.*
 
 /**
  * Rediscover Albums Section - Shows albums played before but not in the last 30 days.

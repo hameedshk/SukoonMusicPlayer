@@ -2,6 +2,7 @@ package com.sukoon.music.ui.theme
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.ui.theme.*
 
 /**
  * Design system dimensions and shapes for SukoonMusic redesign.

@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.ui.theme.*
 
 /**
  * Reusable component showing item count and a sort dropdown menu.

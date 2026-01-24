@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.ui.theme.*
 
 /**
  * Dialog for editing genre tags (renaming genre).

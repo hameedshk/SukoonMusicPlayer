@@ -11,6 +11,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.ui.theme.*
 
 /**
  * Banner Ad composable component.

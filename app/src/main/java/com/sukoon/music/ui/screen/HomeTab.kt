@@ -19,6 +19,7 @@ import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
 import com.sukoon.music.ui.viewmodel.HomeViewModel
+import com.sukoon.music.ui.theme.*
 
 @Composable
 fun HomeTab(

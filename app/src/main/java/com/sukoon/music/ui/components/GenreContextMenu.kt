@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sukoon.music.domain.model.Genre
+import com.sukoon.music.ui.theme.*
 
 /**
  * Bottom sheet context menu for a Genre.

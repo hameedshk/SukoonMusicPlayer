@@ -53,6 +53,7 @@ import com.sukoon.music.ui.components.RecentlyPlayedAlbumCard
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.screen.albums.*
+import com.sukoon.music.ui.theme.*
 
 /**
  * Albums Screen - Shows all albums in a grid view.

@@ -48,6 +48,7 @@ import com.sukoon.music.ui.viewmodel.FolderViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.ArrowUpward
+import com.sukoon.music.ui.theme.*
 /**
  * Folders Screen - Displays local music folders with enhanced management.
  *

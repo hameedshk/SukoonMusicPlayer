@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Genre
+import com.sukoon.music.ui.theme.*
 
 /**
  * Reusable list item for genres.

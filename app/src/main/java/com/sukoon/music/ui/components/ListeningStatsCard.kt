@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sukoon.music.domain.repository.ListeningStatsSnapshot
 import com.sukoon.music.ui.theme.SpacingMedium
+import com.sukoon.music.ui.theme.*
 
 /**
  * Listening Stats Card for HomeScreen.

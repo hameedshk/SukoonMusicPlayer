@@ -20,6 +20,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.EqualizerViewModel
 import androidx.compose.ui.tooling.preview.Preview
+import com.sukoon.music.ui.theme.*
 
 /**
  * Equalizer Screen - Audio effects control.

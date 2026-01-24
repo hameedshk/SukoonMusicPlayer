@@ -3,6 +3,7 @@ package com.sukoon.music.ui.util
 import androidx.compose.ui.graphics.Color
 import kotlin.math.abs
 import androidx.compose.ui.graphics.luminance
+import com.sukoon.music.ui.theme.*
 
 object AccentResolver {
 

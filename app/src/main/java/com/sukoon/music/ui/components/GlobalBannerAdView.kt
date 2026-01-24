@@ -18,6 +18,7 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.premium.PremiumManager
+import com.sukoon.music.ui.theme.*
 
 /**
  * Approximate height of global ad banner for padding calculations.

@@ -74,6 +74,7 @@ import com.sukoon.music.ui.util.desaturatedSliderColor
 import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
+import com.sukoon.music.ui.theme.*
 
 /**
  * Now Playing Screen - Full-screen best style music player.

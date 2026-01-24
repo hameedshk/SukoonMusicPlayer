@@ -18,6 +18,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.theme.*
 
 /**
  * Queue Modal Bottom Sheet - Full-screen overlay for queue management.

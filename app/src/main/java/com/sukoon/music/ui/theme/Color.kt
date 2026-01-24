@@ -1,6 +1,7 @@
 package com.sukoon.music.ui.theme
 
 import androidx.compose.ui.graphics.Color
+import com.sukoon.music.ui.theme.*
 
 /**
  * Internal color constants used only for theme definitions.
