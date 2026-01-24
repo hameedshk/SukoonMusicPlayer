@@ -62,6 +62,7 @@ import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.rememberShareHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
@@ -1226,7 +1227,7 @@ private fun formatDuration(durationMs: Long): String {
 @Preview(showBackground = true)
 @Composable
 private fun NowPlayingScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         val previewAccentColor = MaterialTheme.colorScheme.primary
         NowPlayingContent(
             playbackState = PlaybackState(

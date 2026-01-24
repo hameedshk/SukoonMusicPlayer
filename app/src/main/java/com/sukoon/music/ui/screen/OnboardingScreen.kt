@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.R
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -305,7 +306,7 @@ fun OnboardingScreen(
 @Preview
 @Composable
 fun OnboardingScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         Surface(modifier = Modifier.fillMaxSize()) {
             // Note: This won't work in preview because PreferencesManager requires Context
             // But showing the structure

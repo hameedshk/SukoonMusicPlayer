@@ -53,6 +53,7 @@ import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.NativeAdCard
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
@@ -1305,7 +1306,7 @@ private fun AddSongsToNewPlaylistDialog(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun PlaylistsScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         PlaylistsScreen(
             onNavigateToPlaylist = {},
             onNavigateToSmartPlaylist = {},

@@ -24,6 +24,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.LikedSongsViewModel
 import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
@@ -681,7 +682,7 @@ private fun NoFilterResultsState(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun LikedSongsScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         LikedSongsScreen(onBackClick = {})
     }
 }

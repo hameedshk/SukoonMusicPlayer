@@ -46,6 +46,7 @@ import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 // SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -790,7 +791,7 @@ private fun SongSelectionBottomBar(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AlbumDetailScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         AlbumDetailScreen(
             albumId = 1,
             onBackClick = {},

@@ -40,6 +40,7 @@ import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.AlphabetScrollBar
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
 import androidx.compose.foundation.lazy.grid.LazyGridState
@@ -797,7 +798,7 @@ private fun AlbumSortHeader(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun AlbumsScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         AlbumsScreen(
             onNavigateToAlbum = {},
             onBackClick = {}

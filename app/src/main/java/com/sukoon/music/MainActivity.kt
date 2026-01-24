@@ -73,7 +73,7 @@ class MainActivity : ComponentActivity() {
 
             // Show splash screen until preferences are loaded from DataStore
             if (userPreferencesState == null) {
-                SukoonMusicPlayerTheme(darkTheme = isSystemInDarkTheme(), dynamicColor = false) {
+                SukoonMusicPlayerTheme(theme = AppTheme.SYSTEM, dynamicColor = false) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -111,15 +111,9 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Determine dark theme based on user preference (can update during app lifecycle)
-            val darkTheme = when (userPreferences.theme) {
-                AppTheme.LIGHT -> false
-                AppTheme.DARK -> true
-                AppTheme.SYSTEM -> isSystemInDarkTheme()
-            }
-
+            // Apply theme based on user preference (can update during app lifecycle)
             SukoonMusicPlayerTheme(
-                darkTheme = darkTheme,
+                theme = userPreferences.theme,
                 dynamicColor = false
             ) {
                 val navController = rememberNavController()

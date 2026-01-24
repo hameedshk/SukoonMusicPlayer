@@ -713,6 +713,7 @@ private fun ThemeSelectionDialog(
                             text = when (theme) {
                                 AppTheme.LIGHT -> "Light"
                                 AppTheme.DARK -> "Dark"
+                                AppTheme.AMOLED -> "AMOLED"
                                 AppTheme.SYSTEM -> "System Default"
                             }
                         )
@@ -922,6 +923,7 @@ private fun BufferDialog(
 private fun getThemeDescription(theme: AppTheme): String = when (theme) {
     AppTheme.LIGHT -> "Light Mode"
     AppTheme.DARK -> "Dark Mode"
+    AppTheme.AMOLED -> "AMOLED"
     AppTheme.SYSTEM -> "System Default"
 }
 
@@ -1040,7 +1042,7 @@ private fun RescanDialog(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun SettingsScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         SettingsScreen(onBackClick = {})
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.EqualizerPreset
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.EqualizerViewModel
 import androidx.compose.ui.tooling.preview.Preview
@@ -354,7 +355,7 @@ private fun SavePresetDialog(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun EqualizerScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         EqualizerScreen(onBackClick = {})
     }
 }

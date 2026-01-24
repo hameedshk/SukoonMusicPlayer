@@ -36,6 +36,7 @@ import com.sukoon.music.domain.model.SearchHistory
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SortMode
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
 
@@ -721,7 +722,7 @@ private fun NoResultsState(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun SearchScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         SearchScreen(onBackClick = {})
     }
 }

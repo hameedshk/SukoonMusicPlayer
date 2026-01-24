@@ -43,6 +43,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
@@ -925,7 +926,7 @@ private fun EditPlaylistDialog(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun PlaylistDetailScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         PlaylistDetailScreen(
             playlistId = 1,
             onBackClick = {}

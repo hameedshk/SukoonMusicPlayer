@@ -29,6 +29,7 @@ import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
@@ -505,7 +506,7 @@ private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun SmartPlaylistDetailScreenPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         SmartPlaylistDetailScreen(
             smartPlaylistType = "MY_FAVOURITE",
             onBackClick = {}

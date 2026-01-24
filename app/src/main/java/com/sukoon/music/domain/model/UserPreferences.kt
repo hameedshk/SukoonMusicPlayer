@@ -104,8 +104,9 @@ data class UserPreferences(
  */
 enum class AppTheme {
     LIGHT,
-    DARK,
-    SYSTEM  // Follow system setting
+    DARK,    // Midnight deep navy (default dark theme)
+    AMOLED,  // Pure black for OLED battery optimization
+    SYSTEM   // Follow system setting
 }
 
 /**

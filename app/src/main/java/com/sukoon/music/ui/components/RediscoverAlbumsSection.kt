@@ -26,6 +26,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.LastAddedCardWidth
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
@@ -269,7 +270,7 @@ fun RediscoverAlbumCard(
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
 private fun RediscoverAlbumsSectionPreview() {
-    SukoonMusicPlayerTheme(darkTheme = true) {
+    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         RediscoverAlbumsSection(
             albums = listOf(
                 Album(id = 1, title = "Abbey Road", artist = "The Beatles", songCount = 17, totalDuration = 2874000, albumArtUri = null, songIds = emptyList()),
