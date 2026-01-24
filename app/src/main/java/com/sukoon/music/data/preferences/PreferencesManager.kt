@@ -34,6 +34,9 @@ class PreferencesManager @Inject constructor(
 ) {
 
     companion object {
+        // Premium
+        private val KEY_IS_PREMIUM_USER = booleanPreferencesKey("is_premium_user")
+
         // Privacy
         private val KEY_PRIVATE_SESSION = booleanPreferencesKey("private_session_enabled")
 
@@ -507,6 +510,30 @@ class PreferencesManager @Inject constructor(
             preferences.remove(KEY_LAST_SONG_ID)
             preferences.remove(KEY_LAST_QUEUE_INDEX)
             preferences.remove(KEY_LAST_PLAYBACK_POSITION)
+        }
+    }
+
+    // --- Premium / Subscriptions ---
+
+    /**
+     * Observe premium user status as a reactive Flow.
+     * True if user has purchased premium subscription.
+     */
+    fun isPremiumUserFlow(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_IS_PREMIUM_USER] ?: false
+        }
+    }
+
+    /**
+     * Set premium user status.
+     * Called after successful in-app purchase.
+     *
+     * @param isPremium True if user purchased premium
+     */
+    suspend fun setIsPremiumUser(isPremium: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_IS_PREMIUM_USER] = isPremium
         }
     }
 }

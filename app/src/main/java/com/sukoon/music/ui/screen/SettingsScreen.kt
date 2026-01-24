@@ -26,10 +26,16 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Card
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
+import dagger.hilt.android.AndroidEntryPoint
+import androidx.activity.ComponentActivity
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.rememberCoroutineScope
 
 /**
  * Enhanced Settings Screen with functional preferences and storage management.
@@ -51,6 +57,7 @@ fun SettingsScreen(
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToExcludedFolders: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    premiumManager: PremiumManager? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val userPreferences by viewModel.userPreferences.collectAsStateWithLifecycle()
@@ -61,6 +68,7 @@ fun SettingsScreen(
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     var showThemeDialog by remember { mutableStateOf(false) }
     var showAudioQualityDialog by remember { mutableStateOf(false) }
     var showCrossfadeDialog by remember { mutableStateOf(false) }
@@ -71,6 +79,7 @@ fun SettingsScreen(
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showMinDurationDialog by remember { mutableStateOf(false) }
     var showRescanDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -359,6 +368,18 @@ fun SettingsScreen(
                 )
             }
 
+            // Subscription Section
+            item { SettingsSectionHeader(title = "Subscription") }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Card,
+                    title = "Premium",
+                    description = "Remove ads and unlock premium features",
+                    onClick = { showPremiumDialog = true }
+                )
+            }
+
             // Account Section
             item { SettingsSectionHeader(title = "Account") }
 
@@ -497,6 +518,22 @@ fun SettingsScreen(
                 onConfirm = {
                     viewModel.logout()
                     showLogoutDialog = false
+                }
+            )
+        }
+
+        if (showPremiumDialog) {
+            PremiumDialog(
+                onDismiss = { showPremiumDialog = false },
+                onPurchase = {
+                    // Get the current activity context
+                    val activity = context as? ComponentActivity
+                    if (activity != null && premiumManager != null) {
+                        coroutineScope.launch {
+                            premiumManager.purchasePremium(activity)
+                        }
+                    }
+                    showPremiumDialog = false
                 }
             )
         }
@@ -1033,6 +1070,53 @@ private fun RescanDialog(
                 TextButton(onClick = onDismiss) {
                     Text("Cancel")
                 }
+            }
+        },
+        shape = RoundedCornerShape(16.dp)
+    )
+}
+
+@Composable
+private fun PremiumDialog(
+    onDismiss: () -> Unit,
+    onPurchase: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Go Premium") },
+        text = {
+            Column {
+                Text(
+                    text = "Remove ads and enjoy uninterrupted music playback",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Premium benefits:",
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text("✓ No advertisements")
+                Text("✓ Ad-free experience everywhere")
+                Text("✓ Support app development")
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "\$9.99 one-time purchase",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onPurchase) {
+                Text("Buy Premium")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Maybe Later")
             }
         },
         shape = RoundedCornerShape(16.dp)

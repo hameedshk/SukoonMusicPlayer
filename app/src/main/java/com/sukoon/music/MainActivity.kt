@@ -35,6 +35,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.components.GlobalBannerAdView
 import com.sukoon.music.ui.components.GLOBAL_AD_HEIGHT_DP
@@ -55,6 +56,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var adMobManager: AdMobManager
 
+    @Inject
+    lateinit var premiumManager: PremiumManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -65,6 +69,10 @@ class MainActivity : ComponentActivity() {
         setupFullScreenMode()
 
         setContent {
+            // Initialize billing manager for premium purchases
+            LaunchedEffect(Unit) {
+                premiumManager.initialize()
+            }
             // Observe user preferences for theme selection
             // Use null as initialValue so we can detect when preferences are actually loaded
             val userPreferencesState by preferencesManager.userPreferencesFlow.collectAsStateWithLifecycle(
@@ -166,8 +174,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Global ad banner at absolute bottom (z-index 0)
+                    // Hidden for premium users
                     GlobalBannerAdView(
                         adMobManager = adMobManager,
+                        premiumManager = premiumManager,
                         currentRoute = currentRoute,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
@@ -176,6 +186,12 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Disconnect billing client on app destruction
+        premiumManager.disconnect()
     }
 
     /**

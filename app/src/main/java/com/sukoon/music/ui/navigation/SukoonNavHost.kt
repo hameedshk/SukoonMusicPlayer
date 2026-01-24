@@ -11,6 +11,7 @@ import androidx.navigation.navArgument
 import com.sukoon.music.ui.screen.*
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.data.premium.PremiumManager
 import dagger.hilt.android.EntryPointAccessors
 import android.content.Context
 import androidx.compose.ui.platform.LocalContext
@@ -36,6 +37,13 @@ fun SukoonNavHost(
     // Get PreferencesManager via Hilt
     val preferencesManager = try {
         EntryPointAccessors.fromApplication(context, PreferencesManagerEntryPoint::class.java).preferencesManager()
+    } catch (e: Exception) {
+        null
+    }
+
+    // Get PremiumManager via Hilt
+    val premiumManager = try {
+        EntryPointAccessors.fromApplication(context, PremiumManagerEntryPoint::class.java).premiumManager()
     } catch (e: Exception) {
         null
     }
@@ -271,7 +279,8 @@ fun SukoonNavHost(
                 },
                 onNavigateToAbout = {
                     navController.navigate(Routes.About.route)
-                }
+                },
+                premiumManager = premiumManager
             )
         }
 
@@ -515,4 +524,13 @@ fun SukoonNavHost(
 @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
 interface PreferencesManagerEntryPoint {
     fun preferencesManager(): PreferencesManager
+}
+
+/**
+ * Hilt entry point for accessing PremiumManager from non-injected context.
+ */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface PremiumManagerEntryPoint {
+    fun premiumManager(): PremiumManager
 }

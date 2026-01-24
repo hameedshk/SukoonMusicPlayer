@@ -85,6 +85,8 @@ import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 /**
  * Home Screen - Main entry point of the app.
@@ -118,6 +120,15 @@ fun HomeScreen(
     val isUserInitiatedScan by viewModel.isUserInitiatedScan.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
+
+    // Get PremiumManager to check if user is premium (for ad injection)
+    val context = LocalContext.current
+    val premiumManager = try {
+        EntryPointAccessors.fromApplication(context, com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java).premiumManager()
+    } catch (e: Exception) {
+        null
+    }
+    val isPremium by (premiumManager?.isPremiumUser?.collectAsStateWithLifecycle(false) ?: remember { mutableStateOf(false) })
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
@@ -906,32 +917,55 @@ private fun SongsContent(
                         }
                     }
                 }
-                items(
-                    items = sortedSongs,
-                    key = { it.id }
-                ) { song ->
-                    val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
-                    val index = songs.indexOf(song)
-                    val isSelected = selectedSongIds.contains(song.id)
+                // Inject native ads every 15 songs (only if user is not premium)
+                val displayItems = if (!isPremium && !isSongSelectionMode) {
+                    injectNativeAds(sortedSongs, interval = 15)
+                } else {
+                    sortedSongs.map { ListItem.SongItem(it) }
+                }
 
-                    if (isSongSelectionMode) {
-                        SongItemSelectable(
-                            song = song,
-                            isSelected = isSelected,
-                            onClick = {
-                                viewModel.toggleSongSelection(song.id)
+                items(
+                    items = displayItems,
+                    key = { item ->
+                        when (item) {
+                            is ListItem.SongItem<*> -> "song_${(item.item as Song).id}"
+                            is ListItem.AdItem<*> -> "ad_${item.hashCode()}"
+                        }
+                    }
+                ) { item ->
+                    when (item) {
+                        is ListItem.SongItem<*> -> {
+                            val song = item.item as Song
+                            val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
+                            val index = songs.indexOf(song)
+                            val isSelected = selectedSongIds.contains(song.id)
+
+                            if (isSongSelectionMode) {
+                                SongItemSelectable(
+                                    song = song,
+                                    isSelected = isSelected,
+                                    onClick = {
+                                        viewModel.toggleSongSelection(song.id)
+                                    }
+                                )
+                            } else {
+                                SongItemWithMenu(
+                                    song = song,
+                                    isPlaying = isPlaying,
+                                    onClick = { onSongClick(song, index) },
+                                    onMenuClick = {
+                                        showMenu = true
+                                        selectedSongId = song.id
+                                    }
+                                )
                             }
-                        )
-                    } else {
-                        SongItemWithMenu(
-                            song = song,
-                            isPlaying = isPlaying,
-                            onClick = { onSongClick(song, index) },
-                            onMenuClick = {
-                                showMenu = true
-                                selectedSongId = song.id
-                            }
-                        )
+                        }
+                        is ListItem.AdItem<*> -> {
+                            // Native ad card (only shown if not premium)
+                            NativeAdCard(
+                                onAdClick = { /* Open advertiser */ }
+                            )
+                        }
                     }
                 }
             }

@@ -12,10 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.data.premium.PremiumManager
 
 /**
  * Approximate height of global ad banner for padding calculations.
@@ -28,21 +30,32 @@ const val GLOBAL_AD_HEIGHT_DP = 60
  *
  * Key features:
  * - Reloads ad when navigation route changes (fresh ad per screen)
+ * - Hides ads for premium users (respects isPremiumUser flow)
  * - Always visible (not affected by selection mode)
  * - Positioned below MiniPlayer in z-index
  * - Automatically handles ad lifecycle (load/destroy)
  *
  * @param adMobManager Injected AdMob configuration manager
+ * @param premiumManager Injected premium subscription manager
  * @param currentRoute Current navigation route (used as reload trigger)
  * @param modifier Optional modifier for positioning
  */
 @Composable
 fun GlobalBannerAdView(
     adMobManager: AdMobManager,
+    premiumManager: PremiumManager,
     currentRoute: String?,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+
+    // Observe premium status
+    val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
+
+    // Don't show ads for premium users
+    if (isPremium) {
+        return
+    }
 
     // Calculate adaptive ad size based on screen width
     val adSize = remember {

@@ -121,6 +121,9 @@ dependencies {
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.5.0")
 
+    // Google Play Billing Library (for in-app purchases)
+    implementation("com.android.billingclient:billing:7.0.0")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
