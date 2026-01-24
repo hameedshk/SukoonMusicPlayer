@@ -148,5 +148,5 @@ fun <T> injectNativeAds(
  */
 sealed class ListItem<T> {
     data class SongItem<T>(val item: T) : ListItem<T>()
-    data class AdItem<T> : ListItem<T>()
+    data class AdItem<T>(val dummy: Unit = Unit) : ListItem<T>()
 }

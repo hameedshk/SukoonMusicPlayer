@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.flowOf
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.*
 import com.sukoon.music.ui.components.*
@@ -122,13 +123,14 @@ fun HomeScreen(
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
     // Get PremiumManager to check if user is premium (for ad injection)
-    val context = LocalContext.current
+    val appContext = LocalContext.current
     val premiumManager = try {
-        EntryPointAccessors.fromApplication(context, com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java).premiumManager()
+        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java).premiumManager()
     } catch (e: Exception) {
         null
     }
-    val isPremium by (premiumManager?.isPremiumUser?.collectAsStateWithLifecycle(false) ?: remember { mutableStateOf(false) })
+    val premiumFlow = premiumManager?.isPremiumUser ?: flowOf(false)
+    val isPremium by premiumFlow.collectAsStateWithLifecycle(false)
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
@@ -153,16 +155,15 @@ fun HomeScreen(
 
     // Delete state and launcher
     var songToDelete by remember { mutableStateOf<Song?>(null) }
-    val context = LocalContext.current
 
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(appContext, "Song deleted successfully", Toast.LENGTH_SHORT).show()
             viewModel.scanLocalMusic()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(appContext, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
     }
@@ -195,7 +196,7 @@ fun HomeScreen(
             if (scanState is ScanState.Success) {
                 val totalSongs = (scanState as ScanState.Success).totalSongs
                 Toast.makeText(
-                    context,
+                    appContext,
                     "Scan completed: $totalSongs songs found",
                     Toast.LENGTH_LONG
                 ).show()
@@ -203,7 +204,7 @@ fun HomeScreen(
                 viewModel.resetUserInitiatedScanFlag()
             } else if (scanState is ScanState.Error) {
                 val errorMsg = (scanState as ScanState.Error).error
-                Toast.makeText(context, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
+                Toast.makeText(appContext, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
                 // Reset flag after showing toast
                 viewModel.resetUserInitiatedScanFlag()
             }
@@ -289,6 +290,7 @@ fun HomeScreen(
                                 onPlayAllClick = { viewModel.playAll() },
                                 viewModel = viewModel,
                                 playlistViewModel = playlistViewModel,
+                                isPremium = isPremium,
                                 onNavigateToArtistDetail = onNavigateToArtistDetail,
                                 onNavigateToAlbumDetail = onNavigateToAlbumDetail
                             )
@@ -337,19 +339,19 @@ fun HomeScreen(
         DeleteConfirmationDialog(
             song = song,
             onConfirm = {
-                when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                when (val result = DeleteHelper.deleteSongs(appContext, listOf(song))) {
                     is DeleteHelper.DeleteResult.RequiresPermission -> {
                         deleteLauncher.launch(
                             IntentSenderRequest.Builder(result.intentSender).build()
                         )
                     }
                     is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(appContext, "Song deleted successfully", Toast.LENGTH_SHORT).show()
                         viewModel.scanLocalMusic()
                         songToDelete = null
                     }
                     is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(appContext, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
                         songToDelete = null
                     }
                 }
@@ -713,6 +715,7 @@ private fun SongsContent(
     onPlayAllClick: () -> Unit,
     viewModel: HomeViewModel,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
+    isPremium: Boolean = false,
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {}
 ) {

@@ -26,7 +26,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.filled.Card
+import androidx.compose.material.icons.filled.Wallet
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.data.premium.PremiumManager
@@ -373,7 +373,7 @@ fun SettingsScreen(
 
             item {
                 SettingsItem(
-                    icon = Icons.Default.Card,
+                    icon = Icons.Default.Wallet,
                     title = "Premium",
                     description = "Remove ads and unlock premium features",
                     onClick = { showPremiumDialog = true }

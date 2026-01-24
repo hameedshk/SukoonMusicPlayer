@@ -39,20 +39,11 @@ class PremiumManager @Inject constructor(
     val isPremiumUser: Flow<Boolean> = preferencesManager.isPremiumUserFlow()
 
     /**
-     * Check if user is premium synchronously (non-blocking).
-     * Useful for immediate checks without Flow.
-     *
-     * WARNING: This should not be called from UI thread for the first time.
-     * Prefer using [isPremiumUser] Flow for Compose UIs.
+     * Check if user is premium (non-blocking).
+     * This returns a Flow - collect it in a Composable with collectAsStateWithLifecycle.
+     * For synchronous checks, collect the [isPremiumUser] Flow instead.
      */
-    suspend fun isPremium(): Boolean {
-        // Get value from Flow synchronously
-        return preferencesManager.isPremiumUserFlow().let { flow ->
-            kotlinx.coroutines.flow.first().let {
-                it
-            }
-        }.let { false } // This is a placeholder - use the Flow instead
-    }
+    fun checkPremiumStatus() = isPremiumUser
 
     /**
      * Launch purchase flow to buy premium subscription.

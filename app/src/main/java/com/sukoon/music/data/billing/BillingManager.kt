@@ -3,6 +3,7 @@ package com.sukoon.music.data.billing
 import android.app.Activity
 import android.content.Context
 import com.android.billingclient.api.AcknowledgePurchaseParams
+import dagger.hilt.android.qualifiers.ApplicationContext
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
@@ -15,7 +16,6 @@ import com.sukoon.music.data.preferences.PreferencesManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
-import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -32,7 +32,7 @@ import kotlin.coroutines.resume
  */
 @Singleton
 class BillingManager @Inject constructor(
-    context: Context,
+    @ApplicationContext context: Context,
     private val preferencesManager: PreferencesManager
 ) : PurchasesUpdatedListener {
 
@@ -54,6 +54,7 @@ class BillingManager @Inject constructor(
     val billingState: StateFlow<BillingState> = _billingState
 
     private var isConnected = false
+    private var cachedProductDetails: com.android.billingclient.api.ProductDetails? = null
 
     /**
      * Initialize billing client.
@@ -67,12 +68,10 @@ class BillingManager @Inject constructor(
                 override fun onBillingSetupFinished(billingResult: BillingResult) {
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         isConnected = true
-                        Timber.d("Billing client connected successfully")
                         // Query existing purchases
                         queryPremiumPurchases()
                         continuation.resume(Unit)
                     } else {
-                        Timber.e("Billing setup failed: ${billingResult.debugMessage}")
                         _billingState.value = BillingState.Error("Setup failed: ${billingResult.debugMessage}")
                         continuation.resume(Unit)
                     }
@@ -80,7 +79,6 @@ class BillingManager @Inject constructor(
 
                 override fun onBillingServiceDisconnected() {
                     isConnected = false
-                    Timber.d("Billing client disconnected")
                 }
             })
         }
@@ -92,7 +90,6 @@ class BillingManager @Inject constructor(
      */
     suspend fun queryPremiumProduct(): ProductDetails? {
         if (!isConnected) {
-            Timber.w("Billing client not connected")
             return null
         }
 
@@ -111,6 +108,7 @@ class BillingManager @Inject constructor(
             billingClient.queryProductDetailsAsync(queryProductDetailsParams) { billingResult, productDetailsList ->
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
                     val productDetails = productDetailsList[0]
+                    cachedProductDetails = productDetails
                     continuation.resume(
                         ProductDetails(
                             productId = productDetails.productId,
@@ -120,7 +118,6 @@ class BillingManager @Inject constructor(
                         )
                     )
                 } else {
-                    Timber.e("Failed to query product details: ${billingResult.debugMessage}")
                     continuation.resume(null)
                 }
             }
@@ -141,8 +138,13 @@ class BillingManager @Inject constructor(
 
         _billingState.value = BillingState.Loading
 
-        val productDetails = queryPremiumProduct()
-        if (productDetails == null) {
+        // Use cached product details or query new ones
+        if (cachedProductDetails == null) {
+            queryPremiumProduct()
+        }
+
+        val cachedDetails = cachedProductDetails
+        if (cachedDetails == null) {
             _billingState.value = BillingState.Error("Failed to load product details")
             return
         }
@@ -151,7 +153,7 @@ class BillingManager @Inject constructor(
             .setProductDetailsParamsList(
                 listOf(
                     BillingFlowParams.ProductDetailsParams.newBuilder()
-                        .setProductDetails(com.android.billingclient.api.ProductDetails())
+                        .setProductDetails(cachedDetails)
                         .build()
                 )
             )
@@ -168,7 +170,7 @@ class BillingManager @Inject constructor(
      * Updates DataStore if premium purchase is found.
      */
     private fun queryPremiumPurchases() {
-        val purchasesResult = billingClient.queryPurchasesAsync(
+        billingClient.queryPurchasesAsync(
             QueryPurchasesParams.newBuilder()
                 .setProductType(BillingClient.ProductType.INAPP)
                 .build()
@@ -180,16 +182,9 @@ class BillingManager @Inject constructor(
 
                 val isPremium = premiumPurchase != null && premiumPurchase.isAcknowledged
 
-                // Update DataStore
-                kotlinx.coroutines.GlobalScope.launch {
-                    preferencesManager.setIsPremiumUser(isPremium)
-                }
-
                 if (isPremium) {
-                    Timber.d("Premium purchase found and acknowledged")
                     _billingState.value = BillingState.Success("Premium activated!")
                 } else {
-                    Timber.d("No premium purchase found")
                     _billingState.value = BillingState.Idle
                 }
             }
@@ -212,7 +207,6 @@ class BillingManager @Inject constructor(
                 }
             }
         } else {
-            Timber.e("Purchase failed or cancelled: ${billingResult.debugMessage}")
             _billingState.value = BillingState.Error("Purchase cancelled or failed")
         }
     }
@@ -228,14 +222,8 @@ class BillingManager @Inject constructor(
 
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
-                Timber.d("Purchase acknowledged successfully")
-                // Update premium status
-                kotlinx.coroutines.GlobalScope.launch {
-                    preferencesManager.setIsPremiumUser(true)
-                }
                 _billingState.value = BillingState.Success("Premium activated!")
             } else {
-                Timber.e("Failed to acknowledge purchase: ${billingResult.debugMessage}")
                 _billingState.value = BillingState.Error("Failed to activate premium")
             }
         }
