@@ -45,7 +45,8 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
     GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = SpacingMedium, vertical = 8.dp)
+            .padding(horizontal = SpacingMedium, vertical = 8.dp),
+        enableBlur = false
     ) {
         Column(
             modifier = Modifier

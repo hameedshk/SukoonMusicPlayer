@@ -13,28 +13,42 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /**
- * Glassmorphic card with semi-transparent background and blur effect.
- * Uses blur() modifier on API 31+, falls back to semi-transparent overlay on older APIs.
+ * Glassmorphic card with semi-transparent background and optional blur effect.
+ * - enableBlur=true (default): Full glassmorphism with blur on API 31+, alpha fallback on older APIs
+ * - enableBlur=false: Only semi-transparent background with rounded corners, no blur
+ *
+ * Use cases:
+ * - enableBlur=true: Control sections, secondary content cards
+ * - enableBlur=false: Album art, images that should remain sharp
  */
 @Composable
 fun GlassCard(
 	modifier: Modifier = Modifier,
+	enableBlur: Boolean = true,
+	elevation: androidx.compose.ui.unit.Dp = 0.dp,
 	content: @Composable () -> Unit
 ) {
 	val baseColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-	val blurMod = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-		// API 31+: Apply blur effect
-		modifier.blur(radiusX = 16.dp, radiusY = 16.dp)
+	val blurMod = if (enableBlur) {
+		// Blur enabled: Apply API-aware blur effect
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+			// API 31+: Apply blur effect
+			modifier.blur(radiusX = 16.dp, radiusY = 16.dp)
+		} else {
+			// API <31: Use alpha-based transparency fallback
+			modifier.alpha(0.95f)
+		}
 	} else {
-		// API <31: Use alpha-based transparency fallback
-		modifier.alpha(0.95f)
+		// Blur disabled: Keep original modifier (no blur, no alpha modification)
+		modifier
 	}
 
 	Surface(
 		modifier = blurMod
 			.background(baseColor, RoundedCornerShape(16.dp)),
 		color = Color.Transparent,
-		shape = RoundedCornerShape(16.dp)
+		shape = RoundedCornerShape(16.dp),
+		shadowElevation = elevation
 	) {
 		content()
 	}

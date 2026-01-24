@@ -111,7 +111,8 @@ fun RecentlyPlayedSongCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clickable(onClick = onClick)
+                .clickable(onClick = onClick),
+            enableBlur = false
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art
@@ -252,7 +253,8 @@ fun RecentlyPlayedAlbumCard(
             .clickable(onClick = onClick)
     ) {
         GlassCard(
-            modifier = Modifier.size(140.dp)
+            modifier = Modifier.size(140.dp),
+            enableBlur = false
         ) {
             Box(
                 modifier = Modifier.fillMaxSize(),

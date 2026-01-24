@@ -388,7 +388,7 @@ private fun NowPlayingContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 12.dp)
             .alpha(screenAlpha),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -398,9 +398,9 @@ private fun NowPlayingContent(
             onMoreClick = { showSongContextMenu = true }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
-        // B. Album Art - 40-50% of vertical space
+        // B. Album Art - 48% of vertical space (hero element)
         AlbumArtSection(
             song = song,
             onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
@@ -408,7 +408,7 @@ private fun NowPlayingContent(
             lyricsState = lyricsState,
             currentPosition = currentPosition,
             accentColor = accentColor,
-            modifier = Modifier.weight(0.40f)
+            modifier = Modifier.weight(0.48f)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -441,10 +441,11 @@ private fun NowPlayingContent(
             )
         ) {
             GlassCard(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enableBlur = false
             ) {
                 Column(
-                    modifier = Modifier.padding(vertical = 16.dp, horizontal = 12.dp)
+                    modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
                 ) {
                     // Seek Bar
                     SeekBarSection(
@@ -572,7 +573,7 @@ private fun AlbumArtSection(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     modifier: Modifier = Modifier
 ) {
-    // Enhanced album art with glassmorphic styling and tap gesture
+    // Enhanced album art with glassmorphic styling (blur disabled to keep image sharp)
     GlassCard(
         modifier = modifier
             .fillMaxWidth()
@@ -581,10 +582,14 @@ private fun AlbumArtSection(
                 onClick = onAlbumArtClick,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            )
+            ),
+        enableBlur = false,
+        elevation = 8.dp
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center
         ) {
             // Album Art Background
