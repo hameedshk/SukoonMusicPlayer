@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -149,7 +150,7 @@ val accentColor = remember(
             targetState = playbackState.currentSong?.id,
             animationSpec = tween(durationMillis = 1000),
             label = "nowPlayingCrossfade"
-        ) { _ ->
+        ) { songId ->
             Scaffold(
                 containerColor = Color.Transparent
             ) { paddingValues ->
@@ -430,7 +431,7 @@ private fun NowPlayingContent(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Control Layer - Visually separated with subtle surface
+        // Control Layer - Directly on background (no container)
         AnimatedVisibility(
             visible = !isImmersiveMode,
             enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -440,46 +441,49 @@ private fun NowPlayingContent(
                 animationSpec = tween(200, easing = FastOutSlowInEasing)
             )
         ) {
-            GlassCard(
-                modifier = Modifier.fillMaxWidth(),
-                enableBlur = false
+            Column(
+                modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
-                ) {
-                    // Seek Bar
-                    SeekBarSection(
-                        currentPosition = currentPosition,
-                        duration = playbackState.duration,
-                        sliderColor = sliderColor,
-                        isSeeking = isSeeking,
-                        seekPosition = seekPosition,
-                        onSeekStart = {
-                            isSeeking = true
-                            seekPosition = currentPosition
-                        },
-                        onSeekChange = { seekPosition = it },
-                        onSeekEnd = {
-                            onSeekTo(seekPosition)
-                            isSeeking = false
-                        }
-                    )
+                // Secondary Controls - Shuffle & Repeat (above seek bar)
+                ShuffleRepeatControlsSection(
+                    playbackState = playbackState,
+                    accentColor = accentColor,
+                    onShuffleClick = onShuffleClick,
+                    onRepeatClick = onRepeatClick
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-                    // D. Playback Controls
-                    PlaybackControlsSection(
-                        playbackState = playbackState,
-                        accentColor = accentColor,
-                        onPreviousClick = onPreviousClick,
-                        onPlayPauseClick = onPlayPauseClick,
-                        onNextClick = onNextClick,
-                        onShuffleClick = onShuffleClick,
-                        onRepeatClick = onRepeatClick
-                    )
+                // Seek Bar
+                SeekBarSection(
+                    currentPosition = currentPosition,
+                    duration = playbackState.duration,
+                    sliderColor = sliderColor,
+                    isSeeking = isSeeking,
+                    seekPosition = seekPosition,
+                    onSeekStart = {
+                        isSeeking = true
+                        seekPosition = currentPosition
+                    },
+                    onSeekChange = { seekPosition = it },
+                    onSeekEnd = {
+                        onSeekTo(seekPosition)
+                        isSeeking = false
+                    }
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // D. Primary Playback Controls (Previous - Play - Next)
+                PlaybackControlsSection(
+                    playbackState = playbackState,
+                    accentColor = accentColor,
+                    onPreviousClick = onPreviousClick,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onNextClick = onNextClick
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
             }
         }
 
@@ -920,6 +924,20 @@ private fun SeekBarSection(
     // Dedicated interaction source to isolate slider touch events
     val sliderInteractionSource = remember { MutableInteractionSource() }
 
+    // Thumb scale animation during scrubbing
+    val thumbScale by animateFloatAsState(
+        targetValue = if (isSeeking) 1.25f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "thumb_scale"
+    )
+
+    // Track active opacity boost during scrubbing
+    val activeTrackOpacity by animateFloatAsState(
+        targetValue = if (isSeeking) 1f else 0.9f,
+        animationSpec = tween(durationMillis = 150),
+        label = "active_track_opacity"
+    )
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -937,15 +955,23 @@ private fun SeekBarSection(
                 .height(48.dp),
             colors = SliderDefaults.colors(
                 thumbColor = sliderColor,
-                activeTrackColor = sliderColor,
-                inactiveTrackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.32f)
+                activeTrackColor = sliderColor.copy(alpha = activeTrackOpacity),
+                inactiveTrackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.25f)
             ),
             thumb = {
                 Box(
                     modifier = Modifier
-                        .size(10.dp)
+                        .size(8.dp)
+                        .scale(thumbScale)
                         .background(sliderColor, CircleShape)
                         .clip(CircleShape)
+                        .let {
+                            if (isSeeking) {
+                                it.shadow(elevation = 6.dp, shape = CircleShape, clip = false)
+                            } else {
+                                it
+                            }
+                        }
                 )
             },
             track = { sliderState ->
@@ -955,7 +981,7 @@ private fun SeekBarSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(5.dp)
+                        .height(3.dp)
                         .clip(CircleShape)
                 ) {
                     Box(
@@ -970,7 +996,7 @@ private fun SeekBarSection(
                         modifier = Modifier
                             .fillMaxWidth(fraction.coerceIn(0f, 1f))
                             .fillMaxHeight()
-                            .background(sliderColor, CircleShape)
+                            .background(sliderColor.copy(alpha = activeTrackOpacity), CircleShape)
                     )
                 }
             }
@@ -982,27 +1008,24 @@ private fun SeekBarSection(
         ) {
             Text(
                 text = formatDuration(displayPosition.toLong()),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
             Text(
                 text = formatDuration(duration),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
         }
     }
 }
 
 /**
- * D. PlaybackControlsSection - Primary playback controls (Shuffle, Previous, Play/Pause, Next, Lyrics).
- * Play/Pause: 64dp touch target, 48dp icon
- * Other buttons: 48dp touch target, 24dp icon
- * Horizontal spacing: 16-24dp between controls
+ * D. PlaybackControlsSection - Primary playback controls (Previous, Play/Pause, Next).
+ * Emphasizes play button dominance with 1.6× size ratio.
+ * Play/Pause: 72dp touch target, 72dp icon
+ * Previous/Next: 56dp touch target, 40dp icon
+ * Spacing: 16dp between controls
  */
 @Composable
 private fun PlaybackControlsSection(
@@ -1010,33 +1033,15 @@ private fun PlaybackControlsSection(
     accentColor: Color,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onShuffleClick: () -> Unit,
-    onRepeatClick: () -> Unit
+    onNextClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Shuffle Button
-        IconButton(
-            onClick = onShuffleClick,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (playbackState.shuffleEnabled)
-                    accentColor
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
-
         IconButton(
             onClick = onPreviousClick,
             modifier = Modifier.size(56.dp)
@@ -1049,10 +1054,12 @@ private fun PlaybackControlsSection(
             )
         }
 
+        Spacer(modifier = Modifier.width(16.dp))
+
         IconButton(
             onClick = onPlayPauseClick,
             modifier = Modifier
-                .size(64.dp)
+                .size(72.dp)
                 .background(accentColor, CircleShape)
         ) {
             AnimatedContent(
@@ -1067,10 +1074,12 @@ private fun PlaybackControlsSection(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = Color.White,
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(52.dp)
                 )
             }
         }
+
+        Spacer(modifier = Modifier.width(16.dp))
 
         IconButton(
             onClick = onNextClick,
@@ -1083,11 +1092,50 @@ private fun PlaybackControlsSection(
                 modifier = Modifier.size(40.dp)
             )
         }
+    }
+}
+
+/**
+ * Secondary Controls - Shuffle & Repeat buttons (moved above seek bar).
+ * Reduced size and opacity to establish visual hierarchy.
+ * Shuffle/Repeat: 44dp touch target, 20dp icon, 55% baseline opacity
+ */
+@Composable
+private fun ShuffleRepeatControlsSection(
+    playbackState: PlaybackState,
+    accentColor: Color,
+    onShuffleClick: () -> Unit,
+    onRepeatClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Shuffle Button
+        IconButton(
+            onClick = onShuffleClick,
+            modifier = Modifier.size(44.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Shuffle,
+                contentDescription = "Shuffle",
+                tint = if (playbackState.shuffleEnabled)
+                    accentColor
+                else
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(48.dp))
 
         // Repeat Button
         IconButton(
             onClick = onRepeatClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(44.dp)
         ) {
             Icon(
                 imageVector = when (playbackState.repeatMode) {
@@ -1096,10 +1144,10 @@ private fun PlaybackControlsSection(
                 },
                 contentDescription = "Repeat",
                 tint = when (playbackState.repeatMode) {
-                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
                     else -> accentColor
                 },
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
             )
         }
     }

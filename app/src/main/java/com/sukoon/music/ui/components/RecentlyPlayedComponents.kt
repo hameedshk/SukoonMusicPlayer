@@ -22,6 +22,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.theme.CardElevationMedium
 
 /**
  * Generic Recently Played Section - Works for any data type
@@ -112,7 +113,8 @@ fun RecentlyPlayedSongCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clickable(onClick = onClick),
-            enableBlur = false
+            enableBlur = false,
+            elevation = CardElevationMedium
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art

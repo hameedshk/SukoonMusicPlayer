@@ -32,6 +32,8 @@ import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.theme.CardElevationMedium
+import com.sukoon.music.ui.theme.CardShape
 
 /**
  * Rediscover Albums Section - Shows albums played before but not in the last 30 days.
@@ -140,8 +142,9 @@ fun RediscoverAlbumCard(
                 .fillMaxWidth()
                 .aspectRatio(1f)
                 .clickable(onClick = onClick),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+            shape = CardShape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = CardElevationMedium
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art

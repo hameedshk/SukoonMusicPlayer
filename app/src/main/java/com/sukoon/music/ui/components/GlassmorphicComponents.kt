@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import com.sukoon.music.ui.theme.CardShape
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,9 +46,9 @@ fun GlassCard(
 
 	Surface(
 		modifier = blurMod
-			.background(baseColor, RoundedCornerShape(16.dp)),
+			.background(baseColor, CardShape),
 		color = Color.Transparent,
-		shape = RoundedCornerShape(16.dp),
+		shape = CardShape,
 		shadowElevation = elevation
 	) {
 		content()

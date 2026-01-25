@@ -1,11 +1,20 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.Album
@@ -20,6 +29,7 @@ import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.ui.theme.*
+import androidx.compose.foundation.layout.Spacer
 
 @Composable
 fun HomeTab(
@@ -41,7 +51,7 @@ fun HomeTab(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(vertical = SpacingLarge)
     ) {
         item {
             ActionButtonGrid(
@@ -50,6 +60,9 @@ fun HomeTab(
                 onScanClick = { viewModel.scanLocalMusic() },
                 onSettingsClick = onSettingsClick
             )
+        }
+        item {
+            Spacer(modifier = Modifier.height(SectionSpacing))
         }
         if (songs.isNotEmpty()) {
             item {
@@ -69,10 +82,16 @@ fun HomeTab(
                 )
             }
         }
+        item {
+            Spacer(modifier = Modifier.height(SectionSpacing))
+        }
         // Listening Stats Card - appears above Recently Played (hidden when private session is active)
         if (!sessionState.isActive) {
             item {
                 ListeningStatsCard(stats = listeningStats)
+            }
+            item {
+                Spacer(modifier = Modifier.height(SectionSpacing))
             }
         }
 
@@ -96,12 +115,33 @@ fun HomeTab(
                 }
             }
         }
+        item {
+            Spacer(modifier = Modifier.height(SectionSpacing))
+        }
         if (rediscoverAlbums.isNotEmpty()) {
             item {
-                RediscoverAlbumsSection(
-                    albums = rediscoverAlbums,
-                    onAlbumClick = onNavigateToAlbumDetail
-                )
+                val isVisibleState = remember { mutableStateOf(false) }
+
+                LaunchedEffect(Unit) {
+                    // Delay animation until after initial composition
+                    delay(300)
+                    isVisibleState.value = true
+                }
+
+                AnimatedVisibility(
+                    visible = isVisibleState.value,
+                    enter = fadeIn(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    )
+                ) {
+                    RediscoverAlbumsSection(
+                        albums = rediscoverAlbums,
+                        onAlbumClick = onNavigateToAlbumDetail
+                    )
+                }
             }
         }
     }

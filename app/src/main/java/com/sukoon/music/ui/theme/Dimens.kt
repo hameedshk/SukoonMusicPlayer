@@ -17,6 +17,18 @@ val SpacingXXLarge = 32.dp
 
 // Card dimensions
 val CardCornerRadius = 12.dp
+
+// Tiered elevation system for Material 3
+val CardElevationLow = 2.dp      // Stats cards, informational content
+val CardElevationMedium = 4.dp   // Featured content, album cards, important UI
+
+// Section spacing for HomeTab
+val SectionSpacing = 12.dp       // Vertical gap between major sections
+
+@Deprecated(
+    message = "Use CardElevationLow or CardElevationMedium for tiered elevation",
+    replaceWith = ReplaceWith("CardElevationMedium")
+)
 val CardElevation = 4.dp
 
 // Action button dimensions

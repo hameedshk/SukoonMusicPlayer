@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.sukoon.music.domain.repository.ListeningStatsSnapshot
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.theme.CardElevationLow
 
 /**
  * Listening Stats Card for HomeScreen.
@@ -46,7 +47,8 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = SpacingMedium, vertical = 8.dp),
-        enableBlur = false
+        enableBlur = false,
+        elevation = CardElevationLow
     ) {
         Column(
             modifier = Modifier
