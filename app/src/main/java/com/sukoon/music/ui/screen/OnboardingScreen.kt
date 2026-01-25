@@ -82,14 +82,13 @@ fun OnboardingScreen(
         // App branding
         Text(
             text = "Sukoon",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
         Text(
             text = "Offline Music Player",
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 24.dp)
@@ -108,8 +107,7 @@ fun OnboardingScreen(
         // Metadata tags
         Text(
             text = "Offline • Private • On-device",
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Normal,
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 32.dp, top = 12.dp)
@@ -123,13 +121,12 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Step 1: Find Your Music",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "To play your offline songs, Sukoon needs permission to access your device library.",
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
@@ -147,14 +144,13 @@ fun OnboardingScreen(
             ) {
                 Text(
                     text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
                 )
             }
 
             Text(
                 text = "*This is required to load your music",
-                fontSize = 12.sp,
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.padding(top = 8.dp)
             )
@@ -170,13 +166,12 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Step 2: Personalize Your Library",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "What name should we use for your playlists and greetings?",
-                fontSize = 14.sp,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
             )
@@ -216,7 +211,7 @@ fun OnboardingScreen(
             if (usernameError.isNotEmpty()) {
                 Text(
                     text = usernameError,
-                    fontSize = 12.sp,
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -224,10 +219,9 @@ fun OnboardingScreen(
                 if (username.isNotEmpty()) {
                     Text(
                         text = "Display name: $displayUsername",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp),
-                        fontWeight = FontWeight.Medium
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
                 Row(
@@ -244,7 +238,7 @@ fun OnboardingScreen(
                     )
                     Text(
                         text = "Your name is only stored locally on the device",
-                        fontSize = 12.sp,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(start = 8.dp)
                     )
@@ -287,14 +281,13 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Start Listening",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
             )
         }
 
         Text(
             text = "Grant permission is mandatory to use app",
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = 16.dp)

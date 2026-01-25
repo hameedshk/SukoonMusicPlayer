@@ -21,15 +21,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
-import com.sukoon.music.ui.theme.DarkCard
-import com.sukoon.music.ui.theme.DarkCardElevated
 import com.sukoon.music.ui.theme.MiniPlayerAlbumArtSize
 import com.sukoon.music.ui.theme.MiniPlayerHeight
 import com.sukoon.music.ui.theme.MiniPlayerShape
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
-import com.sukoon.music.ui.theme.TextPrimary
-import com.sukoon.music.ui.theme.TextSecondary
 import androidx.compose.ui.graphics.Color
 import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
@@ -92,7 +88,7 @@ val accentColor = remember(song.id, palette.candidateAccent) {
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
             .clickable(onClick = onClick),
         shape = MiniPlayerShape,
-        color = DarkCard
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier.fillMaxWidth()
@@ -117,13 +113,13 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(DarkCardElevated),
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = TextSecondary,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -138,14 +134,14 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                 Text(
                     text = playbackState.currentSong.title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = playbackState.currentSong.artist,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -172,7 +168,7 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next",
-                    tint = TextPrimary
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

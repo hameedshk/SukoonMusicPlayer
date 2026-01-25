@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -253,8 +256,15 @@ private fun ArtistsContent(
     } else {
         LazyColumn(
             state = scrollState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.statusBars),
+            contentPadding = PaddingValues(
+                top = ContentTopPadding,
+                bottom = 80.dp + ContentBottomPadding,
+                start = 0.dp,
+                end = 0.dp
+            )
         ) {
             // Search Bar in Selection Mode
             if (isSelectionMode) {
@@ -681,7 +691,13 @@ fun EmptyArtistsContentState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

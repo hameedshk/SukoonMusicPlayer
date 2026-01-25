@@ -415,7 +415,13 @@ private fun EmptyState(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 24.dp,
+                end = 24.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -618,7 +624,7 @@ private fun PlaylistCard(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Options",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
 
@@ -979,7 +985,7 @@ private fun SongsContent(
                     modifier = Modifier
                         .align(Alignment.CenterEnd)
                         .padding(end = 4.dp)
-                        .background(Color.Black.copy(alpha = 0.1f), CircleShape),
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     alphabet.forEach { char ->

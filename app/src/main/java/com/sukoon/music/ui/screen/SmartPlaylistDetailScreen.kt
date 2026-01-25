@@ -479,7 +479,13 @@ private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(

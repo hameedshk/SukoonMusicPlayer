@@ -3,6 +3,7 @@ package com.sukoon.music.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
@@ -11,8 +12,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +27,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -445,7 +450,7 @@ internal fun AlphabetScroller(
 ) {
     val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".toList()
     Column(
-        modifier = modifier.background(Color.Black.copy(alpha = 0.1f), CircleShape),
+        modifier = modifier.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         alphabet.forEach { char ->
@@ -686,6 +691,421 @@ fun PrivateSessionIndicator(
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                 )
             }
+        }
+    }
+}
+
+/**
+ * Continue Listening Card - Primary action on Home screen
+ * Full-width card with album art, track info, and play button
+ * Refined spacing (16dp margins), typography hierarchy, and micro-interactions
+ */
+@Composable
+fun ContinueListeningCard(
+    song: com.sukoon.music.domain.model.Song?,
+    onPlayClick: () -> Unit,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (song == null) return
+
+    val cardInteractionSource = remember { MutableInteractionSource() }
+    val playButtonInteractionSource = remember { MutableInteractionSource() }
+    var isCardPressed by remember { mutableStateOf(false) }
+    var isPlayButtonPressed by remember { mutableStateOf(false) }
+
+    LaunchedEffect(cardInteractionSource) {
+        cardInteractionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> isCardPressed = true
+                is PressInteraction.Release -> isCardPressed = false
+                is PressInteraction.Cancel -> isCardPressed = false
+            }
+        }
+    }
+
+    LaunchedEffect(playButtonInteractionSource) {
+        playButtonInteractionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> isPlayButtonPressed = true
+                is PressInteraction.Release -> isPlayButtonPressed = false
+                is PressInteraction.Cancel -> isPlayButtonPressed = false
+            }
+        }
+    }
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(ContinueListeningCardHeight)
+            .padding(horizontal = ScreenSafeAreaMargin)
+            .scale(if (isCardPressed) 0.98f else 1f)
+            .clickable(
+                interactionSource = cardInteractionSource,
+                indication = null,
+                enabled = true,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(ContinueListeningCornerRadius),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = CardElevationMedium
+    ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Album artwork (full background)
+            SubcomposeAsyncImage(
+                model = song.albumArtUri,
+                contentDescription = "Album art for ${song.title} by ${song.artist}",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
+                contentScale = ContentScale.Crop,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            )
+
+            // Dark gradient overlay for text readability
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)
+                            ),
+                            startY = 0f,
+                            endY = Float.MAX_VALUE
+                        )
+                    )
+            )
+
+            // Content overlay (track info + play button)
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Top section: "Continuing from" label
+                Text(
+                    text = "Continue listening",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+
+                // Bottom section: Track info + play button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        // Track title - Headline Small (24sp, 500 weight, 32dp line height)
+                        Text(
+                            text = song.title,
+                            style = MaterialTheme.typography.headlineSmall.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+
+                        // Artist name - Body Large (16sp, 400 weight, 24dp line height)
+                        Text(
+                            text = song.artist,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Play button - independent clickable for immediate feedback
+                    // Touch target size 56dp meets Material 3 48dp minimum accessibility requirement
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
+                            .scale(if (isPlayButtonPressed) 0.95f else 1f)
+                            .clickable(
+                                interactionSource = playButtonInteractionSource,
+                                indication = null,
+                                onClick = onPlayClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play ${song.title} by ${song.artist}",
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Recently Played Horizontal Scroll
+ * Secondary section with album art items
+ */
+@Composable
+fun RecentlyPlayedScrollSection(
+    songs: List<com.sukoon.music.domain.model.Song>,
+    onItemClick: (com.sukoon.music.domain.model.Song) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        // Section label - Label Medium (12sp, 500 weight, 16dp line height)
+        Text(
+            text = "Recently played",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
+        )
+
+        Spacer(modifier = Modifier.height(SpacingMedium))
+
+        // Horizontal scroll list
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = RecentlyPlayedHorizontalPadding),
+            horizontalArrangement = Arrangement.spacedBy(RecentlyPlayedItemSpacing)
+        ) {
+            items(songs.size.coerceAtMost(10)) { index ->
+                val song = songs[index]
+                var itemPressed by remember { mutableStateOf(false) }
+                val itemInteractionSource = remember { MutableInteractionSource() }
+
+                LaunchedEffect(itemInteractionSource) {
+                    itemInteractionSource.interactions.collect { interaction ->
+                        when (interaction) {
+                            is PressInteraction.Press -> itemPressed = true
+                            is PressInteraction.Release -> itemPressed = false
+                            is PressInteraction.Cancel -> itemPressed = false
+                        }
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .size(RecentlyPlayedItemSize)  // 120x120dp meets Material 3 48dp minimum touch target
+                        .clip(RoundedCornerShape(CardCornerRadius))
+                        .scale(if (itemPressed) 0.95f else 1f)
+                        .clickable(
+                            interactionSource = itemInteractionSource,
+                            indication = null,
+                            onClick = { onItemClick(song) }
+                        )
+                ) {
+                    SubcomposeAsyncImage(
+                        model = song.albumArtUri,
+                        contentDescription = "Play ${song.title} by ${song.artist}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(32.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    )
+
+                    // Play overlay on hover/press - tap indicates to user this plays the song
+                    if (itemPressed) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,  // Already described by parent Box
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Library Navigation Cards - Tertiary section
+ * Songs, Playlists, Albums, Folders
+ */
+@Composable
+fun LibraryNavigationCards(
+    onSongsClick: () -> Unit,
+    onPlaylistsClick: () -> Unit,
+    onAlbumsClick: () -> Unit,
+    onFoldersClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = ScreenSafeAreaMargin)
+    ) {
+        // Section label
+        Text(
+            text = "Your library",
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp
+            ),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+
+        Spacer(modifier = Modifier.height(SpacingMedium))
+
+        // 2x2 grid layout
+        Column(
+            verticalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
+            ) {
+                LibraryCard(
+                    title = "Songs",
+                    icon = Icons.Default.MusicNote,
+                    onClick = onSongsClick,
+                    modifier = Modifier.weight(1f)
+                )
+                LibraryCard(
+                    title = "Playlists",
+                    icon = Icons.AutoMirrored.Filled.List,
+                    onClick = onPlaylistsClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
+            ) {
+                LibraryCard(
+                    title = "Albums",
+                    icon = Icons.Default.Album,
+                    onClick = onAlbumsClick,
+                    modifier = Modifier.weight(1f)
+                )
+                LibraryCard(
+                    title = "Folders",
+                    icon = Icons.Default.Folder,
+                    onClick = onFoldersClick,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Individual library navigation card
+ */
+@Composable
+private fun LibraryCard(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val interactionSource = remember { MutableInteractionSource() }
+
+    LaunchedEffect(interactionSource) {
+        interactionSource.interactions.collect { interaction ->
+            when (interaction) {
+                is PressInteraction.Press -> isPressed = true
+                is PressInteraction.Release -> isPressed = false
+                is PressInteraction.Cancel -> isPressed = false
+            }
+        }
+    }
+
+    Card(
+        modifier = modifier
+            .height(LibraryCardHeight)  // 100dp meets Material 3 48dp minimum touch target
+            .scale(if (isPressed) 0.97f else 1f)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
+        shape = RoundedCornerShape(LibraryCardCornerRadius),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationLow)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalAlignment = Alignment.Start
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = "Navigate to $title",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall.copy(
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

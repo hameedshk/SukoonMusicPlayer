@@ -3,6 +3,9 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
@@ -199,8 +202,15 @@ private fun PlaylistDetailContent(
     )
 
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp)
+        modifier = modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars),
+        contentPadding = PaddingValues(
+            top = ContentTopPadding,
+            bottom = 16.dp + ContentBottomPadding,
+            start = 0.dp,
+            end = 0.dp
+        )
     ) {
         // Playlist Header
         item {
@@ -588,7 +598,13 @@ private fun EmptyPlaylistState() {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(32.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(

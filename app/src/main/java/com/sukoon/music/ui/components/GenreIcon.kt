@@ -36,9 +36,7 @@ fun GenreIcon(
             Icon(
                 imageVector = Icons.Default.MusicNote,
                 contentDescription = null,
-                tint = if (backgroundColor == MaterialTheme.colorScheme.surfaceVariant)
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                else Color.White,
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                 modifier = Modifier.fillMaxSize(0.6f)
             )
         }
@@ -51,18 +49,18 @@ private fun getGenreColor(genreName: String): Color {
         return MaterialTheme.colorScheme.surfaceVariant
     }
 
-    // Predefined colors for variety
+    // Theme-aware colors from Material 3 colorScheme
     val colors = listOf(
-        Color(0xFFEF5350), // Red
-        Color(0xFFEC407A), // Pink
-        Color(0xFF42A5F5), // Blue
-        Color(0xFFAB47BC), // Purple
-        Color(0xFF26C6DA), // Cyan
-        Color(0xFFFFA726), // Orange
-        Color(0xFF8D6E63), // Brown
-        Color(0xFF66BB6A), // Green
-        Color(0xFF26A69A), // Teal
-        Color(0xFF5C6BC0)  // Indigo
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary,
+        MaterialTheme.colorScheme.error,
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
+        MaterialTheme.colorScheme.tertiary.copy(alpha = 0.8f),
+        MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+        MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f)
     )
 
     // Ensure positive index for color selection

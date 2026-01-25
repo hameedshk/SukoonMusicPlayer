@@ -13,6 +13,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -389,7 +393,13 @@ private fun NowPlayingContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp)
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 12.dp,
+                end = 12.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding
+            )
             .alpha(screenAlpha),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -651,8 +661,8 @@ if (showLyricsOverlay) {
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
-                        Color.Black.copy(alpha = 0.35f),
-                        Color.Black.copy(alpha = 0.60f)
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.60f)
                     )
                 )
             )
@@ -663,7 +673,7 @@ if (showLyricsOverlay) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.25f))
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
     )
 
     // Lyrics content
@@ -705,14 +715,14 @@ private fun LyricsOverlayContent(
             ) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(32.dp),
-                    color = Color.White,
+                    color = MaterialTheme.colorScheme.onSurface,
                     strokeWidth = 3.dp
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Loading lyrics...",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                 )
             }
         }
@@ -745,13 +755,13 @@ private fun LyricsOverlayContent(
                     imageVector = Icons.Default.Error,
                     contentDescription = null,
                     modifier = Modifier.size(40.dp),
-                    tint = Color.White.copy(alpha = 0.7f)
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Failed to load lyrics",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.White.copy(alpha = 0.9f),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center
                 )
             }
@@ -803,9 +813,9 @@ private fun CompactSyncedLyricsView(
                 text = line.text,
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (isActive) {
-                    Color.White
+                    MaterialTheme.colorScheme.onSurface
                 } else {
-                    Color.White.copy(alpha = 0.5f)
+                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 },
                 fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
                 textAlign = TextAlign.Center,
@@ -829,7 +839,7 @@ private fun CompactPlainLyricsView(text: String) {
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
                 lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f
             )
@@ -851,13 +861,13 @@ private fun CompactLyricsNotAvailable() {
             imageVector = Icons.Default.MusicNote,
             contentDescription = null,
             modifier = Modifier.size(40.dp),
-            tint = Color.White.copy(alpha = 0.6f)
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = "No lyrics available",
             style = MaterialTheme.typography.bodySmall,
-            color = Color.White.copy(alpha = 0.9f)
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
         )
     }
 }
@@ -1073,7 +1083,7 @@ private fun PlaybackControlsSection(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(52.dp)
                 )
             }
@@ -1237,7 +1247,13 @@ private fun EmptyNowPlayingState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 24.dp,
+                end = 24.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

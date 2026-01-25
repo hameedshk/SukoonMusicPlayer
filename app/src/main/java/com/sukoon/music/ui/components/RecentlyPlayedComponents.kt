@@ -168,7 +168,7 @@ fun RecentlyPlayedSongCard(
                             androidx.compose.ui.graphics.Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.3f)
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)
                                 )
                             )
                         ),

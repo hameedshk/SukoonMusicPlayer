@@ -3,6 +3,9 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -165,6 +168,11 @@ fun AlbumsScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(
+                    top = ContentTopPadding,
+                    bottom = ContentBottomPadding
+                )
         ) {
             if (albums.isEmpty()) {
                 EmptyAlbumsState()
@@ -438,14 +446,14 @@ private fun AlbumCard(
                             onClick = onShowContextMenu,
                             modifier = Modifier
                                 .background(
-                                    color = Color.Black.copy(alpha = 0.5f),
+                                    color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.5f),
                                     shape = RoundedCornerShape(50)
                                 )
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
                                 contentDescription = "Options",
-                                tint = Color.White
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -507,7 +515,13 @@ private fun EmptyAlbumsState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

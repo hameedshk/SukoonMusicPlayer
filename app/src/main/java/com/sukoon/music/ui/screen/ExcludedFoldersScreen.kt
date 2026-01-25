@@ -165,7 +165,13 @@ private fun ExcludedFolderListItem(
 @Composable
 private fun EmptyExcludedState() {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(

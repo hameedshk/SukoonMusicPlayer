@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -186,11 +189,14 @@ fun SongsScreen(
         ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .windowInsetsPadding(WindowInsets.statusBars),
                 contentPadding = PaddingValues(
-                    top = paddingValues.calculateTopPadding(),
-                    bottom = paddingValues.calculateBottomPadding() + 8.dp,
-                    end = 24.dp
+                    top = paddingValues.calculateTopPadding() + ContentTopPadding,
+                    bottom = paddingValues.calculateBottomPadding() + ContentBottomPadding + 8.dp,
+                    end = 24.dp,
+                    start = 0.dp
                 ),
                 state = lazyListState
             ) {

@@ -1,6 +1,9 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -109,8 +112,14 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(vertical = 8.dp)
+                .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars),
+            contentPadding = PaddingValues(
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 8.dp,
+                start = 0.dp,
+                end = 0.dp
+            )
         ) {
             // Privacy Section
             item { SettingsSectionHeader(title = "Privacy") }
@@ -735,7 +744,9 @@ private fun ThemeSelectionDialog(
         title = { Text("Choose Theme") },
         text = {
             Column {
-                AppTheme.entries.forEach { theme ->
+                AppTheme.entries
+                    .filter { it != AppTheme.AMOLED }  // Hide AMOLED (consolidated with Dark)
+                    .forEach { theme ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()

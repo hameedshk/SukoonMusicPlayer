@@ -295,7 +295,13 @@ private fun EmptyFoldersState(
     isHiddenView: Boolean = false
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         contentAlignment = Alignment.Center
     ) {
         Column(

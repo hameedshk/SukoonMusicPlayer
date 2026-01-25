@@ -3,6 +3,9 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -114,8 +117,14 @@ fun PlaylistsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(16.dp),
+                .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars),
+            contentPadding = PaddingValues(
+                top = 16.dp + ContentTopPadding,
+                bottom = 16.dp + ContentBottomPadding,
+                start = 16.dp,
+                end = 16.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Filter Chips Section
@@ -563,7 +572,7 @@ private fun PlaylistCard(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Options",
-                            tint = Color.White
+                            tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
 
@@ -652,7 +661,13 @@ private fun EmptyPlaylistsState(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(32.dp),
+            .windowInsetsPadding(WindowInsets.statusBars)
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

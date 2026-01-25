@@ -1,20 +1,18 @@
 package com.sukoon.music.ui.screen
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import kotlinx.coroutines.delay
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.Album
@@ -22,8 +20,11 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.ActionButtonGrid
+import com.sukoon.music.ui.components.ContinueListeningCard
 import com.sukoon.music.ui.components.LastAddedSection
+import com.sukoon.music.ui.components.LibraryNavigationCards
 import com.sukoon.music.ui.components.ListeningStatsCard
+import com.sukoon.music.ui.components.RecentlyPlayedScrollSection
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
@@ -50,20 +51,67 @@ fun HomeTab(
     val sessionState = viewModel.sessionState.collectAsStateWithLifecycle().value
 
     LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = SpacingLarge)
+        modifier = Modifier
+            .fillMaxSize()
+            .windowInsetsPadding(WindowInsets.statusBars)  // Respect notch and status bar at top
+        ,
+        contentPadding = PaddingValues(
+            top = ContentTopPadding,           // Additional padding below status bar
+            bottom = ContentBottomPadding + MiniPlayerHeight + SpacingLarge,  // Gesture bar safe zone + mini player
+            start = 0.dp,
+            end = 0.dp
+        ),
+        verticalArrangement = Arrangement.spacedBy(SectionSpacing)
     ) {
+        // PRIMARY: Continue Listening Card (album art + one-tap resume)
+        if (playbackState.currentSong != null && recentlyPlayed.isNotEmpty()) {
+            item {
+                ContinueListeningCard(
+                    song = playbackState.currentSong,
+                    onPlayClick = {
+                        if (playbackState.currentSong != null) {
+                            viewModel.playSong(playbackState.currentSong)
+                        }
+                    },
+                    onClick = onNavigateToNowPlaying
+                )
+            }
+        }
+
+        // SECONDARY: Recently Played Horizontal Scroll
+        if (recentlyPlayed.isNotEmpty() && !sessionState.isActive) {
+            item {
+                RecentlyPlayedScrollSection(
+                    songs = recentlyPlayed,
+                    onItemClick = { song: Song ->
+                        if (playbackState.currentSong?.id != song.id) {
+                            viewModel.playSong(song)
+                        } else {
+                            onNavigateToNowPlaying()
+                        }
+                    }
+                )
+            }
+        }
+
+        // TERTIARY: Library Navigation Cards
         item {
-            ActionButtonGrid(
-                onShuffleAllClick = { viewModel.shuffleAll() },
-                onPlayAllClick = { viewModel.playAll() },
-                onScanClick = { viewModel.scanLocalMusic() },
-                onSettingsClick = onSettingsClick
+            LibraryNavigationCards(
+                onSongsClick = { viewModel.setSelectedTab("Songs") },
+                onPlaylistsClick = { viewModel.setSelectedTab("Playlist") },
+                onAlbumsClick = { viewModel.setSelectedTab("Albums") },
+                onFoldersClick = { viewModel.setSelectedTab("Folders") }
             )
         }
-        item {
-            Spacer(modifier = Modifier.height(SectionSpacing))
+
+        // OPTIONAL: Listening Stats (below primary content when not private session)
+        if (!sessionState.isActive && listeningStats != null) {
+            item {
+                ListeningStatsCard(stats = listeningStats)
+            }
         }
+
+        // Additional sections (scrollable below fold)
         if (songs.isNotEmpty()) {
             item {
                 LastAddedSection(
@@ -82,67 +130,19 @@ fun HomeTab(
                 )
             }
         }
-        item {
-            Spacer(modifier = Modifier.height(SectionSpacing))
-        }
-        // Listening Stats Card - appears above Recently Played (hidden when private session is active)
-        if (!sessionState.isActive) {
-            item {
-                ListeningStatsCard(stats = listeningStats)
-            }
-            item {
-                Spacer(modifier = Modifier.height(SectionSpacing))
-            }
-        }
 
-        // Recently Played Grid - hidden when private session is active
-        if (recentlyPlayed.isNotEmpty() && !sessionState.isActive) {
-            item {
-                RecentlyPlayedSection(
-                    items = recentlyPlayed,
-                    onItemClick = { song ->
-                        if (playbackState.currentSong?.id != song.id) {
-                            viewModel.playSong(song)
-                        } else {
-                            onNavigateToNowPlaying()
-                        }
-                    },
-                    onHeaderClick = {
-                        onNavigateToSmartPlaylist(SmartPlaylistType.RECENTLY_PLAYED)
-                    }
-                ) { song, onClick ->
-                    RecentlyPlayedSongCard(song = song, onClick = onClick)
-                }
-            }
-        }
-        item {
-            Spacer(modifier = Modifier.height(SectionSpacing))
-        }
         if (rediscoverAlbums.isNotEmpty()) {
             item {
-                val isVisibleState = remember { mutableStateOf(false) }
-
-                LaunchedEffect(Unit) {
-                    // Delay animation until after initial composition
-                    delay(300)
-                    isVisibleState.value = true
-                }
-
-                AnimatedVisibility(
-                    visible = isVisibleState.value,
-                    enter = fadeIn(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessLow
-                        )
-                    )
-                ) {
-                    RediscoverAlbumsSection(
-                        albums = rediscoverAlbums,
-                        onAlbumClick = onNavigateToAlbumDetail
-                    )
-                }
+                RediscoverAlbumsSection(
+                    albums = rediscoverAlbums,
+                    onAlbumClick = onNavigateToAlbumDetail
+                )
             }
+        }
+
+        // Bottom padding for mini player clearance
+        item {
+            Spacer(modifier = Modifier.height(MiniPlayerHeight))
         }
     }
 }

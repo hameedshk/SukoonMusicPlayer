@@ -198,7 +198,7 @@ fun RediscoverAlbumCard(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    Color.Black.copy(alpha = 0.4f)
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)
                                 )
                             )
                         ),

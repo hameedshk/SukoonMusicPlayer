@@ -2,6 +2,9 @@ package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
@@ -115,6 +118,11 @@ fun SearchScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(
+                    vertical = ContentTopPadding,
+                    horizontal = 0.dp
+                )
         ) {
             // Search History (shown when query is blank)
             if (searchQuery.isBlank() && searchHistory.isNotEmpty()) {

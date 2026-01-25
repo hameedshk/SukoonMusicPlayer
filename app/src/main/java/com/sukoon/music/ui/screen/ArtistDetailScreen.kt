@@ -2,6 +2,9 @@ package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -245,6 +248,11 @@ fun ArtistDetailScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(
+                        top = ContentTopPadding,
+                        bottom = ContentBottomPadding
+                    )
             ) {
                 // Artist Header
                 ArtistHeader(
