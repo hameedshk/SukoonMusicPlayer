@@ -889,9 +889,7 @@ private fun TrackMetadataSection(
     ) {
         Text(
             text = song.title,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-                fontSize = 18.sp,
+            style = MaterialTheme.typography.songTitleLarge.copy(
                 lineHeight = 22.sp
             ),
             maxLines = 1,
@@ -903,10 +901,7 @@ private fun TrackMetadataSection(
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = song.artist,
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontWeight = FontWeight.Normal,
-                fontSize = 13.sp
-            ),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -1018,12 +1013,12 @@ private fun SeekBarSection(
         ) {
             Text(
                 text = formatDuration(displayPosition.toLong()),
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.compactLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
             Text(
                 text = formatDuration(duration),
-                fontSize = 11.sp,
+                style = MaterialTheme.typography.compactLabel,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
         }

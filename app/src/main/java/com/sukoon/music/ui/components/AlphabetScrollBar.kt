@@ -49,9 +49,9 @@ fun AlphabetScrollBar(
                     )
                     .padding(vertical = 1.dp, horizontal = 8.dp),
                 style = MaterialTheme.typography.labelSmall.copy(
-                    fontSize = 10.sp,
+                    fontSize = 11.sp,
                     fontWeight = if (isActive) FontWeight.ExtraBold else FontWeight.Medium,
-                    color = if (isActive) MaterialTheme.colorScheme.primary 
+                    color = if (isActive) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             )

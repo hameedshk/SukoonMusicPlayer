@@ -34,6 +34,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.components.GradientAlertDialog
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import androidx.activity.ComponentActivity
@@ -558,7 +559,7 @@ private fun MinimumDurationDialog(
 ) {
     var duration by remember { mutableStateOf(currentDuration) }
 
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Minimum Audio Duration") },
         text = {
@@ -587,8 +588,7 @@ private fun MinimumDurationDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -739,7 +739,7 @@ private fun ThemeSelectionDialog(
     onDismiss: () -> Unit,
     onThemeSelect: (AppTheme) -> Unit
 ) {
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Choose Theme") },
         text = {
@@ -774,8 +774,7 @@ private fun ThemeSelectionDialog(
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -788,22 +787,25 @@ private fun ConfirmationDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-            )
-        },
         title = { Text(text = title) },
         text = {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Column {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .align(Alignment.CenterHorizontally),
+                    tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
         },
         confirmButton = {
             TextButton(
@@ -823,8 +825,7 @@ private fun ConfirmationDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -834,7 +835,7 @@ private fun AudioQualityDialog(
     onDismiss: () -> Unit,
     onQualitySelect: (AudioQuality) -> Unit
 ) {
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Audio Quality") },
         text = {
@@ -880,8 +881,7 @@ private fun AudioQualityDialog(
             TextButton(onClick = onDismiss) {
                 Text("Close")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -893,7 +893,7 @@ private fun CrossfadeDialog(
 ) {
     var duration by remember { mutableStateOf(currentDuration) }
 
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Crossfade Duration") },
         text = {
@@ -922,8 +922,7 @@ private fun CrossfadeDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -935,7 +934,7 @@ private fun BufferDialog(
 ) {
     var buffer by remember { mutableStateOf(currentBuffer) }
 
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Audio Buffer Size") },
         text = {
@@ -964,8 +963,7 @@ private fun BufferDialog(
             TextButton(onClick = onDismiss) {
                 Text("Cancel")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -990,7 +988,7 @@ private fun RescanDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    GradientAlertDialog(
         onDismissRequest = {
             // Only dismiss if not scanning
             if (!isScanning) {

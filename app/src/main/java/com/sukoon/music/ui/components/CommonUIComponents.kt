@@ -3,7 +3,6 @@ package com.sukoon.music.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -25,7 +24,6 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,12 +47,9 @@ internal fun PillButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier
-            .height(56.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .surfaceLevel2Gradient(),
+        modifier = modifier.height(56.dp),
         shape = RoundedCornerShape(28.dp),
-        color = Color.Transparent
+        color = MaterialTheme.colorScheme.surfaceVariant
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -79,7 +74,7 @@ internal fun MenuOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -88,7 +83,7 @@ internal fun MenuOption(
             tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(Modifier.width(SpacingLarge))
+        Spacer(Modifier.width(16.dp))
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
@@ -104,11 +99,11 @@ internal fun SelectionActionButton(
     onClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.clickable(onClick = onClick).padding(SpacingSmall),
+        modifier = Modifier.clickable(onClick = onClick).padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = label)
-        Spacer(Modifier.height(SpacingXSmall))
+        Spacer(Modifier.height(4.dp))
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
@@ -138,8 +133,8 @@ internal fun PrivateSessionIndicatorStrip(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -182,8 +177,8 @@ internal fun RedesignedTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-                horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Logo - fixed size (40dp) with press feedback and click pulse animation
@@ -296,7 +291,7 @@ internal fun TabPills(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = SpacingMedium),
+            .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
@@ -310,13 +305,9 @@ internal fun TabPills(
             Surface(
                 modifier = Modifier
                     .height(TabPillHeight)
-                    .clip(PillShape)
-                    .apply {
-                        if (!isSelected) surfaceLevel2Gradient() else this
-                    }
                     .clickable { onTabSelected(tab) },
                 shape = PillShape,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                 tonalElevation = 0.dp,
                 shadowElevation = 0.dp
             ) {
@@ -328,9 +319,9 @@ internal fun TabPills(
                     Text(
                         text = tab,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurface
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -537,7 +528,7 @@ internal fun SortOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = SpacingMedium),
+            .padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -563,7 +554,7 @@ internal fun SelectionBottomBarItem(
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(SpacingSmall),
+            .padding(8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = label)
@@ -725,8 +716,8 @@ fun PrivateSessionIndicator(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(SpacingMedium),
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -804,7 +795,7 @@ fun ContinueListeningCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(ContinueListeningCornerRadius),
-        color = if (isSystemInDarkTheme()) Color(0xFF1A1F2E) else MaterialTheme.colorScheme.surfaceVariant,
+        color = MaterialTheme.colorScheme.surfaceVariant,
         shadowElevation = 8.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -1126,11 +1117,9 @@ private fun LibraryCard(
         }
     }
 
-    Surface(
+    Card(
         modifier = modifier
-            .height(LibraryCardHeight)
-            .clip(RoundedCornerShape(LibraryCardCornerRadius))
-            .surfaceLevel1Gradient()
+            .height(LibraryCardHeight)  // 100dp meets Material 3 48dp minimum touch target
             .scale(if (isPressed) 0.97f else 1f)
             .clickable(
                 interactionSource = interactionSource,
@@ -1138,12 +1127,15 @@ private fun LibraryCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(LibraryCardCornerRadius),
-        color = Color.Transparent
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationLow)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(SpacingMedium),
+                .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.Start
         ) {
@@ -1151,7 +1143,7 @@ private fun LibraryCard(
                 imageVector = icon,
                 contentDescription = "Navigate to $title",
                 modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
@@ -1160,7 +1152,7 @@ private fun LibraryCard(
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
