@@ -3,6 +3,7 @@ package com.sukoon.music.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
@@ -21,13 +22,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
+import android.util.Log
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
 import androidx.compose.ui.unit.Dp
@@ -45,9 +49,12 @@ internal fun PillButton(
 ) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(56.dp),
+        modifier = modifier
+            .height(56.dp)
+            .clip(RoundedCornerShape(28.dp))
+            .surfaceLevel2Gradient(),
         shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -162,6 +169,7 @@ internal fun RedesignedTopBar(
     onPremiumClick: () -> Unit,
     onGlobalSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onLogoClick: () -> Unit = {},
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -178,13 +186,58 @@ internal fun RedesignedTopBar(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Logo - fixed size (40dp)
+                // Logo - fixed size (40dp) with press feedback and click pulse animation
+                val logoInteractionSource = remember { MutableInteractionSource() }
+                var isLogoPressed by remember { mutableStateOf(false) }
+                LaunchedEffect(logoInteractionSource) {
+                    logoInteractionSource.interactions.collect { interaction ->
+                        when (interaction) {
+                            is PressInteraction.Press -> isLogoPressed = true
+                            is PressInteraction.Release -> isLogoPressed = false
+                            is PressInteraction.Cancel -> isLogoPressed = false
+                        }
+                    }
+                }
+
+                // Click pulse trigger (animates briefly when clicked)
+                var logoAnimTrigger by remember { mutableStateOf(0) }
+
+                val pressScale by animateFloatAsState(
+                    targetValue = if (isLogoPressed) 0.92f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioNoBouncy,
+                        stiffness = Spring.StiffnessHigh
+                    ),
+                    label = "logo_press_scale"
+                )
+
+                val clickPulseScale by animateFloatAsState(
+                    targetValue = if (logoAnimTrigger % 2 == 1) 1.18f else 1f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
+                    label = "logo_click_pulse",
+                    finishedListener = { if (logoAnimTrigger % 2 == 1) logoAnimTrigger++ }
+                )
+
+                val logoScale = pressScale * clickPulseScale
+
                 Image(
                     painter = painterResource(id = R.drawable.app_logo),
                     contentDescription = "Sukoon Music Logo",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
+                        .scale(logoScale)
+                        .clickable(
+                            interactionSource = logoInteractionSource,
+                            indication = null,
+                            onClick = {
+                                logoAnimTrigger++
+                                onLogoClick()
+                            }
+                        )
                 )
 
                 // App name - full "Sukoon Music"
@@ -257,9 +310,13 @@ internal fun TabPills(
             Surface(
                 modifier = Modifier
                     .height(TabPillHeight)
+                    .clip(PillShape)
+                    .apply {
+                        if (!isSelected) surfaceLevel2Gradient() else this
+                    }
                     .clickable { onTabSelected(tab) },
                 shape = PillShape,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                 tonalElevation = 0.dp,
                 shadowElevation = 0.dp
             ) {
@@ -271,9 +328,9 @@ internal fun TabPills(
                     Text(
                         text = tab,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
@@ -747,8 +804,8 @@ fun ContinueListeningCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(ContinueListeningCornerRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shadowElevation = CardElevationMedium
+        color = if (isSystemInDarkTheme()) Color(0xFF1A1F2E) else MaterialTheme.colorScheme.surfaceVariant,
+        shadowElevation = 8.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Album artwork (full background)
@@ -846,18 +903,18 @@ fun ContinueListeningCard(
 
                     // Play button - independent clickable for immediate feedback
                     // Touch target size 56dp meets Material 3 48dp minimum accessibility requirement
-                    Box(
+                    IconButton(
+                        onClick = {
+                            Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
+                            onPlayClick()
+                        },
                         modifier = Modifier
                             .size(56.dp)
+                            .zIndex(1f)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
-                            .scale(if (isPlayButtonPressed) 0.95f else 1f)
-                            .clickable(
-                                interactionSource = playButtonInteractionSource,
-                                indication = null,
-                                onClick = onPlayClick
-                            ),
-                        contentAlignment = Alignment.Center
+                            .scale(if (isPlayButtonPressed) 0.95f else 1f),
+                        interactionSource = playButtonInteractionSource
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
@@ -1069,9 +1126,11 @@ private fun LibraryCard(
         }
     }
 
-    Card(
+    Surface(
         modifier = modifier
-            .height(LibraryCardHeight)  // 100dp meets Material 3 48dp minimum touch target
+            .height(LibraryCardHeight)
+            .clip(RoundedCornerShape(LibraryCardCornerRadius))
+            .surfaceLevel1Gradient()
             .scale(if (isPressed) 0.97f else 1f)
             .clickable(
                 interactionSource = interactionSource,
@@ -1079,10 +1138,7 @@ private fun LibraryCard(
                 onClick = onClick
             ),
         shape = RoundedCornerShape(LibraryCardCornerRadius),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationLow)
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
@@ -1095,7 +1151,7 @@ private fun LibraryCard(
                 imageVector = icon,
                 contentDescription = "Navigate to $title",
                 modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
 
             Text(
@@ -1104,7 +1160,7 @@ private fun LibraryCard(
                     fontWeight = FontWeight.Medium,
                     fontSize = 14.sp
                 ),
-                color = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
             )
         }
     }

@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -350,8 +351,11 @@ private fun SearchHistoryChip(
                 }
             }
         },
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .surfaceLevel2Gradient(),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = Color.Transparent,
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
@@ -388,7 +392,16 @@ private fun FilterAndSortSection(
                     Text("Liked only")
                 }
             },
+            modifier = if (!showLikedOnly) {
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .surfaceLevel2Gradient()
+            } else {
+                Modifier
+            },
             colors = FilterChipDefaults.filterChipColors(
+                containerColor = if (!showLikedOnly) Color.Transparent else MaterialTheme.colorScheme.primary,
+                labelColor = if (!showLikedOnly) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary,
                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary
             )

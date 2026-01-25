@@ -477,13 +477,12 @@ internal fun LastAddedCard(
     Column(
         modifier = Modifier.width(LastAddedCardWidth)
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clickable(onClick = onClick),
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant
+                .clip(RoundedCornerShape(12.dp))
+                .clickable(onClick = onClick)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art

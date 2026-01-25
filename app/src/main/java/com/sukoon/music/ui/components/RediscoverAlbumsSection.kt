@@ -137,14 +137,12 @@ fun RediscoverAlbumCard(
     Column(
         modifier = modifier.width(LastAddedCardWidth)
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(1f)
-                .clickable(onClick = onClick),
-            shape = CardShape,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shadowElevation = CardElevationMedium
+                .clip(CardShape)
+                .clickable(onClick = onClick)
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Album art

@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -380,7 +381,18 @@ private fun FilterChips(
             },
             leadingIcon = if (selectedArtist != null) {
                 { Icon(Icons.Default.Person, null, Modifier.size(18.dp)) }
-            } else null
+            } else null,
+            modifier = if (selectedArtist == null) {
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .surfaceLevel2Gradient()
+            } else {
+                Modifier
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                containerColor = if (selectedArtist == null) Color.Transparent else MaterialTheme.colorScheme.primary,
+                labelColor = if (selectedArtist == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+            )
         )
 
         // Album filter chip
@@ -392,7 +404,18 @@ private fun FilterChips(
             },
             leadingIcon = if (selectedAlbum != null) {
                 { Icon(Icons.Default.Album, null, Modifier.size(18.dp)) }
-            } else null
+            } else null,
+            modifier = if (selectedAlbum == null) {
+                Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .surfaceLevel2Gradient()
+            } else {
+                Modifier
+            },
+            colors = FilterChipDefaults.filterChipColors(
+                containerColor = if (selectedAlbum == null) Color.Transparent else MaterialTheme.colorScheme.primary,
+                labelColor = if (selectedAlbum == null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+            )
         )
 
         // Clear filters button
@@ -403,7 +426,14 @@ private fun FilterChips(
                 label = { Text("Clear") },
                 leadingIcon = {
                     Icon(Icons.Default.Close, null, Modifier.size(18.dp))
-                }
+                },
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .surfaceLevel2Gradient(),
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = Color.Transparent,
+                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             )
         }
     }

@@ -213,11 +213,12 @@ fun HomeScreen(
     }
 
     Scaffold(
+        containerColor = Color.Transparent,
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.background)
+                    .gradientBackground()
             ) {
                 RedesignedTopBar(
                     onPremiumClick = { },
@@ -243,6 +244,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .gradientBackground()
         ) {
             when {
                 scanState is ScanState.Scanning -> {
@@ -494,7 +496,18 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == null,
                 onClick = { onFilterChange(null) },
-                label = { Text("All") }
+                label = { Text("All") },
+                modifier = if (selectedFilter != null) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != null) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
         item {
@@ -504,7 +517,18 @@ private fun PlaylistFilterChips(
                 label = { Text("Smart Playlists") },
                 leadingIcon = if (selectedFilter == true) {
                     { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
-                } else null
+                } else null,
+                modifier = if (selectedFilter != true) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != true) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != true) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
         item {
@@ -514,7 +538,18 @@ private fun PlaylistFilterChips(
                 label = { Text("My Playlists") },
                 leadingIcon = if (selectedFilter == false) {
                     { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
-                } else null
+                } else null,
+                modifier = if (selectedFilter != false) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != false) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != false) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     }
@@ -527,15 +562,15 @@ private fun SmartPlaylistCard(
     smartPlaylist: SmartPlaylist,
     onClick: () -> Unit
 ) {
-    Card(
+    Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(100.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .surfaceLevel1Gradient(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        color = Color.Transparent
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Column(
@@ -549,13 +584,13 @@ private fun SmartPlaylistCard(
                         text = smartPlaylist.title,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${smartPlaylist.songCount} songs",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -567,7 +602,7 @@ private fun SmartPlaylistCard(
                     .align(Alignment.BottomEnd)
                     .padding(12.dp)
                     .size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
         }
     }
@@ -583,15 +618,15 @@ private fun PlaylistCard(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Card(
+    Surface(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.9f),
+            .aspectRatio(0.9f)
+            .clip(RoundedCornerShape(12.dp))
+            .surfaceLevel1Gradient(),
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -647,6 +682,7 @@ private fun PlaylistCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(12.dp)
+                    .surfaceLevel1Gradient()
             ) {
                 Text(
                     text = playlist.name,
@@ -654,13 +690,13 @@ private fun PlaylistCard(
                     fontWeight = FontWeight.Bold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${playlist.songCount} songs",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }
@@ -892,36 +928,40 @@ private fun SongsContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .surfaceLevel2Gradient()
                                     .clickable(onClick = onShuffleAllClick),
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
+                                color = Color.Transparent
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxSize(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Shuffle All", style = MaterialTheme.typography.bodyLarge)
+                                    Text("Shuffle All", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 }
                             }
                             Surface(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .surfaceLevel2Gradient()
                                     .clickable(onClick = onPlayAllClick),
                                 shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant
+                                color = Color.Transparent
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxSize(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                     Spacer(Modifier.width(8.dp))
-                                    Text("Play", style = MaterialTheme.typography.bodyLarge)
+                                    Text("Play", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 }
                             }
                         }

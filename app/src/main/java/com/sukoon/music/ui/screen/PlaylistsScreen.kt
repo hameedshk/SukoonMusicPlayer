@@ -907,7 +907,18 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == null,
                 onClick = { onFilterChange(null) },
-                label = { Text("All") }
+                label = { Text("All") },
+                modifier = if (selectedFilter != null) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != null) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
         item {
@@ -917,7 +928,18 @@ private fun PlaylistFilterChips(
                 label = { Text("Smart Playlists") },
                 leadingIcon = if (selectedFilter == true) {
                     { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
-                } else null
+                } else null,
+                modifier = if (selectedFilter != true) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != true) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != true) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
         item {
@@ -927,7 +949,18 @@ private fun PlaylistFilterChips(
                 label = { Text("My Playlists") },
                 leadingIcon = if (selectedFilter == false) {
                     { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
-                } else null
+                } else null,
+                modifier = if (selectedFilter != false) {
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .surfaceLevel2Gradient()
+                } else {
+                    Modifier
+                },
+                colors = FilterChipDefaults.filterChipColors(
+                    containerColor = if (selectedFilter != false) Color.Transparent else MaterialTheme.colorScheme.primary,
+                    labelColor = if (selectedFilter != false) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                )
             )
         }
     }

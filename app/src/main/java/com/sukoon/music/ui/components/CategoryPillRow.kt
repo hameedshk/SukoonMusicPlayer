@@ -8,6 +8,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.sukoon.music.ui.theme.*
@@ -41,7 +43,10 @@ fun <T : Enum<T>> CategoryPillRow(
     ) {
         // Left: Item Count Badge
         Surface(
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            modifier = Modifier
+                .clip(MaterialTheme.shapes.small)
+                .surfaceLevel2Gradient(),
+            color = Color.Transparent,
             shape = MaterialTheme.shapes.small
         ) {
             Text(

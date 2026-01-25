@@ -14,6 +14,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,12 +45,14 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
         return  // Don't render if no data
     }
 
-    GlassCard(
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = SpacingMedium, vertical = 8.dp),
-        enableBlur = false,
-        elevation = CardElevationLow
+            .padding(horizontal = SpacingMedium, vertical = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .surfaceLevel2Gradient(),
+        shape = RoundedCornerShape(12.dp),
+        color = Color.Transparent
     ) {
         Column(
             modifier = Modifier
