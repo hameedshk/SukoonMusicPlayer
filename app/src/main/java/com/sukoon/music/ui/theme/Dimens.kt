@@ -14,6 +14,9 @@ val SpacingMedium = 12.dp
 val SpacingLarge = 16.dp
 val SpacingXLarge = 24.dp
 val SpacingXXLarge = 32.dp
+val SpacingXSmall = 4.dp    // Tight padding (chips, cards)
+val SpacingMicro = 2.dp     // Borders, thin dividers
+val SpacingTiny = 1.dp      // Hairline separators
 
 // Card dimensions
 val CardCornerRadius = 12.dp

@@ -137,47 +137,53 @@ fun Modifier.gradientBackground() = this.then(
 @Composable
 fun Modifier.surfaceLevel1Gradient() = this.then(
     Modifier.background(
-        brush = if (isSystemInDarkTheme()) {
-            Brush.verticalGradient(
-                colors = listOf(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(LightSurfaceLevel1Top, LightSurfaceLevel1Bottom)
-            )
-        }
+        brush = Brush.verticalGradient(
+            colors = if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
+                // Dark theme: onBackground is light text
+                listOf(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
+            } else {
+                // Light theme: onBackground is dark text
+                listOf(LightSurfaceLevel1Top, LightSurfaceLevel1Bottom)
+            }
+        )
     )
 )
 
 @Composable
 fun Modifier.surfaceLevel2Gradient() = this.then(
     Modifier.background(
-        brush = if (isSystemInDarkTheme()) {
-            Brush.verticalGradient(
-                colors = listOf(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
-            )
-        } else {
-            Brush.verticalGradient(
-                colors = listOf(LightSurfaceLevel2Top, LightSurfaceLevel2Bottom)
-            )
-        }
+        brush = Brush.verticalGradient(
+            colors = if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
+                // Dark theme: onBackground is light text
+                listOf(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
+            } else {
+                // Light theme: onBackground is dark text
+                listOf(LightSurfaceLevel2Top, LightSurfaceLevel2Bottom)
+            }
+        )
     )
 )
 
 @Composable
 fun surfaceLevel1Colors(): Pair<Color, Color> {
-    return if (isSystemInDarkTheme()) {
+    // Check user's theme preference via MaterialTheme, not system theme
+    return if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
+        // Dark theme: onBackground is light text
         Pair(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
     } else {
+        // Light theme: onBackground is dark text
         Pair(LightSurfaceLevel1Top, LightSurfaceLevel1Bottom)
     }
 }
 
 @Composable
 fun surfaceLevel2Colors(): Pair<Color, Color> {
-    return if (isSystemInDarkTheme()) {
+    // Check user's theme preference via MaterialTheme, not system theme
+    return if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
+        // Dark theme: onBackground is light text
         Pair(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
     } else {
+        // Light theme: onBackground is dark text
         Pair(LightSurfaceLevel2Top, LightSurfaceLevel2Bottom)
     }
 }

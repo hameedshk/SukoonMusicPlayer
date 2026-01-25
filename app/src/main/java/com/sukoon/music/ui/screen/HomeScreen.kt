@@ -600,7 +600,7 @@ private fun SmartPlaylistCard(
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(12.dp)
+                    .padding(SpacingMedium)
                     .size(32.dp),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
             )
@@ -681,7 +681,7 @@ private fun PlaylistCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(SpacingMedium)
                     .surfaceLevel1Gradient()
             ) {
                 Text(
@@ -922,7 +922,7 @@ private fun SongsContent(
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.surface)
                                 .padding(horizontal = 16.dp, vertical = 6.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
                         ) {
                             Surface(
                                 modifier = Modifier

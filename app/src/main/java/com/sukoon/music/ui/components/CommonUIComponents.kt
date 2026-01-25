@@ -79,7 +79,7 @@ internal fun MenuOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -88,7 +88,7 @@ internal fun MenuOption(
             tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp)
         )
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(SpacingLarge))
         Text(
             text,
             style = MaterialTheme.typography.bodyLarge,
@@ -104,11 +104,11 @@ internal fun SelectionActionButton(
     onClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.clickable(onClick = onClick).padding(8.dp),
+        modifier = Modifier.clickable(onClick = onClick).padding(SpacingSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = label)
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(SpacingXSmall))
         Text(label, style = MaterialTheme.typography.labelSmall)
     }
 }
@@ -138,8 +138,8 @@ internal fun PrivateSessionIndicatorStrip(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -182,8 +182,8 @@ internal fun RedesignedTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+                horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Logo - fixed size (40dp) with press feedback and click pulse animation
@@ -296,7 +296,7 @@ internal fun TabPills(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = SpacingMedium),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
@@ -537,7 +537,7 @@ internal fun SortOption(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(vertical = SpacingMedium),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -563,7 +563,7 @@ internal fun SelectionBottomBarItem(
     Column(
         modifier = Modifier
             .clickable(onClick = onClick)
-            .padding(8.dp),
+            .padding(SpacingSmall),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Icon(icon, contentDescription = label)
@@ -725,8 +725,8 @@ fun PrivateSessionIndicator(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(SpacingMedium),
+            horizontalArrangement = Arrangement.spacedBy(SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -1143,7 +1143,7 @@ private fun LibraryCard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(SpacingMedium),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.Start
         ) {

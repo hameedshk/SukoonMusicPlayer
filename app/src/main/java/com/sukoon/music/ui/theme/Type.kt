@@ -114,3 +114,21 @@ val Typography = Typography(
         letterSpacing = 0.5.sp
     )
 )
+
+/**
+ * Semantic typography variants for common use cases.
+ * These consolidate repeated .copy() overrides into named, reusable styles.
+ */
+
+// Song titles in NowPlayingScreen and similar contexts
+val songTitleLarge: TextStyle
+    get() = Typography.bodyLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+
+// Stat labels and secondary information
+val statLabel: TextStyle
+    get() = Typography.labelMedium.copy(fontWeight = FontWeight.Medium)
+
+// Compact labels for restricted spaces (alphabet scrollbars, tight UI)
+// Note: Minimum 11sp for accessibility compliance
+val compactLabel: TextStyle
+    get() = Typography.labelSmall
