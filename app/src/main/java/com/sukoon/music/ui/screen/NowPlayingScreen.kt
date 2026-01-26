@@ -1127,7 +1127,7 @@ private fun PlaybackControlsSection(
  * Secondary Controls - Shuffle & Repeat buttons (moved above seek bar).
  * Reduced size and opacity to establish visual hierarchy.
  * Shuffle/Repeat: 44dp touch target, 20dp icon, 68% baseline opacity (improved visibility)
- * Spacing: 36dp between buttons for visual grouping
+ * Spacing: SpacingXXLarge (32dp) between buttons for visual grouping
  */
 @Composable
 private fun ShuffleRepeatControlsSection(
@@ -1159,7 +1159,7 @@ private fun ShuffleRepeatControlsSection(
             )
         }
 
-        Spacer(modifier = Modifier.width(36.dp))
+        Spacer(modifier = Modifier.width(32.dp))
 
         // Repeat Button
         IconButton(
