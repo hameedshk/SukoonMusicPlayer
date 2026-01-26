@@ -403,7 +403,7 @@ private fun NowPlayingContent(
             onMoreClick = { showSongContextMenu = true }
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // B. Album Art - 65% of vertical space (hero element, maximized for immersion)
         AlbumArtSection(
@@ -418,9 +418,9 @@ private fun NowPlayingContent(
             modifier = Modifier.weight(0.65f)
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // C. Track Metadata with animation
+        // C. Track Metadata with animation (calm, subordinate)
         AnimatedVisibility(
             visible = !isImmersiveMode,
             enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -448,18 +448,8 @@ private fun NowPlayingContent(
             )
         ) {
             Column(
-                modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp)
+                modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
             ) {
-                // Secondary Controls - Shuffle & Repeat (above seek bar)
-                ShuffleRepeatControlsSection(
-                    playbackState = playbackState,
-                    accentColor = accentColor,
-                    onShuffleClick = onShuffleClick,
-                    onRepeatClick = onRepeatClick
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
                 // Seek Bar
                 SeekBarSection(
                     currentPosition = currentPosition,
@@ -480,20 +470,22 @@ private fun NowPlayingContent(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // D. Primary Playback Controls (Previous - Play - Next)
+                // D. Primary Playback Controls (Shuffle - Previous - Play - Next - Repeat)
                 PlaybackControlsSection(
                     playbackState = playbackState,
                     accentColor = accentColor,
                     onPreviousClick = onPreviousClick,
                     onPlayPauseClick = onPlayPauseClick,
-                    onNextClick = onNextClick
+                    onNextClick = onNextClick,
+                    onShuffleClick = onShuffleClick,
+                    onRepeatClick = onRepeatClick
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
         AnimatedVisibility(
@@ -588,12 +580,18 @@ private fun AlbumArtSection(
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
 
-    // Album art container - pure image display with subtle 8dp corner radius
-    // No shadows, borders, or visual effects (compliant with design spec)
+    // Album art container - with polished blur/glow effects
+    // Width: screen width minus 32dp (16dp margins on each side)
     Box(
         modifier = modifier
-            .fillMaxWidth()
+            .fillMaxWidth(0.95f)  // Approximates screen width - 32dp (12dp padding + 16dp margins)
             .aspectRatio(1f)
+            .shadow(
+                elevation = 16.dp,
+                shape = RoundedCornerShape(8.dp),
+                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f),
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.2f)
+            )
             .clip(RoundedCornerShape(8.dp))
             .clickable(
                 onClick = onAlbumArtClick,
@@ -631,21 +629,34 @@ private fun AlbumArtSection(
             SubcomposeAsyncImage(
                 model = song.albumArtUri,
                 contentDescription = "Album art for ${song.album}",
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop,
                 loading = {
                     Box(
-                        modifier = Modifier.fillMaxSize(),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.7f),
+                                        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                                    )
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(48.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                            strokeWidth = 3.dp
                         )
                     }
                 },
                 error = {
-                    // Static muted gradient placeholder (deterministic per track)
+                    // Elegant neutral placeholder (deterministic per track)
+                    // Uses muted, desaturated colors that complement any theme
                     val gradientSeed = song.id.hashCode()
                     val baseHue = (gradientSeed % 360).toFloat()
 
@@ -655,8 +666,8 @@ private fun AlbumArtSection(
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        Color.hsv(baseHue, 0.08f, 0.25f),
-                                        Color.hsv((baseHue + 30) % 360, 0.10f, 0.20f)
+                                        Color.hsv(baseHue, 0.06f, 0.18f),  // Darker, more muted top
+                                        Color.hsv((baseHue + 30) % 360, 0.08f, 0.14f)  // Darker, more muted bottom
                                     )
                                 )
                             ),
@@ -665,11 +676,27 @@ private fun AlbumArtSection(
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.10f)
+                            modifier = Modifier.size(72.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)  // Increased visibility
                         )
                     }
                 }
+            )
+
+            // Subtle gradient glow/vignette at bottom for visual depth
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.15f)
+                            ),
+                            startY = 0f,
+                            endY = Float.POSITIVE_INFINITY
+                        )
+                    )
             )
 
             // Lyrics Overlay
@@ -903,41 +930,52 @@ private fun CompactLyricsNotAvailable() {
 private fun TrackMetadataSection(
     song: Song
 ) {
-    // Subtle scrim background for readability
-    Box(
+    // Metadata directly on screen background - calm and subordinate
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.40f),
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.15f)
-                    )
-                )
-            )
-            .padding(vertical = 12.dp),
-        contentAlignment = Alignment.Center
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
+        // Song Title - Spotify-sized, bold, prominent
+        Text(
+            text = song.title.ifBlank { "Unknown Song" },
+            style = MaterialTheme.typography.songTitleLarge.copy(
+                fontSize = 32.sp,
+                lineHeight = 38.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            ),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(0.95f)
+        )
+
+        // Artist - larger, more prominent
+        if (song.artist.isNotBlank()) {
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = song.title,
-                style = MaterialTheme.typography.songTitleLarge.copy(
-                    lineHeight = 22.sp
+                text = song.artist,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 16.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                 ),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.80f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.95f),
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(0.95f)
             )
-            Spacer(modifier = Modifier.height(4.dp))
+        }
+
+        // Album - only show if not empty
+        if (song.album.isNotBlank()) {
+            Spacer(modifier = Modifier.height(3.dp))
             Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
+                text = song.album,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
@@ -997,7 +1035,7 @@ private fun SeekBarSection(
             thumb = {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(6.dp)
                         .background(sliderColor, CircleShape)
                         .clip(CircleShape)
                 )
@@ -1009,7 +1047,7 @@ private fun SeekBarSection(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(3.dp)
+                        .height(2.dp)
                         .clip(CircleShape)
                 ) {
                     Box(
@@ -1049,11 +1087,12 @@ private fun SeekBarSection(
 }
 
 /**
- * D. PlaybackControlsSection - Primary playback controls (Previous, Play/Pause, Next).
- * Emphasizes play button dominance with 1.6× size ratio.
- * Play/Pause: 72dp touch target, 72dp icon
- * Previous/Next: 56dp touch target, 40dp icon
- * Spacing: 16dp between controls
+ * D. PlaybackControlsSection - Primary playback controls.
+ * Layout: Shuffle : Previous : Play/Pause : Next : Repeat
+ * Play/Pause dominates at center with 56dp touch target
+ * Shuffle/Repeat: 44dp touch targets, 22dp icons
+ * Previous/Next: 56dp touch targets, 40dp icons
+ * Spacing: 12dp between controls for compact arrangement
  */
 @Composable
 private fun PlaybackControlsSection(
@@ -1061,7 +1100,9 @@ private fun PlaybackControlsSection(
     accentColor: Color,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit
+    onNextClick: () -> Unit,
+    onShuffleClick: () -> Unit,
+    onRepeatClick: () -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -1070,6 +1111,25 @@ private fun PlaybackControlsSection(
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Shuffle Button (left)
+        IconButton(
+            onClick = onShuffleClick,
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Shuffle,
+                contentDescription = "Shuffle",
+                tint = if (playbackState.shuffleEnabled)
+                    accentColor
+                else
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.width(6.dp))
+
+        // Previous Button
         IconButton(
             onClick = onPreviousClick,
             modifier = Modifier.size(56.dp)
@@ -1078,16 +1138,17 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier.size(44.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
+        // Play/Pause Button (center, focal point) - Spotify-sized
         IconButton(
             onClick = onPlayPauseClick,
             modifier = Modifier
-                .size(72.dp)
+                .size(64.dp)
                 .background(accentColor, CircleShape)
         ) {
             AnimatedContent(
@@ -1102,13 +1163,14 @@ private fun PlaybackControlsSection(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(52.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(8.dp))
 
+        // Next Button
         IconButton(
             onClick = onNextClick,
             modifier = Modifier.size(56.dp)
@@ -1117,54 +1179,16 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(40.dp)
-            )
-        }
-    }
-}
-
-/**
- * Secondary Controls - Shuffle & Repeat buttons (moved above seek bar).
- * Reduced size and opacity to establish visual hierarchy.
- * Shuffle/Repeat: 44dp touch target, 20dp icon, 68% baseline opacity (improved visibility)
- * Spacing: SpacingXXLarge (32dp) between buttons for visual grouping
- */
-@Composable
-private fun ShuffleRepeatControlsSection(
-    playbackState: PlaybackState,
-    accentColor: Color,
-    onShuffleClick: () -> Unit,
-    onRepeatClick: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Shuffle Button
-        IconButton(
-            onClick = onShuffleClick,
-            modifier = Modifier.size(44.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (playbackState.shuffleEnabled)
-                    accentColor
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(44.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(32.dp))
+        Spacer(modifier = Modifier.width(6.dp))
 
-        // Repeat Button
+        // Repeat Button (right)
         IconButton(
             onClick = onRepeatClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = when (playbackState.repeatMode) {
@@ -1176,7 +1200,7 @@ private fun ShuffleRepeatControlsSection(
                     RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
                     else -> accentColor
                 },
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -1216,7 +1240,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Lyrics,
                 contentDescription = "Lyrics",
                 tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
 
@@ -1229,7 +1253,7 @@ private fun SecondaryActionsSection(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (song.isLiked) "Unlike" else "Like",
                 tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
 
@@ -1242,7 +1266,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Share,
                 contentDescription = "Share",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
 
@@ -1255,7 +1279,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.QueueMusic,
                 contentDescription = "Queue",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(24.dp)
             )
         }
     }

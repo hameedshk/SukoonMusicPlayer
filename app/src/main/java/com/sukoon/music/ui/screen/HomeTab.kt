@@ -69,9 +69,8 @@ fun HomeTab(
                 ContinueListeningCard(
                     song = playbackState.currentSong,
                     onPlayClick = {
-                        if (playbackState.currentSong != null) {
-                            viewModel.playSong(playbackState.currentSong)
-                        }
+                        // Simply toggle play/pause on current song
+                        viewModel.playPause()
                     },
                     onClick = onNavigateToNowPlaying
                 )

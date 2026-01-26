@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -762,6 +764,7 @@ fun ContinueListeningCard(
     val playButtonInteractionSource = remember { MutableInteractionSource() }
     var isCardPressed by remember { mutableStateOf(false) }
     var isPlayButtonPressed by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(cardInteractionSource) {
         cardInteractionSource.interactions.collect { interaction ->
@@ -898,7 +901,13 @@ fun ContinueListeningCard(
                     IconButton(
                         onClick = {
                             Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
+                            // Play/pause the song
                             onPlayClick()
+                            // Navigate after a delay to allow playback to start
+                            coroutineScope.launch {
+                                delay(150)
+                                onClick()
+                            }
                         },
                         modifier = Modifier
                             .size(56.dp)

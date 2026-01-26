@@ -151,7 +151,7 @@ if ($needsBuild) {
 
     # Uninstall old APK
     Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
-    adb uninstall $APP_ID | Out-Null
+    adb uninstall -r $APP_ID | Out-Null
 	#adb uninstall -r $APP_ID | Out-Null //keep data
     Start-Sleep -Seconds 1
 
@@ -188,4 +188,5 @@ Write-Host "App started running, continue your testing"
 #adb start-server
 #adb kill-server
 #adb connect 192.168.0.140:45679
-
+#logs check 
+#adb logcat --pid=$(adb shell pidof -s com.sukoon.music) | Select-String "ContinueListeningCard"
