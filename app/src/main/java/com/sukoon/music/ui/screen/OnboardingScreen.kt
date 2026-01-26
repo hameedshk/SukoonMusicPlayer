@@ -82,7 +82,7 @@ fun OnboardingScreen(
         // App branding
         Text(
             text = "Sukoon",
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.screenHeader,
             color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center
         )
@@ -121,7 +121,7 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Step 1: Find Your Music",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
@@ -144,7 +144,7 @@ fun OnboardingScreen(
             ) {
                 Text(
                     text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.buttonText
                 )
             }
 
@@ -166,7 +166,7 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Step 2: Personalize Your Library",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Text(
@@ -219,7 +219,7 @@ fun OnboardingScreen(
                 if (username.isNotEmpty()) {
                     Text(
                         text = "Display name: $displayUsername",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -281,7 +281,7 @@ fun OnboardingScreen(
         ) {
             Text(
                 text = "Start Listening",
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.buttonText
             )
         }
 

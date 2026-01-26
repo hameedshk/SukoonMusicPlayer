@@ -311,8 +311,7 @@ private fun LikedSongsHeader(songCount: Int) {
 
         Text(
             text = "Liked Songs",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.screenHeader,
             color = MaterialTheme.colorScheme.onBackground
         )
 
@@ -612,8 +611,7 @@ private fun LikedSongItem(
             ) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onBackground
@@ -621,7 +619,7 @@ private fun LikedSongItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.listItemSubtitle,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -678,13 +676,13 @@ private fun EmptyLikedSongsState(
         Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = "No liked songs yet",
-            style = MaterialTheme.typography.headlineSmall,
+            style = MaterialTheme.typography.emptyStateTitle,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Songs you like will appear here",
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.emptyStateDescription,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
         )
@@ -708,13 +706,13 @@ private fun NoFilterResultsState(
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No songs match filters",
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.emptyStateTitle,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
             text = "Try clearing filters",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.emptyStateDescription,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
     }

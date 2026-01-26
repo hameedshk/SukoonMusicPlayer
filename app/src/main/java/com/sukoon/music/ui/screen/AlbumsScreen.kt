@@ -468,8 +468,7 @@ private fun AlbumCard(
             ) {
                 Text(
                     text = album.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.cardTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -578,9 +577,7 @@ private fun RecentlyPlayedAlbumsSection(
                 )
                 Text(
                     text = "Recently played",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.screenHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
@@ -641,14 +638,13 @@ private fun RecentlyPlayedAlbumCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = album.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.listItemTitle,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = album.artist,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.listItemSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -723,8 +719,7 @@ private fun AlbumContextMenuBottomSheet(
                 Column {
                     Text(
                         text = album.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.cardTitle
                     )
                     Text(
                         text = "${album.artist} · ${album.songCount} songs",

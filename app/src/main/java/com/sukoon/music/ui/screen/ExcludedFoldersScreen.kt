@@ -133,7 +133,7 @@ private fun ExcludedFolderListItem(
         headlineContent = {
             Text(
                 text = item.name,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.listItemTitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -141,7 +141,7 @@ private fun ExcludedFolderListItem(
         supportingContent = {
             Text(
                 text = item.path,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.listItemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

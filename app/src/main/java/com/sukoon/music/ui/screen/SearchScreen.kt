@@ -289,9 +289,8 @@ private fun SearchHistorySection(
         ) {
             Text(
                 text = "Recent searches",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                fontWeight = FontWeight.SemiBold
+                style = MaterialTheme.typography.sectionHeader,
+                color = MaterialTheme.colorScheme.onBackground
             )
             TextButton(onClick = onClearAllClick) {
                 Text("Clear all")
@@ -584,8 +583,7 @@ private fun SearchResultItem(
             ) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onBackground
@@ -731,7 +729,6 @@ private fun NoResultsState(
         Text(
             text = "\"$query\"",
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
         )

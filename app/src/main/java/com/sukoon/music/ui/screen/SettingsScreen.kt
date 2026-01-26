@@ -599,8 +599,7 @@ private fun SettingsSectionHeader(
 ) {
     Text(
         text = title,
-        style = MaterialTheme.typography.titleSmall,
-        fontWeight = FontWeight.Bold,
+        style = MaterialTheme.typography.sectionHeader,
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
             .fillMaxWidth()
@@ -647,8 +646,7 @@ private fun SettingsItem(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     color = if (isDestructive) {
                         MaterialTheme.colorScheme.error
                     } else {
@@ -658,7 +656,7 @@ private fun SettingsItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.listItemSubtitle,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
             }
@@ -713,14 +711,13 @@ private fun SettingsSwitchItem(
             ) {
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.listItemSubtitle,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                 )
             }
@@ -1081,8 +1078,7 @@ private fun RescanDialog(
                     Text("Cancel")
                 }
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
 
@@ -1103,8 +1099,7 @@ private fun PremiumDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Premium benefits:",
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelLarge
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text("✓ No advertisements")
@@ -1113,9 +1108,8 @@ private fun PremiumDialog(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "\$9.99 one-time purchase",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
         },

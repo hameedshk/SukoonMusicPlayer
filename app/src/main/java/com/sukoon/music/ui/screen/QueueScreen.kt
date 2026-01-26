@@ -203,12 +203,12 @@ fun CurrentQueueContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Queue is empty",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Start playing some music!",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.emptyStateDescription,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }
@@ -453,12 +453,12 @@ fun SavedQueuesContent(
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No saved queues",
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = "Save your current queue to access it later",
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.emptyStateDescription,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
             }

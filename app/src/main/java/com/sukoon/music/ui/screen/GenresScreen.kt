@@ -393,7 +393,7 @@ import com.sukoon.music.ui.theme.*
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "No genres found",
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
@@ -401,7 +401,7 @@ import com.sukoon.music.ui.theme.*
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = "Scan your media library to discover music by genre",
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.emptyStateDescription,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )

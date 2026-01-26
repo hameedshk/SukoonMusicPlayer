@@ -261,8 +261,7 @@ fun GenreDetailScreen(
                         )
                         Text(
                             text = "Genre not found",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.emptyStateTitle
                         )
                         Text(
                             text = "This genre could not be loaded. It may have been deleted or does not exist.",
@@ -438,8 +437,7 @@ private fun GenreDetailContent(
 
                 Text(
                     text = genre.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.screenHeader,
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center
                 )
 
@@ -613,15 +611,14 @@ private fun GenreSongItemRow(
         ) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.listItemTitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             )
             Text(
                 text = "${song.artist} • ${song.album}",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.listItemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis

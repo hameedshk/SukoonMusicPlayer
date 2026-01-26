@@ -163,8 +163,7 @@ fun PlaylistsScreen(
                     item {
                         Text(
                             text = "My playlists (${playlists.size})",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             modifier = Modifier.padding(vertical = 8.dp)
                         )
                     }
@@ -294,8 +293,7 @@ private fun SmartPlaylistsSection(
     Column {
         Text(
             text = "4 playlists",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -351,8 +349,7 @@ private fun SmartPlaylistCard(
                 Column {
                     Text(
                         text = smartPlaylist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.cardTitle,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
@@ -392,8 +389,7 @@ private fun PlaylistActionsSection(
     Column {
         Text(
             text = "My playlists ($playlistCount)",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
@@ -620,8 +616,7 @@ private fun PlaylistCard(
             ) {
                 Text(
                     text = playlist.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.cardTitle,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -629,7 +624,7 @@ private fun PlaylistCard(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${playlist.songCount} songs",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.cardSubtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -1036,8 +1031,7 @@ private fun PlaylistMiniPlayer(
             ) {
                 Text(
                     text = playbackState.currentSong?.title ?: "No song playing",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
@@ -1141,7 +1135,6 @@ private fun AddSongsToNewPlaylistDialog(
                     Text(
                         text = "Add Songs to Playlist",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -1442,8 +1435,7 @@ private fun PlaylistContent(
                 item {
                     Text(
                         text = "My playlists (${playlists.size})",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
@@ -1658,8 +1650,7 @@ private fun HomeScreenAddSongsToNewPlaylistDialog(
                 ) {
                     Text(
                         text = "Add Songs to Playlist",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineSmall
                     )
                     if (selectedSongs.isNotEmpty()) {
                         Text(
@@ -1838,8 +1829,7 @@ private fun PlaylistActionsSection(
     Column {
         Text(
             text = "My playlists ($playlistCount)",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp)
         )
 

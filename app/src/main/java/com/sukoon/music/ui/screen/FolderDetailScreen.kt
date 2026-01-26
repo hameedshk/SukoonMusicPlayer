@@ -239,8 +239,7 @@ private fun FolderItemRow(
             ) {
                 Text(
                     text = folder.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.listItemTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -372,8 +371,7 @@ private fun FolderHeader(
         // Folder Name
         Text(
             text = folder.name,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.screenHeader,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground
         )

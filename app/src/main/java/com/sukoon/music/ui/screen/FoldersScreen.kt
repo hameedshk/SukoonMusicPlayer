@@ -637,8 +637,7 @@ private fun FolderBrowserSubFolderRow(
         ) {
             Text(
                 text = subFolder.name,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
+                style = MaterialTheme.typography.listItemTitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurface

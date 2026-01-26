@@ -1032,8 +1032,7 @@ private fun SongsContent(
                         val isHighlighted = char == currentHighlightChar.value
                         Text(
                             text = char.toString(),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 10.sp,
+                            style = MaterialTheme.typography.alphabetLabel.copy(
                                 fontWeight = if (isHighlighted) FontWeight.Bold else FontWeight.Normal
                             ),
                             modifier = Modifier

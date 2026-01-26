@@ -282,7 +282,7 @@ private fun ArtistsContent(
                     Column {
                         Text(
                             text = "Recently played",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.sectionHeader,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                         )
                         LazyRow(
@@ -475,7 +475,7 @@ private fun ArtistCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = artist.name,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
+            style = MaterialTheme.typography.cardSubtitle,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center
@@ -541,7 +541,7 @@ private fun ArtistListItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = artist.name,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                style = MaterialTheme.typography.listItemTitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )

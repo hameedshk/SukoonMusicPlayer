@@ -272,8 +272,7 @@ private fun SmartPlaylistHeader(
         // Playlist Name
         Text(
             text = SmartPlaylist.getDisplayName(playlistType),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.screenHeader,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground
         )

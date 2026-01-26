@@ -98,8 +98,7 @@ fun EqualizerScreen(
                     Column {
                         Text(
                             text = "Equalizer",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.cardTitle
                         )
                         Text(
                             text = if (settings.isEnabled) "Active" else "Disabled",
@@ -121,8 +120,7 @@ fun EqualizerScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "Preset",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.sectionHeader
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -177,8 +175,7 @@ fun EqualizerScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
                         text = "5-Band Equalizer",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.sectionHeader
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -208,8 +205,7 @@ fun EqualizerScreen(
                     ) {
                         Text(
                             text = "Bass Boost",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.sectionHeader
                         )
                         Text(
                             text = "${settings.bassBoost / 10}%",
@@ -238,8 +234,7 @@ fun EqualizerScreen(
                     ) {
                         Text(
                             text = "Virtualizer",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
+                            style = MaterialTheme.typography.sectionHeader
                         )
                         Text(
                             text = "${settings.virtualizerStrength / 10}%",

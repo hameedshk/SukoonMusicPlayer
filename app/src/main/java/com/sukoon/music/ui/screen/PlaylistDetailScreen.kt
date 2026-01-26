@@ -371,7 +371,6 @@ private fun PlaylistHeader(
         Text(
             text = playlist.name,
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -678,8 +677,7 @@ private fun AddSongsDialog(
                 ) {
                     Text(
                         text = "Add Songs",
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.headlineSmall
                     )
                     if (selectedSongs.isNotEmpty()) {
                         Text(
