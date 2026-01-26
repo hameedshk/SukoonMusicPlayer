@@ -391,21 +391,21 @@ private fun NowPlayingContent(
             .padding(
                 start = 12.dp,
                 end = 12.dp,
-                top = ContentTopPadding,
+                top = ContentTopPadding + 16.dp,  // Move content down further
                 bottom = ContentBottomPadding
             )
             .alpha(screenAlpha),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // A. TopUtilityBar
+        // A. TopUtilityBar - Always visible at top
         TopUtilityBar(
             onBackClick = onBackClick,
             onMoreClick = { showSongContextMenu = true }
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // B. Album Art - 65% of vertical space (hero element, maximized for immersion)
+        // B. Album Art - Prominent, album-first design
         AlbumArtSection(
             song = song,
             onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
@@ -415,7 +415,7 @@ private fun NowPlayingContent(
             accentColor = accentColor,
             onNextClick = onNextClick,
             onPreviousClick = onPreviousClick,
-            modifier = Modifier.weight(0.65f)
+            modifier = Modifier.weight(0.50f)
         )
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -435,7 +435,7 @@ private fun NowPlayingContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Control Layer - Directly on background (no container)
         AnimatedVisibility(
@@ -580,17 +580,18 @@ private fun AlbumArtSection(
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
 
-    // Album art container - with polished blur/glow effects
-    // Width: screen width minus 32dp (16dp margins on each side)
+    // Album art container - full-bleed, Spotify-style presentation
+    // Extends edge-to-edge with subtle blur effect on edges
     Box(
         modifier = modifier
-            .fillMaxWidth(0.95f)  // Approximates screen width - 32dp (12dp padding + 16dp margins)
+            .fillMaxWidth()  // Full-bleed across screen width
             .aspectRatio(1f)
+            .padding(horizontal = 8.dp)  // Subtle side margins for breathing room
             .shadow(
-                elevation = 16.dp,
+                elevation = 24.dp,
                 shape = RoundedCornerShape(8.dp),
-                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f),
-                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.2f)
+                ambientColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f),
+                spotColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)
             )
             .clip(RoundedCornerShape(8.dp))
             .clickable(
@@ -683,7 +684,26 @@ private fun AlbumArtSection(
                 }
             )
 
-            // Subtle gradient glow/vignette at bottom for visual depth
+            // Edge blur/fade effects - creates Spotify-like sophisticated look
+            // Subtle vignette that fades edges to background
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f)
+                            ),
+                            radius = Float.POSITIVE_INFINITY,
+                            center = androidx.compose.ui.geometry.Offset(
+                                0.5f, 0.5f
+                            )
+                        )
+                    )
+            )
+
+            // Subtle bottom gradient glow for depth
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -691,7 +711,7 @@ private fun AlbumArtSection(
                         Brush.verticalGradient(
                             colors = listOf(
                                 Color.Transparent,
-                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.15f)
+                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.20f)
                             ),
                             startY = 0f,
                             endY = Float.POSITIVE_INFINITY
@@ -931,10 +951,11 @@ private fun TrackMetadataSection(
     song: Song
 ) {
     // Metadata directly on screen background - calm and subordinate
+    // Proper spacing to prevent visual overlap with album art
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 16.dp),
+            .padding(vertical = 6.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Song Title - Spotify-sized, bold, prominent
@@ -949,7 +970,8 @@ private fun TrackMetadataSection(
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
             textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(0.95f)
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
         )
 
         // Artist - larger, more prominent

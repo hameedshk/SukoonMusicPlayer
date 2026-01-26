@@ -868,7 +868,7 @@ fun ContinueListeningCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).paddingEnd(8.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         // Track title - Headline Small (24sp, 500 weight, 32dp line height)
@@ -878,7 +878,7 @@ fun ContinueListeningCard(
                                 fontWeight = FontWeight.SemiBold
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis
                         )
 
