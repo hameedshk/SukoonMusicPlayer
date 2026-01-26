@@ -151,7 +151,7 @@ if ($needsBuild) {
 
     # Uninstall old APK
     Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
-    adb uninstall -r $APP_ID | Out-Null
+    adb uninstall $APP_ID | Out-Null
 	#adb uninstall -r $APP_ID | Out-Null //keep data
     Start-Sleep -Seconds 1
 

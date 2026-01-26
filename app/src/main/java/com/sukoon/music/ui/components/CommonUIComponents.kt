@@ -933,10 +933,13 @@ fun RecentlyPlayedScrollSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Section label - SectionHeader (14sp, Bold)
+        // Section label - Label Medium (12sp, 500 weight, 16dp line height)
         Text(
             text = "Recently played",
-            style = MaterialTheme.typography.sectionHeader,
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium,
+                fontSize = 12.sp
+            ),
             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
             modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
         )

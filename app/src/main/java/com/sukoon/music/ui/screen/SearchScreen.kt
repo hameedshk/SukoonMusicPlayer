@@ -350,11 +350,9 @@ private fun SearchHistoryChip(
                 }
             }
         },
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .surfaceLevel2Gradient(),
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant
         )
     )
@@ -391,15 +389,9 @@ private fun FilterAndSortSection(
                     Text("Liked only")
                 }
             },
-            modifier = if (!showLikedOnly) {
-                Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .surfaceLevel2Gradient()
-            } else {
-                Modifier
-            },
+            modifier = Modifier.clip(RoundedCornerShape(8.dp)),
             colors = FilterChipDefaults.filterChipColors(
-                containerColor = if (!showLikedOnly) Color.Transparent else MaterialTheme.colorScheme.primary,
+                containerColor = if (!showLikedOnly) MaterialTheme.colorScheme.surfaceContainerHigh else MaterialTheme.colorScheme.primary,
                 labelColor = if (!showLikedOnly) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary,
                 selectedContainerColor = MaterialTheme.colorScheme.primary,
                 selectedLabelColor = MaterialTheme.colorScheme.onPrimary

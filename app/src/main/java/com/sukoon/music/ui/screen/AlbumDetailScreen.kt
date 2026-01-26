@@ -497,7 +497,7 @@ private fun AlbumHeader(
         Card(
             modifier = Modifier.size(220.dp),
             shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -719,8 +719,8 @@ private fun SongSelectionBottomBar(
     onMore: () -> Unit
 ) {
     Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 8.dp
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier

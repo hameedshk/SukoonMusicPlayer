@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
@@ -183,7 +184,7 @@ fun NowPlayingScreen(
                     NowPlayingContent(
                         playbackState = playbackState,
                         accentColor = accentColor,
-                        sliderColor = palette.desaturatedSliderColor,
+                        sliderColor = accentColor,
                         onBackClick = onBackClick,
                         onPlayPauseClick = { viewModel.playPause() },
                         onNextClick = { viewModel.seekToNext() },
@@ -402,9 +403,9 @@ private fun NowPlayingContent(
             onMoreClick = { showSongContextMenu = true }
         )
 
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // B. Album Art - 48% of vertical space (hero element)
+        // B. Album Art - 65% of vertical space (hero element, maximized for immersion)
         AlbumArtSection(
             song = song,
             onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
@@ -412,10 +413,12 @@ private fun NowPlayingContent(
             lyricsState = lyricsState,
             currentPosition = currentPosition,
             accentColor = accentColor,
-            modifier = Modifier.weight(0.48f)
+            onNextClick = onNextClick,
+            onPreviousClick = onPreviousClick,
+            modifier = Modifier.weight(0.65f)
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // C. Track Metadata with animation
         AnimatedVisibility(
@@ -432,7 +435,7 @@ private fun NowPlayingContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Control Layer - Directly on background (no container)
         AnimatedVisibility(
@@ -486,13 +489,13 @@ private fun NowPlayingContent(
                     onNextClick = onNextClick
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // E. Secondary Actions Section (Shuffle, Repeat, Favorite, Lyrics, Queue)
+        // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
         AnimatedVisibility(
             visible = !isImmersiveMode,
             enter = fadeIn(animationSpec = tween(300)) + slideInVertically(
@@ -578,25 +581,50 @@ private fun AlbumArtSection(
     lyricsState: LyricsState = LyricsState.NotFound,
     currentPosition: Long = 0L,
     accentColor: Color = MaterialTheme.colorScheme.primary,
+    onNextClick: () -> Unit = {},
+    onPreviousClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    // Enhanced album art with glassmorphic styling (blur disabled to keep image sharp)
-    GlassCard(
+    // Track horizontal swipe for next/previous navigation
+    var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+
+    // Album art container - pure image display with subtle 8dp corner radius
+    // No shadows, borders, or visual effects (compliant with design spec)
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
+            .clip(RoundedCornerShape(8.dp))
             .clickable(
                 onClick = onAlbumArtClick,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
-            ),
-        enableBlur = false,
-        elevation = 8.dp
+            )
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        // Swipe left (negative): next track
+                        if (horizontalDragOffset < -100f) {
+                            onNextClick()
+                        }
+                        // Swipe right (positive): previous track
+                        else if (horizontalDragOffset > 100f) {
+                            onPreviousClick()
+                        }
+                        horizontalDragOffset = 0f
+                    },
+                    onDragCancel = {
+                        horizontalDragOffset = 0f
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        horizontalDragOffset += dragAmount
+                    }
+                )
+            },
+        contentAlignment = Alignment.Center
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clip(RoundedCornerShape(8.dp)),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             // Album Art Background
@@ -645,46 +673,44 @@ private fun AlbumArtSection(
             )
 
             // Lyrics Overlay
-if (showLyricsOverlay) {
-
-    // Blurred background scrim
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
-                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.60f)
-                    )
+            if (showLyricsOverlay) {
+                // Blurred background scrim
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.60f)
+                                )
+                            )
+                        )
+                        .blur(14.dp)
                 )
-            )
-            .blur(14.dp)
-    )
 
-    // Foreground contrast scrim
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
-    )
+                // Foreground contrast scrim
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
+                )
 
-    // Lyrics content
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.8f)
-            .align(Alignment.Center),
-        contentAlignment = Alignment.Center
-    ) {
-        LyricsOverlayContent(
-            lyricsState = lyricsState,
-            currentPosition = currentPosition,
-            accentColor = accentColor
-        )
-    }
-}
-
+                // Lyrics content
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.8f)
+                        .align(Alignment.Center),
+                    contentAlignment = Alignment.Center
+                ) {
+                    LyricsOverlayContent(
+                        lyricsState = lyricsState,
+                        currentPosition = currentPosition,
+                        accentColor = accentColor
+                    )
+                }
+            }
         }
     }
 }
@@ -916,18 +942,13 @@ private fun SeekBarSection(
     onSeekChange: (Long) -> Unit,
     onSeekEnd: () -> Unit
 ) {
+    // Progress bar: 3dp height, neutral inactive track, accent active portion
+    // Thumb: 8dp minimal circle, no shadow or scale animation
     // Use seekPosition when seeking, otherwise use currentPosition
     val displayPosition = if (isSeeking) seekPosition.toFloat() else currentPosition.toFloat()
 
     // Dedicated interaction source to isolate slider touch events
     val sliderInteractionSource = remember { MutableInteractionSource() }
-
-    // Thumb scale animation during scrubbing
-    val thumbScale by animateFloatAsState(
-        targetValue = if (isSeeking) 1.25f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "thumb_scale"
-    )
 
     // Track active opacity boost during scrubbing
     val activeTrackOpacity by animateFloatAsState(
@@ -960,16 +981,8 @@ private fun SeekBarSection(
                 Box(
                     modifier = Modifier
                         .size(8.dp)
-                        .scale(thumbScale)
                         .background(sliderColor, CircleShape)
                         .clip(CircleShape)
-                        .let {
-                            if (isSeeking) {
-                                it.shadow(elevation = 6.dp, shape = CircleShape, clip = false)
-                            } else {
-                                it
-                            }
-                        }
                 )
             },
             track = { sliderState ->
@@ -1153,9 +1166,9 @@ private fun ShuffleRepeatControlsSection(
 
 /**
  * E. SecondaryActionsSection - Secondary actions (Lyrics, Like, Share, Queue).
- * Icon sizes: 28dp (standard), 30dp (Like - focal point)
- * Touch targets: 48dp (standard), 52dp (Like - anchor)
- * Spacing: 20dp between buttons for cohesion
+ * Icon sizes: 28dp (uniform, de-emphasized)
+ * Touch targets: 48dp (uniform, equal hierarchy)
+ * Spacing: Even distribution via SpaceEvenly
  * Padding: 8dp vertical, 12dp horizontal for breathing room
  */
 @Composable
@@ -1189,16 +1202,16 @@ private fun SecondaryActionsSection(
             )
         }
 
-        // Like Button (Anchor point - slightly larger)
+        // Like Button
         IconButton(
             onClick = onLikeClick,
-            modifier = Modifier.size(52.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = if (song.isLiked) "Unlike" else "Like",
                 tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                modifier = Modifier.size(30.dp)
+                modifier = Modifier.size(28.dp)
             )
         }
 
