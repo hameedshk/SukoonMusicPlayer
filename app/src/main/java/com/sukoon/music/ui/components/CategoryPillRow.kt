@@ -12,6 +12,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.automirrored.filled.Sort
 import com.sukoon.music.ui.theme.*
 
 /**
@@ -65,7 +66,7 @@ fun <T : Enum<T>> CategoryPillRow(
                 modifier = Modifier.height(36.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Sort,
+                    imageVector = Icons.AutoMirrored.Filled.Sort,
                     contentDescription = "Sort",
                     modifier = Modifier.size(18.dp)
                 )

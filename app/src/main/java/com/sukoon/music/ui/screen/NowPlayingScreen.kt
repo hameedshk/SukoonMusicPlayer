@@ -894,39 +894,56 @@ private fun CompactLyricsNotAvailable() {
 /**
  * C. TrackMetadataSection - Displays song title and artist name.
  * Title: 18sp SemiBold, lineHeight 22sp, 1 line with ellipsis
- * Artist: 13sp Normal, 70% opacity, 1 line with ellipsis
- * Internal spacing: 4dp (compact S-style, proportional for all text lengths)
- * Width: 95% to prevent edge clipping on long text
+ * Artist: 14sp Normal, 70% opacity, 1 line with ellipsis
+ * Internal spacing: 4dp (compact S-style)
+ * Subtle scrim background ensures readability over any album art
+ * Scrim: Semi-transparent dark (dark theme) or light (light theme)
  */
 @Composable
 private fun TrackMetadataSection(
     song: Song
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+    // Subtle scrim background for readability
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.40f),
+                        MaterialTheme.colorScheme.scrim.copy(alpha = 0.15f)
+                    )
+                )
+            )
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = song.title,
-            style = MaterialTheme.typography.songTitleLarge.copy(
-                lineHeight = 22.sp
-            ),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.95f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(0.95f)
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = song.artist,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth(0.95f)
-        )
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.songTitleLarge.copy(
+                    lineHeight = 22.sp
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.95f),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(0.95f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(0.95f)
+            )
+        }
     }
 }
 

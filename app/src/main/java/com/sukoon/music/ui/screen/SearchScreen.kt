@@ -34,6 +34,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.automirrored.filled.Sort
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.SearchHistory
@@ -408,7 +409,7 @@ private fun FilterAndSortSection(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Sort,
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )

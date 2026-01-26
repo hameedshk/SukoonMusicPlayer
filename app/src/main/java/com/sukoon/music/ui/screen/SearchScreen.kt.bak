@@ -395,7 +395,7 @@ private fun FilterAndSortSection(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Sort,
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )

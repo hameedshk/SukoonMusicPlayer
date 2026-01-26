@@ -33,6 +33,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
+import androidx.compose.material.icons.automirrored.filled.Sort
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
@@ -522,7 +523,7 @@ private fun SongsList(
                     )
                     Row {
                         IconButton(onClick = onSortClick) {
-                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                            Icon(imageVector =Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
                         }
                         IconButton(onClick = onSelectionModeClick) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")

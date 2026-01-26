@@ -37,6 +37,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
+import androidx.compose.material.icons.automirrored.filled.Sort
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
@@ -414,7 +415,7 @@ private fun AlbumDetailContent(
                     )
                     Row {
                         IconButton(onClick = onSortClick) {
-                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
                         }
                         IconButton(onClick = onSelectionClick) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")

@@ -22,6 +22,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.material.icons.automirrored.filled.Sort
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.Song
@@ -512,7 +513,7 @@ private fun GenreDetailContent(
                     )
                     Row {
                         IconButton(onClick = onSortClick) {
-                            Icon(imageVector = Icons.Default.Sort, contentDescription = "Sort")
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
                         }
                         IconButton(onClick = onSelectionModeClick) {
                             Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")
