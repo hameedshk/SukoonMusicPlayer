@@ -12,7 +12,7 @@ $PAIR_TIMEOUT   = 60   # seconds
 # -------- DEVICE STATUS --------
 function Prompt-For-AdbTarget {
     $ip = Read-Host "Enter device IP address (example: 192.168.0.140)"
-    $port = Read-Host "Enter ADB port (example: 5555 or pairing port)"
+    $port = Read-Host "Enter the port (example: 5555 or pairing port)"
 
     if (-not $ip -or -not $port) {
         Write-Error "IP and port are required"
@@ -152,6 +152,7 @@ if ($needsBuild) {
     # Uninstall old APK
     Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
     adb uninstall -r $APP_ID | Out-Null
+	#adb uninstall -r $APP_ID | Out-Null //keep data
     Start-Sleep -Seconds 1
 
     # Install fresh APK
@@ -180,7 +181,7 @@ Write-Host "App started running, continue your testing"
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1
 
 # Force full build
-#powershell -ExecutionPolicy Bypass -File smart_run.ps1 -FullBuild:$true
+#powershell -ExecutionPolicy Bypass -File smart_run.ps1 -FullBuild true
 
 #$pairing device
 #adb pair 192.168.0.140:37573

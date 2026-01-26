@@ -1,6 +1,7 @@
 package com.sukoon.music.domain.repository
 
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
@@ -32,6 +33,13 @@ interface SettingsRepository {
      * @param theme Theme preference (LIGHT, DARK, SYSTEM)
      */
     suspend fun setTheme(theme: AppTheme)
+
+    /**
+     * Update accent color profile.
+     *
+     * @param profile Accent profile (Teal, Steel Blue, Soft Cyan)
+     */
+    suspend fun setAccentProfile(profile: AccentProfile)
 
     /**
      * Update scan on startup setting.

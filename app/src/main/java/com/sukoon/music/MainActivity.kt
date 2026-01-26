@@ -122,6 +122,7 @@ class MainActivity : ComponentActivity() {
             // Apply theme based on user preference (can update during app lifecycle)
             SukoonMusicPlayerTheme(
                 theme = userPreferences.theme,
+                accentProfile = userPreferences.accentProfile,
                 dynamicColor = false
             ) {
                 val navController = rememberNavController()

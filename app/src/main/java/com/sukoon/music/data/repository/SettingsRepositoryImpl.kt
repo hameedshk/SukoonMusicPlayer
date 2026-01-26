@@ -6,6 +6,7 @@ import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.domain.repository.SettingsRepository
@@ -41,6 +42,10 @@ class SettingsRepositoryImpl @Inject constructor(
 
     override suspend fun setTheme(theme: AppTheme) {
         preferencesManager.setTheme(theme)
+    }
+
+    override suspend fun setAccentProfile(profile: AccentProfile) {
+        preferencesManager.setAccentProfile(profile)
     }
 
     override suspend fun setScanOnStartup(enabled: Boolean) {

@@ -3,6 +3,7 @@ package com.sukoon.music.ui.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.domain.repository.SettingsRepository
@@ -116,6 +117,15 @@ class SettingsViewModel @Inject constructor(
     fun setTheme(theme: AppTheme) {
         viewModelScope.launch {
             settingsRepository.setTheme(theme)
+        }
+    }
+
+    /**
+     * Update accent color profile.
+     */
+    fun setAccentProfile(profile: AccentProfile) {
+        viewModelScope.launch {
+            settingsRepository.setAccentProfile(profile)
         }
     }
 

@@ -126,17 +126,10 @@ fun NowPlayingScreen(
     // Queue modal state
     var showQueueModal by remember { mutableStateOf(false) }
 
-    // Derive accent color from album art or deterministic fallback
+    // Get accent color from user profile (not dynamic from album art)
+    val accentTokens = accent()
+    val accentColor = accentTokens.primary
     val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
-val accentColor = remember(
-    playbackState.currentSong?.id,
-    palette.candidateAccent
-) {
-    AccentResolver.resolve(
-        extractedAccent = palette.candidateAccent,
-        fallbackSeed = (playbackState.currentSong?.id ?: 0L).toInt()
-    )
-}
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -1288,7 +1281,8 @@ private fun formatDuration(durationMs: Long): String {
 @Composable
 private fun NowPlayingScreenPreview() {
     SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
-        val previewAccentColor = MaterialTheme.colorScheme.primary
+        val previewAccentTokens = accent()
+        val previewAccentColor = previewAccentTokens.primary
         NowPlayingContent(
             playbackState = PlaybackState(
                 isPlaying = true,

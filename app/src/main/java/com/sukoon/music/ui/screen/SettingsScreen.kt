@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
@@ -32,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Wallet
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
+import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.components.GradientAlertDialog
@@ -75,6 +77,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showAccentDialog by remember { mutableStateOf(false) }
     var showAudioQualityDialog by remember { mutableStateOf(false) }
     var showCrossfadeDialog by remember { mutableStateOf(false) }
     var showBufferDialog by remember { mutableStateOf(false) }
@@ -144,6 +147,15 @@ fun SettingsScreen(
                     title = "Theme",
                     description = getThemeDescription(userPreferences.theme),
                     onClick = { showThemeDialog = true }
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Palette,
+                    title = "Accent Color",
+                    description = userPreferences.accentProfile.label,
+                    onClick = { showAccentDialog = true }
                 )
             }
 
@@ -416,6 +428,17 @@ fun SettingsScreen(
                 onThemeSelect = { theme ->
                     viewModel.setTheme(theme)
                     showThemeDialog = false
+                }
+            )
+        }
+
+        if (showAccentDialog) {
+            AccentSelectionDialog(
+                currentProfile = userPreferences.accentProfile,
+                onDismiss = { showAccentDialog = false },
+                onProfileSelect = { profile ->
+                    viewModel.setAccentProfile(profile)
+                    showAccentDialog = false
                 }
             )
         }
@@ -976,6 +999,83 @@ private fun getAudioQualityDescription(quality: AudioQuality): String = when (qu
     AudioQuality.MEDIUM -> "Medium (192 kbps)"
     AudioQuality.HIGH -> "High (320 kbps)"
     AudioQuality.LOSSLESS -> "Lossless (Original)"
+}
+
+@Composable
+private fun AccentSelectionDialog(
+    currentProfile: AccentProfile,
+    onDismiss: () -> Unit,
+    onProfileSelect: (AccentProfile) -> Unit
+) {
+    GradientAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Choose Accent Color") },
+        text = {
+            Column {
+                AccentProfile.ALL.forEach { profile ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(
+                            selected = profile.id == currentProfile.id,
+                            onClick = { onProfileSelect(profile) }
+                        )
+                        Spacer(Modifier.width(12.dp))
+
+                        // Color preview + label
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // Color swatches showing all accent tokens
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(
+                                            color = profile.accentPrimary,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(
+                                            color = profile.accentActive,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(
+                                            color = profile.accentOnDark,
+                                            shape = RoundedCornerShape(2.dp)
+                                        )
+                                )
+                                Spacer(Modifier.width(12.dp))
+                                Text(
+                                    text = profile.label,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 @Composable

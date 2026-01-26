@@ -42,6 +42,7 @@ class PreferencesManager @Inject constructor(
 
         // Appearance
         private val KEY_THEME = stringPreferencesKey("app_theme")
+        private val KEY_ACCENT_PROFILE = stringPreferencesKey("accent_profile")
 
         // Library
         private val KEY_SCAN_ON_STARTUP = booleanPreferencesKey("scan_on_startup")
@@ -98,6 +99,7 @@ class PreferencesManager @Inject constructor(
                 isPrivateSessionEnabled = preferences[KEY_PRIVATE_SESSION] ?: false,
                 // Appearance
                 theme = parseTheme(preferences[KEY_THEME]),
+                accentProfile = parseAccentProfile(preferences[KEY_ACCENT_PROFILE]),
                 // Library
                 scanOnStartup = preferences[KEY_SCAN_ON_STARTUP] ?: false,
                 excludedFolderPaths = preferences[KEY_EXCLUDED_FOLDER_PATHS] ?: emptySet(),
@@ -148,6 +150,17 @@ class PreferencesManager @Inject constructor(
     suspend fun setTheme(theme: AppTheme) {
         context.dataStore.edit { preferences ->
             preferences[KEY_THEME] = theme.name
+        }
+    }
+
+    /**
+     * Update accent color profile.
+     *
+     * @param profile Accent profile (Teal, Steel Blue, Soft Cyan)
+     */
+    suspend fun setAccentProfile(profile: com.sukoon.music.domain.model.AccentProfile) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ACCENT_PROFILE] = profile.id
         }
     }
 
@@ -383,6 +396,19 @@ class PreferencesManager @Inject constructor(
             themeString?.let { AppTheme.valueOf(it) } ?: AppTheme.SYSTEM
         } catch (e: IllegalArgumentException) {
             AppTheme.SYSTEM
+        }
+    }
+
+    /**
+     * Parse accent profile string from DataStore.
+     * Returns Teal (DEFAULT) if parsing fails or key is missing.
+     */
+    private fun parseAccentProfile(profileId: String?): com.sukoon.music.domain.model.AccentProfile {
+        return try {
+            profileId?.let { com.sukoon.music.domain.model.AccentProfile.fromId(it) }
+                ?: com.sukoon.music.domain.model.AccentProfile.DEFAULT
+        } catch (e: Exception) {
+            com.sukoon.music.domain.model.AccentProfile.DEFAULT
         }
     }
 

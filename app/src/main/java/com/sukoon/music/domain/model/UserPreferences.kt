@@ -18,6 +18,12 @@ data class UserPreferences(
      */
     val theme: AppTheme = AppTheme.SYSTEM,
 
+    /**
+     * Accent color profile.
+     * Controls the primary action color (play button, seek bar, toggles).
+     */
+    val accentProfile: AccentProfile = AccentProfile.DEFAULT,
+
     // --- Library ---
     /**
      * Auto-scan media library on app startup.

@@ -368,6 +368,7 @@ fun HomeScreen(
 private fun ScanProgressView(
     scanState: ScanState.Scanning
 ) {
+    val accentTokens = accent()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -377,7 +378,7 @@ private fun ScanProgressView(
     ) {
         CircularProgressIndicator(
             modifier = Modifier.size(64.dp),
-            color = MaterialTheme.colorScheme.primary
+            color = accentTokens.primary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -488,6 +489,7 @@ private fun PlaylistFilterChips(
     selectedFilter: Boolean?,
     onFilterChange: (Boolean?) -> Unit
 ) {
+    val accentTokens = accent()
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
@@ -505,8 +507,8 @@ private fun PlaylistFilterChips(
                     Modifier
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != null) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                    containerColor = if (selectedFilter != null) Color.Transparent else accentTokens.primary,
+                    labelColor = if (selectedFilter != null) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
                 )
             )
         }
@@ -526,8 +528,8 @@ private fun PlaylistFilterChips(
                     Modifier
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != true) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != true) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                    containerColor = if (selectedFilter != true) Color.Transparent else accentTokens.primary,
+                    labelColor = if (selectedFilter != true) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
                 )
             )
         }
@@ -547,8 +549,8 @@ private fun PlaylistFilterChips(
                     Modifier
                 },
                 colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != false) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != false) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                    containerColor = if (selectedFilter != false) Color.Transparent else accentTokens.primary,
+                    labelColor = if (selectedFilter != false) MaterialTheme.colorScheme.onSurfaceVariant else Color.White
                 )
             )
         }
@@ -1050,7 +1052,7 @@ private fun SongsContent(
                                         if (targetIndex != -1) scrollState.animateScrollToItem(targetIndex)
                                     }
                                 },
-                            color = if (isHighlighted) MaterialTheme.colorScheme.primary
+                            color = if (isHighlighted) accent().primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
