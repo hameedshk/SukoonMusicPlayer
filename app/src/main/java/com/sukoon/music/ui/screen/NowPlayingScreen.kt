@@ -435,7 +435,7 @@ private fun NowPlayingContent(
             )
         }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Control Layer - Directly on background (no container)
         AnimatedVisibility(
@@ -448,7 +448,7 @@ private fun NowPlayingContent(
             )
         ) {
             Column(
-                modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp)
+                modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp)
             ) {
                 // Secondary Controls - Shuffle & Repeat (above seek bar)
                 ShuffleRepeatControlsSection(
@@ -1126,7 +1126,8 @@ private fun PlaybackControlsSection(
 /**
  * Secondary Controls - Shuffle & Repeat buttons (moved above seek bar).
  * Reduced size and opacity to establish visual hierarchy.
- * Shuffle/Repeat: 44dp touch target, 20dp icon, 55% baseline opacity
+ * Shuffle/Repeat: 44dp touch target, 20dp icon, 68% baseline opacity (improved visibility)
+ * Spacing: 36dp between buttons for visual grouping
  */
 @Composable
 private fun ShuffleRepeatControlsSection(
@@ -1153,12 +1154,12 @@ private fun ShuffleRepeatControlsSection(
                 tint = if (playbackState.shuffleEnabled)
                     accentColor
                 else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
                 modifier = Modifier.size(20.dp)
             )
         }
 
-        Spacer(modifier = Modifier.width(48.dp))
+        Spacer(modifier = Modifier.width(36.dp))
 
         // Repeat Button
         IconButton(
@@ -1172,7 +1173,7 @@ private fun ShuffleRepeatControlsSection(
                 },
                 contentDescription = "Repeat",
                 tint = when (playbackState.repeatMode) {
-                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f)
+                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
                     else -> accentColor
                 },
                 modifier = Modifier.size(20.dp)

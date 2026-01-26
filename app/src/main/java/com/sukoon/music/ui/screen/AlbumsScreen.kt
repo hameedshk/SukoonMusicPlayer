@@ -51,6 +51,7 @@ import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.animation.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.sukoon.music.ui.components.AlphabetScroller
 import com.sukoon.music.ui.components.RecentlyPlayedAlbumCard
 import com.sukoon.music.ui.components.RecentlyPlayedSection
@@ -582,7 +583,7 @@ private fun RecentlyPlayedAlbumsSection(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "See all",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)

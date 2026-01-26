@@ -31,6 +31,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.layout.ContentScale
 import android.util.Log
 import coil.compose.SubcomposeAsyncImage
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.sukoon.music.R
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -365,7 +366,7 @@ internal fun WidgetBanner(
                 )
             }
             Icon(
-                imageVector = Icons.Default.ArrowForward,
+                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = "Go",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)

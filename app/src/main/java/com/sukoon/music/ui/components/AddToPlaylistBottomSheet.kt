@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import com.sukoon.music.domain.model.Playlist
 import com.sukoon.music.ui.theme.*
 
@@ -137,7 +138,7 @@ fun AddToPlaylistBottomSheet(
                                         modifier = Modifier.fillMaxSize()
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.PlaylistAdd,
+                                            imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                                             contentDescription = null,
                                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
