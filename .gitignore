@@ -23,3 +23,4 @@ local.properties
 #buil script
 .last_successful_commit
 build_output.txt
+.last_successful_state

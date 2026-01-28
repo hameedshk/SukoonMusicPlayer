@@ -1,13 +1,14 @@
 ﻿param(
-    [switch]$FullBuild = $false,
-	[string]$PhoneIP = "192.168.0.152"
+    [switch]$forceFullBuild = $false,
+    [string]$PhoneIP = "192.168.0.152"
 )
 
 # ===== CONFIG =====
-$APP_ID="com.sukoon.music"
-$MAIN_ACTIVITY=".MainActivity"
-$STATE_FILE=".last_successful_commit"
-$PAIR_TIMEOUT   = 60   # seconds
+$APP_ID = "com.sukoon.music"
+$MAIN_ACTIVITY = ".MainActivity"
+$STATE_FILE = ".last_successful_state"
+$PAIR_TIMEOUT = 60   # seconds
+$env:GRADLE_OPTS = "-Dorg.gradle.logging.level=info"
 
 # -------- DEVICE STATUS --------
 function Prompt-For-AdbTarget {
@@ -20,7 +21,7 @@ function Prompt-For-AdbTarget {
     }
 
     return @{
-        ip = $ip
+        ip   = $ip
         port = [int]$port
     }
 }
@@ -45,13 +46,24 @@ function Get-Device-Status {
         $parts = $line -split "\s+"
         if ($parts.Length -ge 2) {
             switch ($parts[1]) {
-                "device"       { return "ONLINE" }
-                "offline"      { return "OFFLINE" }
+                "device" { return "ONLINE" }
+                "offline" { return "OFFLINE" }
                 "unauthorized" { return "UNAUTHORIZED" }
             }
         }
     }
     return "NONE"
+}
+
+function Get-WorkingTreeHash {
+    git status --porcelain |
+        Sort-Object |
+        Out-String |
+        ForEach-Object {
+            $bytes = [System.Text.Encoding]::UTF8.GetBytes($_)
+            $sha = [System.Security.Cryptography.SHA1]::Create()
+            ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join ""
+        }
 }
 
 # -------- MAIN FLOW --------
@@ -63,9 +75,9 @@ Start-Sleep -Seconds 2
 $status = Get-Device-Status
 
 if ($status -eq "ONLINE") {
-        Write-Host "✅ Device already connected via wireless TLS" -ForegroundColor Green
-        # DO NOTHING — connection is valid
-    }
+    Write-Host "✅ Device already connected via wireless TLS" -ForegroundColor Green
+    # DO NOTHING — connection is valid
+}
 else {
     Write-Host @"
 ⚠️ Device is OFFLINE.
@@ -77,7 +89,7 @@ Fix on phone:
 
 Do NOT pair in this state.
 "@
-	$config = Prompt-For-AdbTarget 
+    $config = Prompt-For-AdbTarget 
     Try-Adb-Connect -Ip $config.ip -Port $config.port
 
     if ((Get-Device-Status) -eq "ONLINE") {
@@ -88,100 +100,87 @@ Do NOT pair in this state.
         Write-Host "⚠️ adb connect did not succeed (TLS device or port closed)"
         Write-Host "ℹ️ Falling back to pairing / adb auto-discovery"        
     }
-    }		
+}		
 
+$currentState = Get-WorkingTreeHash
+$lastState = if (Test-Path $STATE_FILE) { Get-Content $STATE_FILE } else { "" }
+
+# ---------- SKIP LOGIC (DISABLED FOR FULL BUILD) ----------
+if (-not $forceFullBuild -and $currentState -eq $lastState) {
+    Write-Host "⚡ No changes since last successful run — skipping build" -ForegroundColor Green
+    adb shell "am force-stop $APP_ID; am start -n $APP_ID/$MAIN_ACTIVITY"
+    exit 0
+}
+
+# ---------- CHANGE ANALYSIS ----------
 $needsBuild = $false
+$needsClean = $false
 
-if ($FullBuild) {
-    Write-Host "🔄 FullBuild flag passed : forcing installDebug" -ForegroundColor Cyan
+$changedFiles = git status --porcelain | ForEach-Object { $_.Substring(3) }
+
+foreach ($file in $changedFiles) {
+
+    if ($file -match "build.gradle$" -or
+        $file -match "build.gradle.kts$" -or
+        $file -match "settings.gradle" -or
+        $file -match "gradle.properties") {
+
+        $needsClean = $true
+        $needsBuild = $true
+        break
+    }
+
+    if ($file -match "AndroidManifest.xml" -or
+        $file -match "^app/src/main/res/" -or
+        $file -match "^app/src/main/java/" -or
+        $file -match "^app/src/main/kotlin/" -or
+        $file -match "google-services.json") {
+
+        $needsBuild = $true
+    }
+}
+
+
+# ---------- FORCE FULL BUILD ----------
+if ($forceFullBuild) {
+    Write-Host "🔄 forceFullBuild requested — ignoring cached state" -ForegroundColor Cyan
+    $needsClean = $true
     $needsBuild = $true
 }
-elseif (!(Test-Path $STATE_FILE)) {
-    Write-Host "🆕 First run : full build required" -ForegroundColor Cyan
-    $needsBuild = $true
-}
-else {
-    # Check for committed changes
-    $LAST_COMMIT = Get-Content $STATE_FILE
-    $committedChanges = git diff --name-only $LAST_COMMIT HEAD
-
-    # Check for uncommitted changes (staged + unstaged)
-    $uncommittedChanges = git status --porcelain | ForEach-Object { $_.Substring(3) }
-
-    # Combine both
-    $allChanges = @($committedChanges) + @($uncommittedChanges) | Where-Object { $_ }
-
-    if ($allChanges.Count -gt 0) {
-        Write-Host "📝 Detected changes:" -ForegroundColor Yellow
-        foreach ($file in $allChanges) {
-            Write-Host "   • $file" -ForegroundColor Gray
+# ---------- BUILD ----------
+if ($needsClean) {
+    Write-Host "🧹 CLEAN build" -ForegroundColor Cyan
+    ./gradlew clean :app:installDebug --console=plain --profile |
+        ForEach-Object {
+            if ($_ -match "took\s+([\d\.]+)\s+secs") {
+                Write-Host $_ -ForegroundColor Yellow
+            }
         }
-    }
-
-    foreach ($file in $allChanges) {
-        if (
-            $file -match "AndroidManifest.xml" -or
-            $file -match "^app/src/main/res/" -or
-			$file -match "^app/src/main/java/" -or
-            $file -match "build.gradle" -or
-            $file -match "google-services.json"
-        ) {
-            Write-Host "⚡ Build-critical file changed: $file" -ForegroundColor Yellow
-            $needsBuild = $true
-            break
+}
+elseif ($needsBuild) {
+    Write-Host "🚀 INCREMENTAL build" -ForegroundColor Cyan
+    ./gradlew :app:installDebug --console=plain --profile |
+        ForEach-Object {
+            if ($_ -match "took\s+([\d\.]+)\s+secs") {
+                Write-Host $_ -ForegroundColor Yellow
+            }
         }
-    }
 }
 
-if ($needsBuild) {
-    Write-Host "🔨 Running full build..." -ForegroundColor Cyan
-
-    # Clean build cache
-    Write-Host "🧹 Cleaning build cache..." -ForegroundColor Cyan
-    ./gradlew clean
-
-    # Assemble fresh APK
-    Write-Host "📦 Building APK..." -ForegroundColor Cyan
-    ./gradlew assembleDebug
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Build failed" -ForegroundColor Red
-        exit 1
-    }
-
-    # Uninstall old APK
-    Write-Host "🗑️ Removing old APK..." -ForegroundColor Cyan
-    adb uninstall -r $APP_ID | Out-Null
-	#adb uninstall -r $APP_ID | Out-Null //keep data
-    Start-Sleep -Seconds 1
-
-    # Install fresh APK
-    Write-Host "📥 Installing fresh APK..." -ForegroundColor Cyan
-    adb install "app/build/outputs/apk/debug/app-debug.apk"
-
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "❌ Installation failed" -ForegroundColor Red
-        exit 1
-    }
-
-    Write-Host "✅ Installation successful" -ForegroundColor Green
-} else {
-    Write-Host "⚡ Code-only changes : fast restart" -ForegroundColor Cyan
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "❌ Build failed" -ForegroundColor Red
+    exit 1
 }
 
-adb shell am force-stop $APP_ID
-adb shell am start -n "$APP_ID/$MAIN_ACTIVITY"
-
-# Save current commit hash
-git rev-parse HEAD | Out-File $STATE_FILE -Force
-
+# ---------- SAVE STATE ----------
+Get-WorkingTreeHash | Out-File $STATE_FILE -Force
 Write-Host "App started running, continue your testing"
 
 # Auto-detect (default)
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1
 
 # Force full build
-#powershell -ExecutionPolicy Bypass -File smart_run.ps1 -FullBuild true
+#powershell -ExecutionPolicy Bypass -File smart_run.ps1 -forceFullBuild true
 
 #$pairing device
 #adb pair 192.168.0.140:37573
