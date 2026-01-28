@@ -751,6 +751,22 @@ fun PrivateSessionIndicator(
  * Full-width card with album art, track info, and play button
  * Refined spacing (16dp margins), typography hierarchy, and micro-interactions
  */
+/**
+ * Expert UX Tip: Clean filenames into readable titles.
+ * Removes leading numbers, bracketed website tags, and extensions.
+ */
+private fun String.cleanMetadata(): String {
+    return this
+        // 1. Remove leading numbers followed by dots/spaces (e.g., "05. ")
+        .replace(Regex("""^[\d\s\.\-_]+"""), "")
+        // 2. Remove anything inside brackets or parentheses (e.g., "[www.site.com]")
+        .replace(Regex("""\s*[\[\(].*?[\]\)]"""), "")
+        // 3. Remove common file extensions
+        .replace(Regex("""(?i)\.(mp3|wav|flac|m4a|aac)$"""), "")
+        .trim()
+        .ifEmpty { this } // Fallback to original if regex clears everything
+}
+
 @Composable
 fun ContinueListeningCard(
     song: com.sukoon.music.domain.model.Song?,
@@ -873,7 +889,7 @@ fun ContinueListeningCard(
                     ) {
                         // Track title - Headline Small (24sp, 500 weight, 32dp line height)
                         Text(
-                            text = song.title,
+                            text = song.title.cleanMetadata(),
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontWeight = FontWeight.SemiBold
                             ),

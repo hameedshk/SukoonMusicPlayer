@@ -90,6 +90,10 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
 /**
  * Create a light color scheme dynamically based on accent color.
  * All accent slots (primary, secondary, tertiary) use the same accent color.
+ *
+ * Design Reference: Apple Music light mode
+ * - Background: Cool neutral gray (#F2F2F7) so white cards pop
+ * - Text: Pure black for maximum readability
  */
 private fun getLightColorScheme(accentColor: Color): androidx.compose.material3.ColorScheme {
     return lightColorScheme(
@@ -109,14 +113,14 @@ private fun getLightColorScheme(accentColor: Color): androidx.compose.material3.
         tertiaryContainer = accentColor.copy(alpha = 0.2f),
         onTertiaryContainer = accentColor.copy(alpha = 0.8f),
 
-        // Surfaces: Light backgrounds
-        background = androidx.compose.ui.graphics.Color(0xFFFFFBFE),
-        onBackground = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
-        surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),
-        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFFE8E8E8),
-        onSurface = androidx.compose.ui.graphics.Color(0xFF1C1B1F),
+        // Surfaces: Apple Music-style cool neutral backgrounds
+        background = androidx.compose.ui.graphics.Color(0xFFF2F2F7),  // Apple's SystemGroupedBackground
+        onBackground = androidx.compose.ui.graphics.Color(0xFF000000), // Pure black text
+        surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),      // Pure white cards
+        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFFE5E5EA), // Apple's SystemGray5
+        onSurface = androidx.compose.ui.graphics.Color(0xFF000000),    // Pure black text
         onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF666666),
-        surfaceVariant = androidx.compose.ui.graphics.Color(0xFFF5F5F5),
+        surfaceVariant = androidx.compose.ui.graphics.Color(0xFFF2F2F7),
 
         // Error
         error = androidx.compose.ui.graphics.Color(0xFFBA1A1A),
@@ -125,8 +129,8 @@ private fun getLightColorScheme(accentColor: Color): androidx.compose.material3.
         onErrorContainer = androidx.compose.ui.graphics.Color(0xFF410002),
 
         // Outline
-        outline = androidx.compose.ui.graphics.Color(0xFF999999),
-        outlineVariant = androidx.compose.ui.graphics.Color(0xFFDDDDDD)
+        outline = androidx.compose.ui.graphics.Color(0xFF8E8E93),      // Apple's SystemGray
+        outlineVariant = androidx.compose.ui.graphics.Color(0xFFD1D1D6) // Apple's SystemGray4
     )
 }
 

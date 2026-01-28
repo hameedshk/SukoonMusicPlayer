@@ -22,6 +22,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.util.AppUrls
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -149,9 +150,9 @@ fun AboutScreen(
                             icon = Icons.Default.Security,
                             title = "Privacy Policy",
                             onClick = {
-                                // Open privacy policy (placeholder URL)
+                                // Open privacy policy using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("https://example.com/privacy")
+                                    data = android.net.Uri.parse("${AppUrls.BASE}privacy")
                                 }
                                 try {
                                     context.startActivity(intent)
@@ -167,9 +168,9 @@ fun AboutScreen(
                             icon = Icons.Default.Description,
                             title = "Terms of Service",
                             onClick = {
-                                // Open terms of service (placeholder URL)
+                                // Open terms of service using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("https://example.com/terms")
+                                    data = android.net.Uri.parse("${AppUrls.BASE}terms")
                                 }
                                 try {
                                     context.startActivity(intent)
@@ -196,8 +197,9 @@ fun AboutScreen(
             // Copyright
             item {
                 Spacer(modifier = Modifier.height(32.dp))
+                val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                 Text(
-                    text = "© 2025 Sukoon Music Player",
+                    text = "© $currentYear Sukoon Music Player",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     modifier = Modifier.padding(top = 16.dp)

@@ -1,5 +1,11 @@
 package com.sukoon.music.ui.components
 
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -15,11 +21,16 @@ import androidx.compose.ui.Alignment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.ui.theme.MiniPlayerAlbumArtSize
 import com.sukoon.music.ui.theme.MiniPlayerHeight
@@ -31,6 +42,37 @@ import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.theme.*
+
+/**
+ * Shimmer effect modifier for loading states.
+ * Creates a horizontal gradient animation that sweeps across the component.
+ */
+private fun Modifier.shimmerEffect(): Modifier = composed {
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceContainerHigh,
+        MaterialTheme.colorScheme.surfaceContainerHighest,
+        MaterialTheme.colorScheme.surfaceContainerHigh
+    )
+
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "shimmer_translate"
+    )
+
+    background(
+        brush = Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(translateAnim - 500f, 0f),
+            end = Offset(translateAnim, 0f)
+        )
+    )
+}
 
 /**
  * Redesigned Mini Player component for global use.
@@ -101,25 +143,35 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
             ) {
-            // Album Art
+            // Album Art with crossfade and loading shimmer
             SubcomposeAsyncImage(
-                model = playbackState.currentSong.albumArtUri,
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(playbackState.currentSong.albumArtUri)
+                    .crossfade(300)
+                    .build(),
                 contentDescription = "Album Art",
                 modifier = Modifier
                     .size(MiniPlayerAlbumArtSize)
                     .clip(RoundedCornerShape(8.dp)),
                 contentScale = ContentScale.Crop,
+                loading = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .shimmerEffect()
+                    )
+                },
                 error = {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            .background(accentColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = accentColor,
                             modifier = Modifier.size(28.dp)
                         )
                     }
