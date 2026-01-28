@@ -584,15 +584,14 @@ private fun SmartPlaylistCard(
                 Column {
                     Text(
                         text = smartPlaylist.title,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                        style = MaterialTheme.typography.cardTitle,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${smartPlaylist.songCount} songs",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                        style = MaterialTheme.typography.cardSubtitle,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -604,7 +603,7 @@ private fun SmartPlaylistCard(
                     .align(Alignment.BottomEnd)
                     .padding(SpacingMedium)
                     .size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                tint = accent().primary
             )
         }
     }
@@ -688,17 +687,16 @@ private fun PlaylistCard(
             ) {
                 Text(
                     text = playlist.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.cardTitle,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${playlist.songCount} songs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    style = MaterialTheme.typography.cardSubtitle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

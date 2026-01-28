@@ -20,8 +20,8 @@ import com.sukoon.music.domain.model.AccentTokens
 import com.sukoon.music.ui.theme.*
 
 // Gradient colors (LOCKED - not user-configurable)
-private val GradientTop = Color(0xFF111214)
-private val GradientBottom = Color(0xFF0D0E11)
+private val GradientTop = Color(0xFF121212)
+private val GradientBottom = Color(0xFF0A0A0A)
 
 // Accent tokens CompositionLocal
 internal val LocalAccentTokens = staticCompositionLocalOf {
@@ -29,12 +29,12 @@ internal val LocalAccentTokens = staticCompositionLocalOf {
 }
 
 // Dark Surface Gradients (Level 1 - Passive tiles)
-private val DarkSurfaceLevel1Top = Color(0xFF1D2230)
-private val DarkSurfaceLevel1Bottom = Color(0xFF1A1D26)
+private val DarkSurfaceLevel1Top = Color(0xFF1E1E1E)
+private val DarkSurfaceLevel1Bottom = Color(0xFF181818)
 
 // Dark Surface Gradients (Level 2 - Important passive content)
-private val DarkSurfaceLevel2Top = Color(0xFF232B3C)
-private val DarkSurfaceLevel2Bottom = Color(0xFF1F2738)
+private val DarkSurfaceLevel2Top = Color(0xFF282828)
+private val DarkSurfaceLevel2Bottom = Color(0xFF222222)
 
 // Light Surface Gradients (Level 1 - Passive tiles)
 private val LightSurfaceLevel1Top = Color(0xFFF5F5F5)
@@ -66,14 +66,14 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
         tertiaryContainer = accentColor,
         onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-        // Surfaces: All map to Midnight navy
-        background = androidx.compose.ui.graphics.Color(0xFF0F111A),
-        onBackground = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
-        surface = androidx.compose.ui.graphics.Color(0xFF0F111A),
-        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF1A1F2E),
-        onSurface = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
-        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF7F7F7F),
-        surfaceVariant = androidx.compose.ui.graphics.Color(0xFF0F111A),
+        // Surfaces: Neutral dark grays with clear elevation
+        background = androidx.compose.ui.graphics.Color(0xFF121212),
+        onBackground = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+        surface = androidx.compose.ui.graphics.Color(0xFF121212),
+        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF282828),
+        onSurface = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
+        surfaceVariant = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
 
         // Error: Minimal (rarely used in music player)
         error = androidx.compose.ui.graphics.Color(0xFFCF6679),

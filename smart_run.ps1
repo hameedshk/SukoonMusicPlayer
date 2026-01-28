@@ -190,3 +190,6 @@ Write-Host "App started running, continue your testing"
 #adb connect 192.168.0.140:45679
 #logs check 
 #adb logcat --pid=$(adb shell pidof -s com.sukoon.music) | Select-String "ContinueListeningCard"
+#todos
+#ensure typed ip device is conncected
+#work on pairing 

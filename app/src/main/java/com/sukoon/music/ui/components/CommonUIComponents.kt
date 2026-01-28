@@ -868,7 +868,7 @@ fun ContinueListeningCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
-                        modifier = Modifier.weight(1f).paddingEnd(8.dp),
+                        modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
                         // Track title - Headline Small (24sp, 500 weight, 32dp line height)
@@ -878,7 +878,7 @@ fun ContinueListeningCard(
                                 fontWeight = FontWeight.SemiBold
                             ),
                             color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 2,
+                            maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
 
@@ -901,11 +901,10 @@ fun ContinueListeningCard(
                     IconButton(
                         onClick = {
                             Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
-                            // Play/pause the song
+                            // Play song first, then navigate after a brief delay
                             onPlayClick()
-                            // Navigate after a delay to allow playback to start
                             coroutineScope.launch {
-                                delay(150)
+                                delay(100) // Give playback time to start
                                 onClick()
                             }
                         },
@@ -1153,15 +1152,12 @@ private fun LibraryCard(
                 imageVector = icon,
                 contentDescription = "Navigate to $title",
                 modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = accent().primary
             )
 
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
-                ),
+                style = MaterialTheme.typography.cardTitle,
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
