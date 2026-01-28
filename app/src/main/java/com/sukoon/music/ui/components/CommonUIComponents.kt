@@ -171,11 +171,11 @@ internal fun RedesignedTopBar(
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Main header container with surface
+        // Main header container - uses background color for seamless integration
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 2.dp
+            color = MaterialTheme.colorScheme.background,
+            tonalElevation = 0.dp  // No elevation to avoid tonal shift
         ) {
             Row(
                 modifier = Modifier
@@ -867,16 +867,7 @@ fun ContinueListeningCard(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top section: "Continuing from" label
-                Text(
-                    text = "Continue listening",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                )
-
+               
                 // Bottom section: Track info + play button
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -23,30 +23,94 @@ import com.sukoon.music.ui.theme.*
 private val GradientTop = Color(0xFF121212)
 private val GradientBottom = Color(0xFF0A0A0A)
 
+// AMOLED Gradient colors (true black for OLED battery savings)
+private val AmoledGradientTop = Color(0xFF000000)
+private val AmoledGradientBottom = Color(0xFF000000)
+
 // Accent tokens CompositionLocal
 internal val LocalAccentTokens = staticCompositionLocalOf {
     AccentTokens.fromProfile(AccentProfile.DEFAULT)
 }
 
-// Dark Surface Gradients (Level 1 - Passive tiles)
-private val DarkSurfaceLevel1Top = Color(0xFF1E1E1E)
-private val DarkSurfaceLevel1Bottom = Color(0xFF181818)
+// Theme mode CompositionLocal (to differentiate Dark vs AMOLED in gradient functions)
+internal val LocalIsAmoled = staticCompositionLocalOf { false }
+
+// Dark Surface Gradients (Level 1 - Passive tiles) - Spotify style
+private val DarkSurfaceLevel1Top = Color(0xFF1A1A1A)
+private val DarkSurfaceLevel1Bottom = Color(0xFF161616)
 
 // Dark Surface Gradients (Level 2 - Important passive content)
 private val DarkSurfaceLevel2Top = Color(0xFF282828)
 private val DarkSurfaceLevel2Bottom = Color(0xFF222222)
 
-// Light Surface Gradients (Level 1 - Passive tiles)
-private val LightSurfaceLevel1Top = Color(0xFFF5F5F5)
-private val LightSurfaceLevel1Bottom = Color(0xFFEFEFEF)
+// AMOLED Surface Gradients (Level 1 - Minimal elevation for true black)
+private val AmoledSurfaceLevel1Top = Color(0xFF0D0D0D)
+private val AmoledSurfaceLevel1Bottom = Color(0xFF080808)
 
-// Light Surface Gradients (Level 2 - Important passive content)
-private val LightSurfaceLevel2Top = Color(0xFFFAFAFA)
-private val LightSurfaceLevel2Bottom = Color(0xFFF0F0F0)
+// AMOLED Surface Gradients (Level 2 - Subtle elevation)
+private val AmoledSurfaceLevel2Top = Color(0xFF1A1A1A)
+private val AmoledSurfaceLevel2Bottom = Color(0xFF141414)
+
+// Light Surface Gradients (Level 1 - Passive tiles) - Apple Music style
+private val LightSurfaceLevel1Top = Color(0xFFFFFFFF)
+private val LightSurfaceLevel1Bottom = Color(0xFFF8F8F8)
+
+// Light Surface Gradients (Level 2 - Important passive content) - Apple Music style
+private val LightSurfaceLevel2Top = Color(0xFFFFFFFF)
+private val LightSurfaceLevel2Bottom = Color(0xFFF2F2F7)
+
+/**
+ * Create an AMOLED color scheme for true black backgrounds.
+ * Optimized for OLED displays where black pixels are completely off.
+ *
+ * Design Reference: PowerAmp, BlackPlayer AMOLED modes
+ * - Background: True black (#000000) for maximum battery savings
+ * - Surfaces: Near-black with minimal elevation
+ * - Text: Pure white for contrast
+ */
+private fun getAmoledColorScheme(accentColor: Color): androidx.compose.material3.ColorScheme {
+    return darkColorScheme(
+        primary = accentColor,
+        onPrimary = Color(0xFF000000),
+
+        primaryContainer = accentColor,
+        onPrimaryContainer = Color(0xFF000000),
+        secondary = accentColor,
+        onSecondary = Color(0xFF000000),
+        secondaryContainer = accentColor,
+        onSecondaryContainer = Color(0xFF000000),
+        tertiary = accentColor,
+        onTertiary = Color(0xFF000000),
+        tertiaryContainer = accentColor,
+        onTertiaryContainer = Color(0xFF000000),
+
+        // True black surfaces for OLED
+        background = Color(0xFF000000),
+        onBackground = Color(0xFFFFFFFF),
+        surface = Color(0xFF000000),
+        surfaceContainerHigh = Color(0xFF1A1A1A),
+        onSurface = Color(0xFFFFFFFF),
+        onSurfaceVariant = Color(0xFFB3B3B3),
+        surfaceVariant = Color(0xFF0D0D0D),
+
+        error = Color(0xFFCF6679),
+        onError = Color(0xFF000000),
+        errorContainer = Color(0xFF93000A),
+        onErrorContainer = Color(0xFFFFDAD6),
+
+        outline = Color(0xFF404040),
+        outlineVariant = Color(0xFF2A2A2A)
+    )
+}
 
 /**
  * Create a dark color scheme dynamically based on accent color.
  * All accent slots (primary, secondary, tertiary) use the same accent color.
+ *
+ * Design Reference: Spotify dark mode
+ * - Background: Deep charcoal (#121212) for depth without true black
+ * - Primary text: Pure white (#FFFFFF) for maximum contrast
+ * - Secondary text: Spotify's exact gray (#B3B3B3)
  */
 private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.ColorScheme {
     return darkColorScheme(
@@ -66,14 +130,14 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
         tertiaryContainer = accentColor,
         onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-        // Surfaces: Neutral dark grays with clear elevation
-        background = androidx.compose.ui.graphics.Color(0xFF121212),
-        onBackground = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
+        // Surfaces: Spotify-style neutral dark grays
+        background = androidx.compose.ui.graphics.Color(0xFF121212),  // Spotify's exact background
+        onBackground = androidx.compose.ui.graphics.Color(0xFFFFFFFF), // Pure white (was #E0E0E0)
         surface = androidx.compose.ui.graphics.Color(0xFF121212),
         surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF282828),
-        onSurface = androidx.compose.ui.graphics.Color(0xFFE0E0E0),
-        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3),
-        surfaceVariant = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
+        onSurface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),    // Pure white (was #E0E0E0)
+        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3), // Spotify's secondary text
+        surfaceVariant = androidx.compose.ui.graphics.Color(0xFF1A1A1A),   // Slightly darker (was #1E1E1E)
 
         // Error: Minimal (rarely used in music player)
         error = androidx.compose.ui.graphics.Color(0xFFCF6679),
@@ -81,9 +145,9 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
         errorContainer = androidx.compose.ui.graphics.Color(0xFF93000A),
         onErrorContainer = androidx.compose.ui.graphics.Color(0xFFFFDAD6),
 
-        // Outline: Single value
-        outline = androidx.compose.ui.graphics.Color(0xFF808080),
-        outlineVariant = androidx.compose.ui.graphics.Color(0xFF808080)
+        // Outline: Subtle separation
+        outline = androidx.compose.ui.graphics.Color(0xFF535353),         // Spotify's divider color
+        outlineVariant = androidx.compose.ui.graphics.Color(0xFF404040)
     )
 }
 
@@ -143,71 +207,90 @@ private val AppShapes = Shapes(
 )
 
 @Composable
-fun Modifier.gradientBackground() = this.then(
-    Modifier.background(
-        brush = Brush.verticalGradient(
-            colors = if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
-                // Dark theme: onBackground is light text (#B3B3B3)
-                listOf(GradientTop, GradientBottom)  // Dark: #111214 → #0D0E11
-            } else {
-                // Light theme: onBackground is dark text (#1C1B1F)
-                listOf(Color(0xFFFFFBFE), Color(0xFFFFFFFF))  // Light: Light purple → white
-            }
+fun Modifier.gradientBackground(): Modifier {
+    val isAmoled = LocalIsAmoled.current
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+
+    return if (isDarkTheme) {
+        // Dark/AMOLED: use gradient
+        this.background(
+            brush = Brush.verticalGradient(
+                colors = if (isAmoled) {
+                    listOf(AmoledGradientTop, AmoledGradientBottom)
+                } else {
+                    listOf(GradientTop, GradientBottom)
+                }
+            )
         )
-    )
-)
+    } else {
+        // Light mode: flat color (Apple Music style - no gradient)
+        this.background(color = Color(0xFFF2F2F7))
+    }
+}
 
 @Composable
-fun Modifier.surfaceLevel1Gradient() = this.then(
-    Modifier.background(
-        brush = Brush.verticalGradient(
-            colors = if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
-                // Dark theme: onBackground is light text
-                listOf(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
-            } else {
-                // Light theme: onBackground is dark text
-                listOf(LightSurfaceLevel1Top, LightSurfaceLevel1Bottom)
-            }
+fun Modifier.surfaceLevel1Gradient(): Modifier {
+    val isAmoled = LocalIsAmoled.current
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+
+    return if (isDarkTheme) {
+        this.background(
+            brush = Brush.verticalGradient(
+                colors = if (isAmoled) {
+                    listOf(AmoledSurfaceLevel1Top, AmoledSurfaceLevel1Bottom)
+                } else {
+                    listOf(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
+                }
+            )
         )
-    )
-)
+    } else {
+        // Light mode: flat white for cards (stands out against #F2F2F7 background)
+        this.background(color = Color(0xFFFFFFFF))
+    }
+}
 
 @Composable
-fun Modifier.surfaceLevel2Gradient() = this.then(
-    Modifier.background(
-        brush = Brush.verticalGradient(
-            colors = if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
-                // Dark theme: onBackground is light text
-                listOf(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
-            } else {
-                // Light theme: onBackground is dark text
-                listOf(LightSurfaceLevel2Top, LightSurfaceLevel2Bottom)
-            }
+fun Modifier.surfaceLevel2Gradient(): Modifier {
+    val isAmoled = LocalIsAmoled.current
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+
+    return if (isDarkTheme) {
+        this.background(
+            brush = Brush.verticalGradient(
+                colors = if (isAmoled) {
+                    listOf(AmoledSurfaceLevel2Top, AmoledSurfaceLevel2Bottom)
+                } else {
+                    listOf(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
+                }
+            )
         )
-    )
-)
+    } else {
+        // Light mode: flat white for elevated content
+        this.background(color = Color(0xFFFFFFFF))
+    }
+}
 
 @Composable
 fun surfaceLevel1Colors(): Pair<Color, Color> {
-    // Check user's theme preference via MaterialTheme, not system theme
-    return if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
-        // Dark theme: onBackground is light text
-        Pair(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
-    } else {
-        // Light theme: onBackground is dark text
-        Pair(LightSurfaceLevel1Top, LightSurfaceLevel1Bottom)
+    val isAmoled = LocalIsAmoled.current
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+
+    return when {
+        isAmoled -> Pair(AmoledSurfaceLevel1Top, AmoledSurfaceLevel1Bottom)
+        isDarkTheme -> Pair(DarkSurfaceLevel1Top, DarkSurfaceLevel1Bottom)
+        else -> Pair(Color(0xFFFFFFFF), Color(0xFFFFFFFF)) // Light: flat white
     }
 }
 
 @Composable
 fun surfaceLevel2Colors(): Pair<Color, Color> {
-    // Check user's theme preference via MaterialTheme, not system theme
-    return if (MaterialTheme.colorScheme.onBackground.red > 0.5f) {
-        // Dark theme: onBackground is light text
-        Pair(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
-    } else {
-        // Light theme: onBackground is dark text
-        Pair(LightSurfaceLevel2Top, LightSurfaceLevel2Bottom)
+    val isAmoled = LocalIsAmoled.current
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+
+    return when {
+        isAmoled -> Pair(AmoledSurfaceLevel2Top, AmoledSurfaceLevel2Bottom)
+        isDarkTheme -> Pair(DarkSurfaceLevel2Top, DarkSurfaceLevel2Bottom)
+        else -> Pair(Color(0xFFFFFFFF), Color(0xFFFFFFFF)) // Light: flat white
     }
 }
 
@@ -226,15 +309,19 @@ fun SukoonMusicPlayerTheme(
     val colorScheme = when (theme) {
         AppTheme.LIGHT -> getLightColorScheme(accentColor)
         AppTheme.DARK -> getDarkColorScheme(accentColor)
-        AppTheme.AMOLED -> getDarkColorScheme(accentColor)  // AMOLED falls back to Dark
+        AppTheme.AMOLED -> getAmoledColorScheme(accentColor)
         AppTheme.SYSTEM -> if (isSystemInDarkTheme()) getDarkColorScheme(accentColor) else getLightColorScheme(accentColor)
     }
 
     // Resolve accent tokens from profile
     val accentTokens = AccentTokens.fromProfile(accentProfile)
 
+    // Track if AMOLED mode is active (for gradient functions)
+    val isAmoled = theme == AppTheme.AMOLED
+
     androidx.compose.runtime.CompositionLocalProvider(
-        LocalAccentTokens provides accentTokens
+        LocalAccentTokens provides accentTokens,
+        LocalIsAmoled provides isAmoled
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

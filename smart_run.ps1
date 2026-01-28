@@ -1,122 +1,195 @@
 ﻿param(
-    [switch]$forceFullBuild = $false,
+    [switch]$FullBuild = $false,
+    [switch]$VerboseBuild = $false,
+    [switch]$Reinstall = $false,
+    [switch]$ClearData = $false,
+    [string[]]$LogTag,
+    [switch]$Logcat = $false,
     [string]$PhoneIP = "192.168.0.152"
 )
 
-# ===== CONFIG =====
-$APP_ID = "com.sukoon.music"
+# ================= CONFIG =================
+$APP_ID        = "com.sukoon.music"
 $MAIN_ACTIVITY = ".MainActivity"
-$STATE_FILE = ".last_successful_state"
-$PAIR_TIMEOUT = 60   # seconds
+$STATE_HASH_FILE  = ".last_successful_state"
+$STATE_FILES_FILE = ".last_successful_files"
 $env:GRADLE_OPTS = "-Dorg.gradle.logging.level=info"
 
-# -------- DEVICE STATUS --------
+$ProgressPreference = 'SilentlyContinue'
+$ErrorActionPreference = 'Continue'
+
+$forceFullBuild = $FullBuild.IsPresent
+$verboseGradle  = $VerboseBuild.IsPresent
+$forceReinstall = $Reinstall.IsPresent
+$forceClearData = $ClearData.IsPresent
+$attachLogcat = $Logcat.IsPresent
+
+# ============== DEVICE HELPERS ==============
 function Prompt-For-AdbTarget {
-    $ip = Read-Host "Enter device IP address (example: 192.168.0.140)"
-    $port = Read-Host "Enter the port (example: 5555 or pairing port)"
+    $ip = Read-Host "Enter device IP address"
+    $port = Read-Host "Enter adb port"
 
     if (-not $ip -or -not $port) {
         Write-Error "IP and port are required"
         exit 1
     }
-
-    return @{
-        ip   = $ip
-        port = [int]$port
-    }
+    return @{ ip = $ip; port = [int]$port }
 }
 
 function Try-Adb-Connect {
-    param (
-        [string]$Ip,
-        [int]$Port
-    )
-    Write-Host "🔄 Trying adb connect to ${Ip}:${Port} ..." -ForegroundColor Cyan
+    param([string]$Ip, [int]$Port)
+    Write-Host "🔄 adb connect ${Ip}:${Port}" -ForegroundColor Cyan
     adb connect "${Ip}:${Port}" | Out-Null
     Start-Sleep -Seconds 2
 }
 
 function Get-Device-Status {
-    $devices = adb devices
-
-    foreach ($line in $devices) {
-        if ($line -match "List of devices") { continue }
-        if ([string]::IsNullOrWhiteSpace($line)) { continue }
-
-        $parts = $line -split "\s+"
-        if ($parts.Length -ge 2) {
-            switch ($parts[1]) {
-                "device" { return "ONLINE" }
-                "offline" { return "OFFLINE" }
-                "unauthorized" { return "UNAUTHORIZED" }
-            }
-        }
+    adb devices | ForEach-Object {
+        if ($_ -match "device$") { return "ONLINE" }
+        if ($_ -match "offline") { return "OFFLINE" }
+        if ($_ -match "unauthorized") { return "UNAUTHORIZED" }
     }
     return "NONE"
 }
 
+# ============ WORKING TREE STATE ============
 function Get-WorkingTreeHash {
     git status --porcelain |
         Sort-Object |
         Out-String |
         ForEach-Object {
-            $bytes = [System.Text.Encoding]::UTF8.GetBytes($_)
-            $sha = [System.Security.Cryptography.SHA1]::Create()
+            $bytes = [Text.Encoding]::UTF8.GetBytes($_)
+            $sha = [Security.Cryptography.SHA1]::Create()
             ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join ""
         }
 }
 
-# -------- MAIN FLOW --------
+function Get-ChangedFilesSinceLastRun {
+    if (-not (Test-Path $STATE_FILES_FILE)) {
+        return @()
+    }
+
+    $previous = Get-Content $STATE_FILES_FILE
+    $current  = git ls-files | Sort-Object
+
+    Compare-Object $previous $current |
+        Where-Object { $_.SideIndicator -ne "==" } |
+        ForEach-Object { $_.InputObject }
+}
+
+function Save-Run-State {
+    git ls-files | Sort-Object | Out-File $STATE_FILES_FILE -Force
+    Get-WorkingTreeHash | Out-File $STATE_HASH_FILE -Force
+}
+
+function Launch-App {
+    Write-Host "🚀 Launching app..." -ForegroundColor Cyan
+    adb shell "am force-stop $APP_ID; am start -n $APP_ID/$MAIN_ACTIVITY"
+}
+
+function Wait-For-AppPid {
+    param (
+        [int]$TimeoutSeconds = 10
+    )
+
+    $elapsed = 0
+    while ($elapsed -lt $TimeoutSeconds) {
+        $pid = adb shell pidof -s $APP_ID 2>$null
+        if ($pid) {
+            return $pid.Trim()
+        }
+        Start-Sleep -Milliseconds 300
+        $elapsed += 0.3
+    }
+
+    Write-Host "⚠️ App PID not found — logcat may be empty" -ForegroundColor Yellow
+    return $null
+}
+
+
+function Get-LogTagRegex {
+    if (-not $LogTag -or $LogTag.Count -eq 0) {
+        return $null
+    }
+
+    # Escape tags and join with OR
+    $escaped = $LogTag | ForEach-Object { [Regex]::Escape($_) }
+    return ($escaped -join "|")
+}
+
+function Attach-Logcat {
+    Write-Host "📜 Attaching logcat (app-only)..." -ForegroundColor Cyan
+    adb logcat -c
+    $pid = Wait-For-AppPid
+    $tagRegex = Get-LogTagRegex
+
+    if ($pid) {
+        if ($tagRegex) {
+            Write-Host "🔎 Filtering logs by tag(s): $($LogTag -join ', ')" -ForegroundColor Yellow
+            adb logcat --pid=$pid |
+                ForEach-Object {
+                    if ($_ -match $tagRegex) {
+                        Write-Host $_
+                    }
+                }
+        }
+        else {
+            adb logcat --pid=$pid
+        }
+    }
+    else {
+        adb logcat
+    }
+}
+
+# ================= MAIN =================
 
 Write-Host "📱 Starting adb..." -ForegroundColor Cyan
 adb start-server | Out-Null
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 3
 
-$status = Get-Device-Status
-
-if ($status -eq "ONLINE") {
-    Write-Host "✅ Device already connected via wireless TLS" -ForegroundColor Green
-    # DO NOTHING — connection is valid
+if ((Get-Device-Status) -eq "ONLINE") {
+    Write-Host "✅ Device connected" -ForegroundColor Green
 }
 else {
-    Write-Host @"
-⚠️ Device is OFFLINE.
-
-Fix on phone:
-• Unlock screen
-• Toggle Wi-Fi once
-• Toggle Wireless Debugging OFF → ON
-
-Do NOT pair in this state.
-"@
-    $config = Prompt-For-AdbTarget 
-    Try-Adb-Connect -Ip $config.ip -Port $config.port
-
-    if ((Get-Device-Status) -eq "ONLINE") {
-        Write-Host "✅ Connection successful — saving device info"
-        #Save-AdbConfig -Ip $config.ip -Port $config.port
-    }
-    else {
-        Write-Host "⚠️ adb connect did not succeed (TLS device or port closed)"
-        Write-Host "ℹ️ Falling back to pairing / adb auto-discovery"        
-    }
-}		
+    Write-Host "⚠️ Device not connected — manual connect required" -ForegroundColor Yellow
+    $cfg = Prompt-For-AdbTarget
+    Try-Adb-Connect $cfg.ip $cfg.port
+}
 
 $currentState = Get-WorkingTreeHash
-$lastState = if (Test-Path $STATE_FILE) { Get-Content $STATE_FILE } else { "" }
+$lastHash = if (Test-Path $STATE_HASH_FILE) { Get-Content $STATE_HASH_FILE } else { "" }
 
-# ---------- SKIP LOGIC (DISABLED FOR FULL BUILD) ----------
-if (-not $forceFullBuild -and $currentState -eq $lastState) {
+$changedFiles = Get-ChangedFilesSinceLastRun
+
+# ---------- DISPLAY CHANGES ----------
+if ($changedFiles.Count -gt 0) {
+    Write-Host "📝 Files changed since last successful run:" -ForegroundColor Yellow
+    foreach ($f in $changedFiles) {
+        Write-Host "   • $f" -ForegroundColor Gray
+    }
+}
+else {
+    Write-Host "📝 No file changes since last successful run" -ForegroundColor DarkGray
+}
+
+# ---------- SKIP LOGIC ----------
+if (-not $forceFullBuild -and
+    -not $forceReinstall -and
+    -not $forceClearData -and
+     $currentHash -eq $lastHash) {
+
     Write-Host "⚡ No changes since last successful run — skipping build" -ForegroundColor Green
-    adb shell "am force-stop $APP_ID; am start -n $APP_ID/$MAIN_ACTIVITY"
+    Launch-App
+    if ($attachLogcat) {
+        Attach-Logcat
+    }
     exit 0
 }
 
 # ---------- CHANGE ANALYSIS ----------
 $needsBuild = $false
 $needsClean = $false
-
-$changedFiles = git status --porcelain | ForEach-Object { $_.Substring(3) }
 
 foreach ($file in $changedFiles) {
 
@@ -140,31 +213,55 @@ foreach ($file in $changedFiles) {
     }
 }
 
-
 # ---------- FORCE FULL BUILD ----------
 if ($forceFullBuild) {
-    Write-Host "🔄 forceFullBuild requested — ignoring cached state" -ForegroundColor Cyan
+    Write-Host "🔄 FullBuild requested — ignoring cached state" -ForegroundColor Cyan
     $needsClean = $true
     $needsBuild = $true
 }
+
+# ---------- DEVICE STATE ACTIONS ----------
+if ($forceReinstall) {
+    Write-Host "🗑️ Reinstall requested — uninstalling app" -ForegroundColor Yellow
+    adb uninstall $APP_ID | Out-Null
+}
+elseif ($forceClearData) {
+    Write-Host "🧹 ClearData requested — clearing app data" -ForegroundColor Yellow
+    adb shell pm clear $APP_ID | Out-Null
+}
+
 # ---------- BUILD ----------
+Write-Host "▶ Gradle started..." -ForegroundColor Cyan
+
 if ($needsClean) {
-    Write-Host "🧹 CLEAN build" -ForegroundColor Cyan
-    ./gradlew clean :app:installDebug --console=plain --profile |
-        ForEach-Object {
-            if ($_ -match "took\s+([\d\.]+)\s+secs") {
-                Write-Host $_ -ForegroundColor Yellow
+    Write-Host "🧹 CLEAN build" -ForegroundColor Yellow
+
+    if ($verboseGradle) {
+        ./gradlew clean :app:installDebug --console=plain --profile
+    }
+    else {
+        ./gradlew clean :app:installDebug --console=plain --profile |
+            ForEach-Object {
+                if ($_ -match "took\s+([\d\.]+)\s+secs") {
+                    Write-Host $_ -ForegroundColor Yellow
+                }
             }
-        }
+    }
 }
 elseif ($needsBuild) {
     Write-Host "🚀 INCREMENTAL build" -ForegroundColor Cyan
-    ./gradlew :app:installDebug --console=plain --profile |
-        ForEach-Object {
-            if ($_ -match "took\s+([\d\.]+)\s+secs") {
-                Write-Host $_ -ForegroundColor Yellow
+
+    if ($verboseGradle) {
+        ./gradlew :app:installDebug --console=plain --profile
+    }
+    else {
+        ./gradlew :app:installDebug --console=plain --profile |
+            ForEach-Object {
+                if ($_ -match "took\s+([\d\.]+)\s+secs") {
+                    Write-Host $_ -ForegroundColor Yellow
+                }
             }
-        }
+    }
 }
 
 if ($LASTEXITCODE -ne 0) {
@@ -174,7 +271,18 @@ if ($LASTEXITCODE -ne 0) {
 
 # ---------- SAVE STATE ----------
 Get-WorkingTreeHash | Out-File $STATE_FILE -Force
-Write-Host "App started running, continue your testing"
+
+# ---------- AUTO-LAUNCH ----------
+Launch-App
+Write-Host "✅ App running. Ready for testing." -ForegroundColor Green
+
+if ($attachLogcat) {
+    Write-Host "📜 Logcat enabled" -ForegroundColor Cyan
+    Attach-Logcat
+}
+else {
+    Write-Host "ℹ️ Logcat disabled (use -Logcat to enable)" -ForegroundColor DarkGray
+}
 
 # Auto-detect (default)
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1
@@ -191,4 +299,4 @@ Write-Host "App started running, continue your testing"
 #adb logcat --pid=$(adb shell pidof -s com.sukoon.music) | Select-String "ContinueListeningCard"
 #todos
 #ensure typed ip device is conncected
-#work on pairing 
+#work on pairing

@@ -15,6 +15,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+// Add these to your imports in HomeTab.kt
+import androidx.compose.material3.Text
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.padding
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.SmartPlaylistType
@@ -65,7 +71,17 @@ fun HomeTab(
     ) {
         // PRIMARY: Continue Listening Card (album art + one-tap resume)
         if (playbackState.currentSong != null && recentlyPlayed.isNotEmpty()) {
-            item {
+            item {         
+         // Top section: "Continuing from" label
+                Text(
+                    text = "Continue listening",
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                )
+
                 ContinueListeningCard(
                     song = playbackState.currentSong,
                     onPlayClick = {

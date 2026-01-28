@@ -764,9 +764,7 @@ private fun ThemeSelectionDialog(
         title = { Text("Choose Theme") },
         text = {
             Column {
-                AppTheme.entries
-                    .filter { it != AppTheme.AMOLED }  // Hide AMOLED (consolidated with Dark)
-                    .forEach { theme ->
+                AppTheme.entries.forEach { theme ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -778,14 +776,23 @@ private fun ThemeSelectionDialog(
                             onClick = { onThemeSelect(theme) }
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = when (theme) {
-                                AppTheme.LIGHT -> "Light"
-                                AppTheme.DARK -> "Dark"
-                                AppTheme.AMOLED -> "AMOLED"
-                                AppTheme.SYSTEM -> "System Default"
+                        Column {
+                            Text(
+                                text = when (theme) {
+                                    AppTheme.LIGHT -> "Light"
+                                    AppTheme.DARK -> "Dark"
+                                    AppTheme.AMOLED -> "AMOLED Black"
+                                    AppTheme.SYSTEM -> "System Default"
+                                }
+                            )
+                            if (theme == AppTheme.AMOLED) {
+                                Text(
+                                    text = "True black for OLED battery savings",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
-                        )
+                        }
                     }
                 }
             }
