@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Genre
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.theme.*
 
 /**
@@ -77,10 +78,22 @@ fun GenreRow(
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        error = { GenreIconPlaceholder() }
+                        error = {
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = genre.name,
+                                    albumId = genre.id
+                                )
+                            )
+                        }
                     )
                 } else {
-                    GenreIconPlaceholder()
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = genre.name,
+                            albumId = genre.id
+                        )
+                    )
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
@@ -131,12 +144,3 @@ fun GenreRow(
     }
 }
 
-@Composable
-private fun GenreIconPlaceholder() {
-    Icon(
-        imageVector = Icons.Default.MusicNote,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-        modifier = Modifier.size(32.dp)
-    )
-}

@@ -41,6 +41,7 @@ import com.sukoon.music.domain.model.SearchHistory
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SortMode
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
@@ -544,25 +545,31 @@ private fun SearchResultItem(
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             loading = {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp)
+                                PlaceholderAlbumArt.Placeholder(
+                                    seed = PlaceholderAlbumArt.generateSeed(
+                                        albumName = song.album,
+                                        artistName = song.artist,
+                                        songId = song.id
+                                    )
                                 )
                             },
                             error = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                PlaceholderAlbumArt.Placeholder(
+                                    seed = PlaceholderAlbumArt.generateSeed(
+                                        albumName = song.album,
+                                        artistName = song.artist,
+                                        songId = song.id
+                                    )
                                 )
                             }
                         )
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
+                            )
                         )
                     }
                 }

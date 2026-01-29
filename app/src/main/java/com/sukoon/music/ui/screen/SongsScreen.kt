@@ -49,6 +49,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.viewmodel.HomeViewModel
@@ -205,7 +206,7 @@ fun SongsScreen(
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(MaterialTheme.colorScheme.background)
                     ) {
                         // Top App Bar
                         TopAppBar(
@@ -225,7 +226,7 @@ fun SongsScreen(
                                 }
                             },
                             colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = MaterialTheme.colorScheme.background
                             )
                         )
 
@@ -246,7 +247,7 @@ fun SongsScreen(
                                 onSelectionClick = { viewModel.toggleSongSelectionMode(true) },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(MaterialTheme.colorScheme.background)
                             )
                         }
                     }
@@ -445,28 +446,22 @@ private fun SongListItem(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
                             )
-                        }
+                        )
                     },
                     error = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
                             )
-                        }
+                        )
                     }
                 )
             }

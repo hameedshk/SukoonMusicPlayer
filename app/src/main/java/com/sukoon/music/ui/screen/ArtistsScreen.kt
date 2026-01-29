@@ -314,7 +314,7 @@ private fun ArtistsContent(
                         onSelectionClick = { viewModel.toggleSelectionMode(true) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface)
+                            .background(MaterialTheme.colorScheme.background)
                     )
                 }
             }

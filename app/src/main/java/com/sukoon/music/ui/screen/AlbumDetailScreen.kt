@@ -50,6 +50,7 @@ import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.*
@@ -513,20 +514,22 @@ private fun AlbumHeader(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         error = {
-                            Icon(
-                                imageVector = Icons.Default.Album,
-                                contentDescription = null,
-                                modifier = Modifier.size(96.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
+                                )
                             )
                         }
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(96.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = album.title,
+                            artistName = album.artist,
+                            albumId = album.id
+                        )
                     )
                 }
             }

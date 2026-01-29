@@ -43,6 +43,7 @@ import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.AlphabetScrollBar
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
@@ -224,7 +225,7 @@ fun AlbumsScreen(
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface)
+                                    .background(MaterialTheme.colorScheme.background)
                             )
                         }
                     }
@@ -413,15 +414,23 @@ private fun AlbumCard(
                             )
                         },
                         error = {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                DefaultAlbumCover()
-                            }
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
+                                )
+                            )
                         }
                     )
                 } else {
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        DefaultAlbumCover()
-                    }
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = album.title,
+                            artistName = album.artist,
+                            albumId = album.id
+                        )
+                    )
                 }
 
                 // Selection checkbox or context menu button
@@ -493,22 +502,6 @@ private fun AlbumCard(
     }
 }
 
-@Composable
-private fun DefaultAlbumCover() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Album,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-    }
-}
 
 @Composable
 private fun EmptyAlbumsState() {
@@ -627,11 +620,12 @@ private fun RecentlyPlayedAlbumCard(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 error = {
-                    Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = album.title,
+                            artistName = album.artist,
+                            albumId = album.id
+                        )
                     )
                 }
             )
@@ -691,28 +685,22 @@ private fun AlbumContextMenuBottomSheet(
                         model = album.albumArtUri,
                         contentDescription = null,
                         loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Album,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
                                 )
-                            }
+                            )
                         },
                         error = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    Icons.Default.Album,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
                                 )
-                            }
+                            )
                         }
                     )
                 }

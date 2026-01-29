@@ -29,6 +29,7 @@ import android.widget.Toast
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.viewmodel.GenreSortMode
 import com.sukoon.music.ui.viewmodel.GenresViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
@@ -197,7 +198,7 @@ import com.sukoon.music.ui.theme.*
                                         onSelectionClick = { viewModel.toggleSelectionMode(true) },
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(MaterialTheme.colorScheme.surface)
+                                            .background(MaterialTheme.colorScheme.background)
                                     )
                                 }
 

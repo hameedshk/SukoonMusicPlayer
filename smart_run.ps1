@@ -65,16 +65,18 @@ function Get-WorkingTreeHash {
 }
 
 function Get-ChangedFilesSinceLastRun {
-    if (-not (Test-Path $STATE_FILES_FILE)) {
+     if (-not (Test-Path $STATE_HASH_FILE)) {
         return @()
     }
 
-    $previous = Get-Content $STATE_FILES_FILE
-    $current  = git ls-files | Sort-Object
+    $lastHash = Get-Content $STATE_HASH_FILE
 
-    Compare-Object $previous $current |
-        Where-Object { $_.SideIndicator -ne "==" } |
-        ForEach-Object { $_.InputObject }
+    if (-not $lastHash) {
+        return @()
+    }
+
+    # Diff CURRENT working tree vs LAST SUCCESSFUL RUN
+    git diff --name-only $lastHash
 }
 
 function Save-Run-State {
@@ -270,8 +272,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 # ---------- SAVE STATE ----------
-Get-WorkingTreeHash | Out-File $STATE_FILE -Force
-
+Save-Run-State
+Write-Host "💾 Saved current working tree state" -ForegroundColor Green
 # ---------- AUTO-LAUNCH ----------
 Launch-App
 Write-Host "✅ App running. Ready for testing." -ForegroundColor Green

@@ -73,17 +73,21 @@ internal fun SongItem(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
                     )
                 },
                 error = {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
                     )
                 }
             )
@@ -151,17 +155,21 @@ internal fun SongItemWithMenu(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
                     )
                 },
                 error = {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
                     )
                 }
             )
@@ -242,7 +250,13 @@ internal fun SongMenuBottomSheet(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         error = {
-                            Icon(Icons.Default.MusicNote, contentDescription = null)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+                            )
                         }
                     )
                 }
@@ -325,7 +339,15 @@ internal fun SongItemSelectable(
                 contentDescription = null,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
-                error = { Icon(Icons.Default.MusicNote, contentDescription = null) }
+                error = {
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
+                    )
+                }
             )
         }
         Spacer(Modifier.width(16.dp))
@@ -433,7 +455,7 @@ internal fun LastAddedSection(
         ) {
             Text(
                 text = "Last added",
-                style = MaterialTheme.typography.headlineSmall.copy(
+                style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = MaterialTheme.colorScheme.onBackground
@@ -494,39 +516,32 @@ internal fun LastAddedCard(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            }
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+                            )
                         },
                         error = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(64.dp)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
                                 )
-                            }
+                            )
                         }
                     )
                 } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(64.dp)
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
                         )
-                    }
+                    )
                 }
 
                 // Light gradient + play button

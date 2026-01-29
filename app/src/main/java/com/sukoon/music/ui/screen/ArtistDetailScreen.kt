@@ -39,6 +39,7 @@ import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.data.mediastore.DeleteHelper
@@ -697,23 +698,31 @@ private fun AlbumCard(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
+                                )
+                            )
                         },
                         error = {
-                            Icon(
-                                imageVector = Icons.Default.Album,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
+                                )
                             )
                         }
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.Album,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = album.title,
+                            artistName = album.artist,
+                            albumId = album.id
+                        )
                     )
                 }
             }

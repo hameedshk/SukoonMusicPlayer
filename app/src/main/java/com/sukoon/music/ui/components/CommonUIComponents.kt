@@ -802,116 +802,70 @@ fun ContinueListeningCard(
         }
     }
 
-    Surface(
+    // Wrap card + text in a Column so text appears below the card
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(ContinueListeningCardHeight)
             .padding(horizontal = ScreenSafeAreaMargin)
-            .scale(if (isCardPressed) 0.98f else 1f)
-            .clickable(
-                interactionSource = cardInteractionSource,
-                indication = null,
-                enabled = true,
-                onClick = onClick
-            ),
-        shape = RoundedCornerShape(ContinueListeningCornerRadius),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shadowElevation = 8.dp
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Album artwork (full background)
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = "Album art for ${song.title} by ${song.artist}",
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        // Card with album art and play button
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(ContinueListeningCardHeight)
+                .scale(if (isCardPressed) 0.98f else 1f)
+                .clickable(
+                    interactionSource = cardInteractionSource,
+                    indication = null,
+                    enabled = true,
+                    onClick = onClick
+                ),
+            shape = RoundedCornerShape(ContinueListeningCornerRadius),
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shadowElevation = 8.dp
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Album artwork (full background)
+                SubcomposeAsyncImage(
+                    model = song.albumArtUri,
+                    contentDescription = "Album art for ${song.title} by ${song.artist}",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
+                            )
+                        )
+                    },
+                    error = {
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
+                            )
                         )
                     }
-                }
-            )
+                )
 
-            // Dark gradient overlay for text readability
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.7f)
-                            ),
-                            startY = 0f,
-                            endY = Float.MAX_VALUE
-                        )
-                    )
-            )
-
-            // Content overlay (track info + play button)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-               
-                // Bottom section: Track info + play button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // Play button positioned at bottom-right
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    contentAlignment = Alignment.BottomEnd
                 ) {
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        // Track title - Headline Small (24sp, 500 weight, 32dp line height)
-                        Text(
-                            text = song.title.cleanMetadata(),
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-
-                        // Artist name - Body Large (16sp, 400 weight, 24dp line height)
-                        Text(
-                            text = song.artist,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Normal
-                            ),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(12.dp))
-
-                    // Play button - independent clickable for immediate feedback
-                    // Touch target size 56dp meets Material 3 48dp minimum accessibility requirement
                     IconButton(
                         onClick = {
                             Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
-                            // Play song first, then navigate after a brief delay
                             onPlayClick()
                             coroutineScope.launch {
-                                delay(100) // Give playback time to start
+                                delay(100)
                                 onClick()
                             }
                         },
@@ -933,6 +887,26 @@ fun ContinueListeningCard(
                 }
             }
         }
+
+        // Song info BELOW the card
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = song.title.cleanMetadata(),
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+        Text(
+            text = song.artist,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -949,14 +923,13 @@ fun RecentlyPlayedScrollSection(
     Column(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Section label - Label Medium (12sp, 500 weight, 16dp line height)
+        // Section header - consistent with other sections
         Text(
             text = "Recently played",
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
         )
 
@@ -1000,19 +973,22 @@ fun RecentlyPlayedScrollSection(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
                                 )
-                            }
+                            )
+                        },
+                        error = {
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+                            )
                         }
                     )
 
@@ -1055,14 +1031,13 @@ fun LibraryNavigationCards(
             .fillMaxWidth()
             .padding(horizontal = ScreenSafeAreaMargin)
     ) {
-        // Section label
+        // Section header - consistent with other sections
         Text(
             text = "Your library",
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = FontWeight.Medium,
-                fontSize = 12.sp
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
             ),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(SpacingMedium))

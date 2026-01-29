@@ -71,15 +71,15 @@ fun HomeTab(
     ) {
         // PRIMARY: Continue Listening Card (album art + one-tap resume)
         if (playbackState.currentSong != null && recentlyPlayed.isNotEmpty()) {
-            item {         
-         // Top section: "Continuing from" label
+            item {
+                // Section header
                 Text(
                     text = "Continue listening",
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
 
                 ContinueListeningCard(
