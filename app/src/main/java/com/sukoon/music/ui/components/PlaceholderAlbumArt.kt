@@ -3,10 +3,18 @@ package com.sukoon.music.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
 /**
@@ -155,14 +163,21 @@ object PlaceholderAlbumArt {
 
     /**
      * Composable that renders a deterministic gradient placeholder.
+     * Gold standard: Muted gradient + centered semi-transparent icon (Spotify/Apple Music style).
      *
      * @param seed Stable identifier (album name, artist name, or ID)
      * @param modifier Modifier for size, shape, etc.
+     * @param icon Icon to display (MusicNote for songs, Album for albums)
+     * @param iconSize Size of the centered icon
+     * @param iconOpacity Opacity of icon (0.3-0.4 recommended)
      */
     @Composable
     fun Placeholder(
         seed: String,
-        modifier: Modifier = Modifier
+        modifier: Modifier = Modifier,
+        icon: ImageVector = Icons.Default.MusicNote,
+        iconSize: Int = 32,
+        iconOpacity: Float = 0.35f
     ) {
         val hash = hashString(seed)
         val colors = selectColors(hash)
@@ -172,7 +187,16 @@ object PlaceholderAlbumArt {
         Box(
             modifier = modifier
                 .fillMaxSize()
-                .background(brush)
-        )
+                .background(brush),
+            contentAlignment = Alignment.Center
+        ) {
+            // Centered semi-transparent icon overlay (industry standard)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(iconSize.dp),
+                tint = Color.White.copy(alpha = iconOpacity)
+            )
+        }
     }
 }
