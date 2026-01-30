@@ -1,6 +1,7 @@
 package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
@@ -8,12 +9,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
@@ -66,31 +69,23 @@ object PlaceholderAlbumArt {
         }.build()
 
     /**
-     * Muted neutral palette - inspired by Spotify/Apple Music placeholder strategy.
-     * Uses desaturated grays and dark surface tones (NO bright accent colors).
+     * Dark theme palette - muted charcoal grays (Spotify-style).
      */
-    private val brandPalette = listOf(
-        // Charcoal grays (Spotify-style)
-        Color(0xFF2A2A2A),
-        Color(0xFF1E1E1E),
-        Color(0xFF333333),
-        Color(0xFF3D3D3D),
-        // Warm dark grays
-        Color(0xFF3A3634),
-        Color(0xFF2D2B29),
-        Color(0xFF474340),
-        // Cool dark grays
-        Color(0xFF2B2E33),
-        Color(0xFF353A40),
-        Color(0xFF1F2326),
-        // Very subtle muted tones
-        Color(0xFF4A3F3F),
-        Color(0xFF3F4A4A),
-        Color(0xFF4A4A3F),
-        // Deep neutral variants
-        Color(0xFF262626),
-        Color(0xFF3B3B3B),
-        Color(0xFF424242)
+    private val darkPalette = listOf(
+        Color(0xFF2A2A2A), Color(0xFF1E1E1E), Color(0xFF333333), Color(0xFF3D3D3D),
+        Color(0xFF3A3634), Color(0xFF2D2B29), Color(0xFF474340), Color(0xFF2B2E33),
+        Color(0xFF353A40), Color(0xFF1F2326), Color(0xFF4A3F3F), Color(0xFF3F4A4A),
+        Color(0xFF4A4A3F), Color(0xFF262626), Color(0xFF3B3B3B), Color(0xFF424242)
+    )
+
+    /**
+     * Light theme palette - soft grays and whites (Apple Music-style).
+     */
+    private val lightPalette = listOf(
+        Color(0xFFE8E8E8), Color(0xFFD6D6D6), Color(0xFFC4C4C4), Color(0xFFB8B8B8),
+        Color(0xFFEEEEEE), Color(0xFFDDDDDD), Color(0xFFCCCCCC), Color(0xFFE0E0E0),
+        Color(0xFFD8D8D8), Color(0xFFF2F2F2), Color(0xFFDBDBDB), Color(0xFFC8C8C8),
+        Color(0xFFE5E5E5), Color(0xFFCFCFCF), Color(0xFFBEBEBE), Color(0xFFEAEAEA)
     )
 
     /**
@@ -110,8 +105,9 @@ object PlaceholderAlbumArt {
      * Select 2-3 colors with spacing from the palette for visible gradients.
      * Uses larger intervals to ensure visual distinction between colors.
      */
-    private fun selectColors(hash: Int): List<Color> {
-        val paletteSize = brandPalette.size
+    private fun selectColors(hash: Int, isDark: Boolean): List<Color> {
+        val palette = if (isDark) darkPalette else lightPalette
+        val paletteSize = palette.size
         val startIndex = hash % paletteSize
 
         // Use spacing of 3-5 for more visible color variation
@@ -119,7 +115,7 @@ object PlaceholderAlbumArt {
         val colorCount = 2 + (hash % 2) // Either 2 or 3 colors
 
         return List(colorCount) { i ->
-            brandPalette[(startIndex + i * spacing) % paletteSize]
+            palette[(startIndex + i * spacing) % paletteSize]
         }
     }
 
@@ -217,10 +213,18 @@ object PlaceholderAlbumArt {
         iconSize: Int = 56,
         iconOpacity: Float = 0.4f
     ) {
+        val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
         val hash = hashString(seed)
-        val colors = selectColors(hash)
+        val colors = selectColors(hash, isDark)
         val direction = getGradientAngle(hash)
         val brush = createGradientBrush(direction, colors)
+
+        // Icon color adapts to theme
+        val iconTint = if (isDark) {
+            Color.White.copy(alpha = iconOpacity)
+        } else {
+            Color.Black.copy(alpha = iconOpacity * 0.6f)
+        }
 
         Box(
             modifier = modifier
@@ -233,7 +237,7 @@ object PlaceholderAlbumArt {
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(iconSize.dp),
-                tint = Color.White.copy(alpha = iconOpacity)
+                tint = iconTint
             )
         }
     }

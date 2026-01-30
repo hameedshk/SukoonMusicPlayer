@@ -56,6 +56,7 @@ import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.NativeAdCard
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
@@ -91,9 +92,6 @@ fun PlaylistsScreen(
     var newPlaylistId by remember { mutableStateOf<Long?>(null) }
     var showAddSongsDialog by remember { mutableStateOf(false) }
 
-    // Filter state: null = All, true = Smart Playlists, false = User Playlists
-    var playlistFilter by remember { mutableStateOf<Boolean?>(null) }
-
     val scope = rememberCoroutineScope()
 
     Scaffold(
@@ -127,73 +125,67 @@ fun PlaylistsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Filter Chips Section
+            // Primary Grid Section - 4 Smart Playlists
             item {
-                PlaylistFilterChips(
-                    selectedFilter = playlistFilter,
-                    onFilterChange = { playlistFilter = it }
+                SmartPlaylistsSection(
+                    smartPlaylists = smartPlaylists,
+                    onSmartPlaylistClick = onNavigateToSmartPlaylist
                 )
             }
 
-            // Primary Grid Section - 4 Smart Playlists (show only if filter allows)
-            if (playlistFilter == null || playlistFilter == true) {
-                item {
-                    SmartPlaylistsSection(
-                        smartPlaylists = smartPlaylists,
-                        onSmartPlaylistClick = onNavigateToSmartPlaylist
-                    )
-                }
+            // Secondary Action List Section
+            item {
+                PlaylistActionsSection(
+                    playlistCount = playlists.size,
+                    onCreateClick = { showCreateDialog = true },
+                    onImportClick = {
+                        showImportDialog = true
+                        importResult = null
+                    }
+                )
             }
 
-            // Secondary Action List Section (show only if user playlists filter allows)
-            if (playlistFilter == null || playlistFilter == false) {
+            // User Playlists Grid
+            if (playlists.isNotEmpty()) {
                 item {
-                    PlaylistActionsSection(
-                        playlistCount = playlists.size,
-                        onCreateClick = { showCreateDialog = true },
-                        onImportClick = {
-                            showImportDialog = true
-                            importResult = null
-                        }
+                    Text(
+                        text = "My playlists (${playlists.size})",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
 
-                // User Playlists Grid
-                if (playlists.isNotEmpty()) {
-                    item {
-                        Text(
-                            text = "My playlists (${playlists.size})",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            modifier = Modifier.padding(vertical = 8.dp)
-                        )
-                    }
-
-                    items(
-                        items = playlists.chunked(2),
-                        key = { row -> row.first().id }
-                    ) { rowPlaylists ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            rowPlaylists.forEach { playlist ->
-                                Box(modifier = Modifier.weight(1f)) {
-                                    PlaylistCard(
-                                        playlist = playlist,
-                                        onClick = { onNavigateToPlaylist(playlist.id) },
-                                        onDeleteClick = { playlistToDelete = playlist },
-                                        onPlayClick = { viewModel.playPlaylist(playlist.id) },
-                                        onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
-                                        onRenameClick = { playlistToRename = playlist }
-                                    )
-                                }
-                            }
-                            // Add empty space if row has only one playlist
-                            if (rowPlaylists.size == 1) {
-                                Spacer(modifier = Modifier.weight(1f))
+                items(
+                    items = playlists.chunked(2),
+                    key = { row -> row.first().id }
+                ) { rowPlaylists ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        rowPlaylists.forEach { playlist ->
+                            Box(modifier = Modifier.weight(1f)) {
+                                PlaylistCard(
+                                    playlist = playlist,
+                                    onClick = { onNavigateToPlaylist(playlist.id) },
+                                    onDeleteClick = { playlistToDelete = playlist },
+                                    onPlayClick = { viewModel.playPlaylist(playlist.id) },
+                                    onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
+                                    onRenameClick = { playlistToRename = playlist }
+                                )
                             }
                         }
+                        // Add empty space if row has only one playlist
+                        if (rowPlaylists.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
                     }
+                }
+            } else {
+                item {
+                    EmptyPlaylistsState(
+                        onCreateClick = { showCreateDialog = true }
+                    )
                 }
             }
         }
@@ -292,7 +284,7 @@ private fun SmartPlaylistsSection(
 ) {
     Column {
         Text(
-            text = "4 playlists",
+            text = "Smart Playlists",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp)
         )
@@ -320,7 +312,20 @@ private fun SmartPlaylistsSection(
 }
 
 /**
- * Smart Playlist Card - Large rounded rectangular card
+ * Get themed background color for smart playlist cards
+ */
+@Composable
+private fun getSmartPlaylistColor(type: SmartPlaylistType): Color {
+    return when (type) {
+        SmartPlaylistType.MY_FAVOURITE -> Color(0xFF4A6FA5).copy(alpha = 0.3f)  // Blue
+        SmartPlaylistType.LAST_ADDED -> Color(0xFF4A9B6A).copy(alpha = 0.3f)    // Green
+        SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF7E57C2).copy(alpha = 0.3f) // Purple
+        SmartPlaylistType.MOST_PLAYED -> Color(0xFFE57373).copy(alpha = 0.3f)   // Red
+    }
+}
+
+/**
+ * Smart Playlist Card - Large rounded rectangular card with themed colors
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -328,6 +333,8 @@ private fun SmartPlaylistCard(
     smartPlaylist: SmartPlaylist,
     onClick: () -> Unit
 ) {
+    val backgroundColor = getSmartPlaylistColor(smartPlaylist.type)
+
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -335,10 +342,18 @@ private fun SmartPlaylistCard(
             .height(100.dp),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
+            containerColor = backgroundColor
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+        ) {
             // Content
             Column(
                 modifier = Modifier
@@ -361,17 +376,16 @@ private fun SmartPlaylistCard(
                 }
             }
 
-            // Icon in bottom right
+            // Icon in bottom right with better visibility
             Icon(
                 imageVector = getSmartPlaylistIcon(smartPlaylist.type),
                 contentDescription = null,
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
-                    .padding(12.dp)
+                    .padding(16.dp)
                     .size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
-
         }
     }
 }
@@ -524,6 +538,10 @@ private fun PlaylistCard(
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 4.dp
         )
     ) {
         Column(
@@ -549,26 +567,30 @@ private fun PlaylistCard(
                             )
                         },
                         error = {
-                            DefaultPlaylistCover()
+                            DefaultPlaylistCover(playlist.id)
                         }
                     )
                 } else {
-                    DefaultPlaylistCover()
+                    DefaultPlaylistCover(playlist.id)
                 }
 
-                // Options menu button
+                // Options menu button with semi-transparent background
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(4.dp)
+                        .padding(8.dp)
                 ) {
                     IconButton(
-                        onClick = { showMenu = true }
+                        onClick = { showMenu = true },
+                        modifier = Modifier.background(
+                            color = Color.Black.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        )
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "Options",
-                            tint = MaterialTheme.colorScheme.onBackground
+                            tint = Color.White
                         )
                     }
 
@@ -633,20 +655,16 @@ private fun PlaylistCard(
 }
 
 @Composable
-private fun DefaultPlaylistCover() {
-    Box(
+private fun DefaultPlaylistCover(playlistId: Long) {
+    PlaceholderAlbumArt.Placeholder(
+        seed = playlistId.toString(),
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-    }
+        icon = Icons.Default.MusicNote,
+        iconSize = 64,
+        iconOpacity = 0.35f
+    )
 }
 
 @Composable
@@ -655,45 +673,56 @@ private fun EmptyPlaylistsState(
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(
-                start = 32.dp,
-                end = 32.dp,
-                top = ContentTopPadding,
-                bottom = ContentBottomPadding + 16.dp
-            ),
+            .fillMaxWidth()
+            .padding(vertical = 48.dp, horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.size(96.dp),
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
-        )
+        // Decorative folder illustration with theme accent color
+        Box(
+            modifier = Modifier.size(120.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(96.dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+            )
+            Icon(
+                imageVector = Icons.Default.MusicNote,
+                contentDescription = null,
+                modifier = Modifier
+                    .size(48.dp)
+                    .offset(x = 12.dp, y = (-8).dp),
+                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+            )
+        }
+
         Spacer(modifier = Modifier.height(24.dp))
+
         Text(
             text = "No playlists yet",
             style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onSurface
         )
+
         Spacer(modifier = Modifier.height(8.dp))
+
         Text(
-            text = "Create your first playlist to organize your music",
+            text = "Tap the button below to create one",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
         )
+
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onCreateClick) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Create Playlist")
+
+        Button(
+            onClick = onCreateClick,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Create playlist")
         }
     }
 }
