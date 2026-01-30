@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
@@ -68,7 +69,7 @@ internal fun AlbumRow(
                 contentScale = ContentScale.Crop,
                 error = {
                     Icon(
-                        imageVector = Icons.Default.Album,
+                        imageVector = Icons.Default.MusicNote,
                         contentDescription = null,
                         modifier = Modifier.size(32.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
@@ -277,18 +278,17 @@ private fun AlbumSelectionBottomBar(
 }
 
 @Composable
-private fun AlbumDefaultCover() {
-    Box(
+private fun AlbumDefaultCover(albumId: Long, albumName: String) {
+    com.sukoon.music.ui.components.PlaceholderAlbumArt.Placeholder(
+        seed = com.sukoon.music.ui.components.PlaceholderAlbumArt.generateSeed(
+            albumName = albumName,
+            albumId = albumId
+        ),
         modifier = Modifier
             .fillMaxSize()
             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        contentAlignment = Alignment.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Album,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-        )
-    }
+        icon = Icons.Default.MusicNote,
+        iconSize = 64,
+        iconOpacity = 0.35f
+    )
 }

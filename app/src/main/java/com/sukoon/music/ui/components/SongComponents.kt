@@ -521,7 +521,8 @@ internal fun LastAddedCard(
                                     albumName = song.album,
                                     artistName = song.artist,
                                     songId = song.id
-                                )
+                                ),
+                                icon = Icons.Default.MusicNote
                             )
                         },
                         error = {
@@ -530,7 +531,8 @@ internal fun LastAddedCard(
                                     albumName = song.album,
                                     artistName = song.artist,
                                     songId = song.id
-                                )
+                                ),
+                                icon = Icons.Default.MusicNote
                             )
                         }
                     )
@@ -540,7 +542,8 @@ internal fun LastAddedCard(
                             albumName = song.album,
                             artistName = song.artist,
                             songId = song.id
-                        )
+                        ),
+                        icon = Icons.Default.MusicNote
                     )
                 }
 

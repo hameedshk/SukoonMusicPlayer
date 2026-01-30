@@ -270,7 +270,7 @@ fun RecentlyPlayedAlbumCard(
                     contentScale = ContentScale.Crop,
                     error = {
                         Icon(
-                            imageVector = Icons.Default.Album,
+                            imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
                             modifier = Modifier.size(64.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
