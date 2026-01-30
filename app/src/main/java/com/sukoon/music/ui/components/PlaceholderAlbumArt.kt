@@ -13,7 +13,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
@@ -26,6 +28,42 @@ import kotlin.math.abs
  * Design: Pure gradient backgrounds with no text, icons, or symbolic content.
  */
 object PlaceholderAlbumArt {
+
+    /**
+     * Clean album disc icon (Spotify-style silhouette).
+     */
+    private val AlbumDiscIcon: ImageVector
+        get() = ImageVector.Builder(
+            name = "AlbumDisc",
+            defaultWidth = 24.dp,
+            defaultHeight = 24.dp,
+            viewportWidth = 24f,
+            viewportHeight = 24f
+        ).apply {
+            // Outer circle
+            path(fill = SolidColor(Color.White)) {
+                moveTo(12f, 2f)
+                curveToRelative(5.52f, 0f, 10f, 4.48f, 10f, 10f)
+                reflectiveCurveToRelative(-4.48f, 10f, -10f, 10f)
+                reflectiveCurveTo(2f, 17.52f, 2f, 12f)
+                reflectiveCurveTo(6.48f, 2f, 12f, 2f)
+                close()
+                // Inner ring (negative space)
+                moveTo(12f, 6f)
+                curveToRelative(-3.31f, 0f, -6f, 2.69f, -6f, 6f)
+                reflectiveCurveToRelative(2.69f, 6f, 6f, 6f)
+                reflectiveCurveToRelative(6f, -2.69f, 6f, -6f)
+                reflectiveCurveToRelative(-2.69f, -6f, -6f, -6f)
+                close()
+                // Center hole
+                moveTo(12f, 10.5f)
+                curveToRelative(-0.83f, 0f, -1.5f, 0.67f, -1.5f, 1.5f)
+                reflectiveCurveToRelative(0.67f, 1.5f, 1.5f, 1.5f)
+                reflectiveCurveToRelative(1.5f, -0.67f, 1.5f, -1.5f)
+                reflectiveCurveToRelative(-0.67f, -1.5f, -1.5f, -1.5f)
+                close()
+            }
+        }.build()
 
     /**
      * Muted neutral palette - inspired by Spotify/Apple Music placeholder strategy.
@@ -175,9 +213,9 @@ object PlaceholderAlbumArt {
     fun Placeholder(
         seed: String,
         modifier: Modifier = Modifier,
-        icon: ImageVector = Icons.Default.MusicNote,
-        iconSize: Int = 32,
-        iconOpacity: Float = 0.35f
+        icon: ImageVector = AlbumDiscIcon,
+        iconSize: Int = 56,
+        iconOpacity: Float = 0.4f
     ) {
         val hash = hashString(seed)
         val colors = selectColors(hash)
