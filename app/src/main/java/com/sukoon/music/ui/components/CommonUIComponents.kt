@@ -839,8 +839,7 @@ fun ContinueListeningCard(
                                 albumName = song.album,
                                 artistName = song.artist,
                                 songId = song.id
-                            ),
-                            icon = Icons.Default.MusicNote
+                            )
                         )
                     },
                     error = {
@@ -849,8 +848,7 @@ fun ContinueListeningCard(
                                 albumName = song.album,
                                 artistName = song.artist,
                                 songId = song.id
-                            ),
-                            icon = Icons.Default.MusicNote
+                            )
                         )
                     }
                 )
@@ -980,8 +978,7 @@ fun RecentlyPlayedScrollSection(
                                     albumName = song.album,
                                     artistName = song.artist,
                                     songId = song.id
-                                ),
-                                icon = Icons.Default.MusicNote
+                                )
                             )
                         },
                         error = {
@@ -990,8 +987,7 @@ fun RecentlyPlayedScrollSection(
                                     albumName = song.album,
                                     artistName = song.artist,
                                     songId = song.id
-                                ),
-                                icon = Icons.Default.MusicNote
+                                )
                             )
                         }
                     )

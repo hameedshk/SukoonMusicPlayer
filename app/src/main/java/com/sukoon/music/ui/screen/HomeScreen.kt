@@ -87,6 +87,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.data.premium.PremiumManager
+import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.data.ads.AdMobDecisionAgent
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.theme.*
@@ -123,8 +125,10 @@ fun HomeScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
-    // Get PremiumManager to check if user is premium (for ad injection)
+    // Get managers from Hilt entry points for use in non-injected contexts
     val appContext = LocalContext.current
+
+    // Get PremiumManager to check if user is premium (for ad injection)
     val premiumManager = try {
         EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java).premiumManager()
     } catch (e: Exception) {
@@ -132,6 +136,20 @@ fun HomeScreen(
     }
     val premiumFlow = premiumManager?.isPremiumUser ?: flowOf(false)
     val isPremium by premiumFlow.collectAsStateWithLifecycle(false)
+
+    // Get AdMobManager for native ad loading
+    val adMobManager = try {
+        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.AdMobManagerEntryPoint::class.java).adMobManager()
+    } catch (e: Exception) {
+        null
+    }
+
+    // Get AdMobDecisionAgent for intelligent ad delivery
+    val adMobDecisionAgent = try {
+        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.AdMobDecisionAgentEntryPoint::class.java).adMobDecisionAgent()
+    } catch (e: Exception) {
+        null
+    }
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
@@ -279,24 +297,28 @@ fun HomeScreen(
                             )
                         }
                         "Songs" -> {
-                            SongsContent(
-                                songs = songs,
-                                playbackState = playbackState,
-                                onSongClick = { song, index ->
-                                    if (playbackState.currentSong?.id != song.id) {
-                                        viewModel.playQueue(songs, index)
-                                    } else {
-                                        onNavigateToNowPlaying()
-                                    }
-                                },
-                                onShuffleAllClick = { viewModel.shuffleAll() },
-                                onPlayAllClick = { viewModel.playAll() },
-                                viewModel = viewModel,
-                                playlistViewModel = playlistViewModel,
-                                isPremium = isPremium,
-                                onNavigateToArtistDetail = onNavigateToArtistDetail,
-                                onNavigateToAlbumDetail = onNavigateToAlbumDetail
-                            )
+                            if (adMobManager != null && adMobDecisionAgent != null) {
+                                SongsContent(
+                                    songs = songs,
+                                    playbackState = playbackState,
+                                    onSongClick = { song, index ->
+                                        if (playbackState.currentSong?.id != song.id) {
+                                            viewModel.playQueue(songs, index)
+                                        } else {
+                                            onNavigateToNowPlaying()
+                                        }
+                                    },
+                                    onShuffleAllClick = { viewModel.shuffleAll() },
+                                    onPlayAllClick = { viewModel.playAll() },
+                                    viewModel = viewModel,
+                                    playlistViewModel = playlistViewModel,
+                                    adMobManager = adMobManager,
+                                    adMobDecisionAgent = adMobDecisionAgent,
+                                    isPremium = isPremium,
+                                    onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail
+                                )
+                            }
                         }
                         "Albums" -> {
                             AlbumsScreen(
@@ -758,6 +780,8 @@ private fun SongsContent(
     onPlayAllClick: () -> Unit,
     viewModel: HomeViewModel,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
+    adMobManager: AdMobManager,
+    adMobDecisionAgent: AdMobDecisionAgent,
     isPremium: Boolean = false,
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {}
@@ -779,6 +803,13 @@ private fun SongsContent(
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+
+    // Track if user has scrolled (for native ad engagement requirement)
+    val hasUserScrolled = remember {
+        derivedStateOf {
+            scrollState.firstVisibleItemIndex > 0
+        }
+    }
 
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -967,11 +998,29 @@ private fun SongsContent(
                         }
                     }
                 }
-                // Inject native ads every 15 songs (only if user is not premium)
+                // Inject native ads every 25 songs (only if user is not premium)
                 val displayItems = if (!isPremium && !isSongSelectionMode) {
-                    injectNativeAds(sortedSongs, interval = 15)
+                    injectNativeAds(sortedSongs, interval = 25)
                 } else {
                     sortedSongs.map { ListItem.SongItem(it) }
+                }
+
+                // Helper to get album info for an ad (based on previous song)
+                val getAlbumForAdItem: (Int) -> Pair<Long, Int>? = { adIndex ->
+                    // Find the previous song in displayItems
+                    var result: Pair<Long, Int>? = null
+                    for (i in adIndex - 1 downTo 0) {
+                        val item = displayItems.getOrNull(i)
+                        if (item is ListItem.SongItem<*>) {
+                            val song = item.item as Song
+                            val albumId = song.album.hashCode().toLong()
+                            // Count songs with same album in sortedSongs
+                            val albumTrackCount = sortedSongs.count { it.album == song.album }
+                            result = Pair(albumId, albumTrackCount)
+                            break
+                        }
+                    }
+                    result
                 }
 
                 items(
@@ -1011,10 +1060,20 @@ private fun SongsContent(
                             }
                         }
                         is ListItem.AdItem<*> -> {
-                            // Native ad card (only shown if not premium)
-                            NativeAdCard(
-                                onAdClick = { /* Open advertiser */ }
-                            )
+                            // Native ad with decision agent integration
+                            val adIndex = displayItems.indexOf(item)
+                            val albumInfo = getAlbumForAdItem(adIndex)
+
+                            if (albumInfo != null) {
+                                val (albumId, albumTrackCount) = albumInfo
+                                NativeAdLoader(
+                                    adMobManager = adMobManager,
+                                    decisionAgent = adMobDecisionAgent,
+                                    albumId = albumId,
+                                    albumTrackCount = albumTrackCount,
+                                    hasUserScrolled = hasUserScrolled.value
+                                )
+                            }
                         }
                     }
                 }

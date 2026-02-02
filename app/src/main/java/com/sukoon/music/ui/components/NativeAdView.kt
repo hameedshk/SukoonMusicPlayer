@@ -13,22 +13,141 @@ import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import com.google.android.gms.ads.nativead.NativeAdView
 import com.sukoon.music.R
+import com.sukoon.music.data.ads.AdFormat
+import com.sukoon.music.data.ads.AdMobDecisionAgent
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.util.DevLogger
 import com.sukoon.music.ui.theme.*
 
 /**
- * Native Ad composable component.
+ * Native Ad Loader with Decision Agent Integration.
  *
+ * Consults the AdMobDecisionAgent before loading ads, respecting:
+ * - Premium user status
+ * - Private session status
+ * - User scroll engagement
+ * - Album size requirements (≥10 tracks)
+ * - Album frequency caps (1 per album per session)
+ * - Failure tracking and cooldowns
+ *
+ * IMPORTANT:
+ * - Returns early (renders nothing) if decision suppresses ad
+ * - Loads ad asynchronously if approved
+ * - Destroys ad when composable leaves composition
+ * - NEVER interrupts audio playback
+ *
+ * @param adMobManager AdMob configuration manager
+ * @param decisionAgent AdMob decision agent for intelligent ad delivery
+ * @param albumId Unique identifier for the album (used for frequency capping)
+ * @param albumTrackCount Number of tracks in the album (must be ≥10 to show ad)
+ * @param hasUserScrolled True if user has scrolled in the list (engagement check)
+ * @param modifier Optional modifier
+ */
+@Composable
+fun NativeAdLoader(
+    adMobManager: AdMobManager,
+    decisionAgent: AdMobDecisionAgent,
+    albumId: Long,
+    albumTrackCount: Int,
+    hasUserScrolled: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val TAG = "NativeAdLoader"
+    var nativeAd by remember { mutableStateOf<NativeAd?>(null) }
+    var decision by remember { mutableStateOf<com.sukoon.music.data.ads.AdDecision?>(null) }
+
+    // Consult decision agent before loading (in coroutine context)
+    LaunchedEffect(albumId, albumTrackCount, hasUserScrolled) {
+        decision = try {
+            decisionAgent.shouldShowNative(albumId, albumTrackCount, hasUserScrolled)
+        } catch (e: Exception) {
+            DevLogger.e(TAG, "Error evaluating native ad decision: ${e.message}")
+            null
+        }
+    }
+
+    // If decision is null or suppressed, don't render anything
+    if (decision == null || !decision!!.shouldShow) {
+        if (decision != null) {
+            DevLogger.d(TAG, "Native ad suppressed: ${decision!!.reason}")
+        }
+        return
+    }
+
+    // Decision is to show - load ad
+    DevLogger.d(TAG, "Native ad approved for album $albumId: ${decision!!.reason}")
+
+    var nativeAdState by remember { mutableStateOf<NativeAd?>(null) }
+    nativeAd = nativeAdState
+
+    // Load native ad
+    DisposableEffect(albumId) {
+        val startTime = System.currentTimeMillis()
+        val adLoader = AdLoader.Builder(context, adMobManager.getNativeAdId())
+            .forNativeAd { ad ->
+                nativeAdState = ad
+                val loadTimeMs = System.currentTimeMillis() - startTime
+                DevLogger.d(TAG, "Native ad loaded in ${loadTimeMs}ms for album $albumId")
+                decisionAgent.recordAdLoaded(AdFormat.NATIVE, loadTimeMs)
+                decisionAgent.recordAdImpression(AdFormat.NATIVE, albumId)
+            }
+            .withAdListener(object : AdListener() {
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    DevLogger.e(TAG, "Native ad failed to load for album $albumId: ${error.message}")
+                    decisionAgent.recordAdFailed(AdFormat.NATIVE, error.code, error.message)
+                }
+
+                override fun onAdLoaded() {
+                    DevLogger.d(TAG, "Native ad loaded callback for album $albumId")
+                }
+            })
+            .build()
+
+        val adRequest = AdRequest.Builder().build()
+        adLoader.loadAd(adRequest)
+
+        onDispose {
+            nativeAdState?.destroy()
+        }
+    }
+
+    // Display native ad
+    nativeAd?.let { ad ->
+        AndroidView(
+            factory = { ctx ->
+                val inflater = LayoutInflater.from(ctx)
+                val adView = inflater.inflate(
+                    R.layout.native_ad_layout,
+                    null,
+                    false
+                ) as NativeAdView
+
+                populateNativeAdView(ad, adView)
+                adView
+            },
+            modifier = modifier.fillMaxWidth()
+        )
+    }
+}
+
+/**
+ * Legacy Native Ad composable component (deprecated).
+ *
+ * Use NativeAdLoader instead for decision agent integration.
+ *
+ * This is kept for backwards compatibility but should be phased out.
  * Displays a native ad that blends with the app's UI.
- * Native ads are less intrusive and provide better UX.
  *
  * IMPORTANT:
  * - Loads ad asynchronously
  * - Shows placeholder while loading
  * - Destroys ad when composable leaves composition
  * - NEVER interrupts audio playback
+ *
+ * @deprecated Use NativeAdLoader with decision agent instead
  */
+@Deprecated("Use NativeAdLoader with decision agent integration")
 @Composable
 fun NativeAdCard(
     adMobManager: AdMobManager,

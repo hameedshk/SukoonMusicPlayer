@@ -35,7 +35,7 @@ internal val LocalAccentTokens = staticCompositionLocalOf {
 // Theme mode CompositionLocal (to differentiate Dark vs AMOLED in gradient functions)
 internal val LocalIsAmoled = staticCompositionLocalOf { false }
 
-// Dark Surface Gradients (Level 1 - Passive tiles) - Spotify style
+// Dark Surface Gradients (Level 1 - Passive tiles) - S style
 private val DarkSurfaceLevel1Top = Color(0xFF1A1A1A)
 private val DarkSurfaceLevel1Bottom = Color(0xFF161616)
 
@@ -51,11 +51,11 @@ private val AmoledSurfaceLevel1Bottom = Color(0xFF080808)
 private val AmoledSurfaceLevel2Top = Color(0xFF1A1A1A)
 private val AmoledSurfaceLevel2Bottom = Color(0xFF141414)
 
-// Light Surface Gradients (Level 1 - Passive tiles) - Apple Music style
+// Light Surface Gradients (Level 1 - Passive tiles) - A Music style
 private val LightSurfaceLevel1Top = Color(0xFFFFFFFF)
 private val LightSurfaceLevel1Bottom = Color(0xFFF8F8F8)
 
-// Light Surface Gradients (Level 2 - Important passive content) - Apple Music style
+// Light Surface Gradients (Level 2 - Important passive content) - A Music style
 private val LightSurfaceLevel2Top = Color(0xFFFFFFFF)
 private val LightSurfaceLevel2Bottom = Color(0xFFF2F2F7)
 
@@ -107,10 +107,10 @@ private fun getAmoledColorScheme(accentColor: Color): androidx.compose.material3
  * Create a dark color scheme dynamically based on accent color.
  * All accent slots (primary, secondary, tertiary) use the same accent color.
  *
- * Design Reference: Spotify dark mode
+ * Design Reference: S dark mode
  * - Background: Deep charcoal (#121212) for depth without true black
  * - Primary text: Pure white (#FFFFFF) for maximum contrast
- * - Secondary text: Spotify's exact gray (#B3B3B3)
+ * - Secondary text: S's exact gray (#B3B3B3)
  */
 private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.ColorScheme {
     return darkColorScheme(
@@ -130,13 +130,13 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
         tertiaryContainer = accentColor,
         onTertiaryContainer = androidx.compose.ui.graphics.Color(0xFF000000),
 
-        // Surfaces: Spotify-style neutral dark grays
-        background = androidx.compose.ui.graphics.Color(0xFF121212),  // Spotify's exact background
+        // Surfaces: S-style neutral dark grays
+        background = androidx.compose.ui.graphics.Color(0xFF121212),  // S's exact background
         onBackground = androidx.compose.ui.graphics.Color(0xFFFFFFFF), // Pure white (was #E0E0E0)
         surface = androidx.compose.ui.graphics.Color(0xFF121212),
         surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFF282828),
         onSurface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),    // Pure white (was #E0E0E0)
-        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3), // Spotify's secondary text
+        onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFFB3B3B3), // S's secondary text
         surfaceVariant = androidx.compose.ui.graphics.Color(0xFF1A1A1A),   // Slightly darker (was #1E1E1E)
 
         // Error: Minimal (rarely used in music player)
@@ -146,7 +146,7 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
         onErrorContainer = androidx.compose.ui.graphics.Color(0xFFFFDAD6),
 
         // Outline: Subtle separation
-        outline = androidx.compose.ui.graphics.Color(0xFF535353),         // Spotify's divider color
+        outline = androidx.compose.ui.graphics.Color(0xFF535353),         // S's divider color
         outlineVariant = androidx.compose.ui.graphics.Color(0xFF404040)
     )
 }
@@ -155,7 +155,7 @@ private fun getDarkColorScheme(accentColor: Color): androidx.compose.material3.C
  * Create a light color scheme dynamically based on accent color.
  * All accent slots (primary, secondary, tertiary) use the same accent color.
  *
- * Design Reference: Apple Music light mode
+ * Design Reference: A's Music light mode
  * - Background: Cool neutral gray (#F2F2F7) so white cards pop
  * - Text: Pure black for maximum readability
  */
@@ -177,11 +177,11 @@ private fun getLightColorScheme(accentColor: Color): androidx.compose.material3.
         tertiaryContainer = accentColor.copy(alpha = 0.2f),
         onTertiaryContainer = accentColor.copy(alpha = 0.8f),
 
-        // Surfaces: Apple Music-style cool neutral backgrounds
-        background = androidx.compose.ui.graphics.Color(0xFFF2F2F7),  // Apple's SystemGroupedBackground
+        // Surfaces: A Music-style cool neutral backgrounds
+        background = androidx.compose.ui.graphics.Color(0xFFF2F2F7),  // A's SystemGroupedBackground
         onBackground = androidx.compose.ui.graphics.Color(0xFF000000), // Pure black text
         surface = androidx.compose.ui.graphics.Color(0xFFFFFFFF),      // Pure white cards
-        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFFE5E5EA), // Apple's SystemGray5
+        surfaceContainerHigh = androidx.compose.ui.graphics.Color(0xFFE5E5EA), // A's SystemGray5
         onSurface = androidx.compose.ui.graphics.Color(0xFF000000),    // Pure black text
         onSurfaceVariant = androidx.compose.ui.graphics.Color(0xFF666666),
         surfaceVariant = androidx.compose.ui.graphics.Color(0xFFF2F2F7),
@@ -193,8 +193,8 @@ private fun getLightColorScheme(accentColor: Color): androidx.compose.material3.
         onErrorContainer = androidx.compose.ui.graphics.Color(0xFF410002),
 
         // Outline
-        outline = androidx.compose.ui.graphics.Color(0xFF8E8E93),      // Apple's SystemGray
-        outlineVariant = androidx.compose.ui.graphics.Color(0xFFD1D1D6) // Apple's SystemGray4
+        outline = androidx.compose.ui.graphics.Color(0xFF8E8E93),      // A's SystemGray
+        outlineVariant = androidx.compose.ui.graphics.Color(0xFFD1D1D6) // A's SystemGray4
     )
 }
 
@@ -223,7 +223,7 @@ fun Modifier.gradientBackground(): Modifier {
             )
         )
     } else {
-        // Light mode: flat color (Apple Music style - no gradient)
+        // Light mode: flat color (A Music style - no gradient)
         this.background(color = Color(0xFFF2F2F7))
     }
 }

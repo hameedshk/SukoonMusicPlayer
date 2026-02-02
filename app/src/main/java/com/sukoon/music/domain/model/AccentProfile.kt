@@ -6,7 +6,7 @@ import androidx.compose.ui.graphics.Color
  * Immutable accent profile definitions.
  * These are the only allowed accent configurations.
  *
- * Design Note: Colors are tuned for Spotify-tier vibrancy on dark backgrounds
+ * Design Note: Colors are tuned for S-tier vibrancy on dark backgrounds
  * while maintaining WCAG AA contrast (4.5:1+) on light backgrounds.
  */
 sealed class AccentProfile(

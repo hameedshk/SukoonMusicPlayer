@@ -580,7 +580,7 @@ private fun AlbumArtSection(
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
 
-    // Album art container - full-bleed, Spotify-style presentation
+    // Album art container - full-bleed, S-style presentation
     // Extends edge-to-edge with subtle blur effect on edges
     Box(
         modifier = modifier
@@ -684,7 +684,7 @@ private fun AlbumArtSection(
                 }
             )
 
-            // Edge blur/fade effects - creates Spotify-like sophisticated look
+            // Edge blur/fade effects - creates S-like sophisticated look
             // Subtle vignette that fades edges to background
             Box(
                 modifier = Modifier
@@ -958,7 +958,7 @@ private fun TrackMetadataSection(
             .padding(vertical = 6.dp, horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Song Title - Spotify-sized, bold, prominent
+        // Song Title - S-sized, bold, prominent
         Text(
             text = song.title.ifBlank { "Unknown Song" },
             style = MaterialTheme.typography.songTitleLarge.copy(
@@ -1166,7 +1166,7 @@ private fun PlaybackControlsSection(
 
         Spacer(modifier = Modifier.width(8.dp))
 
-        // Play/Pause Button (center, focal point) - Spotify-sized
+        // Play/Pause Button (center, focal point) - S-sized
         IconButton(
             onClick = onPlayPauseClick,
             modifier = Modifier

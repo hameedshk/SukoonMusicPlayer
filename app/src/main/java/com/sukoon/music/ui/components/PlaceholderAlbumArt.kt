@@ -33,7 +33,7 @@ import kotlin.math.abs
 object PlaceholderAlbumArt {
 
     /**
-     * Clean album disc icon (Spotify-style silhouette).
+     * Clean album disc icon (S-style silhouette).
      */
     private val AlbumDiscIcon: ImageVector
         get() = ImageVector.Builder(
@@ -69,7 +69,7 @@ object PlaceholderAlbumArt {
         }.build()
 
     /**
-     * Dark theme palette - muted charcoal grays (Spotify-style).
+     * Dark theme palette - muted charcoal grays (S-style).
      */
     private val darkPalette = listOf(
         Color(0xFF2A2A2A), Color(0xFF1E1E1E), Color(0xFF333333), Color(0xFF3D3D3D),
@@ -79,7 +79,7 @@ object PlaceholderAlbumArt {
     )
 
     /**
-     * Light theme palette - soft grays and whites (Apple Music-style).
+     * Light theme palette - soft grays and whites (A Music-style).
      */
     private val lightPalette = listOf(
         Color(0xFFE8E8E8), Color(0xFFD6D6D6), Color(0xFFC4C4C4), Color(0xFFB8B8B8),
@@ -197,7 +197,7 @@ object PlaceholderAlbumArt {
 
     /**
      * Composable that renders a deterministic gradient placeholder.
-     * Gold standard: Muted gradient + centered semi-transparent icon (Spotify/Apple Music style).
+     * Gold standard: Muted gradient + centered semi-transparent icon (S/A Music style).
      *
      * @param seed Stable identifier (album name, artist name, or ID)
      * @param modifier Modifier for size, shape, etc.

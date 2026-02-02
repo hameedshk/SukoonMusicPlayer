@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.sukoon.music.data.ads.AdMobDecisionAgent
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.premium.PremiumManager
@@ -55,6 +56,9 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var adMobManager: AdMobManager
+
+    @Inject
+    lateinit var adMobDecisionAgent: AdMobDecisionAgent
 
     @Inject
     lateinit var premiumManager: PremiumManager
@@ -175,11 +179,14 @@ class MainActivity : ComponentActivity() {
                     }
 
                     // Global ad banner at absolute bottom (z-index 0)
-                    // Hidden for premium users
+                    // Hidden for premium users, respects decision agent
+                    val isMiniPlayerVisible = playbackState.currentSong != null && !isOnNowPlayingScreen
                     GlobalBannerAdView(
                         adMobManager = adMobManager,
+                        decisionAgent = adMobDecisionAgent,
                         premiumManager = premiumManager,
                         currentRoute = currentRoute,
+                        isMiniPlayerVisible = isMiniPlayerVisible,
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .windowInsetsPadding(WindowInsets.navigationBars) // Respect gesture bar
@@ -187,6 +194,18 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Notify ad decision agent that app is going to background
+        adMobDecisionAgent.onAppBackgrounded()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Notify ad decision agent that app is returning to foreground
+        adMobDecisionAgent.onAppForegrounded()
     }
 
     override fun onDestroy() {

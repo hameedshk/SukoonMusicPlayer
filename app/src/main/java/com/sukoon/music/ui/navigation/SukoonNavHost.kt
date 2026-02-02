@@ -535,3 +535,21 @@ interface PreferencesManagerEntryPoint {
 interface PremiumManagerEntryPoint {
     fun premiumManager(): PremiumManager
 }
+
+/**
+ * Hilt entry point for accessing AdMobManager from non-injected context.
+ */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface AdMobManagerEntryPoint {
+    fun adMobManager(): com.sukoon.music.data.ads.AdMobManager
+}
+
+/**
+ * Hilt entry point for accessing AdMobDecisionAgent from non-injected context.
+ */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface AdMobDecisionAgentEntryPoint {
+    fun adMobDecisionAgent(): com.sukoon.music.data.ads.AdMobDecisionAgent
+}

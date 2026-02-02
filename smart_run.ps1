@@ -52,36 +52,59 @@ function Get-Device-Status {
     return "NONE"
 }
 
-# ============ WORKING TREE STATE ============
-function Get-WorkingTreeHash {
-    git status --porcelain |
+function Get-WorkingTreeSnapshot {
+    git ls-files |
         Sort-Object |
-        Out-String |
         ForEach-Object {
-            $bytes = [Text.Encoding]::UTF8.GetBytes($_)
-            $sha = [Security.Cryptography.SHA1]::Create()
-            ($sha.ComputeHash($bytes) | ForEach-Object { $_.ToString("x2") }) -join ""
+            $file = $_
+            $hash = git hash-object $file
+            "$hash $file"
         }
 }
 
+
+# ============ WORKING TREE STATE ============
+function Get-WorkingTreeHash {
+    Get-WorkingTreeSnapshot |
+        Out-String |
+        git hash-object --stdin
+}
+
 function Get-ChangedFilesSinceLastRun {
-     if (-not (Test-Path $STATE_HASH_FILE)) {
+        if (-not (Test-Path $STATE_FILES_FILE)) {
         return @()
     }
 
-    $lastHash = Get-Content $STATE_HASH_FILE
+    $old = Get-Content $STATE_FILES_FILE
+    $new = Get-WorkingTreeSnapshot
 
-    if (-not $lastHash) {
-        return @()
+    $oldMap = @{}
+    foreach ($line in $old) {
+        $hash, $file = $line -split ' ', 2
+        $oldMap[$file] = $hash
     }
 
-    # Diff CURRENT working tree vs LAST SUCCESSFUL RUN
-    git diff --name-only $lastHash
+    $changed = @()
+
+    foreach ($line in $new) {
+        $hash, $file = $line -split ' ', 2
+
+        if (-not $oldMap.ContainsKey($file)) {
+            $changed += $file
+        }
+        elseif ($oldMap[$file] -ne $hash) {
+            $changed += $file
+        }
+    }
+
+    return $changed
 }
 
 function Save-Run-State {
-    git ls-files | Sort-Object | Out-File $STATE_FILES_FILE -Force
-    Get-WorkingTreeHash | Out-File $STATE_HASH_FILE -Force
+      $snapshot = Get-WorkingTreeSnapshot
+    $hash     = $snapshot | Out-String | git hash-object --stdin
+    $hash     | Out-File $STATE_HASH_FILE  -Encoding ascii
+    $snapshot | Out-File $STATE_FILES_FILE -Encoding ascii
 }
 
 function Launch-App {
@@ -159,8 +182,21 @@ else {
     Try-Adb-Connect $cfg.ip $cfg.port
 }
 
-$currentState = Get-WorkingTreeHash
-$lastHash = if (Test-Path $STATE_HASH_FILE) { Get-Content $STATE_HASH_FILE } else { "" }
+# ---------- FORCE OVERRIDE (EARLY EXIT GUARD) ----------
+if ($forceFullBuild -or $forceReinstall -or $forceClearData) {
+    Write-Host "🔥 Force flag detected — skipping working tree hash check" -ForegroundColor Cyan
+}
+else {
+$currentHash = Get-WorkingTreeHash
+if (Test-Path $STATE_HASH_FILE) {
+    $lastHash = Get-Content $STATE_HASH_FILE
+
+    if ($currentHash -eq $lastHash) {
+        Write-Host "📝 No working tree changes since last successful run"
+        return
+    }
+}
+}
 
 $changedFiles = Get-ChangedFilesSinceLastRun
 
