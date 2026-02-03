@@ -171,19 +171,14 @@ internal fun RedesignedTopBar(
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Main header container - uses background color for seamless integration
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.background,
-            tonalElevation = 0.dp  // No elevation to avoid tonal shift
+        // Main header container - uses gradient background for seamless integration
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 // Logo - fixed size (40dp) with press feedback and click pulse animation
                 val logoInteractionSource = remember { MutableInteractionSource() }
                 var isLogoPressed by remember { mutableStateOf(false) }
@@ -276,7 +271,6 @@ internal fun RedesignedTopBar(
                     )
                 }
             }
-        }
 
         // Persistent global indicator strip - shown when private session is active
         PrivateSessionIndicatorStrip(sessionState = sessionState)

@@ -231,12 +231,11 @@ fun HomeScreen(
     }
 
     Scaffold(
+        modifier = Modifier.gradientBackground(),
         containerColor = Color.Transparent,
         topBar = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .gradientBackground()
+                modifier = Modifier.fillMaxWidth()
             ) {
                 RedesignedTopBar(
                     onPremiumClick = { },
@@ -262,7 +261,6 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .gradientBackground()
         ) {
             when {
                 scanState is ScanState.Scanning -> {
