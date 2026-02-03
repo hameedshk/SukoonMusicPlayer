@@ -196,8 +196,7 @@ private fun HierarchicalFolderContent(
                             index = 0, // Not showing index in hierarchical mode
                             isCurrentlyPlaying = item.song.id == currentSongId,
                             menuHandler = menuHandler,
-                            onClick = { onSongClick(item.song) },
-                            onLikeClick = { onToggleLike(item.song.id, item.song.isLiked) }
+                            onClick = { onSongClick(item.song) }
                         )
                     }
                 }
@@ -303,8 +302,7 @@ private fun FolderDetailContent(
                     index = index + 1,
                     isCurrentlyPlaying = song.id == currentSongId,
                     menuHandler = menuHandler,
-                    onClick = { onSongClick(song) },
-                    onLikeClick = { onToggleLike(song.id, song.isLiked) }
+                    onClick = { onSongClick(song) }
                 )
             }
         }
@@ -461,8 +459,7 @@ private fun FolderSongItem(
     index: Int,
     isCurrentlyPlaying: Boolean,
     menuHandler: SongMenuHandler,
-    onClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -535,23 +532,6 @@ private fun FolderSongItem(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Like Button
-          IconButton(onClick = onLikeClick) {
-                Icon(
-                    imageVector = if (song.isLiked) {
-                        Icons.Default.Favorite
-                    } else {
-                        Icons.Default.FavoriteBorder
-                    },
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    }
                 )
             }
         }

@@ -519,8 +519,7 @@ private fun FoldersContent(
                                             .map { it.song }
                                         folderViewModel.playSong(item.song, contextSongs)
                                         onNavigateToNowPlaying()
-                                    },
-                                    onLikeClick = { folderViewModel.toggleLike(item.song.id, item.song.isLiked) }
+                                    }
                                 )
                             }
                         }
@@ -748,8 +747,7 @@ private fun FolderBrowserSongRow(
     song: Song,
     isPlaying: Boolean,
     menuHandler: SongMenuHandler,
-    onClick: () -> Unit,
-    onLikeClick: () -> Unit
+    onClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -818,14 +816,6 @@ private fun FolderBrowserSongRow(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "More options",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        IconButton(onClick = onLikeClick) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
