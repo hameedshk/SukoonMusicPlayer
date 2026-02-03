@@ -169,6 +169,8 @@ class MainActivity : ComponentActivity() {
                             playbackState = playbackState,
                             onPlayPauseClick = { homeViewModel.playPause() },
                             onNextClick = { homeViewModel.seekToNext() },
+                            onSeek = { positionMs -> homeViewModel.seekTo(positionMs) },
+                            userPreferences = userPreferences,
                             onClick = {
                                 navController.navigate(Routes.NowPlaying.route)
                             },

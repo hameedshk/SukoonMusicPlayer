@@ -2,12 +2,17 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,9 +20,18 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.ui.draw.scale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.Modifier
@@ -91,19 +105,18 @@ fun MiniPlayer(
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
     onClick: () -> Unit,
+    onSeek: (Long) -> Unit = {},
+    userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
     modifier: Modifier = Modifier
 ) {
     if (playbackState.currentSong == null) return
 
     val palette = rememberAlbumPalette(playbackState.currentSong.albumArtUri)
-   val song = playbackState.currentSong!!
+    val song = playbackState.currentSong!!
 
-val accentColor = remember(song.id, palette.candidateAccent) {
-    AccentResolver.resolve(
-        extractedAccent = palette.candidateAccent,
-        fallbackSeed = song.id.toInt()
-    )
-}
+    // Use theme's primary color (respects accent profile setting changes in real-time)
+    // This ensures MiniPlayer updates immediately when accent profile changes in settings
+    val accentColor = MaterialTheme.colorScheme.primary
 
 
     // Real-time position tracking - optimized with derivedStateOf
@@ -128,6 +141,14 @@ val accentColor = remember(song.id, palette.candidateAccent) {
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { change, dragAmount ->
+                    // Swipe up (negative dragAmount) triggers full player
+                    if (dragAmount < -80) {
+                        onClick()
+                    }
+                }
+            }
             .clickable(onClick = onClick),
         shape = MiniPlayerShape,
         color = MaterialTheme.colorScheme.surface
@@ -178,7 +199,7 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                 }
             )
 
-            // Song Info
+            // Song Info with expand affordance
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.Center
@@ -190,56 +211,120 @@ val accentColor = remember(song.id, palette.candidateAccent) {
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = playbackState.currentSong.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = playbackState.currentSong.artist,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // Subtle chevron affordance (swipe up or tap to expand)
+                    Icon(
+                        imageVector = Icons.Default.ExpandLess,
+                        contentDescription = "Tap or swipe up to expand",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .padding(start = 8.dp)
+                    )
+                }
             }
 
-            // Large Play/Pause Button
+            // Large Play/Pause Button with press feedback
+            val playPauseInteractionSource = remember { MutableInteractionSource() }
+            var isPlayPausePressed by remember { mutableStateOf(false) }
+
+            LaunchedEffect(playPauseInteractionSource) {
+                playPauseInteractionSource.interactions.collect { interaction ->
+                    when (interaction) {
+                        is PressInteraction.Press -> isPlayPausePressed = true
+                        is PressInteraction.Release -> isPlayPausePressed = false
+                        is PressInteraction.Cancel -> isPlayPausePressed = false
+                    }
+                }
+            }
+
+            val playPauseScale by animateFloatAsState(
+                targetValue = if (isPlayPausePressed) 0.92f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy,
+                    stiffness = Spring.StiffnessHigh
+                ),
+                label = "play_pause_scale"
+            )
+
             IconButton(
                 onClick = onPlayPauseClick,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier
+                    .size(40.dp)
+                    .scale(playPauseScale),
+                interactionSource = playPauseInteractionSource
             ) {
-                Icon(
-                    imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                    tint = accentColor,
-                    modifier = Modifier.size(28.dp)
-                )
+                AnimatedContent(
+                    targetState = playbackState.isPlaying,
+                    transitionSpec = {
+                        fadeIn() togetherWith fadeOut()
+                    },
+                    label = "play_pause_icon"
+                ) { isPlaying ->
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        tint = accentColor,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
-            // Next Button
+            // Next Button - Material 3 minimum touch target 48dp
             IconButton(
                 onClick = onNextClick,
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(48.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
                     contentDescription = "Next",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    tint = accentColor
                 )
             }
         }
 
-            // Thin progress bar at bottom edge
-            LinearProgressIndicator(
-                progress = {
-                    if (playbackState.duration > 0) {
-                        (currentPosition.toFloat() / playbackState.duration.toFloat()).coerceIn(0f, 1f)
-                    } else {
-                        0f
-                    }
-                },
+            // Interactive seekable progress bar - 3.5dp for visibility + tap to seek
+            val progress = if (playbackState.duration > 0) {
+                (currentPosition.toFloat() / playbackState.duration.toFloat()).coerceIn(0f, 1f)
+            } else {
+                0f
+            }
+
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(2.dp),
-                color = accentColor,
-                trackColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f)
-            )
+                    .height(3.5.dp)
+                    .pointerInput(playbackState.duration) {
+                        detectTapGestures { tapOffset ->
+                            if (playbackState.duration > 0) {
+                                val seekProgress = (tapOffset.x / size.width).coerceIn(0f, 1f)
+                                val seekPosition = (seekProgress * playbackState.duration).toLong()
+                                onSeek(seekPosition)
+                            }
+                        }
+                    }
+                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+            ) {
+                // Progress fill
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(progress)
+                        .background(accentColor)
+                )
+            }
         }
     }
 }
