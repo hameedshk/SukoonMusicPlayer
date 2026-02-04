@@ -44,7 +44,13 @@ data class Folder(
      * List of song IDs in this folder.
      * Used for detail screen and playback.
      */
-    val songIds: List<Long> = emptyList()
+    val songIds: List<Long> = emptyList(),
+
+    /**
+     * Album art URIs for the 2x2 collage (up to 4 unique album arts).
+     * Used for visual display in the folder list view.
+     */
+    val albumArtUris: List<String> = emptyList()
 ) {
     /**
      * Format total duration as readable string (e.g., "45:32").

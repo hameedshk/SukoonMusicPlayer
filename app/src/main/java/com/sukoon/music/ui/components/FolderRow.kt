@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +21,8 @@ import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.util.rememberAlbumPalette
+import androidx.compose.material.icons.filled.MusicNote
 
 /**
  * Reusable list item for folders.
@@ -56,50 +59,112 @@ fun FolderRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Leading: Icon/Art
+            // Left accent stripe with extracted vibrant color
+            val palette = rememberAlbumPalette(folder.albumArtUris.firstOrNull())
+            val accentColor = palette.vibrant.copy(alpha = 0.6f)
+            val backgroundTint = palette.mutedLight.copy(alpha = 0.12f)
+
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .width(4.dp)
+                    .height(80.dp)
+                    .background(accentColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+            )
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            // Leading: Album art collage with shadow and dynamic background tint
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(8.dp), clip = false)
+                    .background(backgroundTint)
             ) {
-                if (folder.albumArtUri != null) {
-                    SubcomposeAsyncImage(
-                        model = folder.albumArtUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = { FolderIconPlaceholder() }
-                    )
-                } else {
-                    FolderIconPlaceholder()
-                }
+                FolderAlbumArtCollage(
+                    albumArtUris = folder.albumArtUris,
+                    size = 80.dp
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
 
             // Middle: Info
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
                     text = folder.name,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = "${folder.path} • ${folder.songCount} songs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+
+                // Metadata badges with vibrant accent colors
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.height(20.dp)
+                ) {
+                    val iconAccent = palette.vibrant
+                    val badgeBg = palette.vibrant.copy(alpha = 0.15f)
+
+                    // Song count badge
+                    Surface(
+                        color = badgeBg,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                tint = iconAccent,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = "${folder.songCount}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = iconAccent,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    // Duration badge
+                    Surface(
+                        color = badgeBg,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Schedule,
+                                contentDescription = null,
+                                tint = iconAccent,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                text = folder.formattedDuration(),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = iconAccent,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
             }
 
             // Trailing: Menu
@@ -167,14 +232,4 @@ fun FolderRow(
             }
         }
     }
-}
-
-@Composable
-private fun FolderIconPlaceholder() {
-    Icon(
-        imageVector = Icons.Default.Folder,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.size(48.dp)
-    )
 }

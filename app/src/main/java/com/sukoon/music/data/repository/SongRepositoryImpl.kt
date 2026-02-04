@@ -614,6 +614,10 @@ class SongRepositoryImpl @Inject constructor(
 
     private fun createFolderFromSongs(folderPath: String, songs: List<SongEntity>): com.sukoon.music.domain.model.Folder {
         val folderName = folderPath.substringAfterLast('/').ifEmpty { folderPath }
+        val albumArtUris = songs
+            .mapNotNull { it.albumArtUri }
+            .distinct()
+            .take(4)
         return com.sukoon.music.domain.model.Folder(
             id = folderPath.hashCode().toLong(),
             path = folderPath,
@@ -621,7 +625,8 @@ class SongRepositoryImpl @Inject constructor(
             songCount = songs.size,
             totalDuration = songs.sumOf { it.duration },
             albumArtUri = songs.firstOrNull()?.albumArtUri,
-            songIds = songs.map { it.id }
+            songIds = songs.map { it.id },
+            albumArtUris = albumArtUris
         )
     }
 
