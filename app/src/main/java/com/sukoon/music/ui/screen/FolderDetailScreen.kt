@@ -13,6 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -20,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
@@ -32,6 +36,7 @@ import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderDetailViewModel
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.util.rememberAlbumPalette
 
 /**
  * Folder Detail Screen - Shows songs in a specific folder.
@@ -315,141 +320,228 @@ private fun FolderHeader(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit
 ) {
-    Column(
+    // Extract palette from folder's album art
+    val palette = rememberAlbumPalette(folder.albumArtUri)
+    val vibrantColor = palette.vibrant
+    val backgroundTint = palette.mutedLight.copy(alpha = 0.12f)
+    val accentColor = vibrantColor.copy(alpha = 0.6f)
+
+    // Dynamic gradient background (dark overlay for contrast)
+    val gradientBackground = Brush.verticalGradient(
+        colors = listOf(
+            vibrantColor.copy(alpha = 0.25f),
+            MaterialTheme.colorScheme.surface
+        ),
+        startY = 0f,
+        endY = 500f
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(gradientBackground)
     ) {
-        // Folder Cover / Icon
-        Card(
-            modifier = Modifier.size(160.dp),
-            shape = RoundedCornerShape(12.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+            // Left accent stripe
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                if (folder.albumArtUri != null) {
-                    SubcomposeAsyncImage(
-                        model = folder.albumArtUri,
-                        contentDescription = "Folder cover",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp)
+                Box(
+                    modifier = Modifier
+                        .width(4.dp)
+                        .height(240.dp)
+                        .background(accentColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // Folder Cover with shadow
+                Card(
+                    modifier = Modifier
+                        .size(240.dp)
+                        .shadow(elevation = 8.dp, shape = RoundedCornerShape(16.dp), clip = false),
+                    shape = RoundedCornerShape(16.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (folder.albumArtUri != null) {
+                            SubcomposeAsyncImage(
+                                model = folder.albumArtUri,
+                                contentDescription = "Folder cover",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                },
+                                error = {
+                                    Icon(
+                                        imageVector = Icons.Default.Folder,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(80.dp),
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             )
-                        },
-                        error = {
+                        } else {
                             Icon(
                                 imageVector = Icons.Default.Folder,
                                 contentDescription = null,
-                                modifier = Modifier.size(64.dp),
+                                modifier = Modifier.size(80.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.Folder,
-                        contentDescription = null,
-                        modifier = Modifier.size(64.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    }
                 }
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-        // Folder Name
-        Text(
-            text = folder.name,
-            style = MaterialTheme.typography.screenHeader,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Folder Path (truncated)
-        Text(
-            text = folder.path,
-            style = MaterialTheme.typography.bodySmall,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Metadata (Songs • Duration)
-        Row(
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+            // Folder Name - Large and Bold
             Text(
-                text = "${folder.songCount} songs",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                text = folder.name,
+                style = MaterialTheme.typography.displaySmall.copy(
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
-            Text(
-                text = " • ",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = folder.formattedDuration(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
 
-        Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
-        // Action Buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally)
-        ) {
-            // Play All Button
-            Button(
-                onClick = onPlayAll,
-                enabled = folder.songCount > 0,
-                modifier = Modifier.weight(1f)
+            // Folder Path (tertiary)
+            Text(
+                text = folder.path,
+                style = MaterialTheme.typography.bodySmall,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Metadata Badges (matching FolderRow style)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.height(24.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Play All")
+                val badgeBg = vibrantColor.copy(alpha = 0.15f)
+
+                // Song count badge
+                Surface(
+                    color = badgeBg,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = vibrantColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = "${folder.songCount} songs",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = vibrantColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+
+                // Duration badge
+                Surface(
+                    color = badgeBg,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Schedule,
+                            contentDescription = null,
+                            tint = vibrantColor,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = folder.formattedDuration(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = vibrantColor,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
 
-            // Shuffle Button
-            OutlinedButton(
-                onClick = onShuffle,
-                enabled = folder.songCount > 0,
-                modifier = Modifier.weight(1f)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Shuffle")
-            }
-        }
+            Spacer(modifier = Modifier.height(20.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
-        HorizontalDivider()
+            // Action Buttons with vibrant accent
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Play All Button - Vibrant color
+                Button(
+                    onClick = onPlayAll,
+                    enabled = folder.songCount > 0,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = vibrantColor,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Play All", fontWeight = FontWeight.SemiBold)
+                }
+
+                // Shuffle Button - Outlined with vibrant stroke
+                OutlinedButton(
+                    onClick = onShuffle,
+                    enabled = folder.songCount > 0,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Shuffle", fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+        }
     }
 }
 
