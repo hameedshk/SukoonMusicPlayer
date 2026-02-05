@@ -134,31 +134,23 @@ fun RecentlyPlayedSongCard(
                             }
                         },
                         error = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(64.dp)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
                                 )
-                            }
+                            )
                         }
                     )
                 } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(64.dp)
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
                         )
-                    }
+                    )
                 }
 
                 // Light gradient + play button
@@ -269,11 +261,12 @@ fun RecentlyPlayedAlbumCard(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     error = {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = album.title,
+                                artistName = album.artist,
+                                songId = album.id.toLong()
+                            )
                         )
                     }
                 )
