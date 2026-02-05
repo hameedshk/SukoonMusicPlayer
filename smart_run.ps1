@@ -14,6 +14,8 @@ $MAIN_ACTIVITY = ".MainActivity"
 $STATE_HASH_FILE  = ".last_successful_state"
 $STATE_FILES_FILE = ".last_successful_files"
 $env:GRADLE_OPTS = "-Dorg.gradle.logging.level=info"
+$BUILD_SUCCESS_FILE = ".last_build_success"
+
 
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Continue'
@@ -25,6 +27,32 @@ $forceClearData = $ClearData.IsPresent
 $attachLogcat = $Logcat.IsPresent
 
 # ============== DEVICE HELPERS ==============
+
+function Select-AdbDevice {
+
+    $devices = adb devices |
+        Where-Object { $_ -match "device$" -and $_ -notmatch "List of devices" } |
+        ForEach-Object { ($_ -split "\s+")[0] }
+
+    if ($devices.Count -eq 0) {
+        Write-Host "❌ No ADB devices connected"
+        exit 1
+    }
+
+    if ($devices.Count -eq 1) {
+        return $devices[0]
+    }
+
+    Write-Host "📱 Multiple devices detected:" -ForegroundColor Yellow
+    for ($i = 0; $i -lt $devices.Count; $i++) {
+        Write-Host " [$i] $($devices[$i])"
+    }
+
+    $choice = Read-Host "Select device index"
+    return $devices[[int]$choice]
+}
+
+
 function Prompt-For-AdbTarget {
     $ip = Read-Host "Enter device IP address"
     $port = Read-Host "Enter adb port"
@@ -44,16 +72,24 @@ function Try-Adb-Connect {
 }
 
 function Get-Device-Status {
-    adb devices | ForEach-Object {
-        if ($_ -match "device$") { return "ONLINE" }
-        if ($_ -match "offline") { return "OFFLINE" }
-        if ($_ -match "unauthorized") { return "UNAUTHORIZED" }
+      $devices = adb devices |
+        Where-Object { $_ -match "device$" -and $_ -notmatch "List of devices" }
+
+    if ($devices.Count -gt 0) {
+        return "ONLINE"
     }
+
+    $offline = adb devices | Where-Object { $_ -match "offline" }
+    if ($offline) { return "OFFLINE" }
+
+    $unauth = adb devices | Where-Object { $_ -match "unauthorized" }
+    if ($unauth) { return "UNAUTHORIZED" }
+
     return "NONE"
 }
 
 function Get-WorkingTreeSnapshot {
-    git ls-files |
+    git ls-files --cached --others --exclude-standard |
         Sort-Object |
         ForEach-Object {
             $file = $_
@@ -77,6 +113,14 @@ function Get-ChangedFilesSinceLastRun {
 
     $old = Get-Content $STATE_FILES_FILE
     $new = Get-WorkingTreeSnapshot
+	$oldFiles = $oldMap.Keys
+$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
+
+foreach ($f in $oldFiles) {
+    if ($f -notin $newFiles) {
+        $changed += $f
+    }
+}
 
     $oldMap = @{}
     foreach ($line in $old) {
@@ -109,7 +153,9 @@ function Save-Run-State {
 
 function Launch-App {
     Write-Host "🚀 Launching app..." -ForegroundColor Cyan
-    adb shell "am force-stop $APP_ID; am start -n $APP_ID/$MAIN_ACTIVITY"
+    adb shell am force-stop $APP_ID
+    Start-Sleep -Milliseconds 300
+    adb shell am start -n "$APP_ID/$MAIN_ACTIVITY"
 }
 
 function Wait-For-AppPid {
@@ -173,29 +219,37 @@ Write-Host "📱 Starting adb..." -ForegroundColor Cyan
 adb start-server | Out-Null
 Start-Sleep -Seconds 3
 
-if ((Get-Device-Status) -eq "ONLINE") {
-    Write-Host "✅ Device connected" -ForegroundColor Green
-}
-else {
+if ((Get-Device-Status) -ne "ONLINE") {
     Write-Host "⚠️ Device not connected — manual connect required" -ForegroundColor Yellow
     $cfg = Prompt-For-AdbTarget
     Try-Adb-Connect $cfg.ip $cfg.port
 }
 
+$ADB_DEVICE = Select-AdbDevice
+Write-Host "📱 Using device: $ADB_DEVICE" -ForegroundColor Green
+
 # ---------- FORCE OVERRIDE (EARLY EXIT GUARD) ----------
+$currentHash = Get-WorkingTreeHash
 if ($forceFullBuild -or $forceReinstall -or $forceClearData) {
     Write-Host "🔥 Force flag detected — skipping working tree hash check" -ForegroundColor Cyan
 }
 else {
-$currentHash = Get-WorkingTreeHash
+	$lastBuildSucceeded = Test-Path $BUILD_SUCCESS_FILE
+
 if (Test-Path $STATE_HASH_FILE) {
     $lastHash = Get-Content $STATE_HASH_FILE
 
-    if ($currentHash -eq $lastHash) {
-        Write-Host "📝 No working tree changes since last successful run"
-        return
+    if ($currentHash -eq $lastHash -and $lastBuildSucceeded) {
+        Write-Host "📝 No changes + last build succeeded — skipping build"
+        Launch-App
+        if ($attachLogcat) { Attach-Logcat }
+        exit 0
+    }
+    elseif ($currentHash -eq $lastHash -and -not $lastBuildSucceeded) {
+        Write-Host "⚠️ No changes but last build FAILED — rebuilding"
     }
 }
+
 }
 
 $changedFiles = Get-ChangedFilesSinceLastRun
@@ -209,20 +263,6 @@ if ($changedFiles.Count -gt 0) {
 }
 else {
     Write-Host "📝 No file changes since last successful run" -ForegroundColor DarkGray
-}
-
-# ---------- SKIP LOGIC ----------
-if (-not $forceFullBuild -and
-    -not $forceReinstall -and
-    -not $forceClearData -and
-     $currentHash -eq $lastHash) {
-
-    Write-Host "⚡ No changes since last successful run — skipping build" -ForegroundColor Green
-    Launch-App
-    if ($attachLogcat) {
-        Attach-Logcat
-    }
-    exit 0
 }
 
 # ---------- CHANGE ANALYSIS ----------
@@ -260,8 +300,8 @@ if ($forceFullBuild) {
 
 # ---------- DEVICE STATE ACTIONS ----------
 if ($forceReinstall) {
-    Write-Host "🗑️ Reinstall requested — uninstalling app" -ForegroundColor Yellow
-    adb uninstall $APP_ID | Out-Null
+	 Write-Host "🗑️ Reinstall requested — attempting uninstall (non-fatal)" -ForegroundColor Yellow
+	 adb uninstall $APP_ID | Out-Null
 }
 elseif ($forceClearData) {
     Write-Host "🧹 ClearData requested — clearing app data" -ForegroundColor Yellow
@@ -269,6 +309,9 @@ elseif ($forceClearData) {
 }
 
 # ---------- BUILD ----------
+if (Test-Path $BUILD_SUCCESS_FILE) {
+    Remove-Item $BUILD_SUCCESS_FILE -Force
+}
 Write-Host "▶ Gradle started..." -ForegroundColor Cyan
 
 if ($needsClean) {
@@ -306,6 +349,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "❌ Build failed" -ForegroundColor Red
     exit 1
 }
+"OK" | Out-File $BUILD_SUCCESS_FILE -Encoding ascii
 
 # ---------- SAVE STATE ----------
 Save-Run-State

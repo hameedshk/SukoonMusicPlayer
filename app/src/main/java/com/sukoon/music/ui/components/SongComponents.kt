@@ -73,21 +73,19 @@ internal fun SongItem(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = song.album,
-                            artistName = song.artist,
-                            songId = song.id
-                        )
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 },
                 error = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = song.album,
-                            artistName = song.artist,
-                            songId = song.id
-                        )
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             )
@@ -155,21 +153,19 @@ internal fun SongItemWithMenu(
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = song.album,
-                            artistName = song.artist,
-                            songId = song.id
-                        )
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 },
                 error = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = song.album,
-                            artistName = song.artist,
-                            songId = song.id
-                        )
+                    Icon(
+                        imageVector = Icons.Default.MusicNote,
+                        contentDescription = null,
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 }
             )

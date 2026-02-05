@@ -828,22 +828,30 @@ fun ContinueListeningCard(
                         .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
                     contentScale = ContentScale.Crop,
                     loading = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = song.album,
-                                artistName = song.artist,
-                                songId = song.id
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                modifier = Modifier.size(96.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
-                        )
+                        }
                     },
                     error = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = song.album,
-                                artistName = song.artist,
-                                songId = song.id
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                modifier = Modifier.size(96.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                             )
-                        )
+                        }
                     }
                 )
 
@@ -967,22 +975,30 @@ fun RecentlyPlayedScrollSection(
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = song.album,
-                                    artistName = song.artist,
-                                    songId = song.id
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
-                            )
+                            }
                         },
                         error = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = song.album,
-                                    artistName = song.artist,
-                                    songId = song.id
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(48.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                                 )
-                            )
+                            }
                         }
                     )
 
