@@ -402,9 +402,7 @@ private fun NowPlayingContent(
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Extra breathing room so the pinned top bar never visually collides
-            // with the album art on shorter screens.
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // B. Album Art - Prominent, album-first design
             AlbumArtSection(
@@ -416,9 +414,7 @@ private fun NowPlayingContent(
                 accentColor = accentColor,
                 onNextClick = onNextClick,
                 onPreviousClick = onPreviousClick,
-                modifier = Modifier
-                    .weight(0.42f)
-                    .padding(top = 12.dp)
+                modifier = Modifier.weight(0.42f)
             )
 
             Spacer(modifier = Modifier.height(28.dp))
