@@ -262,7 +262,7 @@ private fun TopUtilityBar(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "Collapse",
                 modifier = Modifier.size(30.dp),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
         }
         IconButton(
@@ -273,7 +273,7 @@ private fun TopUtilityBar(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "More options",
                 modifier = Modifier.size(30.dp),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
         }
     }
@@ -397,12 +397,12 @@ private fun NowPlayingContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(
-                    top = 56.dp,  // Reserve space for pinned TopUtilityBar
+                    top = 110.dp,  // Reserve space for pinned TopUtilityBar
                     bottom = ContentBottomPadding
                 ),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // B. Album Art - Prominent, album-first design
             AlbumArtSection(
