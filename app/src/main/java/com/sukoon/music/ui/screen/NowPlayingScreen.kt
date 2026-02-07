@@ -958,10 +958,10 @@ private fun TrackMetadataSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(vertical = 6.dp, horizontal = 24.dp),
+        horizontalAlignment = Alignment.Start
     ) {
-        // Song Title - S-sized, bold, prominent
+        // Song Title - Left-aligned like Spotify
         Text(
             text = song.title.ifBlank { "Unknown Song" },
             style = MaterialTheme.typography.songTitleLarge.copy(
@@ -972,12 +972,11 @@ private fun TrackMetadataSection(
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth(0.95f)
+            textAlign = TextAlign.Start,
+            modifier = Modifier.fillMaxWidth()
         )
 
-        // Artist - larger, more prominent
+        // Artist - Left-aligned
         if (song.artist.isNotBlank()) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
@@ -989,12 +988,12 @@ private fun TrackMetadataSection(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.80f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.95f)
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
-        // Album - only show if not empty
+        // Album - Left-aligned
         if (song.album.isNotBlank()) {
             Spacer(modifier = Modifier.height(3.dp))
             Text(
@@ -1003,8 +1002,8 @@ private fun TrackMetadataSection(
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(0.95f)
+                textAlign = TextAlign.Start,
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }

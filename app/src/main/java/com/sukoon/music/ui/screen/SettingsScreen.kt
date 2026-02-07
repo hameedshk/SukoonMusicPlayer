@@ -168,7 +168,7 @@ fun SettingsScreen(
                     title = "Show Notification Controls",
                     description = "Display playback controls in notification",
                     checked = userPreferences.showNotificationControls,
-                    onCheckedChange = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) }
+                    onCheckedChange = viewModel::setShowNotificationControls
                 )
             }
 

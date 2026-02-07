@@ -30,6 +30,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.FolderItem
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.AnimatedEqualizer
 import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
@@ -588,18 +589,25 @@ private fun FolderSongItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal,
-                    color = if (isCurrentlyPlaying) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal,
+                        color = if (isCurrentlyPlaying) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isCurrentlyPlaying) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = song.artist,
