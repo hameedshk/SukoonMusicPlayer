@@ -37,9 +37,11 @@ function Get-ConnectedDevices {
         # Skip header line
         if ($_ -match "^List of devices") { return }
 
-        # Capture real connected devices only
-        if ($_ -match "^\s*(\S+)\s+device\s*$") {
-            $devices += $Matches[1]
+         # Split by ANY whitespace (tab or spaces)
+        $parts = ($_ -split "\s+")
+
+        if ($parts.Count -ge 2 -and $parts[1] -eq "device") {
+            $devices += $parts[0]
         }
     }
 
