@@ -37,8 +37,8 @@ val ContinueListeningCardHeight = 300.dp
 val ContinueListeningCornerRadius = 16.dp
 
 // Recently Played grid
-val RecentlyPlayedItemSize = 120.dp
-val RecentlyPlayedItemSpacing = 8.dp
+val RecentlyPlayedItemSize = 140.dp
+val RecentlyPlayedItemSpacing = 12.dp
 val RecentlyPlayedHorizontalPadding = 16.dp
 
 // Library navigation cards

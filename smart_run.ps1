@@ -28,6 +28,24 @@ $attachLogcat = $Logcat.IsPresent
 
 # ============== DEVICE HELPERS ==============
 
+function Get-ConnectedDevices {
+
+  $devices = @()
+
+    adb devices | ForEach-Object {
+
+        # Skip header line
+        if ($_ -match "^List of devices") { return }
+
+        # Capture real connected devices only
+        if ($_ -match "^\s*(\S+)\s+device\s*$") {
+            $devices += $Matches[1]
+        }
+    }
+
+    return $devices
+}
+
 function Select-AdbDevice {
 
     $devices = adb devices |
@@ -225,7 +243,25 @@ if ((Get-Device-Status) -ne "ONLINE") {
     Try-Adb-Connect $cfg.ip $cfg.port
 }
 
-$ADB_DEVICE = Select-AdbDevice
+$devices = Get-ConnectedDevices
+ Write-Host " devices $devices"
+if ($devices.Count -eq 0) {
+    Write-Host "❌ No device connected"
+    exit 1
+}
+
+if ($devices.Count -eq 1) {
+    $ADB_DEVICE = [string]$devices[0]
+}
+else {
+    Write-Host "📱 Multiple devices detected:" -ForegroundColor Yellow
+    for ($i=0; $i -lt $devices.Count; $i++) {
+        Write-Host " [$i] $($devices[$i])"
+    }
+    $choice = Read-Host "Select device index"
+    $ADB_DEVICE = $devices[[int]$choice]
+}
+
 Write-Host "📱 Using device: $ADB_DEVICE" -ForegroundColor Green
 
 # ---------- FORCE OVERRIDE (EARLY EXIT GUARD) ----------

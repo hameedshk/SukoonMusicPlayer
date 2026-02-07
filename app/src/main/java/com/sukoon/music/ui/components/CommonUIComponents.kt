@@ -945,79 +945,106 @@ fun RecentlyPlayedScrollSection(
         ) {
             items(songs.size.coerceAtMost(10)) { index ->
                 val song = songs[index]
-                var itemPressed by remember { mutableStateOf(false) }
-                val itemInteractionSource = remember { MutableInteractionSource() }
 
-                LaunchedEffect(itemInteractionSource) {
-                    itemInteractionSource.interactions.collect { interaction ->
-                        when (interaction) {
-                            is PressInteraction.Press -> itemPressed = true
-                            is PressInteraction.Release -> itemPressed = false
-                            is PressInteraction.Cancel -> itemPressed = false
-                        }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .size(RecentlyPlayedItemSize)  // 120x120dp meets Material 3 48dp minimum touch target
-                        .clip(RoundedCornerShape(CardCornerRadius))
-                        .scale(if (itemPressed) 0.95f else 1f)
-                        .clickable(
-                            interactionSource = itemInteractionSource,
-                            indication = null,
-                            onClick = { onItemClick(song) }
-                        )
+                Column(
+                    modifier = Modifier.width(RecentlyPlayedItemSize)
                 ) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = "Play ${song.title} by ${song.artist}",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Box(
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(1f)
+                            .clip(RoundedCornerShape(CardCornerRadius))
+                            .clickable(onClick = { onItemClick(song) })
+                    ) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            SubcomposeAsyncImage(
+                                model = song.albumArtUri,
+                                contentDescription = "Play ${song.title} by ${song.artist}",
                                 modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        },
-                        error = {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(48.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        }
-                    )
-
-                    // Play overlay on hover/press - tap indicates to user this plays the song
-                    if (itemPressed) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = null,  // Already described by parent Box
-                                modifier = Modifier.size(32.dp),
-                                tint = MaterialTheme.colorScheme.onSurface
+                                contentScale = ContentScale.Crop,
+                                loading = {
+                                    PlaceholderAlbumArt.Placeholder(
+                                        seed = PlaceholderAlbumArt.generateSeed(
+                                            albumName = song.album,
+                                            artistName = song.artist,
+                                            songId = song.id
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(CardCornerRadius)),
+                                        icon = Icons.Default.MusicNote,
+                                        iconSize = 48
+                                    )
+                                },
+                                error = {
+                                    PlaceholderAlbumArt.Placeholder(
+                                        seed = PlaceholderAlbumArt.generateSeed(
+                                            albumName = song.album,
+                                            artistName = song.artist,
+                                            songId = song.id
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(CardCornerRadius)),
+                                        icon = Icons.Default.MusicNote,
+                                        iconSize = 48
+                                    )
+                                }
                             )
+
+                            // Gradient overlay + play button (always visible like other sections)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        androidx.compose.ui.graphics.Brush.verticalGradient(
+                                            colors = listOf(
+                                                Color.Transparent,
+                                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)
+                                            )
+                                        )
+                                    ),
+                                contentAlignment = Alignment.BottomEnd
+                            ) {
+                                IconButton(
+                                    onClick = { onItemClick(song) },
+                                    modifier = Modifier.padding(8.dp)
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = MaterialTheme.colorScheme.surfaceVariant
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = "Play",
+                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                                            modifier = Modifier
+                                                .padding(8.dp)
+                                                .size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
+
+                    // Text labels below card
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = song.artist.ifBlank { "Unknown Artist" },
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
                 }
             }
         }
