@@ -27,6 +27,7 @@ import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import androidx.media3.common.PlaybackException
@@ -83,6 +84,8 @@ class MusicPlaybackService : MediaSessionService() {
 
     // Notification visibility state
     private var isNotificationVisible = true
+    // Flag to track programmatic notification hide (vs user dismiss)
+    private var isHidingNotificationProgrammatically = false
 
     // Crossfade manager for smooth track transitions
     private var crossfadeManager: com.sukoon.music.data.audio.CrossfadeManager? = null
@@ -201,12 +204,16 @@ class MusicPlaybackService : MediaSessionService() {
                     notificationId: Int,
                     dismissedByUser: Boolean
                 ) {
-                    if (isForeground) {
+                    // Don't stop foreground if we're programmatically hiding the notification
+                    // (user toggled "Show Notification Controls" off) - we want to be able to
+                    // re-show it when toggled back on
+                    if (isForeground && !isHidingNotificationProgrammatically) {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         isForeground = false
                     }
-                    // Only stop service if user dismissed; if programmatically cancelled
-                    // (e.g., setPlayer(null) from notification visibility toggle), keep service alive
+                    // Reset the flag after handling
+                    isHidingNotificationProgrammatically = false
+                    // Only stop service if user dismissed
                     if (dismissedByUser) {
                         stopSelf()
                     }
@@ -216,14 +223,20 @@ class MusicPlaybackService : MediaSessionService() {
 
         // Configure the notification manager
         notificationManager?.apply {
-            // Don't set player here - let observeNotificationVisibility() handle it based on preference
             setUsePreviousAction(true)
             setUseNextAction(true)
             setUseFastForwardAction(false)
             setUseRewindAction(false)
         }
 
-        // Observe notification visibility preference FIRST (before setting player)
+        // Apply initial notification state based on preference immediately
+        scope.launch {
+            val shouldShow = preferencesManager.showNotificationsFlow.first()
+            notificationManager?.setPlayer(if (shouldShow) player else null)
+            DevLogger.d("MusicPlaybackService", "Initial notification state: $shouldShow")
+        }
+
+        // Observe for future preference changes
         observeNotificationVisibility()
 
         // Initialize audio effects (equalizer)
@@ -279,13 +292,13 @@ class MusicPlaybackService : MediaSessionService() {
                     if (shouldShowNotification) {
                         // Show notification by binding player
                         manager.setPlayer(player)
-                        // Force notification refresh if player has media loaded
-                        if (player.mediaItemCount > 0) {
-                            manager.invalidate()
-                        }
+                        // Force notification refresh to ensure it reappears
+                        manager.invalidate()
                         DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
                     } else {
                         // Hide notification by unbinding player (playback continues)
+                        // Set flag so onNotificationCancelled doesn't stop foreground
+                        isHidingNotificationProgrammatically = true
                         manager.setPlayer(null)
                         DevLogger.d("MusicPlaybackService", "Notification visibility disabled")
                     }

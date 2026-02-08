@@ -430,7 +430,8 @@ private fun NowPlayingContent(
                 )
             ) {
                 TrackMetadataSection(
-                    song = song
+                    song = song,
+                    onLikeClick = onLikeClick
                 )
             }
 
@@ -502,7 +503,6 @@ private fun NowPlayingContent(
                     accentColor = accentColor,
                     onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
                     showLyricsOverlay = showLyricsOverlay,
-                    onLikeClick = onLikeClick,
                     onShareClick = onShareClick,
                     onQueueClick = { showQueueModal = true }
                 )
@@ -809,7 +809,7 @@ private fun LyricsOverlayContent(
                 // Plain lyrics without timestamps
                 CompactPlainLyricsView(text = lyricsState.lyrics.plainLyrics)
             } else {
-                // No lyrics available
+                // No lyrics available for the song
                 CompactLyricsNotAvailable()
             }
         }
@@ -951,7 +951,8 @@ private fun CompactLyricsNotAvailable() {
  */
 @Composable
 private fun TrackMetadataSection(
-    song: Song
+    song: Song,
+    onLikeClick: () -> Unit
 ) {
     // Metadata directly on screen background - calm and subordinate
     // Proper spacing to prevent visual overlap with album art
@@ -961,20 +962,43 @@ private fun TrackMetadataSection(
             .padding(vertical = 6.dp, horizontal = 24.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        // Song Title - Left-aligned like Spotify
-        Text(
-            text = song.title.ifBlank { "Unknown Song" },
-            style = MaterialTheme.typography.songTitleLarge.copy(
-                fontSize = 32.sp,
-                lineHeight = 38.sp,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            ),
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
-            textAlign = TextAlign.Start,
-            modifier = Modifier.fillMaxWidth()
-        )
+        // Row: Song Title + Like Button
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Song Title - Left-aligned like Spotify
+            Text(
+                text = song.title.ifBlank { "Unknown Song" },
+                style = MaterialTheme.typography.songTitleLarge.copy(
+                    fontSize = 32.sp,
+                    lineHeight = 38.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                ),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
+                textAlign = TextAlign.Start,
+                modifier = Modifier.weight(1f)
+            )
+
+            // Like Button - Right-aligned
+            IconButton(
+                onClick = onLikeClick,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = if (song.isLiked) "Unlike" else "Like",
+                    tint = if (song.isLiked)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+        }
 
         // Artist - Left-aligned
         if (song.artist.isNotBlank()) {
@@ -1242,7 +1266,6 @@ private fun SecondaryActionsSection(
     accentColor: Color,
     onLyricsClick: () -> Unit,
     showLyricsOverlay: Boolean,
-    onLikeClick: () -> Unit,
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
@@ -1262,19 +1285,6 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Lyrics,
                 contentDescription = "Lyrics",
                 tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
-            )
-        }
-
-        // Like Button
-        IconButton(
-            onClick = onLikeClick,
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = if (song.isLiked) "Unlike" else "Like",
-                tint = if (song.isLiked) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(20.dp)
             )
         }
