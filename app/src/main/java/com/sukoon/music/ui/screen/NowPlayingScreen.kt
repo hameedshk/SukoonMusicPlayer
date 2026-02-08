@@ -224,7 +224,7 @@ private fun TopUtilityBar(
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = "Collapse",
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
         }
@@ -235,7 +235,7 @@ private fun TopUtilityBar(
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "More options",
-                modifier = Modifier.size(30.dp),
+                modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
         }
@@ -355,13 +355,13 @@ private fun NowPlayingContent(
             .alpha(screenAlpha)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val topContentPadding = (maxHeight * 0.16f).coerceIn(88.dp, 126.dp)
-            val albumToMetadataSpacing = (maxHeight * 0.08f).coerceIn(24.dp, 68.dp)
-            val topIntroSpacing = if (maxHeight < 700.dp) 8.dp else 16.dp
+            val topContentPadding = (maxHeight * 0.14f).coerceIn(76.dp, 118.dp)
+            val albumToMetadataSpacing = (maxHeight * 0.07f).coerceIn(24.dp, 52.dp)
+            val topIntroSpacing = if (maxHeight < 700.dp) 4.dp else 10.dp
             val albumArtWeight = when {
-                maxHeight < 700.dp -> 0.36f
-                maxHeight < 840.dp -> 0.40f
-                else -> 0.42f
+                maxHeight < 700.dp -> 0.40f
+                maxHeight < 840.dp -> 0.43f
+                else -> 0.45f
             }
 
             // Content uses adaptive spacing so controls remain balanced on small and tall screens.
@@ -920,7 +920,7 @@ private fun TrackMetadataSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 24.dp),
+            .padding(top = 22.dp, bottom = 6.dp, start = 24.dp, end = 24.dp),
         horizontalAlignment = Alignment.Start
     ) {
         // Row: Song Title + Like Button
@@ -933,8 +933,8 @@ private fun TrackMetadataSection(
             Text(
                 text = song.title.ifBlank { "Unknown Song" },
                 style = MaterialTheme.typography.songTitleLarge.copy(
-                    fontSize = 32.sp,
-                    lineHeight = 38.sp,
+                    fontSize = 24.sp,
+                    lineHeight = 30.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 ),
                 maxLines = 2,
@@ -1123,7 +1123,7 @@ private fun PlaybackControlsSection(
         // Shuffle Button (left)
         IconButton(
             onClick = onShuffleClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Shuffle,
@@ -1132,7 +1132,7 @@ private fun PlaybackControlsSection(
                     accentColor
                 else
                     MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
 
@@ -1145,7 +1145,7 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(30.dp)
             )
         }
 
@@ -1153,7 +1153,7 @@ private fun PlaybackControlsSection(
         IconButton(
             onClick = onPlayPauseClick,
             modifier = Modifier
-                .size(72.dp)
+                .size(64.dp)
                 .background(accentColor, CircleShape)
                 .shadow(
                     elevation = 6.dp,
@@ -1174,7 +1174,7 @@ private fun PlaybackControlsSection(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }
@@ -1188,14 +1188,14 @@ private fun PlaybackControlsSection(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(30.dp)
             )
         }
 
         // Repeat Button (right)
         IconButton(
             onClick = onRepeatClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = when (playbackState.repeatMode) {
@@ -1207,7 +1207,7 @@ private fun PlaybackControlsSection(
                     RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
                     else -> accentColor
                 },
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
     }
@@ -1246,7 +1246,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Lyrics,
                 contentDescription = "Lyrics",
                 tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
 
@@ -1259,7 +1259,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Share,
                 contentDescription = "Share",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
 
@@ -1272,7 +1272,7 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.QueueMusic,
                 contentDescription = "Queue",
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier.size(22.dp)
             )
         }
     }
