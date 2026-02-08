@@ -3,6 +3,7 @@ package com.sukoon.music.data.ads
 import android.content.Context
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
+import com.sukoon.music.BuildConfig
 import com.sukoon.music.util.DevLogger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,24 +22,7 @@ class AdMobManager @Inject constructor(
 ) {
 
     companion object {
-        /**
-         * Test Ad Unit IDs from Google AdMob.
-         * Replace with real IDs for production release.
-         */
-        const val TEST_BANNER_AD_ID = "ca-app-pub-3940256099942544/6300978111"
-        const val TEST_NATIVE_AD_ID = "ca-app-pub-3940256099942544/2247696110"
-
-        /**
-         * Production Ad Unit IDs (replace with your actual IDs).
-         */
-        const val PROD_BANNER_AD_ID = "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"
-        const val PROD_NATIVE_AD_ID = "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX"
-
-        /**
-         * Flag to switch between test and production ads.
-         * Set to false for production builds.
-         */
-        private const val USE_TEST_ADS = true // TODO: Set to false for production
+        private val USE_TEST_ADS = BuildConfig.USE_TEST_ADS
     }
 
     /**
@@ -76,14 +60,14 @@ class AdMobManager @Inject constructor(
      * Get Banner Ad Unit ID (test or production based on flag).
      */
     fun getBannerAdId(): String {
-        return if (USE_TEST_ADS) TEST_BANNER_AD_ID else PROD_BANNER_AD_ID
+        return BuildConfig.ADMOB_BANNER_AD_UNIT_ID
     }
 
     /**
      * Get Native Ad Unit ID (test or production based on flag).
      */
     fun getNativeAdId(): String {
-        return if (USE_TEST_ADS) TEST_NATIVE_AD_ID else PROD_NATIVE_AD_ID
+        return BuildConfig.ADMOB_NATIVE_AD_UNIT_ID
     }
 
     /**

@@ -16,7 +16,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -24,7 +23,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -32,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -45,9 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import android.content.Intent
 import android.widget.Toast
-import kotlin.math.abs
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,9 +57,6 @@ import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
-import com.sukoon.music.ui.components.GlassCard
-import com.sukoon.music.ui.components.LyricsModalSheet
-import com.sukoon.music.ui.components.QueueModalSheet
 import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.rememberShareHandler
@@ -76,9 +68,6 @@ import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
-import com.sukoon.music.ui.util.candidateAccent
-import com.sukoon.music.ui.util.desaturatedSliderColor
-import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
 import com.sukoon.music.ui.theme.*
@@ -108,24 +97,10 @@ fun NowPlayingScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Share song functionality
-    fun shareSong(song: Song) {
-        val shareText = "${song.title} - ${song.artist}"
-        val shareIntent = Intent().apply {
-            action = Intent.ACTION_SEND
-            putExtra(Intent.EXTRA_TEXT, shareText)
-            type = "text/plain"
-        }
-        context.startActivity(Intent.createChooser(shareIntent, "Share Song"))
-    }
-
     // Refresh playback state when screen becomes visible to get accurate position
     LaunchedEffect(Unit) {
         viewModel.playbackRepository.refreshPlaybackState()
     }
-
-    // Queue modal state
-    var showQueueModal by remember { mutableStateOf(false) }
 
     // Get accent color from user profile (not dynamic from album art)
     val accentTokens = accent()
@@ -210,7 +185,7 @@ fun NowPlayingScreen(
                             }
                             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                         },
-                        onShareClick = { playbackState.currentSong?.let { shareSong(it) } },
+                        onNavigateToQueue = onNavigateToQueue,
                         onNavigateToAlbum = onNavigateToAlbum,
                         onNavigateToArtist = onNavigateToArtist,
                         viewModel = viewModel
@@ -219,18 +194,6 @@ fun NowPlayingScreen(
                     EmptyNowPlayingState()
                 }
             }
-        }
-
-        // Queue Modal Bottom Sheet
-        if (showQueueModal && playbackState.currentSong != null) {
-            QueueModalSheet(
-                queue = playbackState.queue,
-                currentIndex = playbackState.currentQueueIndex,
-                accentColor = accentColor,
-                onDismiss = { showQueueModal = false },
-                onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
-                onRemoveClick = { index -> viewModel.removeFromQueue(index) }
-            )
         }
         }
     }
@@ -292,7 +255,7 @@ private fun NowPlayingContent(
     onLikeClick: () -> Unit,
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit,
-    onShareClick: () -> Unit,
+    onNavigateToQueue: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
     viewModel: HomeViewModel
@@ -314,7 +277,6 @@ private fun NowPlayingContent(
 
     // Overlay states
     var showLyricsOverlay by remember { mutableStateOf(false) }
-    var showQueueModal by remember { mutableStateOf(false) }
     var showSongContextMenu by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
@@ -392,120 +354,131 @@ private fun NowPlayingContent(
             .padding(horizontal = 12.dp)
             .alpha(screenAlpha)
     ) {
-        // Scrollable content with top padding to reserve space for TopUtilityBar
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    top = 110.dp,  // Reserve space for pinned TopUtilityBar
-                    bottom = ContentBottomPadding
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // B. Album Art - Prominent, album-first design
-            AlbumArtSection(
-                song = song,
-                onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
-                showLyricsOverlay = showLyricsOverlay,
-                lyricsState = lyricsState,
-                currentPosition = currentPosition,
-                accentColor = accentColor,
-                onNextClick = onNextClick,
-                onPreviousClick = onPreviousClick,
-                modifier = Modifier.weight(0.42f)
-            )
-
-            Spacer(modifier = Modifier.height(68.dp))
-
-            // C. Track Metadata with animation (calm, subordinate)
-            AnimatedVisibility(
-                visible = !isImmersiveMode,
-                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                ),
-                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                )
-            ) {
-                TrackMetadataSection(
-                    song = song,
-                    onLikeClick = onLikeClick
-                )
+        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+            val topContentPadding = (maxHeight * 0.16f).coerceIn(88.dp, 126.dp)
+            val albumToMetadataSpacing = (maxHeight * 0.08f).coerceIn(24.dp, 68.dp)
+            val topIntroSpacing = if (maxHeight < 700.dp) 8.dp else 16.dp
+            val albumArtWeight = when {
+                maxHeight < 700.dp -> 0.36f
+                maxHeight < 840.dp -> 0.40f
+                else -> 0.42f
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Control Layer - Directly on background (no container)
-            AnimatedVisibility(
-                visible = !isImmersiveMode,
-                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                ),
-                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                )
+            // Content uses adaptive spacing so controls remain balanced on small and tall screens.
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(
+                        top = topContentPadding,
+                        bottom = ContentBottomPadding
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
-                ) {
-                    // Seek Bar
-                    SeekBarSection(
-                        currentPosition = currentPosition,
-                        duration = playbackState.duration,
-                        sliderColor = sliderColor,
-                        isSeeking = isSeeking,
-                        seekPosition = seekPosition,
-                        onSeekStart = {
-                            isSeeking = true
-                            seekPosition = currentPosition
-                        },
-                        onSeekChange = { seekPosition = it },
-                        onSeekEnd = {
-                            onSeekTo(seekPosition)
-                            isSeeking = false
-                        }
+                Spacer(modifier = Modifier.height(topIntroSpacing))
+
+                // B. Album Art - Prominent, album-first design
+                AlbumArtSection(
+                    song = song,
+                    onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
+                    showLyricsOverlay = showLyricsOverlay,
+                    lyricsState = lyricsState,
+                    currentPosition = currentPosition,
+                    accentColor = accentColor,
+                    onNextClick = onNextClick,
+                    onPreviousClick = onPreviousClick,
+                    modifier = Modifier.weight(albumArtWeight)
+                )
+
+                Spacer(modifier = Modifier.height(albumToMetadataSpacing))
+
+                // C. Track Metadata with animation (calm, subordinate)
+                AnimatedVisibility(
+                    visible = !isImmersiveMode,
+                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    ),
+                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
                     )
+                ) {
+                    TrackMetadataSection(
+                        song = song,
+                        onLikeClick = onLikeClick
+                    )
+                }
 
-                    Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                    // D. Primary Playback Controls (Shuffle - Previous - Play - Next - Repeat)
-                    PlaybackControlsSection(
+                // Control Layer - Directly on background (no container)
+                AnimatedVisibility(
+                    visible = !isImmersiveMode,
+                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    ),
+                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
+                    ) {
+                        // Seek Bar
+                        SeekBarSection(
+                            currentPosition = currentPosition,
+                            duration = playbackState.duration,
+                            sliderColor = sliderColor,
+                            isSeeking = isSeeking,
+                            seekPosition = seekPosition,
+                            onSeekStart = {
+                                isSeeking = true
+                                seekPosition = currentPosition
+                            },
+                            onSeekChange = { seekPosition = it },
+                            onSeekEnd = {
+                                onSeekTo(seekPosition)
+                                isSeeking = false
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // D. Primary Playback Controls (Shuffle - Previous - Play - Next - Repeat)
+                        PlaybackControlsSection(
+                            playbackState = playbackState,
+                            accentColor = accentColor,
+                            onPreviousClick = onPreviousClick,
+                            onPlayPauseClick = onPlayPauseClick,
+                            onNextClick = onNextClick,
+                            onShuffleClick = onShuffleClick,
+                            onRepeatClick = onRepeatClick
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
+                AnimatedVisibility(
+                    visible = !isImmersiveMode,
+                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    ),
+                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
+                        animationSpec = tween(500, easing = FastOutSlowInEasing)
+                    )
+                ) {
+                    SecondaryActionsSection(
+                        song = song,
                         playbackState = playbackState,
                         accentColor = accentColor,
-                        onPreviousClick = onPreviousClick,
-                        onPlayPauseClick = onPlayPauseClick,
-                        onNextClick = onNextClick,
-                        onShuffleClick = onShuffleClick,
-                        onRepeatClick = onRepeatClick
+                        onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
+                        showLyricsOverlay = showLyricsOverlay,
+                        onShareClick = { shareHandler(song) },
+                        onQueueClick = onNavigateToQueue
                     )
-
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
-            }
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
-            AnimatedVisibility(
-                visible = !isImmersiveMode,
-                enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                ),
-                exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                    animationSpec = tween(500, easing = FastOutSlowInEasing)
-                )
-            ) {
-                SecondaryActionsSection(
-                    song = song,
-                    playbackState = playbackState,
-                    accentColor = accentColor,
-                    onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
-                    showLyricsOverlay = showLyricsOverlay,
-                    onShareClick = onShareClick,
-                    onQueueClick = { showQueueModal = true }
-                )
             }
         }
 
@@ -514,18 +487,6 @@ private fun NowPlayingContent(
             onBackClick = onBackClick,
             onMoreClick = { showSongContextMenu = true },
             modifier = Modifier.align(Alignment.TopCenter)
-        )
-    }
-
-    // Queue Modal Bottom Sheet
-    if (showQueueModal) {
-        QueueModalSheet(
-            queue = playbackState.queue,
-            currentIndex = playbackState.currentQueueIndex,
-            accentColor = accentColor,
-            onDismiss = { showQueueModal = false },
-            onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
-            onRemoveClick = { index -> viewModel.removeFromQueue(index) }
         )
     }
 
@@ -1399,7 +1360,7 @@ private fun NowPlayingScreenPreview() {
             onLikeClick = {},
             onShuffleClick = {},
             onRepeatClick = {},
-            onShareClick = {},
+            onNavigateToQueue = {},
             onNavigateToAlbum = {},
             onNavigateToArtist = {},
             viewModel = hiltViewModel()

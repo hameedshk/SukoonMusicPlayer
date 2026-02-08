@@ -27,8 +27,10 @@ import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import androidx.media3.common.PlaybackException
 
@@ -82,10 +84,8 @@ class MusicPlaybackService : MediaSessionService() {
     private var normalVolume = 1.0f
     private var isDucked = false
 
-    // Notification visibility state
+    // Notification visibility state (user preference)
     private var isNotificationVisible = true
-    // Flag to track programmatic notification hide (vs user dismiss)
-    private var isHidingNotificationProgrammatically = false
 
     // Crossfade manager for smooth track transitions
     private var crossfadeManager: com.sukoon.music.data.audio.CrossfadeManager? = null
@@ -194,7 +194,12 @@ class MusicPlaybackService : MediaSessionService() {
                     notification: Notification,
                     ongoing: Boolean
                 ) {
-                    if (ongoing && !isForeground) {
+                    // Start foreground if notification should be visible and we're not already foreground
+                    // Use isNotificationVisible to respect user's toggle preference
+                    if (isNotificationVisible && !isForeground) {
+                        startForeground(notificationId, notification)
+                        isForeground = true
+                    } else if (ongoing && !isForeground) {
                         startForeground(notificationId, notification)
                         isForeground = true
                     }
@@ -204,16 +209,11 @@ class MusicPlaybackService : MediaSessionService() {
                     notificationId: Int,
                     dismissedByUser: Boolean
                 ) {
-                    // Don't stop foreground if we're programmatically hiding the notification
-                    // (user toggled "Show Notification Controls" off) - we want to be able to
-                    // re-show it when toggled back on
-                    if (isForeground && !isHidingNotificationProgrammatically) {
+                    if (isForeground) {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         isForeground = false
                     }
-                    // Reset the flag after handling
-                    isHidingNotificationProgrammatically = false
-                    // Only stop service if user dismissed
+                    // Only stop service if user dismissed; programmatic hide keeps service alive
                     if (dismissedByUser) {
                         stopSelf()
                     }
@@ -287,19 +287,24 @@ class MusicPlaybackService : MediaSessionService() {
     private fun observeNotificationVisibility() {
         scope.launch {
             preferencesManager.showNotificationsFlow.collect { shouldShowNotification ->
-                isNotificationVisible = shouldShowNotification
-                notificationManager?.let { manager ->
+                // Must run on Main thread for notification operations
+                withContext(Dispatchers.Main) {
+                    isNotificationVisible = shouldShowNotification
+                    DevLogger.d("MusicPlaybackService", "Notification preference changed: $shouldShowNotification")
+
                     if (shouldShowNotification) {
-                        // Show notification by binding player
-                        manager.setPlayer(player)
-                        // Force notification refresh to ensure it reappears
-                        manager.invalidate()
+                        // Show notification - ensure player is bound and force refresh
+                        notificationManager?.setPlayer(player)
+                        notificationManager?.invalidate()
                         DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
                     } else {
-                        // Hide notification by unbinding player (playback continues)
-                        // Set flag so onNotificationCancelled doesn't stop foreground
-                        isHidingNotificationProgrammatically = true
-                        manager.setPlayer(null)
+                        // Hide notification - cancel it directly via system NotificationManager
+                        val systemNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                        systemNotificationManager.cancel(NOTIFICATION_ID)
+                        if (isForeground) {
+                            stopForeground(STOP_FOREGROUND_REMOVE)
+                            isForeground = false
+                        }
                         DevLogger.d("MusicPlaybackService", "Notification visibility disabled")
                     }
                 }

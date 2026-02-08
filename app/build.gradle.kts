@@ -50,6 +50,17 @@ android {
             "GEMINI_MODEL",
             "\"gemini-2.5-flash\""  // Updated: removed '-latest' suffix
         )
+
+        // AdMob test IDs (safe for development and QA)
+        val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
+        val admobTestBannerAdUnitId = "ca-app-pub-3940256099942544/6300978111"
+        val admobTestNativeAdUnitId = "ca-app-pub-3940256099942544/2247696110"
+
+        manifestPlaceholders["admobAppId"] = admobTestAppId
+        buildConfigField("String", "ADMOB_APP_ID", "\"$admobTestAppId\"")
+        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobTestBannerAdUnitId\"")
+        buildConfigField("String", "ADMOB_NATIVE_AD_UNIT_ID", "\"$admobTestNativeAdUnitId\"")
+        buildConfigField("Boolean", "USE_TEST_ADS", "true")
     }
 
     buildTypes {
