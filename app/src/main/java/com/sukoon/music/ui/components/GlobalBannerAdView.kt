@@ -58,9 +58,9 @@ const val AD_CONTAINER_HEIGHT_DP = 60
  */
 private fun Modifier.adShimmer(): Modifier = composed {
     val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f),
-        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
-        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f)
+        MaterialTheme.colorScheme.background.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.background.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.background.copy(alpha = 0.3f)
     )
 
     val transition = rememberInfiniteTransition(label = "ad_shimmer")
@@ -89,7 +89,7 @@ private fun Modifier.adShimmer(): Modifier = composed {
  * Key features:
  * - Uses AdMobDecisionAgent to determine if ads should show
  * - Lifecycle-aware timer refresh (60-90s) - pauses when app is backgrounded
- * - Debounced decision evaluation (100ms) to prevent rapid recomposition
+ * - Debounced decision evaluation (16ms) to prevent rapid recomposition
  * - Respects premium user status via decision agent
  * - Hides if mini player overlaps
  * - Automatically handles ad lifecycle (load/destroy)
@@ -186,7 +186,7 @@ fun GlobalBannerAdView(
 
     // Issue #6 Fix: Debounced decision evaluation to prevent rapid recomposition
     LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute) {
-        delay(100) // 100ms debounce to batch rapid changes
+        delay(16) // 16ms debounce (one frame at 60fps) - imperceptible but prevents rapid recomposition
         decision = try {
             val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
             DevLogger.d(TAG, "Decision evaluated: shouldShow=${newDecision.shouldShow}, reason=${newDecision.reason}")
@@ -285,13 +285,11 @@ fun GlobalBannerAdView(
         }
     }
 
-    // Render ad container with visual separation
+    // Render ad container
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(adHeightDp.dp)
-            .background(MaterialTheme.colorScheme.surfaceContainer)
-            .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
     ) {
         adView?.let { view ->
             DevLogger.d(TAG, "Rendering AdView in UI")

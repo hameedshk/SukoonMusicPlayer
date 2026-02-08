@@ -584,6 +584,8 @@ private fun AlbumArtSection(
     onPreviousClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    // Track whether album art loaded successfully
+    var hasAlbumArt by remember { mutableStateOf(false) }
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
     val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
@@ -655,6 +657,7 @@ private fun AlbumArtSection(
                 contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.High,
                 loading = {
+                    hasAlbumArt = false
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -676,15 +679,15 @@ private fun AlbumArtSection(
                     }
                 },
                 error = {
-                    // Elegant neutral placeholder with soft gradient using surfaceVariant
+                    hasAlbumArt = false
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
                                     colors = listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
                                     )
                                 )
                             ),
@@ -694,46 +697,50 @@ private fun AlbumArtSection(
                             imageVector = Icons.Default.MusicNote,
                             contentDescription = null,
                             modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                         )
                     }
-                }
+                },
+                onSuccess = { hasAlbumArt = true }
             )
 
-            // Edge blur/fade effects - creates S-like sophisticated look
-            // Subtle vignette that fades edges to background
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.radialGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f)
-                            ),
-                            radius = Float.POSITIVE_INFINITY,
-                            center = androidx.compose.ui.geometry.Offset(
-                                0.5f, 0.5f
+            // Only apply scrim effects when actual album art is loaded
+            if (hasAlbumArt) {
+                // Edge blur/fade effects - creates S-like sophisticated look
+                // Subtle vignette that fades edges to background
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.radialGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f)
+                                ),
+                                radius = Float.POSITIVE_INFINITY,
+                                center = androidx.compose.ui.geometry.Offset(
+                                    0.5f, 0.5f
+                                )
                             )
                         )
-                    )
-            )
+                )
 
-            // Subtle bottom gradient glow for depth
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.20f)
-                            ),
-                            startY = 0f,
-                            endY = Float.POSITIVE_INFINITY
+                // Subtle bottom gradient glow for depth
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.20f)
+                                ),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
                         )
-                    )
-            )
+                )
+            }
 
             // Lyrics Overlay
             if (showLyricsOverlay) {

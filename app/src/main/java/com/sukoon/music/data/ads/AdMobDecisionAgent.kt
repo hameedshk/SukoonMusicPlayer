@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.first
  *
  * Optimizations:
  * - Timer pauses when app is backgrounded (lifecycle-aware)
- * - Debounced decision evaluation (100ms) to prevent rapid recomposition
+ * - Debounced decision evaluation (16ms) to prevent rapid recomposition
  *
  * All state is in-memory and resets on app restart (session-scoped tracking).
  */
