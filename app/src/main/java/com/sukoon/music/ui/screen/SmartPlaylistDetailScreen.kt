@@ -119,6 +119,7 @@ fun SmartPlaylistDetailScreen(
         SmartPlaylistDetailContent(
             playlistType = playlistType,
             songs = songs,
+            currentSongId = playbackState.currentSong?.id,
             menuHandler = menuHandler,
             onPlayAll = { viewModel.playSmartPlaylist(playlistType) },
             onShuffle = { viewModel.shuffleSmartPlaylist(playlistType) },
@@ -189,6 +190,7 @@ fun SmartPlaylistDetailScreen(
 private fun SmartPlaylistDetailContent(
     playlistType: SmartPlaylistType,
     songs: List<Song>,
+    currentSongId: Long?,
     menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
@@ -223,6 +225,7 @@ private fun SmartPlaylistDetailContent(
                 SmartPlaylistSongItem(
                     song = song,
                     index = index + 1,
+                    isPlaying = song.id == currentSongId,
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onLikeClick = { onLikeClick(song) }
@@ -332,6 +335,7 @@ private fun SmartPlaylistHeader(
 private fun SmartPlaylistSongItem(
     song: Song,
     index: Int,
+    isPlaying: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
@@ -412,13 +416,22 @@ private fun SmartPlaylistSongItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isPlaying) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = song.artist,

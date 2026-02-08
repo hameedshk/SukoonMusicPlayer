@@ -110,6 +110,7 @@ fun PlaylistDetailScreen(
             PlaylistDetailContent(
                 playlist = playlist,
                 songs = songs,
+                currentSongId = playbackState.currentSong?.id,
                 onPlayAll = { viewModel.playPlaylist(playlistId) },
                 onShuffle = { viewModel.shufflePlaylist(playlistId) },
                 onSongClick = { song ->
@@ -152,6 +153,7 @@ fun PlaylistDetailScreen(
 private fun PlaylistDetailContent(
     playlist: com.sukoon.music.domain.model.Playlist,
     songs: List<Song>,
+    currentSongId: Long?,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
@@ -235,6 +237,7 @@ private fun PlaylistDetailContent(
                 PlaylistSongItem(
                     song = song,
                     index = index + 1,
+                    isPlaying = song.id == currentSongId,
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onRemoveClick = { onRemoveSong(song) }
@@ -456,6 +459,7 @@ private fun PlaylistHeader(
 private fun PlaylistSongItem(
     song: Song,
     index: Int,
+    isPlaying: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onRemoveClick: () -> Unit
@@ -538,13 +542,22 @@ private fun PlaylistSongItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isPlaying) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = song.artist,

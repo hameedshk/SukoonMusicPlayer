@@ -216,18 +216,18 @@ class MusicPlaybackService : MediaSessionService() {
 
         // Configure the notification manager
         notificationManager?.apply {
-            setPlayer(player)
+            // Don't set player here - let observeNotificationVisibility() handle it based on preference
             setUsePreviousAction(true)
             setUseNextAction(true)
             setUseFastForwardAction(false)
             setUseRewindAction(false)
         }
 
+        // Observe notification visibility preference FIRST (before setting player)
+        observeNotificationVisibility()
+
         // Initialize audio effects (equalizer)
         initializeAudioEffects()
-
-        // Observe notification visibility preference
-        observeNotificationVisibility()
 
         // Observe pause on audio noisy preference
         observePauseOnAudioNoisySetting()
@@ -279,6 +279,10 @@ class MusicPlaybackService : MediaSessionService() {
                     if (shouldShowNotification) {
                         // Show notification by binding player
                         manager.setPlayer(player)
+                        // Force notification refresh if player has media loaded
+                        if (player.mediaItemCount > 0) {
+                            manager.invalidate()
+                        }
                         DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
                     } else {
                         // Hide notification by unbinding player (playback continues)

@@ -417,7 +417,7 @@ private fun NowPlayingContent(
                 modifier = Modifier.weight(0.42f)
             )
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(modifier = Modifier.height(68.dp))
 
             // C. Track Metadata with animation (calm, subordinate)
             AnimatedVisibility(

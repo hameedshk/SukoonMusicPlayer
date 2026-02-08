@@ -610,13 +610,22 @@ private fun GenreSongItemRow(
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.listItemTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.listItemTitle.copy(
+                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (isCurrentlyPlaying) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                }
+            }
             Text(
                 text = "${song.artist} • ${song.album}",
                 style = MaterialTheme.typography.listItemSubtitle,

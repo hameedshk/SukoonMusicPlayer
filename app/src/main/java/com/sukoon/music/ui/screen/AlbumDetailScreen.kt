@@ -41,6 +41,7 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.AnimatedEqualizer
 import com.sukoon.music.ui.components.BannerAdView
 import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongMenuHandler
@@ -607,13 +608,22 @@ private fun AlbumSongItemRow(
         Column(
             modifier = Modifier.weight(1f)
         ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.listItemTitle,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.listItemTitle.copy(
+                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (isCurrentlyPlaying) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                }
+            }
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.listItemSubtitle,

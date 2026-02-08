@@ -171,14 +171,19 @@ internal fun RedesignedTopBar(
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Main header container - uses gradient background for seamless integration
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+        // Main header container - uses background color for seamless integration
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.background,
+            tonalElevation = 0.dp  // No elevation to avoid tonal shift
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 // Logo - fixed size (40dp) with press feedback and click pulse animation
                 val logoInteractionSource = remember { MutableInteractionSource() }
                 var isLogoPressed by remember { mutableStateOf(false) }
@@ -271,6 +276,7 @@ internal fun RedesignedTopBar(
                     )
                 }
             }
+        }
 
         // Persistent global indicator strip - shown when private session is active
         PrivateSessionIndicatorStrip(sessionState = sessionState)
@@ -828,30 +834,22 @@ fun ContinueListeningCard(
                         .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
                     contentScale = ContentScale.Crop,
                     loading = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(96.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
                             )
-                        }
+                        )
                     },
                     error = {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(96.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = song.album,
+                                artistName = song.artist,
+                                songId = song.id
                             )
-                        }
+                        )
                     }
                 )
 
@@ -945,106 +943,71 @@ fun RecentlyPlayedScrollSection(
         ) {
             items(songs.size.coerceAtMost(10)) { index ->
                 val song = songs[index]
+                var itemPressed by remember { mutableStateOf(false) }
+                val itemInteractionSource = remember { MutableInteractionSource() }
 
-                Column(
-                    modifier = Modifier.width(RecentlyPlayedItemSize)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(CardCornerRadius))
-                            .clickable(onClick = { onItemClick(song) })
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            SubcomposeAsyncImage(
-                                model = song.albumArtUri,
-                                contentDescription = "Play ${song.title} by ${song.artist}",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop,
-                                loading = {
-                                    PlaceholderAlbumArt.Placeholder(
-                                        seed = PlaceholderAlbumArt.generateSeed(
-                                            albumName = song.album,
-                                            artistName = song.artist,
-                                            songId = song.id
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(CardCornerRadius)),
-                                        icon = Icons.Default.MusicNote,
-                                        iconSize = 48
-                                    )
-                                },
-                                error = {
-                                    PlaceholderAlbumArt.Placeholder(
-                                        seed = PlaceholderAlbumArt.generateSeed(
-                                            albumName = song.album,
-                                            artistName = song.artist,
-                                            songId = song.id
-                                        ),
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(CardCornerRadius)),
-                                        icon = Icons.Default.MusicNote,
-                                        iconSize = 48
-                                    )
-                                }
-                            )
-
-                            // Gradient overlay + play button (always visible like other sections)
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        androidx.compose.ui.graphics.Brush.verticalGradient(
-                                            colors = listOf(
-                                                Color.Transparent,
-                                                MaterialTheme.colorScheme.scrim.copy(alpha = 0.3f)
-                                            )
-                                        )
-                                    ),
-                                contentAlignment = Alignment.BottomEnd
-                            ) {
-                                IconButton(
-                                    onClick = { onItemClick(song) },
-                                    modifier = Modifier.padding(8.dp)
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = MaterialTheme.colorScheme.surfaceVariant
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Play",
-                                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                            modifier = Modifier
-                                                .padding(8.dp)
-                                                .size(20.dp)
-                                        )
-                                    }
-                                }
-                            }
+                LaunchedEffect(itemInteractionSource) {
+                    itemInteractionSource.interactions.collect { interaction ->
+                        when (interaction) {
+                            is PressInteraction.Press -> itemPressed = true
+                            is PressInteraction.Release -> itemPressed = false
+                            is PressInteraction.Cancel -> itemPressed = false
                         }
                     }
+                }
 
-                    // Text labels below card
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                Box(
+                    modifier = Modifier
+                        .size(RecentlyPlayedItemSize)  // 120x120dp meets Material 3 48dp minimum touch target
+                        .clip(RoundedCornerShape(CardCornerRadius))
+                        .scale(if (itemPressed) 0.95f else 1f)
+                        .clickable(
+                            interactionSource = itemInteractionSource,
+                            indication = null,
+                            onClick = { onItemClick(song) }
+                        )
+                ) {
+                    SubcomposeAsyncImage(
+                        model = song.albumArtUri,
+                        contentDescription = "Play ${song.title} by ${song.artist}",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+                            )
+                        },
+                        error = {
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+                            )
+                        }
                     )
-                    Text(
-                        text = song.artist.ifBlank { "Unknown Artist" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+
+                    // Play overlay on hover/press - tap indicates to user this plays the song
+                    if (itemPressed) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.4f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,  // Already described by parent Box
+                                modifier = Modifier.size(32.dp),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
             }
         }
