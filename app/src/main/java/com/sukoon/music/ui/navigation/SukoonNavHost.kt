@@ -124,7 +124,9 @@ fun SukoonNavHost(
                     navController.navigateUp()
                 },
                 onNavigateToQueue = {
-                    navController.navigate(Routes.Queue.route)
+                    navController.navigate(Routes.Queue.route) {
+                        launchSingleTop = true
+                    }
                 },
                 onNavigateToAlbum = { albumId ->
                     navController.navigate(Routes.AlbumDetail.createRoute(albumId))

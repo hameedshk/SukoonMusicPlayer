@@ -30,9 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -55,6 +59,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
+import coil.request.ImageRequest
+import coil.size.Precision
 import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.domain.model.LyricLine
 import com.sukoon.music.domain.model.LyricsState
@@ -63,6 +69,7 @@ import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.ui.components.QueueModalSheet
 import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.rememberShareHandler
@@ -77,6 +84,24 @@ import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
 import com.sukoon.music.ui.theme.*
+
+private val NowPlayingTopPaddingMin = 76.dp
+private val NowPlayingTopPaddingMax = 118.dp
+private val NowPlayingAlbumToMetadataMin = 40.dp
+private val NowPlayingAlbumToMetadataMax = 60.dp
+private val NowPlayingMetadataToControlsCompact = 6.dp
+private val NowPlayingMetadataToControlsRegular = 10.dp
+private val NowPlayingSeekToControlsCompact = 10.dp
+private val NowPlayingSeekToControlsRegular = 14.dp
+private val NowPlayingControlsBottomCompact = 8.dp
+private val NowPlayingControlsBottomRegular = 12.dp
+private val NowPlayingControlsToSecondaryCompact = 0.dp
+private val NowPlayingControlsToSecondaryRegular = 3.dp
+private val NowPlayingMetadataTopPadding = 22.dp
+private val NowPlayingMetadataBottomPadding = 6.dp
+private val NowPlayingMetadataHorizontalPadding = 24.dp
+private val NowPlayingMetadataActionLaneWidth = 56.dp
+private val NowPlayingSliderTouchHeight = 44.dp
 
 /**
  * Now Playing Screen - Full-screen best style music player.
@@ -270,6 +295,7 @@ private fun NowPlayingContent(
 
     // Overlay states
     var showLyricsOverlay by remember { mutableStateOf(false) }
+    var showQueueModal by remember { mutableStateOf(false) }
     var showSongContextMenu by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
@@ -348,13 +374,13 @@ private fun NowPlayingContent(
             .alpha(screenAlpha)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val topContentPadding = (maxHeight * 0.14f).coerceIn(76.dp, 118.dp)
-            val albumToMetadataSpacing = (maxHeight * 0.08f).coerceIn(40.dp, 60.dp)
+            val topContentPadding = (maxHeight * 0.14f).coerceIn(NowPlayingTopPaddingMin, NowPlayingTopPaddingMax)
+            val albumToMetadataSpacing = (maxHeight * 0.08f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
             val topIntroSpacing = if (maxHeight < 700.dp) 4.dp else 10.dp
-            val metadataToControlsSpacing = if (maxHeight < 700.dp) 10.dp else 16.dp
-            val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) 16.dp else 24.dp
-            val primaryControlsBottomSpacing = if (maxHeight < 700.dp) 8.dp else 12.dp
-            val controlsToSecondarySpacing = if (maxHeight < 700.dp) 0.dp else 3.dp
+            val metadataToControlsSpacing = if (maxHeight < 700.dp) NowPlayingMetadataToControlsCompact else NowPlayingMetadataToControlsRegular
+            val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
+            val primaryControlsBottomSpacing = if (maxHeight < 700.dp) NowPlayingControlsBottomCompact else NowPlayingControlsBottomRegular
+            val controlsToSecondarySpacing = if (maxHeight < 700.dp) NowPlayingControlsToSecondaryCompact else NowPlayingControlsToSecondaryRegular
             val albumArtWeight = when {
                 maxHeight < 700.dp -> 0.40f
                 maxHeight < 840.dp -> 0.43f
@@ -469,14 +495,14 @@ private fun NowPlayingContent(
                     SecondaryActionsSection(
                         song = song,
                         playbackState = playbackState,
-                        accentColor = accentColor,
-                        onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
-                        showLyricsOverlay = showLyricsOverlay,
-                        onShareClick = { shareHandler(song) },
-                        onQueueClick = onNavigateToQueue
-                    )
-                }
+                    accentColor = accentColor,
+                    onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
+                    showLyricsOverlay = showLyricsOverlay,
+                    onShareClick = { shareHandler(song) },
+                    onQueueClick = { showQueueModal = true }
+                )
             }
+        }
         }
 
         // A. Pinned TopUtilityBar - Fixed position outside scrollable content
@@ -484,6 +510,18 @@ private fun NowPlayingContent(
             onBackClick = onBackClick,
             onMoreClick = { showSongContextMenu = true },
             modifier = Modifier.align(Alignment.TopCenter)
+        )
+    }
+
+    // Song Context Menu (3-dot menu)
+    if (showQueueModal) {
+        QueueModalSheet(
+            queue = playbackState.queue,
+            currentIndex = playbackState.currentQueueIndex,
+            accentColor = accentColor,
+            onDismiss = { showQueueModal = false },
+            onSongClick = { index -> viewModel.jumpToQueueIndex(index) },
+            onRemoveClick = { index -> viewModel.removeFromQueue(index) }
         )
     }
 
@@ -545,6 +583,17 @@ private fun AlbumArtSection(
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
     val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
+    val context = LocalContext.current
+    val albumArtRequest = remember(song.id, song.albumArtUri) {
+        ImageRequest.Builder(context)
+            .data(song.albumArtUri)
+            .crossfade(220)
+            .allowHardware(true)
+            .precision(Precision.EXACT)
+            .memoryCacheKey("now_playing_album_${song.id}")
+            .diskCacheKey(song.albumArtUri?.toString() ?: "song_${song.id}")
+            .build()
+    }
 
     // Album art container - full-bleed, S-style presentation
     // Extends edge-to-edge with subtle blur effect on edges
@@ -594,12 +643,13 @@ private fun AlbumArtSection(
         ) {
             // Album Art Background
             SubcomposeAsyncImage(
-                model = song.albumArtUri,
+                model = albumArtRequest,
                 contentDescription = "Album art for ${song.album}",
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(RoundedCornerShape(24.dp)),
                 contentScale = ContentScale.Crop,
+                filterQuality = FilterQuality.High,
                 loading = {
                     Box(
                         modifier = Modifier
@@ -913,81 +963,146 @@ private fun TrackMetadataSection(
     song: Song,
     onLikeClick: () -> Unit
 ) {
+    val likeStateDescription = if (song.isLiked) "Liked" else "Not liked"
+    var likeAnimationTick by remember { mutableIntStateOf(0) }
+    val likeGradientProgress = remember { Animatable(1f) }
+
+    LaunchedEffect(likeAnimationTick, song.isLiked) {
+        if (song.isLiked && likeAnimationTick > 0) {
+            likeGradientProgress.snapTo(0f)
+            likeGradientProgress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 850, easing = FastOutSlowInEasing)
+            )
+        }
+    }
+
     // Metadata directly on screen background - calm and subordinate
     // Proper spacing to prevent visual overlap with album art
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 30.dp, bottom = 6.dp, start = 24.dp, end = 24.dp),
+            .padding(
+                top = NowPlayingMetadataTopPadding,
+                bottom = NowPlayingMetadataBottomPadding,
+                start = NowPlayingMetadataHorizontalPadding,
+                end = NowPlayingMetadataHorizontalPadding
+            ),
         horizontalAlignment = Alignment.Start
     ) {
-        // Spotify-style header: title on left, like on far right.
+        // Spotify-style metadata: text stack on left, like/favorite pinned right.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
-            Text(
-                text = song.title.ifBlank { "Unknown Song" },
-                style = MaterialTheme.typography.songTitleLarge.copy(
-                    fontSize = 24.sp,
-                    lineHeight = 30.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
-                textAlign = TextAlign.Start,
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp)
-            )
-
-            IconButton(
-                onClick = onLikeClick,
-                modifier = Modifier.size(48.dp)
             ) {
-                Icon(
-                    imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked)
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    modifier = Modifier.size(28.dp)
+                Text(
+                    text = song.title.ifBlank { "Unknown Song" },
+                    style = MaterialTheme.typography.songTitleLarge.copy(
+                        fontSize = 24.sp,
+                        lineHeight = 30.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
+                    textAlign = TextAlign.Start
                 )
+
+                if (song.artist.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = song.artist,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 16.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.80f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start
+                    )
+                }
+
+                if (song.album.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = song.album,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Start
+                    )
+                }
             }
-        }
 
-        // Artist - Left-aligned
-        if (song.artist.isNotBlank()) {
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = song.artist,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 16.sp,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
-                ),
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.80f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-
-        // Album - Left-aligned
-        if (song.album.isNotBlank()) {
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(
-                text = song.album,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                textAlign = TextAlign.Start,
-                modifier = Modifier.fillMaxWidth()
-            )
+            Box(
+                modifier = Modifier.width(NowPlayingMetadataActionLaneWidth),
+                contentAlignment = Alignment.TopEnd
+            ) {
+                IconButton(
+                    onClick = {
+                        if (!song.isLiked) {
+                            likeAnimationTick++
+                        }
+                        onLikeClick()
+                    },
+                    modifier = Modifier
+                        .size(48.dp)
+                        .semantics {
+                            role = Role.Button
+                            contentDescription = "Favorite"
+                            stateDescription = likeStateDescription
+                        }
+                ) {
+                    Icon(
+                        imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        contentDescription = if (song.isLiked) "Unlike" else "Like",
+                        tint = if (song.isLiked)
+                            Color.White
+                        else
+                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .size(28.dp)
+                            .then(
+                                if (song.isLiked) {
+                                    Modifier.drawWithCache {
+                                        val gradientShift = likeGradientProgress.value
+                                        val brush = Brush.linearGradient(
+                                            colors = listOf(
+                                                Color(0xFFFF4D6D),
+                                                Color(0xFFFF8A00),
+                                                Color(0xFFFFD166),
+                                                Color(0xFF80ED99),
+                                                Color(0xFF4D96FF)
+                                            ),
+                                            start = Offset(
+                                                x = -size.width + (2f * size.width * gradientShift),
+                                                y = 0f
+                                            ),
+                                            end = Offset(
+                                                x = size.width * gradientShift,
+                                                y = size.height
+                                            )
+                                        )
+                                        onDrawWithContent {
+                                            drawContent()
+                                            drawRect(brush = brush, blendMode = BlendMode.SrcAtop)
+                                        }
+                                    }
+                                } else {
+                                    Modifier
+                                }
+                            )
+                    )
+                }
+            }
         }
     }
 }
@@ -1033,7 +1148,7 @@ private fun SeekBarSection(
             interactionSource = sliderInteractionSource,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
+                .height(NowPlayingSliderTouchHeight),
             colors = SliderDefaults.colors(
                 thumbColor = sliderColor,
                 activeTrackColor = sliderColor.copy(alpha = activeTrackOpacity),

@@ -225,8 +225,8 @@ fun CurrentQueueContent(
             modifier = modifier.reorderable(reorderableState),
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
-            itemsIndexed(queue, key = { _, song -> song.id }) { index, song ->
-                ReorderableItem(reorderableState, key = song.id) { isDragging ->
+            itemsIndexed(queue, key = { index, song -> "${song.id}_${song.uri}_$index" }) { index, song ->
+                ReorderableItem(reorderableState, key = "${song.id}_${song.uri}_$index") { isDragging ->
                     QueueSongItem(
                         song = song,
                         index = index,
