@@ -201,9 +201,11 @@ class PreferencesManager @Inject constructor(
      * @param enabled True to show playback controls in notification
      */
     suspend fun setShowNotificationControls(enabled: Boolean) {
+        android.util.Log.d("PreferencesManager", "setShowNotificationControls: writing $enabled to DataStore")
         context.dataStore.edit { preferences ->
             preferences[KEY_SHOW_NOTIFICATIONS] = enabled
         }
+        android.util.Log.d("PreferencesManager", "setShowNotificationControls: DataStore write completed for $enabled")
     }
 
     /**

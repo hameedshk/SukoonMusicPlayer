@@ -30,6 +30,14 @@ class AdMobManager @Inject constructor(
      * Call this once at app startup (in Application class or MainActivity).
      */
     fun initialize() {
+        // Production safety check
+        if (USE_TEST_ADS && !BuildConfig.DEBUG) {
+            android.util.Log.e(
+                "AdMobManager",
+                "⚠️ CRITICAL: Test ads enabled in RELEASE build! Change USE_TEST_ADS to false in build.gradle"
+            )
+        }
+
         MobileAds.initialize(context) { initializationStatus ->
             // Log initialization status
             val statusMap = initializationStatus.adapterStatusMap

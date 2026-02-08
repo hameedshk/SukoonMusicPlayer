@@ -66,6 +66,9 @@ android {
         buildConfigField("String", "ADMOB_REWARDED_AD_UNIT_ID", "\"$admobTestRewardedAdUnitId\"")
         buildConfigField("String", "ADMOB_NATIVE_AD_UNIT_ID", "\"$admobTestNativeAdUnitId\"")
         buildConfigField("String", "ADMOB_APP_OPEN_AD_UNIT_ID", "\"$admobTestAppOpenAdUnitId\"")
+
+        // ⚠️ WARNING: Set to FALSE before production release! ⚠️
+        // Test ads will not generate revenue and may violate Play Store policies
         buildConfigField("Boolean", "USE_TEST_ADS", "true")
     }
 

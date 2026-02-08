@@ -16,7 +16,6 @@ $STATE_FILES_FILE = ".last_successful_files"
 $env:GRADLE_OPTS = "-Dorg.gradle.logging.level=info"
 $BUILD_SUCCESS_FILE = ".last_build_success"
 
-
 $ProgressPreference = 'SilentlyContinue'
 $ErrorActionPreference = 'Continue'
 
@@ -25,6 +24,8 @@ $verboseGradle  = $VerboseBuild.IsPresent
 $forceReinstall = $Reinstall.IsPresent
 $forceClearData = $ClearData.IsPresent
 $attachLogcat = $Logcat.IsPresent
+$device = $env:ADB_DEVICE
+
 
 # ============== DEVICE HELPERS ==============
 
@@ -47,31 +48,6 @@ function Get-ConnectedDevices {
 
     return $devices
 }
-
-function Select-AdbDevice {
-
-    $devices = adb devices |
-        Where-Object { $_ -match "device$" -and $_ -notmatch "List of devices" } |
-        ForEach-Object { ($_ -split "\s+")[0] }
-
-    if ($devices.Count -eq 0) {
-        Write-Host "❌ No ADB devices connected"
-        exit 1
-    }
-
-    if ($devices.Count -eq 1) {
-        return $devices[0]
-    }
-
-    Write-Host "📱 Multiple devices detected:" -ForegroundColor Yellow
-    for ($i = 0; $i -lt $devices.Count; $i++) {
-        Write-Host " [$i] $($devices[$i])"
-    }
-
-    $choice = Read-Host "Select device index"
-    return $devices[[int]$choice]
-}
-
 
 function Prompt-For-AdbTarget {
     $ip = Read-Host "Enter device IP address"
@@ -185,9 +161,9 @@ function Wait-For-AppPid {
 
     $elapsed = 0
     while ($elapsed -lt $TimeoutSeconds) {
-        $pid = adb shell pidof -s $APP_ID 2>$null
-        if ($pid) {
-            return $pid.Trim()
+        $apppid = adb -s $ADB_DEVICE shell pidof -s $APP_ID
+        if ($apppid) {
+            return $apppid
         }
         Start-Sleep -Milliseconds 300
         $elapsed += 0.3
@@ -211,13 +187,13 @@ function Get-LogTagRegex {
 function Attach-Logcat {
     Write-Host "📜 Attaching logcat (app-only)..." -ForegroundColor Cyan
     adb logcat -c
-    $pid = Wait-For-AppPid
+    $application_pid = Wait-For-AppPid
     $tagRegex = Get-LogTagRegex
 
-    if ($pid) {
+    if ($application_pid) {
         if ($tagRegex) {
             Write-Host "🔎 Filtering logs by tag(s): $($LogTag -join ', ')" -ForegroundColor Yellow
-            adb logcat --pid=$pid |
+            adb logcat --pid=$application_pid |
                 ForEach-Object {
                     if ($_ -match $tagRegex) {
                         Write-Host $_
@@ -225,7 +201,7 @@ function Attach-Logcat {
                 }
         }
         else {
-            adb logcat --pid=$pid
+            adb logcat --pid=$application_pid
         }
     }
     else {
@@ -252,8 +228,15 @@ if ($devices.Count -eq 0) {
     exit 1
 }
 
-if ($devices.Count -eq 1) {
-    $ADB_DEVICE = [string]$devices[0]
+if ($devices.Count -eq 1  -or ![string]::IsNullOrWhiteSpace($env:ADB_DEVICE) ) {
+     if ($devices.Count -eq 1) {
+		Write-Host "📱 single device detected: $devices" -ForegroundColor Yellow
+        $ADB_DEVICE = [string]$devices
+		$env:ADB_DEVICE = $ADB_DEVICE
+    }
+    else {
+        $ADB_DEVICE = $env:ADB_DEVICE
+    }
 }
 else {
     Write-Host "📱 Multiple devices detected:" -ForegroundColor Yellow
@@ -261,10 +244,12 @@ else {
         Write-Host " [$i] $($devices[$i])"
     }
     $choice = Read-Host "Select device index"
-    $ADB_DEVICE = $devices[[int]$choice]
+    $ADB_DEVICE = $devices[[int]$choice]	
+	$env:ADB_DEVICE = $ADB_DEVICE
+	Write-Host "DEBUG: Saved device in session → $env:ADB_DEVICE"
 }
 
-Write-Host "📱 Using device: $devices " -ForegroundColor Green
+Write-Host "📱 Using device: $env:ADB_DEVICE" -ForegroundColor Green
 
 # ---------- FORCE OVERRIDE (EARLY EXIT GUARD) ----------
 $currentHash = Get-WorkingTreeHash
@@ -330,6 +315,8 @@ foreach ($file in $changedFiles) {
 }
 
 # ---------- FORCE FULL BUILD ----------
+# Force Gradle to use selected device
+$env:ANDROID_SERIAL = $device
 if ($forceFullBuild) {
     Write-Host "🔄 FullBuild requested — ignoring cached state" -ForegroundColor Cyan
     $needsClean = $true

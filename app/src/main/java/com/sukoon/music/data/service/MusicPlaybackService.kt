@@ -229,14 +229,7 @@ class MusicPlaybackService : MediaSessionService() {
             setUseRewindAction(false)
         }
 
-        // Apply initial notification state based on preference immediately
-        scope.launch {
-            val shouldShow = preferencesManager.showNotificationsFlow.first()
-            notificationManager?.setPlayer(if (shouldShow) player else null)
-            DevLogger.d("MusicPlaybackService", "Initial notification state: $shouldShow")
-        }
-
-        // Observe for future preference changes
+        // Reactive observer handles initial + ongoing state (single source of truth)
         observeNotificationVisibility()
 
         // Initialize audio effects (equalizer)
@@ -285,31 +278,49 @@ class MusicPlaybackService : MediaSessionService() {
      * When enabled, notification is shown with playback controls.
      */
     private fun observeNotificationVisibility() {
+        android.util.Log.d("MusicPlaybackService", "observeNotificationVisibility: Starting flow collection")
         scope.launch {
             preferencesManager.showNotificationsFlow.collect { shouldShowNotification ->
-                // Must run on Main thread for notification operations
-                withContext(Dispatchers.Main) {
-                    isNotificationVisible = shouldShowNotification
-                    DevLogger.d("MusicPlaybackService", "Notification preference changed: $shouldShowNotification")
+                android.util.Log.d("MusicPlaybackService", ">>> FLOW EMITTED: $shouldShowNotification")
+                try {
+                    // Must run on Main thread for notification operations
+                    withContext(Dispatchers.Main) {
+                        android.util.Log.d("MusicPlaybackService", ">>> Inside withContext(Main), updating to: $shouldShowNotification")
+                        isNotificationVisible = shouldShowNotification
+                        DevLogger.d("MusicPlaybackService", "Notification preference changed: $shouldShowNotification")
 
-                    if (shouldShowNotification) {
-                        // Show notification: rebind player to force notification re-post after being hidden.
-                        notificationManager?.setPlayer(null)
-                        notificationManager?.setPlayer(player)
-                        notificationManager?.invalidate()
-                        DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
-                    } else {
-                        // Hide notification and detach player so the next enable always rebinds cleanly.
-                        notificationManager?.setPlayer(null)
-                        val systemNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        systemNotificationManager.cancel(NOTIFICATION_ID)
-                        if (isForeground) {
-                            stopForeground(STOP_FOREGROUND_REMOVE)
-                            isForeground = false
+                        if (shouldShowNotification) {
+                            android.util.Log.d("MusicPlaybackService", ">>> Showing notification (setPlayer + invalidate)")
+                            // Show notification - ensure player is bound and force refresh.
+                            notificationManager?.setPlayer(player)
+                            notificationManager?.invalidate()
+                            android.util.Log.d("MusicPlaybackService", ">>> setPlayer(player) and invalidate() completed")
+                            DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
+                        } else {
+                            android.util.Log.d("MusicPlaybackService", ">>> Hiding notification (setPlayer null)")
+                            // Hide notification and detach player.
+                            notificationManager?.setPlayer(null)
+                            val systemNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                            systemNotificationManager.cancel(NOTIFICATION_ID)
+                            if (isForeground) {
+                                stopForeground(STOP_FOREGROUND_REMOVE)
+                                isForeground = false
+                            }
+                            android.util.Log.d("MusicPlaybackService", ">>> Notification hidden successfully")
+                            DevLogger.d("MusicPlaybackService", "Notification visibility disabled")
                         }
-                        DevLogger.d("MusicPlaybackService", "Notification visibility disabled")
                     }
+                } catch (e: Exception) {
+                    // CRITICAL: Catch exceptions to prevent flow collection from dying
+                    // Without this, a single exception kills notification toggle forever
+                    android.util.Log.e("MusicPlaybackService", ">>> EXCEPTION caught: ${e.message}", e)
+                    DevLogger.e(
+                        "MusicPlaybackService",
+                        "Error updating notification visibility to $shouldShowNotification",
+                        e
+                    )
                 }
+                android.util.Log.d("MusicPlaybackService", ">>> Flow collection cycle completed for: $shouldShowNotification")
             }
         }
     }

@@ -126,13 +126,13 @@ fun MiniPlayer(
         derivedStateOf { playbackState.currentPosition + positionOffset }
     }
 
-    // Position ticker - reduced frequency to 250ms for battery optimization
+    // Position ticker - 100ms for smooth real-time feedback
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         positionOffset = 0L
         if (playbackState.isPlaying) {
             while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
-                delay(250) // Reduced from 100ms: 4 updates/sec instead of 10/sec
-                positionOffset += 250
+                delay(100) // 10 updates/sec for smooth visual feedback
+                positionOffset += 100
             }
         }
     }
@@ -151,8 +151,21 @@ fun MiniPlayer(
             }
             .clickable(onClick = onClick),
         shape = MiniPlayerShape,
-        color = MaterialTheme.colorScheme.surface
+        shadowElevation = 2.dp,
+        color = Color.Transparent
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surfaceContainer,
+                            MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    )
+                )
+        ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -305,7 +318,7 @@ fun MiniPlayer(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.5.dp)
+                    .height(4.dp)
                     .pointerInput(playbackState.duration) {
                         detectTapGestures { tapOffset ->
                             if (playbackState.duration > 0) {
@@ -325,6 +338,7 @@ fun MiniPlayer(
                         .background(accentColor)
                 )
             }
+        }
         }
     }
 }

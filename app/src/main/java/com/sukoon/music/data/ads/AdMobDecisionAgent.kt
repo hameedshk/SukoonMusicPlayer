@@ -2,6 +2,7 @@ package com.sukoon.music.data.ads
 
 import android.content.Context
 import androidx.datastore.preferences.preferencesDataStore
+import com.sukoon.music.BuildConfig
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.usecase.SessionController
 import com.sukoon.music.domain.model.PlaybackState
@@ -23,11 +24,16 @@ import kotlinx.coroutines.flow.first
  * and makes real-time decisions about when to show ads, respecting all hard rules and frequency caps.
  *
  * Hard Rules (Never Broken):
- * - NO ads for premium users
+ * - NO ads for premium users (ONLY premium flag blocks ads)
  * - NO interstitials while audio is playing
  * - NO blocking UI while waiting for ads
- * - NO aggressive retries after NO_FILL
+ * - Exponential backoff after NO_FILL (banner: 60s→120s→240s→480s, native: 120s→240s)
  * - Frequency caps: 2 interstitials/session, 1 native/album/session, 1 banner visible
+ * - Private session does NOT block ads (only premium status blocks ads)
+ *
+ * Optimizations:
+ * - Timer pauses when app is backgrounded (lifecycle-aware)
+ * - Debounced decision evaluation (100ms) to prevent rapid recomposition
  *
  * All state is in-memory and resets on app restart (session-scoped tracking).
  */
@@ -44,8 +50,8 @@ class AdMobDecisionAgent @Inject constructor(
         // Timing constraints (milliseconds)
         private const val BANNER_REFRESH_MIN_MS = 60_000L // 60 seconds
         private const val BANNER_REFRESH_MAX_MS = 90_000L // 90 seconds
-        private const val BANNER_NO_FILL_COOLDOWN_MS = 60_000L // 60 seconds
-        private const val NATIVE_FAILURE_COOLDOWN_MS = 120_000L // 120 seconds
+        private const val BANNER_NO_FILL_COOLDOWN_MS = 60_000L // Base: 60s (exponential backoff applied)
+        private const val NATIVE_FAILURE_COOLDOWN_MS = 120_000L // Base: 120s (exponential backoff applied)
         private const val INTERSTITIAL_MIN_INTERVAL_MS = 180_000L // 3 minutes
 
         // Frequency caps
@@ -104,11 +110,10 @@ class AdMobDecisionAgent @Inject constructor(
      * Decide whether to request/show a banner ad.
      *
      * Evaluates:
-     * - Premium user status (hard rule)
-     * - Private session status (hard rule)
-     * - Recent NO_FILL failures (60s cooldown)
+     * - Premium user status (hard rule - ONLY blocker)
+     * - Recent NO_FILL failures (exponential backoff: 60s → 120s → 240s → 480s)
      * - Consecutive failures (max 3)
-     * - Mini player overlap (UX)
+     * - Mini player overlap (UX, production only)
      * - App background state
      * - Refresh interval (60-90s)
      *
@@ -125,23 +130,29 @@ class AdMobDecisionAgent @Inject constructor(
             return AdDecision(false, AdFormat.BANNER, "Premium user")
         }
 
-        // Hard rule: Private session = no ads
-        if (sessionController.isSessionPrivate()) {
-            return AdDecision(false, AdFormat.BANNER, "Private session active")
-        }
-
         val now = System.currentTimeMillis()
 
-        // Suppress if recent NO_FILL (within last 60s)
+        // Issue #7 Fix: Exponential backoff for ad failures
+        // Formula: 60s * 2^(failures-1)
+        // 1 failure: 60s, 2 failures: 120s, 3 failures: 240s, 4+ failures: 480s (capped)
+        val backoffMultiplier = if (bannerState.consecutiveFailures > 0) {
+            (1 shl (bannerState.consecutiveFailures - 1)).coerceAtMost(8) // Max 8x = 480s
+        } else {
+            1
+        }
+        val cooldownMs = BANNER_NO_FILL_COOLDOWN_MS * backoffMultiplier
+
+        // Suppress if recent NO_FILL (with exponential backoff)
         if (bannerState.lastFailureTime > 0 &&
-            now - bannerState.lastFailureTime < BANNER_NO_FILL_COOLDOWN_MS
+            now - bannerState.lastFailureTime < cooldownMs
         ) {
             val timeSinceFailure = (now - bannerState.lastFailureTime) / 1000
+            val cooldownSeconds = cooldownMs / 1000
             return AdDecision(
                 false,
                 AdFormat.BANNER,
-                "Recent NO_FILL (${timeSinceFailure}s ago)",
-                recheckAfterMs = BANNER_NO_FILL_COOLDOWN_MS - (now - bannerState.lastFailureTime)
+                "Recent NO_FILL (${timeSinceFailure}s ago, backoff: ${cooldownSeconds}s, failures: ${bannerState.consecutiveFailures})",
+                recheckAfterMs = cooldownMs - (now - bannerState.lastFailureTime)
             )
         }
 
@@ -154,8 +165,9 @@ class AdMobDecisionAgent @Inject constructor(
             )
         }
 
-        // Suppress if mini player overlaps (UX policy)
-        if (isMiniPlayerVisible) {
+        // Suppress if mini player overlaps in production.
+        // For test ads, allow rendering so QA can reliably verify integration.
+        if (isMiniPlayerVisible && !BuildConfig.USE_TEST_ADS) {
             return AdDecision(false, AdFormat.BANNER, "Mini player overlap")
         }
 
@@ -190,13 +202,12 @@ class AdMobDecisionAgent @Inject constructor(
      * Decide whether to request/show a native ad.
      *
      * Evaluates:
-     * - Premium user status (hard rule)
-     * - Private session status (hard rule)
+     * - Premium user status (hard rule - ONLY blocker)
      * - User engagement (scroll detection)
      * - Album size (minimum 10 tracks)
      * - Album frequency cap (1 per album per session)
      * - Consecutive failures (suppress after 2)
-     * - Recent failure cooldown (120s)
+     * - Recent failure cooldown (exponential backoff: 120s → 240s)
      *
      * @param albumId Unique identifier for the album
      * @param albumTrackCount Number of tracks in the album
@@ -211,10 +222,6 @@ class AdMobDecisionAgent @Inject constructor(
         // Hard rules
         if (premiumManager.isPremiumUser.first()) {
             return AdDecision(false, AdFormat.NATIVE, "Premium user")
-        }
-
-        if (sessionController.isSessionPrivate()) {
-            return AdDecision(false, AdFormat.NATIVE, "Private session active")
         }
 
         val now = System.currentTimeMillis()
@@ -251,16 +258,27 @@ class AdMobDecisionAgent @Inject constructor(
             )
         }
 
-        // Suppress if last failure within 120s
+        // Issue #7 Fix: Exponential backoff for native ad failures
+        // Formula: 120s * 2^(failures-1)
+        // 1 failure: 120s, 2 failures: 240s (max, since MAX_CONSECUTIVE_NATIVE_FAILURES = 2)
+        val nativeBackoffMultiplier = if (nativeState.consecutiveFailures > 0) {
+            (1 shl (nativeState.consecutiveFailures - 1)).coerceAtMost(4) // Max 4x = 480s
+        } else {
+            1
+        }
+        val nativeCooldownMs = NATIVE_FAILURE_COOLDOWN_MS * nativeBackoffMultiplier
+
+        // Suppress if last failure within cooldown period (with exponential backoff)
         if (nativeState.lastFailureTime > 0 &&
-            now - nativeState.lastFailureTime < NATIVE_FAILURE_COOLDOWN_MS
+            now - nativeState.lastFailureTime < nativeCooldownMs
         ) {
             val timeSinceFailure = (now - nativeState.lastFailureTime) / 1000
+            val cooldownSeconds = nativeCooldownMs / 1000
             return AdDecision(
                 false,
                 AdFormat.NATIVE,
-                "Recent failure cooldown (${timeSinceFailure}s ago)",
-                recheckAfterMs = NATIVE_FAILURE_COOLDOWN_MS - (now - nativeState.lastFailureTime)
+                "Recent failure cooldown (${timeSinceFailure}s ago, backoff: ${cooldownSeconds}s, failures: ${nativeState.consecutiveFailures})",
+                recheckAfterMs = nativeCooldownMs - (now - nativeState.lastFailureTime)
             )
         }
 
@@ -273,8 +291,7 @@ class AdMobDecisionAgent @Inject constructor(
      * Decide whether to show an interstitial ad.
      *
      * Evaluates:
-     * - Premium user status (hard rule)
-     * - Private session status (hard rule)
+     * - Premium user status (hard rule - ONLY blocker)
      * - CRITICAL: Playback state (NEVER interrupt music)
      * - Session frequency cap (max 2)
      * - Time gate (min 3 minutes since last)
@@ -286,10 +303,6 @@ class AdMobDecisionAgent @Inject constructor(
         // Hard rules
         if (premiumManager.isPremiumUser.first()) {
             return AdDecision(false, AdFormat.INTERSTITIAL, "Premium user")
-        }
-
-        if (sessionController.isSessionPrivate()) {
-            return AdDecision(false, AdFormat.INTERSTITIAL, "Private session active")
         }
 
         val playback = playbackRepository.playbackState.value
@@ -457,10 +470,12 @@ class AdMobDecisionAgent @Inject constructor(
     /**
      * Call when app goes to background.
      * Pauses banner refresh to save resources.
+     * Resets refresh timer to allow immediate ad on next foreground.
      */
     fun onAppBackgrounded() {
         bannerState.isAppInForeground = false
-        DevLogger.d(TAG, "App backgrounded - suppressing banner refresh")
+        bannerState.lastRefreshTime = 0 // Reset to allow immediate ad on next launch
+        DevLogger.d(TAG, "App backgrounded - suppressing banner refresh and resetting timer")
     }
 
     /**

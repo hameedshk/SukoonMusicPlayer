@@ -39,9 +39,13 @@ import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.components.GlobalBannerAdView
-import com.sukoon.music.ui.components.GLOBAL_AD_HEIGHT_DP
+import com.sukoon.music.ui.components.AD_CONTAINER_HEIGHT_DP
 import com.sukoon.music.ui.components.MiniPlayer
+import com.sukoon.music.ui.theme.MiniPlayerHeight
+import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.navigation.Routes
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.sukoon.music.ui.navigation.SukoonNavHost
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.HomeViewModel
@@ -139,13 +143,18 @@ class MainActivity : ComponentActivity() {
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
 
+                // Track actual ad height (updated dynamically from GlobalBannerAdView)
+                var actualAdHeight by remember { mutableStateOf(AD_CONTAINER_HEIGHT_DP.toFloat()) }
+
                 // Calculate dynamic bottom padding based on playback state
                 // Hide mini player when on NowPlayingScreen
                 val isOnNowPlayingScreen = currentRoute == Routes.NowPlaying.route
                 val bottomPadding = if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
-                    (GLOBAL_AD_HEIGHT_DP + 80).dp // Ad + MiniPlayer
+                    // Ad + MiniPlayer + spacing between them
+                    (actualAdHeight + MiniPlayerHeight.value + SpacingMedium.value).dp
                 } else {
-                    GLOBAL_AD_HEIGHT_DP.dp // Ad only
+                    // Ad only
+                    actualAdHeight.dp
                 }
 
                 // Global layout: NavHost + MiniPlayer + Ad
@@ -176,7 +185,9 @@ class MainActivity : ComponentActivity() {
                             },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = GLOBAL_AD_HEIGHT_DP.dp) // Offset by ad height
+                                .padding(
+                                    bottom = (actualAdHeight + SpacingMedium.value).dp
+                                ) // Offset by ad height + spacing
                         )
                     }
 
@@ -189,6 +200,7 @@ class MainActivity : ComponentActivity() {
                         premiumManager = premiumManager,
                         currentRoute = currentRoute,
                         isMiniPlayerVisible = isMiniPlayerVisible,
+                        onAdHeightChanged = { height -> actualAdHeight = height },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .windowInsetsPadding(WindowInsets.navigationBars) // Respect gesture bar

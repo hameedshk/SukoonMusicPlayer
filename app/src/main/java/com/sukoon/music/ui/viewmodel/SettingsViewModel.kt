@@ -144,8 +144,10 @@ class SettingsViewModel @Inject constructor(
      * Avoids race condition from reading stale StateFlow value.
      */
     fun setShowNotificationControls(enabled: Boolean) {
+        android.util.Log.d("SettingsViewModel", "setShowNotificationControls called with: $enabled")
         viewModelScope.launch {
             settingsRepository.setShowNotificationControls(enabled)
+            android.util.Log.d("SettingsViewModel", "setShowNotificationControls completed: $enabled")
         }
     }
 

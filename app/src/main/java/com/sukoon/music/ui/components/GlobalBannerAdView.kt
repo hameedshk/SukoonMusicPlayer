@@ -1,7 +1,17 @@
 package com.sukoon.music.ui.components
 
+import android.util.Log
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -11,15 +21,22 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.LifecycleEventObserver
 import com.google.android.gms.ads.AdListener
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import com.sukoon.music.BuildConfig
 import com.sukoon.music.data.ads.AdDecision
 import com.sukoon.music.data.ads.AdFormat
 import com.sukoon.music.data.ads.AdMobDecisionAgent
@@ -30,28 +47,62 @@ import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.delay
 
 /**
- * Approximate height of global ad banner for padding calculations.
- * Actual height may vary slightly based on device width.
+ * Height of the ad banner in dp.
+ * This is dynamically calculated based on the adaptive ad size.
+ * Use this constant for layout calculations in MainActivity.
  */
-const val GLOBAL_AD_HEIGHT_DP = 60
+const val AD_CONTAINER_HEIGHT_DP = 60
+
+/**
+ * Shimmer effect for ad skeleton loader.
+ */
+private fun Modifier.adShimmer(): Modifier = composed {
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f),
+        MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.5f),
+        MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.3f)
+    )
+
+    val transition = rememberInfiniteTransition(label = "ad_shimmer")
+    val translateAnim by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1000f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1200, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "ad_shimmer_translate"
+    )
+
+    this.background(
+        brush = Brush.horizontalGradient(
+            colors = shimmerColors,
+            startX = translateAnim - 1000f,
+            endX = translateAnim
+        )
+    )
+}
 
 /**
  * Global Banner Ad component that appears at the bottom of all screens.
  *
  * Key features:
  * - Uses AdMobDecisionAgent to determine if ads should show
- * - Timer-based refresh (60-90s) instead of route-based
+ * - Lifecycle-aware timer refresh (60-90s) - pauses when app is backgrounded
+ * - Debounced decision evaluation (100ms) to prevent rapid recomposition
  * - Respects premium user status via decision agent
- * - Respects private session status via decision agent
  * - Hides if mini player overlaps
  * - Automatically handles ad lifecycle (load/destroy)
  * - Records load success/failure and impressions for analytics
+ * - Adaptive banner sizing with rotation handling
+ * - Shimmer skeleton loader during ad load
  *
  * @param adMobManager Injected AdMob configuration manager
  * @param decisionAgent Injected AdMob decision agent for intelligent ad delivery
  * @param premiumManager Injected premium subscription manager (for premium check)
  * @param currentRoute Current navigation route (for decision logging)
  * @param isMiniPlayerVisible True if mini player is visible (overlaps banner)
+ * @param onAdHeightChanged Callback when actual ad height changes (for layout sync)
  * @param modifier Optional modifier for positioning
  */
 @Composable
@@ -61,6 +112,7 @@ fun GlobalBannerAdView(
     premiumManager: PremiumManager,
     currentRoute: String?,
     isMiniPlayerVisible: Boolean = false,
+    onAdHeightChanged: (Float) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -69,13 +121,20 @@ fun GlobalBannerAdView(
     // Observe premium status (decision agent also checks this, but good for early exit)
     val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
 
+    if (BuildConfig.DEBUG) {
+        Log.d(TAG, "GlobalBannerAdView composing | isPremium=$isPremium | route=$currentRoute | miniPlayer=$isMiniPlayerVisible")
+    }
+
     // Don't show ads for premium users
     if (isPremium) {
+        if (BuildConfig.DEBUG) Log.d(TAG, "Skipping ads - premium user")
         return
     }
 
     // Calculate adaptive ad size based on screen width
-    val adSize = remember {
+    // Recalculate on configuration change (rotation)
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val adSize = remember(configuration.screenWidthDp, configuration.orientation) {
         val display = context.resources.displayMetrics
         val adWidthPixels = display.widthPixels.toFloat()
         val density = display.density
@@ -86,25 +145,52 @@ fun GlobalBannerAdView(
 
     // Get actual ad height for layout calculations
     val adHeightDp = remember(adSize) {
-        adSize.getHeightInPixels(context) / context.resources.displayMetrics.density
+        val height = adSize.getHeightInPixels(context) / context.resources.displayMetrics.density
+        onAdHeightChanged(height) // Notify parent of height change
+        height
     }
 
     var adView by remember { mutableStateOf<AdView?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
     var decision by remember { mutableStateOf<AdDecision?>(null as AdDecision?) }
 
-    // Timer-based refresh (60-90s) instead of route-based
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(70_000) // 70 seconds average (between 60-90s range)
-            refreshTrigger++
+    // Issue #4 Fix: Lifecycle-aware timer - only runs when app is active (RESUMED state)
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var isAppActive by remember { mutableStateOf(true) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            isAppActive = event.targetState.isAtLeast(Lifecycle.State.RESUMED)
+            if (BuildConfig.DEBUG) {
+                Log.d(TAG, "Lifecycle state changed: isActive=$isAppActive")
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
         }
     }
 
-    // Evaluate decision from agent in coroutine context
+    // Timer-based refresh (60-90s) - pauses when app is backgrounded
+    LaunchedEffect(isAppActive) {
+        if (isAppActive) {
+            while (true) {
+                delay(70_000) // 70 seconds average (between 60-90s range)
+                refreshTrigger++
+                DevLogger.d(TAG, "Timer triggered ad refresh (trigger=$refreshTrigger)")
+            }
+        } else {
+            DevLogger.d(TAG, "Timer paused - app in background")
+        }
+    }
+
+    // Issue #6 Fix: Debounced decision evaluation to prevent rapid recomposition
     LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute) {
+        delay(100) // 100ms debounce to batch rapid changes
         decision = try {
-            decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
+            val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
+            DevLogger.d(TAG, "Decision evaluated: shouldShow=${newDecision.shouldShow}, reason=${newDecision.reason}")
+            newDecision
         } catch (e: Exception) {
             DevLogger.e(TAG, "Error evaluating banner decision: ${e.message}")
             AdDecision(false, AdFormat.BANNER, "Error evaluating decision: ${e.message}")
@@ -115,6 +201,7 @@ fun GlobalBannerAdView(
     DisposableEffect(decision) {
         val currentDecision = decision
         if (currentDecision == null) {
+            DevLogger.d(TAG, "Decision is null, waiting for evaluation...")
             return@DisposableEffect onDispose { }
         }
 
@@ -128,6 +215,9 @@ fun GlobalBannerAdView(
 
         // Decision is to show - load ad
         DevLogger.d(TAG, "Banner approved: ${currentDecision.reason}")
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "Loading ad | adUnitId=${adMobManager.getBannerAdId()}")
+        }
 
         val startTime = System.currentTimeMillis()
         val newAdView = AdView(context).apply {
@@ -137,13 +227,47 @@ fun GlobalBannerAdView(
                 override fun onAdLoaded() {
                     val loadTimeMs = System.currentTimeMillis() - startTime
                     DevLogger.d(TAG, "Banner ad loaded in ${loadTimeMs}ms")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Ad loaded successfully | loadTime=${loadTimeMs}ms")
+                    }
                     decisionAgent.recordAdLoaded(AdFormat.BANNER, loadTimeMs)
                     decisionAgent.recordAdImpression(AdFormat.BANNER)
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
                     DevLogger.e(TAG, "Banner ad failed to load: ${error.message}")
+                    if (BuildConfig.DEBUG) {
+                        Log.e(TAG, "Ad failed to load | code=${error.code} | msg=${error.message}")
+                    }
                     decisionAgent.recordAdFailed(AdFormat.BANNER, error.code, error.message)
+                }
+
+                override fun onAdClicked() {
+                    DevLogger.d(TAG, "Banner ad clicked")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Ad clicked by user")
+                    }
+                }
+
+                override fun onAdOpened() {
+                    DevLogger.d(TAG, "Banner ad opened (fullscreen)")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Ad opened fullscreen overlay")
+                    }
+                }
+
+                override fun onAdClosed() {
+                    DevLogger.d(TAG, "Banner ad closed")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Ad overlay closed, user returned to app")
+                    }
+                }
+
+                override fun onAdImpression() {
+                    DevLogger.d(TAG, "Banner ad impression recorded")
+                    if (BuildConfig.DEBUG) {
+                        Log.d(TAG, "Ad impression counted by AdMob")
+                    }
                 }
             }
         }
@@ -161,13 +285,31 @@ fun GlobalBannerAdView(
         }
     }
 
-    // Render ad view with fixed height for consistent layout
-    adView?.let { view ->
-        AndroidView(
-            factory = { view },
-            modifier = modifier
-                .fillMaxWidth()
-                .height(adHeightDp.dp)
-        )
+    // Render ad container with visual separation
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(adHeightDp.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp))
+    ) {
+        adView?.let { view ->
+            DevLogger.d(TAG, "Rendering AdView in UI")
+            AndroidView(
+                factory = { view },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(adHeightDp.dp)
+            )
+        } ?: run {
+            // Skeleton loader while ad is loading
+            DevLogger.d(TAG, "AdView is null, showing skeleton")
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(adHeightDp.dp)
+                    .adShimmer()
+            )
+        }
     }
 }

@@ -168,7 +168,10 @@ fun SettingsScreen(
                     title = "Show Notification Controls",
                     description = "Display playback controls in notification",
                     checked = userPreferences.showNotificationControls,
-                    onCheckedChange = viewModel::setShowNotificationControls
+                    onCheckedChange = { enabled ->
+                        android.util.Log.d("SettingsScreen", "Switch toggled to: $enabled (current state: ${userPreferences.showNotificationControls})")
+                        viewModel.setShowNotificationControls(enabled)
+                    }
                 )
             }
 
