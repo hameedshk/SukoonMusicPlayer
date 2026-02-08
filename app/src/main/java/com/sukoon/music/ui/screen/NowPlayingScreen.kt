@@ -36,6 +36,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -95,7 +101,6 @@ fun NowPlayingScreen(
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
 
     // Refresh playback state when screen becomes visible to get accurate position
     LaunchedEffect(Unit) {
@@ -106,6 +111,7 @@ fun NowPlayingScreen(
     val accentTokens = accent()
     val accentColor = accentTokens.primary
     val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
+    val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -134,11 +140,11 @@ fun NowPlayingScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .pointerInput(Unit) {
+                    .pointerInput(collapseThresholdPx) {
                         detectVerticalDragGestures(
                             onDragEnd = {
-                                // If dragged down more than 150dp, collapse the screen
-                                if (dragOffset > 150f) {
+                                // Collapse only after a deliberate downward drag distance.
+                                if (dragOffset > collapseThresholdPx) {
                                     onBackClick()
                                 }
                                 dragOffset = 0f
@@ -171,20 +177,7 @@ fun NowPlayingScreen(
                             }
                         },
                         onShuffleClick = { viewModel.toggleShuffle() },
-                        onRepeatClick = {
-                            viewModel.toggleRepeat()
-                            val nextMode = when (playbackState.repeatMode) {
-                                RepeatMode.OFF -> RepeatMode.ALL
-                                RepeatMode.ALL -> RepeatMode.ONE
-                                RepeatMode.ONE -> RepeatMode.OFF
-                            }
-                            val message = when (nextMode) {
-                                RepeatMode.OFF -> "Repeat is off"
-                                RepeatMode.ALL -> "All songs Repeat is on"
-                                RepeatMode.ONE -> "Current song Repeat is on"
-                            }
-                            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
-                        },
+                        onRepeatClick = { viewModel.toggleRepeat() },
                         onNavigateToQueue = onNavigateToQueue,
                         onNavigateToAlbum = onNavigateToAlbum,
                         onNavigateToArtist = onNavigateToArtist,
@@ -356,8 +349,12 @@ private fun NowPlayingContent(
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val topContentPadding = (maxHeight * 0.14f).coerceIn(76.dp, 118.dp)
-            val albumToMetadataSpacing = (maxHeight * 0.07f).coerceIn(24.dp, 52.dp)
+            val albumToMetadataSpacing = (maxHeight * 0.08f).coerceIn(40.dp, 60.dp)
             val topIntroSpacing = if (maxHeight < 700.dp) 4.dp else 10.dp
+            val metadataToControlsSpacing = if (maxHeight < 700.dp) 10.dp else 16.dp
+            val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) 16.dp else 24.dp
+            val primaryControlsBottomSpacing = if (maxHeight < 700.dp) 8.dp else 12.dp
+            val controlsToSecondarySpacing = if (maxHeight < 700.dp) 0.dp else 3.dp
             val albumArtWeight = when {
                 maxHeight < 700.dp -> 0.40f
                 maxHeight < 840.dp -> 0.43f
@@ -407,7 +404,7 @@ private fun NowPlayingContent(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(metadataToControlsSpacing))
 
                 // Control Layer - Directly on background (no container)
                 AnimatedVisibility(
@@ -440,7 +437,7 @@ private fun NowPlayingContent(
                             }
                         )
 
-                        Spacer(modifier = Modifier.height(24.dp))
+                        Spacer(modifier = Modifier.height(seekToPrimaryControlsSpacing))
 
                         // D. Primary Playback Controls (Shuffle - Previous - Play - Next - Repeat)
                         PlaybackControlsSection(
@@ -453,11 +450,11 @@ private fun NowPlayingContent(
                             onRepeatClick = onRepeatClick
                         )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(primaryControlsBottomSpacing))
                     }
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(controlsToSecondarySpacing))
 
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
@@ -547,6 +544,7 @@ private fun AlbumArtSection(
 ) {
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+    val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
 
     // Album art container - full-bleed, S-style presentation
     // Extends edge-to-edge with subtle blur effect on edges
@@ -567,15 +565,15 @@ private fun AlbumArtSection(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             )
-            .pointerInput(Unit) {
+            .pointerInput(swipeThresholdPx) {
                 detectHorizontalDragGestures(
                     onDragEnd = {
                         // Swipe left (negative): next track
-                        if (horizontalDragOffset < -100f) {
+                        if (horizontalDragOffset < -swipeThresholdPx) {
                             onNextClick()
                         }
                         // Swipe right (positive): previous track
-                        else if (horizontalDragOffset > 100f) {
+                        else if (horizontalDragOffset > swipeThresholdPx) {
                             onPreviousClick()
                         }
                         horizontalDragOffset = 0f
@@ -920,16 +918,15 @@ private fun TrackMetadataSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 22.dp, bottom = 6.dp, start = 24.dp, end = 24.dp),
+            .padding(top = 30.dp, bottom = 6.dp, start = 24.dp, end = 24.dp),
         horizontalAlignment = Alignment.Start
     ) {
-        // Row: Song Title + Like Button
+        // Spotify-style header: title on left, like on far right.
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Song Title - Left-aligned like Spotify
             Text(
                 text = song.title.ifBlank { "Unknown Song" },
                 style = MaterialTheme.typography.songTitleLarge.copy(
@@ -937,14 +934,15 @@ private fun TrackMetadataSection(
                     lineHeight = 30.sp,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 ),
-                maxLines = 2,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
                 textAlign = TextAlign.Start,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
             )
 
-            // Like Button - Right-aligned
             IconButton(
                 onClick = onLikeClick,
                 modifier = Modifier.size(48.dp)
@@ -963,7 +961,7 @@ private fun TrackMetadataSection(
 
         // Artist - Left-aligned
         if (song.artist.isNotBlank()) {
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -1113,6 +1111,13 @@ private fun PlaybackControlsSection(
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit
 ) {
+    val shuffleStateDescription = if (playbackState.shuffleEnabled) "On" else "Off"
+    val repeatStateDescription = when (playbackState.repeatMode) {
+        RepeatMode.OFF -> "Off"
+        RepeatMode.ALL -> "All songs"
+        RepeatMode.ONE -> "Current song"
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1123,17 +1128,35 @@ private fun PlaybackControlsSection(
         // Shuffle Button (left)
         IconButton(
             onClick = onShuffleClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Shuffle"
+                    stateDescription = shuffleStateDescription
+                }
         ) {
-            Icon(
-                imageVector = Icons.Default.Shuffle,
-                contentDescription = "Shuffle",
-                tint = if (playbackState.shuffleEnabled)
-                    accentColor
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
-                modifier = Modifier.size(22.dp)
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = "Shuffle",
+                    tint = if (playbackState.shuffleEnabled)
+                        accentColor
+                    else
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
+                    modifier = Modifier.size(22.dp)
+                )
+
+                if (playbackState.shuffleEnabled) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 8.dp)
+                            .size(4.dp)
+                            .background(accentColor, CircleShape)
+                    )
+                }
+            }
         }
 
         // Previous Button
@@ -1195,20 +1218,38 @@ private fun PlaybackControlsSection(
         // Repeat Button (right)
         IconButton(
             onClick = onRepeatClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Repeat"
+                    stateDescription = repeatStateDescription
+                }
         ) {
-            Icon(
-                imageVector = when (playbackState.repeatMode) {
-                    RepeatMode.ONE -> Icons.Default.RepeatOne
-                    else -> Icons.Default.Repeat
-                },
-                contentDescription = "Repeat",
-                tint = when (playbackState.repeatMode) {
-                    RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
-                    else -> accentColor
-                },
-                modifier = Modifier.size(22.dp)
-            )
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = when (playbackState.repeatMode) {
+                        RepeatMode.ONE -> Icons.Default.RepeatOne
+                        else -> Icons.Default.Repeat
+                    },
+                    contentDescription = "Repeat",
+                    tint = when (playbackState.repeatMode) {
+                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
+                        else -> accentColor
+                    },
+                    modifier = Modifier.size(22.dp)
+                )
+
+                if (playbackState.repeatMode != RepeatMode.OFF) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .offset(y = 8.dp)
+                            .size(4.dp)
+                            .background(accentColor, CircleShape)
+                    )
+                }
+            }
         }
     }
 }
@@ -1230,6 +1271,8 @@ private fun SecondaryActionsSection(
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
+    val lyricsStateDescription = if (showLyricsOverlay) "Shown" else "Hidden"
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1240,7 +1283,13 @@ private fun SecondaryActionsSection(
         // Lyrics Button
         IconButton(
             onClick = onLyricsClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier
+                .size(48.dp)
+                .semantics {
+                    role = Role.Button
+                    contentDescription = "Lyrics"
+                    stateDescription = lyricsStateDescription
+                }
         ) {
             Icon(
                 imageVector = Icons.Default.Lyrics,
@@ -1367,5 +1416,6 @@ private fun NowPlayingScreenPreview() {
         )
     }
 }
+
 
 
