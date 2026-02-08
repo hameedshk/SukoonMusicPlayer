@@ -54,12 +54,18 @@ android {
         // AdMob test IDs (safe for development and QA)
         val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
         val admobTestBannerAdUnitId = "ca-app-pub-3940256099942544/6300978111"
+        val admobTestInterstitialAdUnitId = "ca-app-pub-3940256099942544/1033173712"
+        val admobTestRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917"
         val admobTestNativeAdUnitId = "ca-app-pub-3940256099942544/2247696110"
+        val admobTestAppOpenAdUnitId = "ca-app-pub-3940256099942544/9257395921"
 
         manifestPlaceholders["admobAppId"] = admobTestAppId
         buildConfigField("String", "ADMOB_APP_ID", "\"$admobTestAppId\"")
         buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobTestBannerAdUnitId\"")
+        buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$admobTestInterstitialAdUnitId\"")
+        buildConfigField("String", "ADMOB_REWARDED_AD_UNIT_ID", "\"$admobTestRewardedAdUnitId\"")
         buildConfigField("String", "ADMOB_NATIVE_AD_UNIT_ID", "\"$admobTestNativeAdUnitId\"")
+        buildConfigField("String", "ADMOB_APP_OPEN_AD_UNIT_ID", "\"$admobTestAppOpenAdUnitId\"")
         buildConfigField("Boolean", "USE_TEST_ADS", "true")
     }
 

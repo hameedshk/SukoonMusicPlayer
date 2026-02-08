@@ -30,10 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -102,6 +99,13 @@ private val NowPlayingMetadataBottomPadding = 6.dp
 private val NowPlayingMetadataHorizontalPadding = 24.dp
 private val NowPlayingMetadataActionLaneWidth = 56.dp
 private val NowPlayingSliderTouchHeight = 44.dp
+private val NowPlayingTitleFontSize = 22.sp
+private val NowPlayingTitleLineHeight = 28.sp
+private val NowPlayingArtistFontSize = 15.sp
+private val NowPlayingAlbumFontSize = 13.sp
+private val NowPlayingTimelineFontSize = 12.sp
+private val NowPlayingHelperFontSize = 13.sp
+private val NowPlayingLyricsFontSize = 14.sp
 
 /**
  * Now Playing Screen - Full-screen best style music player.
@@ -799,7 +803,9 @@ private fun LyricsOverlayContent(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Loading lyrics...",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = NowPlayingHelperFontSize
+                    ),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
                 )
             }
@@ -838,7 +844,9 @@ private fun LyricsOverlayContent(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Failed to load lyrics",
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = NowPlayingHelperFontSize
+                    ),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                     textAlign = TextAlign.Center
                 )
@@ -916,10 +924,12 @@ private fun CompactPlainLyricsView(text: String) {
         item {
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = NowPlayingLyricsFontSize
+                ),
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
                 textAlign = TextAlign.Center,
-                lineHeight = MaterialTheme.typography.bodySmall.lineHeight * 1.5f
+                lineHeight = 22.sp
             )
         }
     }
@@ -944,7 +954,9 @@ private fun CompactLyricsNotAvailable() {
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = "No lyrics available",
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = NowPlayingHelperFontSize
+            ),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
         )
     }
@@ -964,18 +976,6 @@ private fun TrackMetadataSection(
     onLikeClick: () -> Unit
 ) {
     val likeStateDescription = if (song.isLiked) "Liked" else "Not liked"
-    var likeAnimationTick by remember { mutableIntStateOf(0) }
-    val likeGradientProgress = remember { Animatable(1f) }
-
-    LaunchedEffect(likeAnimationTick, song.isLiked) {
-        if (song.isLiked && likeAnimationTick > 0) {
-            likeGradientProgress.snapTo(0f)
-            likeGradientProgress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 850, easing = FastOutSlowInEasing)
-            )
-        }
-    }
 
     // Metadata directly on screen background - calm and subordinate
     // Proper spacing to prevent visual overlap with album art
@@ -1004,8 +1004,8 @@ private fun TrackMetadataSection(
                 Text(
                     text = song.title.ifBlank { "Unknown Song" },
                     style = MaterialTheme.typography.songTitleLarge.copy(
-                        fontSize = 24.sp,
-                        lineHeight = 30.sp,
+                        fontSize = NowPlayingTitleFontSize,
+                        lineHeight = NowPlayingTitleLineHeight,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     ),
                     maxLines = 1,
@@ -1019,7 +1019,7 @@ private fun TrackMetadataSection(
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 16.sp,
+                            fontSize = NowPlayingArtistFontSize,
                             fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
                         ),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.80f),
@@ -1033,7 +1033,9 @@ private fun TrackMetadataSection(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = song.album,
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = NowPlayingAlbumFontSize
+                        ),
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -1047,12 +1049,7 @@ private fun TrackMetadataSection(
                 contentAlignment = Alignment.TopEnd
             ) {
                 IconButton(
-                    onClick = {
-                        if (!song.isLiked) {
-                            likeAnimationTick++
-                        }
-                        onLikeClick()
-                    },
+                    onClick = onLikeClick,
                     modifier = Modifier
                         .size(48.dp)
                         .semantics {
@@ -1065,41 +1062,10 @@ private fun TrackMetadataSection(
                         imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = if (song.isLiked) "Unlike" else "Like",
                         tint = if (song.isLiked)
-                            Color.White
+                            MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        modifier = Modifier
-                            .size(28.dp)
-                            .then(
-                                if (song.isLiked) {
-                                    Modifier.drawWithCache {
-                                        val gradientShift = likeGradientProgress.value
-                                        val brush = Brush.linearGradient(
-                                            colors = listOf(
-                                                Color(0xFFFF4D6D),
-                                                Color(0xFFFF8A00),
-                                                Color(0xFFFFD166),
-                                                Color(0xFF80ED99),
-                                                Color(0xFF4D96FF)
-                                            ),
-                                            start = Offset(
-                                                x = -size.width + (2f * size.width * gradientShift),
-                                                y = 0f
-                                            ),
-                                            end = Offset(
-                                                x = size.width * gradientShift,
-                                                y = size.height
-                                            )
-                                        )
-                                        onDrawWithContent {
-                                            drawContent()
-                                            drawRect(brush = brush, blendMode = BlendMode.SrcAtop)
-                                        }
-                                    }
-                                } else {
-                                    Modifier
-                                }
-                            )
+                        modifier = Modifier.size(28.dp)
                     )
                 }
             }
@@ -1196,12 +1162,18 @@ private fun SeekBarSection(
         ) {
             Text(
                 text = formatDuration(displayPosition.toLong()),
-                style = MaterialTheme.typography.compactLabel,
+                style = MaterialTheme.typography.compactLabel.copy(
+                    fontSize = NowPlayingTimelineFontSize,
+                    fontWeight = FontWeight.Medium
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
             Text(
                 text = formatDuration(duration),
-                style = MaterialTheme.typography.compactLabel,
+                style = MaterialTheme.typography.compactLabel.copy(
+                    fontSize = NowPlayingTimelineFontSize,
+                    fontWeight = FontWeight.Medium
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
             )
         }

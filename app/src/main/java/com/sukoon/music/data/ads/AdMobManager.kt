@@ -71,6 +71,27 @@ class AdMobManager @Inject constructor(
     }
 
     /**
+     * Get Interstitial Ad Unit ID (test or production based on flag).
+     */
+    fun getInterstitialAdId(): String {
+        return BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID
+    }
+
+    /**
+     * Get Rewarded Ad Unit ID (test or production based on flag).
+     */
+    fun getRewardedAdId(): String {
+        return BuildConfig.ADMOB_REWARDED_AD_UNIT_ID
+    }
+
+    /**
+     * Get App Open Ad Unit ID (test or production based on flag).
+     */
+    fun getAppOpenAdId(): String {
+        return BuildConfig.ADMOB_APP_OPEN_AD_UNIT_ID
+    }
+
+    /**
      * Check if test ads are enabled.
      */
     fun isUsingTestAds(): Boolean = USE_TEST_ADS

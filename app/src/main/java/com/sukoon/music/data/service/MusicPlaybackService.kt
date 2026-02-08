@@ -293,12 +293,14 @@ class MusicPlaybackService : MediaSessionService() {
                     DevLogger.d("MusicPlaybackService", "Notification preference changed: $shouldShowNotification")
 
                     if (shouldShowNotification) {
-                        // Show notification - ensure player is bound and force refresh
+                        // Show notification: rebind player to force notification re-post after being hidden.
+                        notificationManager?.setPlayer(null)
                         notificationManager?.setPlayer(player)
                         notificationManager?.invalidate()
                         DevLogger.d("MusicPlaybackService", "Notification visibility enabled")
                     } else {
-                        // Hide notification - cancel it directly via system NotificationManager
+                        // Hide notification and detach player so the next enable always rebinds cleanly.
+                        notificationManager?.setPlayer(null)
                         val systemNotificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
                         systemNotificationManager.cancel(NOTIFICATION_ID)
                         if (isForeground) {
