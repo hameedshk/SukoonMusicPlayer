@@ -241,3 +241,17 @@ val Typography.tag: TextStyle
 // Note: Smaller than labelSmall for tight alphabet bar spacing
 val Typography.alphabetLabel: TextStyle
     get() = labelSmall.copy(fontSize = 10.sp)
+
+// ============================================================================
+// Stats Card Typography
+// ============================================================================
+
+// Stat card regular value (non-highlighted data)
+// Usage: ListeningStatsCard normal metrics display
+val Typography.statValue: TextStyle
+    get() = bodySmall.copy(fontSize = 13.sp)
+
+// Stat card highlighted value (emphasized data like total listening time)
+// Usage: ListeningStatsCard featured/primary metric
+val Typography.statValueHighlighted: TextStyle
+    get() = bodyMedium.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold)

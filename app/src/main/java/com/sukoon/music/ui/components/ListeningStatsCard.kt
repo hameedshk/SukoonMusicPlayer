@@ -57,7 +57,7 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(SpacingLarge),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header with gradient accent
@@ -74,10 +74,7 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
                 )
                 Text(
                     text = "Your Week",
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -181,10 +178,10 @@ private fun EnhancedStatLine(
             )
             Text(
                 text = value,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = if (isHighlighted) 15.sp else 13.sp,
-                    fontWeight = if (isHighlighted) FontWeight.SemiBold else FontWeight.Normal
-                ),
+                style = if (isHighlighted)
+                    MaterialTheme.typography.statValueHighlighted
+                else
+                    MaterialTheme.typography.statValue,
                 color = if (isHighlighted)
                     MaterialTheme.colorScheme.onSurface
                 else

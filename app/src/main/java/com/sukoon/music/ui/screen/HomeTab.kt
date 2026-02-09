@@ -58,11 +58,9 @@ fun HomeTab(
 
     LazyColumn(
         modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)  // Respect notch and status bar at top
-        ,
+            .fillMaxSize(),
         contentPadding = PaddingValues(
-            top = ContentTopPadding,           // Additional padding below status bar
+            top = 0.dp,  // No top padding - handled by Scaffold topBar
             bottom = ContentBottomPadding + MiniPlayerHeight + SpacingLarge,  // Gesture bar safe zone + mini player
             start = 0.dp,
             end = 0.dp
@@ -75,9 +73,7 @@ fun HomeTab(
                 // Section header
                 Text(
                     text = "Continue listening",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.cardTitle,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )

@@ -83,6 +83,18 @@ import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
 import com.sukoon.music.ui.theme.*
 
+/**
+ * NowPlaying Screen Spacing Constants
+ *
+ * IMPORTANT: These values are intentionally off the 8dp grid system.
+ * They are derived from precise visual design measurements to achieve optimal
+ * balance in the full-screen player layout. The spacing adapts to screen height
+ * and creates proper visual hierarchy between album art, metadata, and controls.
+ *
+ * DO NOT replace these with standard spacing constants (SpacingSmall, etc.)
+ * without extensive visual verification across multiple device sizes
+ * (compact, medium, expanded height classes).
+ */
 private val NowPlayingTopPaddingMin = 76.dp
 private val NowPlayingTopPaddingMax = 118.dp
 private val NowPlayingAlbumToMetadataMin = 40.dp

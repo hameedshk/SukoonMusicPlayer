@@ -316,7 +316,7 @@ internal fun TabPills(
             ) {
                 Box(
                     modifier = Modifier
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                        .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(

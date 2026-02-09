@@ -96,3 +96,7 @@ val CardShape = RoundedCornerShape(CardCornerRadius)
 val PillShape = RoundedCornerShape(TabPillCornerRadius)
 val ActionButtonShape = RoundedCornerShape(ActionButtonCornerRadius)
 val MiniPlayerShape = RoundedCornerShape(MiniPlayerCornerRadius)
+
+// Compact button/chip shape (8dp radius for smaller UI elements)
+val CompactButtonCornerRadius = 8.dp
+val CompactButtonShape = RoundedCornerShape(CompactButtonCornerRadius)

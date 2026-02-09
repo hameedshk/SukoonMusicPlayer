@@ -88,7 +88,7 @@ internal fun SongItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(

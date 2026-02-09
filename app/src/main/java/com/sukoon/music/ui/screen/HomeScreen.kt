@@ -250,7 +250,7 @@ fun HomeScreen(
                     selectedTab = selectedTab ?: defaultTab,
                     onTabSelected = { handleTabSelection(it) }
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(SpacingSmall))
             }
 
         },
@@ -410,7 +410,7 @@ private fun ScanProgressView(
             style = MaterialTheme.typography.titleLarge
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(SpacingSmall))
 
         Text(
             text = "Found ${scanState.scannedCount} songs",
@@ -419,7 +419,7 @@ private fun ScanProgressView(
         )
 
         scanState.message?.let { message ->
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(SpacingSmall))
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
@@ -496,7 +496,7 @@ private fun EmptyState(
                 contentDescription = null,
                 modifier = Modifier.size(24.dp)
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(SpacingSmall))
             Text(text = if (hasPermission) "Scan for Music" else "Grant Permission")
         }
     }
@@ -513,7 +513,7 @@ private fun PlaylistFilterChips(
 ) {
     val accentTokens = accent()
     LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SpacingSmall),
         modifier = Modifier.fillMaxWidth()
     ) {
         item {
@@ -523,7 +523,7 @@ private fun PlaylistFilterChips(
                 label = { Text("All") },
                 modifier = if (selectedFilter != null) {
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(CompactButtonShape)
                         .surfaceLevel2Gradient()
                 } else {
                     Modifier
@@ -544,7 +544,7 @@ private fun PlaylistFilterChips(
                 } else null,
                 modifier = if (selectedFilter != true) {
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(CompactButtonShape)
                         .surfaceLevel2Gradient()
                 } else {
                     Modifier
@@ -565,7 +565,7 @@ private fun PlaylistFilterChips(
                 } else null,
                 modifier = if (selectedFilter != false) {
                     Modifier
-                        .clip(RoundedCornerShape(8.dp))
+                        .clip(CompactButtonShape)
                         .surfaceLevel2Gradient()
                 } else {
                     Modifier
@@ -934,10 +934,10 @@ private fun SongsContent(
                         ) {
                             Text(
                                 text = "${sortedSongs.size} songs",
-                                style = MaterialTheme.typography.bodyLarge,
+                                style = MaterialTheme.typography.sectionHeader,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(SpacingSmall)) {
                                 IconButton(onClick = { showSortDialog = true }) {
                                     Icon(Icons.Default.Sort, contentDescription = "Sort")
                                 }
@@ -959,10 +959,10 @@ private fun SongsContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(CompactButtonShape)
                                     .surfaceLevel2Gradient()
                                     .clickable(onClick = onShuffleAllClick),
-                                shape = RoundedCornerShape(8.dp),
+                                shape = CompactButtonShape,
                                 color = Color.Transparent
                             ) {
                                 Row(
@@ -971,7 +971,7 @@ private fun SongsContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(SpacingSmall))
                                     Text("Shuffle All", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 }
                             }
@@ -979,10 +979,10 @@ private fun SongsContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .height(40.dp)
-                                    .clip(RoundedCornerShape(8.dp))
+                                    .clip(CompactButtonShape)
                                     .surfaceLevel2Gradient()
                                     .clickable(onClick = onPlayAllClick),
-                                shape = RoundedCornerShape(8.dp),
+                                shape = CompactButtonShape,
                                 color = Color.Transparent
                             ) {
                                 Row(
@@ -991,7 +991,7 @@ private fun SongsContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                                    Spacer(Modifier.width(8.dp))
+                                    Spacer(Modifier.width(SpacingSmall))
                                     Text("Play", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 }
                             }

@@ -52,7 +52,7 @@ fun <T> RecentlyPlayedSection(
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(SpacingSmall)
             ) {
                 Icon(
                     imageVector = Icons.Default.History,
@@ -223,7 +223,7 @@ fun RecentlyPlayedSongCard(
         }
 
         // TEXT BELOW THE CARD
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(SpacingSmall))
         Text(
             text = song.title,
             style = MaterialTheme.typography.bodyMedium,
@@ -279,7 +279,7 @@ fun RecentlyPlayedAlbumCard(
                 )
             }
         }
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(SpacingSmall))
         Text(
             text = album.title,
             style = MaterialTheme.typography.bodyMedium,
