@@ -154,10 +154,5 @@ fun HomeTab(
                 )
             }
         }
-
-        // Bottom padding for mini player clearance
-        item {
-            Spacer(modifier = Modifier.height(MiniPlayerHeight))
-        }
     }
 }

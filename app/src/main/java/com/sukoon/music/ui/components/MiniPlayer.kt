@@ -127,7 +127,7 @@ fun MiniPlayer(
     }
 
     // Position ticker - 100ms for smooth real-time feedback
-    LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
+    LaunchedEffect(playbackState.isPlaying) {
         positionOffset = 0L
         if (playbackState.isPlaying) {
             while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
@@ -137,10 +137,12 @@ fun MiniPlayer(
         }
     }
 
-    Surface(
+    Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = SpacingLarge, vertical = SpacingMedium)
+            .clip(MiniPlayerShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     // Swipe up (negative dragAmount) triggers full player
@@ -149,22 +151,10 @@ fun MiniPlayer(
                     }
                 }
             }
-            .clickable(onClick = onClick),
-        shape = MiniPlayerShape,
-        shadowElevation = 2.dp,
-        color = Color.Transparent
+            .clickable(onClick = onClick)
     ) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surfaceContainer,
-                            MaterialTheme.colorScheme.surfaceContainerHigh
-                        )
-                    )
-                )
+            modifier = Modifier.fillMaxWidth()
         ) {
         Column(
             modifier = Modifier.fillMaxWidth()
