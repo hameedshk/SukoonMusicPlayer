@@ -250,7 +250,6 @@ fun HomeScreen(
                     selectedTab = selectedTab ?: defaultTab,
                     onTabSelected = { handleTabSelection(it) }
                 )
-                Spacer(modifier = Modifier.height(SpacingSmall))
             }
 
         },
@@ -914,13 +913,19 @@ private fun SongsContent(
             }
         }
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+        Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp)
+                contentPadding = PaddingValues(
+                    top = 0.dp,  // No extra top padding - handled by parent Scaffold
+                    bottom = if (isSongSelectionMode && selectedSongIds.isNotEmpty()) {
+                        // Account for bottom action bar in selection mode
+                        MiniPlayerHeight + SpacingSmall + 72.dp
+                    } else {
+                        MiniPlayerHeight + SpacingSmall  // Space for mini player (64dp + 8dp)
+                    }
+                )
             ) {
                 if (!isSongSelectionMode) {
                     stickyHeader(key = "header") {
@@ -928,7 +933,7 @@ private fun SongsContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.background)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -952,7 +957,7 @@ private fun SongsContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .background(MaterialTheme.colorScheme.background)
-                                .padding(horizontal = 16.dp, vertical = 6.dp),
+                                .padding(horizontal = 16.dp, vertical = 4.dp),
                             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
                         ) {
                             Surface(

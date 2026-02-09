@@ -95,30 +95,14 @@ fun PlaylistsScreen(
     val scope = rememberCoroutineScope()
 
     Scaffold(
-        /*topBar = {
-            TopAppBar(
-                title = { Text("Playlists") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }*/
     ) { paddingValues ->
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(WindowInsets.statusBars),
+                .padding(paddingValues),
+                //.windowInsetsPadding(WindowInsets.statusBars),
             contentPadding = PaddingValues(
-                top = 16.dp + ContentTopPadding,
+                top = 0.dp,
                 bottom = 16.dp + ContentBottomPadding,
                 start = 16.dp,
                 end = 16.dp
@@ -1430,7 +1414,7 @@ private fun PlaylistContent(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp, horizontal = 16.dp),
+        contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp, horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Filter Chips Section

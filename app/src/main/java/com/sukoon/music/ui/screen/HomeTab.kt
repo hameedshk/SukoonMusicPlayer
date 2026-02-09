@@ -61,7 +61,7 @@ fun HomeTab(
             .fillMaxSize(),
         contentPadding = PaddingValues(
             top = 0.dp,  // No top padding - handled by Scaffold topBar
-            bottom = ContentBottomPadding + MiniPlayerHeight + SpacingLarge,  // Gesture bar safe zone + mini player
+            bottom = MiniPlayerHeight + SpacingSmall,  // Space for mini player overlay (64dp + 8dp)
             start = 0.dp,
             end = 0.dp
         ),

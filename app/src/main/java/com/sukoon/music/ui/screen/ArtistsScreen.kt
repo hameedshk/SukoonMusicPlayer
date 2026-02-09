@@ -260,7 +260,7 @@ private fun ArtistsContent(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars),
             contentPadding = PaddingValues(
-                top = ContentTopPadding,
+                top = 0.dp,
                 bottom = 80.dp + ContentBottomPadding,
                 start = 0.dp,
                 end = 0.dp

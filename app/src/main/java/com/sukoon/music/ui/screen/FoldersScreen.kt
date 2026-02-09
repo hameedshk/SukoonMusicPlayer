@@ -439,7 +439,7 @@ private fun FoldersContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+                        .padding(horizontal = SpacingLarge, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // ⬆️ Global UP button
@@ -493,7 +493,7 @@ private fun FoldersContent(
             if (folderViewMode == FolderViewMode.DIRECTORIES && browsingContent.isNotEmpty()) {
                 // Hierarchical browsing mode
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    contentPadding = PaddingValues(top = 0.dp, bottom = 4.dp)
                 ) {
                     items(browsingContent.size, key = { index ->
                         when (val item = browsingContent[index]) {
@@ -531,7 +531,7 @@ private fun FoldersContent(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(vertical = 8.dp)
+                    contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp)
                 ) {
                     items(displayFolders, key = { it.id }) { folder ->
                         FolderRow(

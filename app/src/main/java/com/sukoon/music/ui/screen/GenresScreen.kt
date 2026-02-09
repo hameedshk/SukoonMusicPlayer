@@ -186,7 +186,7 @@ import com.sukoon.music.ui.theme.*
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(bottom = 80.dp)
+                                contentPadding = PaddingValues(top = 0.dp, bottom = 80.dp)
                             ) {
                                 // Sort Header / Selection Header (sticky)
                                 stickyHeader(key = "header") {
