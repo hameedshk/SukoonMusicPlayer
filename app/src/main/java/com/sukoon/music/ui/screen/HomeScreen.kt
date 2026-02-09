@@ -235,7 +235,9 @@ fun HomeScreen(
         containerColor = Color.Transparent,
         topBar = {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
             ) {
                 RedesignedTopBar(
                     onPremiumClick = { },

@@ -3,10 +3,8 @@ package com.sukoon.music
 import android.Manifest
 import android.os.Build
 import android.os.Bundle
-import android.view.View
-import android.view.WindowInsets as ViewInsets
-import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -14,21 +12,21 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
+import androidx.compose.material3.MaterialTheme
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
-import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -69,12 +67,31 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Enable edge-to-edge content
-        enableEdgeToEdge()
+        // Enable edge-to-edge content with fully transparent system bars
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.auto(
+                android.graphics.Color.TRANSPARENT,
+                android.graphics.Color.TRANSPARENT
+            )
+        )
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Enable full screen immersive mode
-        setupFullScreenMode()
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+
+        // Disable navigation bar contrast enforcement on Android 10+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            val controller = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+controller.systemBarsBehavior =
+    androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
 
         setContent {
             // Initialize billing manager for premium purchases
@@ -133,6 +150,39 @@ class MainActivity : ComponentActivity() {
                 accentProfile = userPreferences.accentProfile,
                 dynamicColor = false
             ) {
+                // Configure system bar appearance based on theme
+                val isDarkTheme = when (userPreferences.theme) {
+                    AppTheme.LIGHT -> false
+                    AppTheme.DARK, AppTheme.AMOLED -> true
+                    AppTheme.SYSTEM -> isSystemInDarkTheme()
+                }
+
+                // Get background color from theme (must be done in Composable context)
+                val backgroundColor = MaterialTheme.colorScheme.background
+
+                SideEffect {
+                    // Set status bar color to match theme background
+                    window.statusBarColor = backgroundColor.toArgb()
+
+                    val controller = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
+
+                    // Light/dark icons based on theme
+                    controller.isAppearanceLightStatusBars = !isDarkTheme
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        controller.isAppearanceLightNavigationBars = !isDarkTheme
+    }
+
+    // THIS LINE removes the reserved nav-bar rectangle
+    controller.systemBarsBehavior =
+        androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+    // Disable Android grey scrim
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        window.isNavigationBarContrastEnforced = false
+    }
+                }
+
                 val navController = rememberNavController()
 
                 // Observe current route for ad reload trigger
@@ -158,10 +208,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Global layout: NavHost + MiniPlayer + Ad
-                Box(modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.systemBars)
-                ) {
+                // No system bar padding - content draws edge-to-edge behind both status and nav bars
+                Box(modifier = Modifier.fillMaxSize()) {
                     // Main navigation content with bottom padding
                     SukoonNavHost(
                         navController = navController,
@@ -186,8 +234,10 @@ class MainActivity : ComponentActivity() {
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
                                 .padding(
-                                    bottom = (actualAdHeight + SpacingMedium.value).dp
+                                    bottom = actualAdHeight.dp + SpacingMedium
                                 ) // Offset by ad height + spacing
+                                        //.background(Color.Yellow)
+
                         )
                     }
 
@@ -203,7 +253,6 @@ class MainActivity : ComponentActivity() {
                         onAdHeightChanged = { height -> actualAdHeight = height },
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
-                            .windowInsetsPadding(WindowInsets.navigationBars) // Respect gesture bar
                     )
                 }
             }
@@ -228,29 +277,4 @@ class MainActivity : ComponentActivity() {
         premiumManager.disconnect()
     }
 
-    /**
-     * Configure full screen immersive mode.
-     * Hides navigation bar only; keeps status bar visible.
-     */
-    private fun setupFullScreenMode() {
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11+ (API 30+) - Hide navigation bar only, keep status bar
-            window.insetsController?.let { controller ->
-                controller.hide(ViewInsets.Type.navigationBars())
-                controller.systemBarsBehavior =
-                    WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        } else {
-            // Android 10 and below - Hide navigation bar only, keep status bar
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-            )
-        }
-    }
 }
