@@ -115,11 +115,19 @@ fun SongsScreen(
     }
 
     // Get available letters from filtered songs
+    // Order: Symbols/Numbers first (#, 0-9), then Alphabets (A-Z)
     val availableLetters = remember(filteredSongs) {
         filteredSongs
             .mapNotNull { it.title.firstOrNull()?.uppercaseChar() }
             .distinct()
-            .sorted()
+            .sortedWith(compareBy { char ->
+                when {
+                    char.isLetter() -> 2 to char // Letters last, sorted A-Z
+                    char.isDigit() -> 1 to char  // Numbers second, sorted 0-9
+                    else -> 0 to char            // Symbols first
+                }
+            })
+            .map { it.second }
     }
 
     val lazyListState = rememberLazyListState()
@@ -601,10 +609,18 @@ private fun SongSortHeader(
         )
         Row {
             IconButton(onClick = onSortClick) {
-                Icon(Icons.Default.Sort, contentDescription = "Sort")
+                Icon(
+                    imageVector = Icons.Default.Sort,
+                    contentDescription = "Sort",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
             IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Select",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
             }
         }
     }
@@ -627,17 +643,16 @@ private fun AlphabeticalIndex(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .padding(vertical = 16.dp, horizontal = 2.dp),
+            .padding(vertical = 16.dp, horizontal = 4.dp),
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         letters.forEach { letter ->
             val isSelected = selectedLetter == letter
 
-            Text(
-                text = letter.toString(),
+            Box(
                 modifier = Modifier
-                    .size(20.dp)
+                    .size(width = 24.dp, height = 20.dp)
                     .clip(RoundedCornerShape(4.dp))
                     .clickable {
                         selectedLetter = letter
@@ -649,14 +664,18 @@ private fun AlphabeticalIndex(
                                 lazyListState.scrollToItem(index)
                             }
                         }
-                    }
-                    .padding(2.dp),
-                style = MaterialTheme.typography.alphabetLabel.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
-                ),
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = letter.toString(),
+                    style = MaterialTheme.typography.alphabetLabel.copy(
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
+                    ),
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
         }
     }
 }

@@ -113,6 +113,9 @@ fun SukoonNavHost(
                 onNavigateToGenreDetail = { genreId ->
                     navController.navigate(Routes.GenreDetail.createRoute(genreId))
                 },
+                onNavigateToSongSelection = {
+                    navController.navigate(Routes.SongSelection.route)
+                },
                 username = userPreferences?.username ?: ""
             )
         }
@@ -133,6 +136,24 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
+                }
+            )
+        }
+
+        // Song Selection Screen - Multi-select interface
+        composable(route = Routes.SongSelection.route) {
+            SongSelectionScreen(
+                onBackClick = {
+                    navController.navigateUp()
+                }
+            )
+        }
+
+        // Album Selection Screen - Multi-select interface
+        composable(route = Routes.AlbumSelection.route) {
+            AlbumSelectionScreen(
+                onBackClick = {
+                    navController.navigateUp()
                 }
             )
         }
@@ -316,6 +337,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToSmartPlaylist = { smartPlaylistType ->
                     navController.navigate(Routes.SmartPlaylistDetail.createRoute(smartPlaylistType.name))
+                },
+                onNavigateToAlbumSelection = {
+                    navController.navigate(Routes.AlbumSelection.route)
                 }
             )
         }

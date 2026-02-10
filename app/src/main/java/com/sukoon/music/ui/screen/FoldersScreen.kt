@@ -143,6 +143,11 @@ fun FoldersScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(
+                    top = ContentTopPadding,
+                    bottom = ContentBottomPadding
+                )
         ) {
             // Share handler
             val shareHandler = rememberShareHandler()

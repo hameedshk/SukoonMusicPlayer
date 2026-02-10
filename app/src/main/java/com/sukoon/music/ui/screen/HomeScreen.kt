@@ -104,6 +104,7 @@ fun HomeScreen(
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToSongs: () -> Unit = {},
+    onNavigateToSongSelection: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToFolders: () -> Unit = {},
     onNavigateToGenres: () -> Unit = {},
@@ -251,7 +252,6 @@ fun HomeScreen(
                     onTabSelected = { handleTabSelection(it) }
                 )
             }
-
         },
         bottomBar = {
             Column {
@@ -315,7 +315,8 @@ fun HomeScreen(
                                     adMobDecisionAgent = adMobDecisionAgent,
                                     isPremium = isPremium,
                                     onNavigateToArtistDetail = onNavigateToArtistDetail,
-                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail
+                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail,
+                                    onNavigateToSongSelection = onNavigateToSongSelection
                                 )
                             }
                         }
@@ -783,14 +784,11 @@ private fun SongsContent(
     adMobDecisionAgent: AdMobDecisionAgent,
     isPremium: Boolean = false,
     onNavigateToArtistDetail: (Long) -> Unit = {},
-    onNavigateToAlbumDetail: (Long) -> Unit = {}
+    onNavigateToAlbumDetail: (Long) -> Unit = {},
+    onNavigateToSongSelection: () -> Unit = {}
 ) {
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
-    val isSongSelectionMode by viewModel.isSongSelectionMode.collectAsStateWithLifecycle()
-    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
-    var songSongsForPlaylist by remember { mutableStateOf<List<Song>>(emptyList()) }
-    var pendingSongsForPlaylist by remember { mutableStateOf(false) }
     var sortMode by rememberSaveable { mutableStateOf("Song name") }
     var sortOrder by rememberSaveable { mutableStateOf("A to Z") }
     var showSortDialog by remember { mutableStateOf(false) }
@@ -798,7 +796,6 @@ private fun SongsContent(
     var selectedSongId by remember { mutableStateOf<Long?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
-    var songsPendingDeletion by remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -815,11 +812,9 @@ private fun SongsContent(
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
-            songsPendingDeletion = false
         } else {
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
-        songsPendingDeletion = false
     }
 
     val shareHandler = rememberShareHandler()
@@ -867,68 +862,16 @@ private fun SongsContent(
         }
     }
 
-    // Handle pending songs for playlist
-    LaunchedEffect(pendingSongsForPlaylist, selectedSongIds) {
-        if (pendingSongsForPlaylist) {
-            if (selectedSongIds.isNotEmpty()) {
-                val selectedSongs = sortedSongs.filter { it.id in selectedSongIds }
-                songSongsForPlaylist = selectedSongs
-                showAddToPlaylistDialog = true
-            }
-            pendingSongsForPlaylist = false
-        }
-    }
-
-    Scaffold(
-        topBar = {
-            if (isSongSelectionMode) {
-                TopAppBar(
-                    title = {
-                        Text("${selectedSongIds.size} selected")
-                    },
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                viewModel.toggleSongSelectionMode(false)
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Exit selection"
-                            )
-                        }
-                    }
-                )
-            }
-        },
-        bottomBar = {
-            if (isSongSelectionMode && selectedSongIds.isNotEmpty()) {
-                MultiSelectActionBottomBar(
-                    onPlay = { viewModel.playSelectedSongs() },
-                    onAddToPlaylist = { pendingSongsForPlaylist = true },
-                    onDelete = { songsPendingDeletion = true },
-                    onPlayNext = { viewModel.playSelectedSongsNext() },
-                    onAddToQueue = { viewModel.addSelectedSongsToQueue() }
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 state = scrollState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
                     top = 0.dp,  // No extra top padding - handled by parent Scaffold
-                    bottom = if (isSongSelectionMode && selectedSongIds.isNotEmpty()) {
-                        // Account for bottom action bar in selection mode
-                        MiniPlayerHeight + SpacingSmall + 72.dp
-                    } else {
-                        MiniPlayerHeight + SpacingSmall  // Space for mini player (64dp + 8dp)
-                    }
+                    bottom = MiniPlayerHeight + SpacingSmall  // Space for mini player (64dp + 8dp)
                 )
             ) {
-                if (!isSongSelectionMode) {
-                    stickyHeader(key = "header") {
+                stickyHeader(key = "header") {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -944,10 +887,18 @@ private fun SongsContent(
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(SpacingSmall)) {
                                 IconButton(onClick = { showSortDialog = true }) {
-                                    Icon(Icons.Default.Sort, contentDescription = "Sort")
+                                    Icon(
+                                        imageVector = Icons.Default.Sort,
+                                        contentDescription = "Sort",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
-                                IconButton(onClick = { viewModel.toggleSongSelectionMode(true) }) {
-                                    Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                                IconButton(onClick = onNavigateToSongSelection) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Select",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
                                 }
                             }
                         }
@@ -1002,9 +953,9 @@ private fun SongsContent(
                             }
                         }
                     }
-                }
+
                 // Inject native ads every 25 songs (only if user is not premium)
-                val displayItems = if (!isPremium && !isSongSelectionMode) {
+                val displayItems = if (!isPremium) {
                     injectNativeAds(sortedSongs, interval = 25)
                 } else {
                     sortedSongs.map { ListItem.SongItem(it) }
@@ -1042,27 +993,16 @@ private fun SongsContent(
                             val song = item.item as Song
                             val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
                             val index = songs.indexOf(song)
-                            val isSelected = selectedSongIds.contains(song.id)
 
-                            if (isSongSelectionMode) {
-                                SongItemSelectable(
-                                    song = song,
-                                    isSelected = isSelected,
-                                    onClick = {
-                                        viewModel.toggleSongSelection(song.id)
-                                    }
-                                )
-                            } else {
-                                SongItemWithMenu(
-                                    song = song,
-                                    isPlaying = isPlaying,
-                                    onClick = { onSongClick(song, index) },
-                                    onMenuClick = {
-                                        showMenu = true
-                                        selectedSongId = song.id
-                                    }
-                                )
-                            }
+                            SongItemWithMenu(
+                                song = song,
+                                isPlaying = isPlaying,
+                                onClick = { onSongClick(song, index) },
+                                onMenuClick = {
+                                    showMenu = true
+                                    selectedSongId = song.id
+                                }
+                            )
                         }
                         is ListItem.AdItem<*> -> {
                             // Native ad with decision agent integration
@@ -1084,14 +1024,13 @@ private fun SongsContent(
                 }
             }
 
-            if (!isSongSelectionMode) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 4.dp)
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 4.dp)
+                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                     alphabet.forEach { char ->
                         val isHighlighted = char == currentHighlightChar.value
                         Text(
@@ -1118,10 +1057,8 @@ private fun SongsContent(
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
             }
         }
-    }
 
     if (showSortDialog) {
         SongSortDialog(
@@ -1132,85 +1069,6 @@ private fun SongsContent(
                 sortMode = newMode
                 sortOrder = newOrder
                 showSortDialog = false
-            }
-        )
-    }
-
-    if (showMenu && selectedSongId != null) {
-        val freshSong = sortedSongs.find { it.id == selectedSongId }
-        if (freshSong != null) {
-            SongContextMenu(
-                song = freshSong,
-                menuHandler = menuHandler,
-                onDismiss = { showMenu = false }
-            )
-        }
-    }
-
-    // Add to playlist dialog for multi-select
-    if (showAddToPlaylistDialog && songSongsForPlaylist.isNotEmpty()) {
-        AddToPlaylistDialog(
-            playlists = playlists,
-            onPlaylistSelected = { playlistId ->
-                songSongsForPlaylist.forEach { song ->
-                    playlistViewModel.addSongToPlaylist(playlistId, song.id)
-                }
-                showAddToPlaylistDialog = false
-                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
-                viewModel.toggleSongSelectionMode(false)
-            },
-            onDismiss = { showAddToPlaylistDialog = false }
-        )
-    }
-
-    // Delete confirmation dialog for multi-select
-    if (songsPendingDeletion) {
-        AlertDialog(
-            onDismissRequest = { songsPendingDeletion = false },
-            icon = {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.error
-                )
-            },
-            title = {
-                Text("Delete ${selectedSongIds.size} song(s)?")
-            },
-            text = {
-                Text("These songs will be permanently deleted from your device. This cannot be undone.")
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        viewModel.deleteSelectedSongsWithResult { deleteResult ->
-                            when (deleteResult) {
-                                is DeleteHelper.DeleteResult.RequiresPermission -> {
-                                    deleteLauncher.launch(
-                                        IntentSenderRequest.Builder(deleteResult.intentSender).build()
-                                    )
-                                }
-                                is DeleteHelper.DeleteResult.Success -> {
-                                    Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
-                                    songsPendingDeletion = false
-                                    viewModel.toggleSongSelectionMode(false)
-                                }
-                                is DeleteHelper.DeleteResult.Error -> {
-                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
-                                    songsPendingDeletion = false
-                                }
-                            }
-                        }
-                    },
-                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                ) {
-                    Text("Delete")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { songsPendingDeletion = false }) {
-                    Text("Cancel")
-                }
             }
         )
     }

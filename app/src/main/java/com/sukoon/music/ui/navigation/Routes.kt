@@ -64,6 +64,16 @@ sealed class Routes(val route: String) {
     data object Songs : Routes("songs")
 
     /**
+     * Song Selection screen - Full-screen multi-select interface for songs.
+     */
+    data object SongSelection : Routes("song_selection")
+
+    /**
+     * Album Selection screen - Full-screen multi-select interface for albums.
+     */
+    data object AlbumSelection : Routes("album_selection")
+
+    /**
      * Settings screen - App preferences and configuration.
      */
     data object Settings : Routes("settings")

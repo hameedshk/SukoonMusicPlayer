@@ -2,9 +2,6 @@ package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -116,11 +113,10 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(WindowInsets.statusBars),
+                .padding(paddingValues),
             contentPadding = PaddingValues(
-                top = ContentTopPadding,
-                bottom = ContentBottomPadding + 8.dp,
+                top = 8.dp,
+                bottom = 8.dp,
                 start = 0.dp,
                 end = 0.dp
             )
@@ -420,7 +416,7 @@ fun SettingsScreen(
             }
 
             // Footer Spacer
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            item { Spacer(modifier = Modifier.height(8.dp)) }
         }
 
         // Dialogs
@@ -623,14 +619,19 @@ private fun SettingsSectionHeader(
     title: String,
     modifier: Modifier = Modifier
 ) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.sectionHeader,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-    )
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.sectionHeader,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        )
+    }
 }
 
 @Composable

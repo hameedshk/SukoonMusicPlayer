@@ -76,6 +76,7 @@ fun AlbumsScreen(
     onNavigateToAlbum: (Long) -> Unit,
     onBackClick: () -> Unit,
     onNavigateToSmartPlaylist: (com.sukoon.music.domain.model.SmartPlaylistType) -> Unit = {},
+    onNavigateToAlbumSelection: () -> Unit = {},
     viewModel: AlbumsViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
@@ -221,7 +222,7 @@ fun AlbumsScreen(
                                     showSortDialog = true
                                 },
                                 onSelectionClick = {
-                                    viewModel.toggleSelectionMode(true)
+                                    onNavigateToAlbumSelection()
                                 },
                                 modifier = Modifier
                                     .fillMaxWidth()
