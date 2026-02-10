@@ -160,6 +160,7 @@ fun SongsScreen(
     } else {
         // Songs List with Alphabetical Index
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 if (isSongSelectionMode) {
                     TopAppBar(
@@ -200,12 +201,10 @@ fun SongsScreen(
         ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .windowInsetsPadding(WindowInsets.statusBars),
+                modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = paddingValues.calculateTopPadding() + ContentTopPadding,
-                    bottom = paddingValues.calculateBottomPadding() + ContentBottomPadding + 8.dp,
+                    top = if (isSongSelectionMode) paddingValues.calculateTopPadding() else 0.dp,
+                    bottom = (if (isSongSelectionMode) paddingValues.calculateBottomPadding() else 0.dp) + MiniPlayerHeight + SpacingSmall,
                     end = 24.dp,
                     start = 0.dp
                 ),

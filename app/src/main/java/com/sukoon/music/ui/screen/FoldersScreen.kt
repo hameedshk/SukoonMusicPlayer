@@ -129,26 +129,9 @@ fun FoldersScreen(
         }
     }
 
-    Scaffold(
-        /*topBar = {
-            TopAppBar(
-                title = { Text("Folders") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        }*/
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(
-                    top = ContentTopPadding,
-                    bottom = ContentBottomPadding
-                )
-        ) {
+    Column(
+        modifier = Modifier.fillMaxSize()
+    ) {
             // Share handler
             val shareHandler = rememberShareHandler()
 
@@ -179,9 +162,7 @@ fun FoldersScreen(
                 ),
                 onNavigateToNowPlaying = onNavigateToNowPlaying
             )
-
         }
-    }
 
     // Song Info Dialog
     songForInfo?.let { song ->
@@ -302,7 +283,6 @@ private fun EmptyFoldersState(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(
                 top = ContentTopPadding,
                 bottom = ContentBottomPadding + 16.dp
@@ -444,6 +424,7 @@ private fun FoldersContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.surface)
                         .padding(horizontal = SpacingLarge, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -498,7 +479,10 @@ private fun FoldersContent(
             if (folderViewMode == FolderViewMode.DIRECTORIES && browsingContent.isNotEmpty()) {
                 // Hierarchical browsing mode
                 LazyColumn(
-                    contentPadding = PaddingValues(top = 0.dp, bottom = 4.dp)
+                    contentPadding = PaddingValues(
+                        top = 0.dp,
+                        bottom = MiniPlayerHeight + SpacingSmall
+                    )
                 ) {
                     items(browsingContent.size, key = { index ->
                         when (val item = browsingContent[index]) {
@@ -536,7 +520,10 @@ private fun FoldersContent(
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(top = 0.dp, bottom = 8.dp)
+                    contentPadding = PaddingValues(
+                        top = 0.dp,
+                        bottom = MiniPlayerHeight + SpacingSmall
+                    )
                 ) {
                     items(displayFolders, key = { it.id }) { folder ->
                         FolderRow(

@@ -93,6 +93,7 @@ fun SettingsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
                 title = { Text("Settings") },

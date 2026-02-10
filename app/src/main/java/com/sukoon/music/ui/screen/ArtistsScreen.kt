@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
@@ -51,8 +52,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -149,6 +153,7 @@ fun ArtistsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (isSelectionMode) {
                 ArtistSelectionTopBar(
@@ -181,7 +186,7 @@ fun ArtistsScreen(
             onArtistClick = onNavigateToArtistDetail,
             onNavigateToArtistSelection = onNavigateToArtistSelection,
             viewModel = viewModel,
-            modifier = Modifier.padding(padding),
+            modifier = if (isSelectionMode) Modifier.padding(padding) else Modifier,
             playlistViewModel = playlistViewModel,
             showPlaylistDialog = showPlaylistDialog,
             artistSongsForPlaylist = artistSongsForPlaylist,
@@ -259,12 +264,10 @@ private fun ArtistsContent(
     } else {
         LazyColumn(
             state = scrollState,
-            modifier = Modifier
-                .fillMaxSize()
-                .windowInsetsPadding(WindowInsets.statusBars),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = 0.dp,
-                bottom = 80.dp + ContentBottomPadding,
+                bottom = MiniPlayerHeight + ContentBottomPadding,
                 start = 0.dp,
                 end = 0.dp
             )
@@ -615,21 +618,56 @@ private fun ArtistSearchBar(
     query: String,
     onQueryChange: (String) -> Unit
 ) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text("Search artists...") },
-        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        singleLine = true,
-        shape = RoundedCornerShape(24.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline
-        )
-    )
+            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SpacingLarge, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        text = "Search artists...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
+                singleLine = true
+            )
+
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear search"
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -694,7 +732,6 @@ fun EmptyArtistsContentState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(
                 start = 32.dp,
                 end = 32.dp,

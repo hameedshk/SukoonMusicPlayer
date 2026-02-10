@@ -131,6 +131,7 @@ fun AlbumsScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
@@ -148,7 +149,10 @@ fun AlbumsScreen(
                                 contentDescription = "Exit selection"
                             )
                         }
-                    }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 )
             }
         },
@@ -170,8 +174,10 @@ fun AlbumsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .windowInsetsPadding(WindowInsets.statusBars)
+                .then(
+                    if (isSelectionMode) Modifier.padding(paddingValues)
+                    else Modifier
+                )
         ) {
             if (albums.isEmpty()) {
                 EmptyAlbumsState()
@@ -192,7 +198,7 @@ fun AlbumsScreen(
                 LazyColumn(
                     state = scrollState,
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(bottom = 80.dp)
+                    contentPadding = PaddingValues(bottom = MiniPlayerHeight + SpacingSmall)
                 ) {
 
                     // ✅ Recently Played (wrapped correctly)
@@ -505,7 +511,6 @@ private fun EmptyAlbumsState() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars)
             .padding(
                 start = 32.dp,
                 end = 32.dp,

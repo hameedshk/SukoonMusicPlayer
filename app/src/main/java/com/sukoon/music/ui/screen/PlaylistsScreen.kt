@@ -94,16 +94,11 @@ fun PlaylistsScreen(
 
     val scope = rememberCoroutineScope()
 
-    Scaffold(
-    ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-                //.windowInsetsPadding(WindowInsets.statusBars),
+    LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = 0.dp,
-                bottom = 16.dp + ContentBottomPadding,
+                bottom = MiniPlayerHeight + SpacingSmall,
                 start = 16.dp,
                 end = 16.dp
             ),
@@ -174,7 +169,7 @@ fun PlaylistsScreen(
             }
         }
 
-        // Create Playlist Dialog
+    // Create Playlist Dialog
         if (showCreateDialog) {
             CreatePlaylistDialog(
                 onDismiss = { showCreateDialog = false },
@@ -255,7 +250,6 @@ fun PlaylistsScreen(
                 }
             )
         }
-    }
 }
 
 /**

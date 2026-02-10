@@ -136,6 +136,7 @@ import com.sukoon.music.ui.theme.*
         }
 
         Scaffold(
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             topBar = {
                 if (isSelectionMode) {
                     TopAppBar(
@@ -174,7 +175,10 @@ import com.sukoon.music.ui.theme.*
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .then(
+                        if (isSelectionMode) Modifier.padding(paddingValues)
+                        else Modifier
+                    )
             ) {
                 if (genres.isEmpty()) {
                     EmptyGenresState(
@@ -187,7 +191,10 @@ import com.sukoon.music.ui.theme.*
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier.fillMaxSize(),
-                                contentPadding = PaddingValues(top = 0.dp, bottom = 80.dp)
+                                contentPadding = PaddingValues(
+                                    top = 0.dp,
+                                    bottom = MiniPlayerHeight + SpacingSmall
+                                )
                             ) {
                                 // Sort Header / Selection Header (sticky)
                                 stickyHeader(key = "header") {
