@@ -172,10 +172,6 @@ fun AlbumsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .windowInsetsPadding(WindowInsets.statusBars)
-                .padding(
-                    top = ContentTopPadding,
-                    bottom = ContentBottomPadding
-                )
         ) {
             if (albums.isEmpty()) {
                 EmptyAlbumsState()
@@ -550,7 +546,7 @@ private fun RecentlyPlayedAlbumsSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
+            .padding(bottom = 16.dp)
     ) {
         Row(
             modifier = Modifier

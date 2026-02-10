@@ -115,19 +115,21 @@ fun SongsScreen(
     }
 
     // Get available letters from filtered songs
-    // Order: Symbols/Numbers first (#, 0-9), then Alphabets (A-Z)
+    // Order: Symbols first, then Numbers (0-9), then Alphabets (A-Z)
     val availableLetters = remember(filteredSongs) {
         filteredSongs
             .mapNotNull { it.title.firstOrNull()?.uppercaseChar() }
             .distinct()
-            .sortedWith(compareBy { char ->
-                when {
-                    char.isLetter() -> 2 to char // Letters last, sorted A-Z
-                    char.isDigit() -> 1 to char  // Numbers second, sorted 0-9
-                    else -> 0 to char            // Symbols first
-                }
-            })
-            .map { it.second }
+            .sortedWith(compareBy(
+                { char ->
+                    when {
+                        char.isLetter() -> 2 // Letters last
+                        char.isDigit() -> 1  // Numbers second
+                        else -> 0            // Symbols first
+                    }
+                },
+                { it } // Then sort within each category
+            ))
     }
 
     val lazyListState = rememberLazyListState()
@@ -643,17 +645,16 @@ private fun AlphabeticalIndex(
     Column(
         modifier = modifier
             .fillMaxHeight()
-            .padding(vertical = 16.dp, horizontal = 4.dp),
+            .padding(vertical = 8.dp, horizontal = 0.dp),
         verticalArrangement = Arrangement.SpaceEvenly,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         letters.forEach { letter ->
             val isSelected = selectedLetter == letter
 
-            Box(
+            Text(
+                text = letter.toString(),
                 modifier = Modifier
-                    .size(width = 24.dp, height = 20.dp)
-                    .clip(RoundedCornerShape(4.dp))
                     .clickable {
                         selectedLetter = letter
                         coroutineScope.launch {
@@ -664,18 +665,15 @@ private fun AlphabeticalIndex(
                                 lazyListState.scrollToItem(index)
                             }
                         }
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = letter.toString(),
-                    style = MaterialTheme.typography.alphabetLabel.copy(
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold
-                    ),
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                )
-            }
+                    }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.alphabetLabel.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    fontSize = 11.sp
+                ),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
         }
     }
 }

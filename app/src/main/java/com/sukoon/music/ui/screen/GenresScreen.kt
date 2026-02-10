@@ -44,6 +44,7 @@ import com.sukoon.music.ui.theme.*
     fun GenresScreen(
         onNavigateToGenre: (Long) -> Unit,
         onBackClick: () -> Unit,
+        onNavigateToGenreSelection: () -> Unit = {},
         viewModel: GenresViewModel = hiltViewModel(),
         playlistViewModel: PlaylistViewModel = hiltViewModel()
     ) {
@@ -195,7 +196,7 @@ import com.sukoon.music.ui.theme.*
                                         isSelectionMode = isSelectionMode,
                                         selectedCount = selectedGenreIds.size,
                                         onSortClick = { showSortDialog = true },
-                                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
+                                        onSelectionClick = { onNavigateToGenreSelection() },
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .background(MaterialTheme.colorScheme.background)

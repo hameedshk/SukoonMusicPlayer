@@ -96,6 +96,7 @@ import com.sukoon.music.ui.theme.*
 @Composable
 fun ArtistsScreen(
     onNavigateToArtistDetail: (Long) -> Unit,
+    onNavigateToArtistSelection: () -> Unit = {},
     onBackClick: () -> Unit,
     viewModel: ArtistsViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
@@ -178,6 +179,7 @@ fun ArtistsScreen(
             artists = artists,
             recentlyPlayedArtists = recentlyPlayedArtists,
             onArtistClick = onNavigateToArtistDetail,
+            onNavigateToArtistSelection = onNavigateToArtistSelection,
             viewModel = viewModel,
             modifier = Modifier.padding(padding),
             playlistViewModel = playlistViewModel,
@@ -226,6 +228,7 @@ private fun ArtistsContent(
     artists: List<Artist>,
     recentlyPlayedArtists: List<Artist>,
     onArtistClick: (Long) -> Unit,
+    onNavigateToArtistSelection: () -> Unit = {},
     viewModel: ArtistsViewModel,
     modifier: Modifier = Modifier,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
@@ -311,7 +314,7 @@ private fun ArtistsContent(
                     ArtistSortHeader(
                         artistCount = artists.size,
                         onSortClick = { showSortDialog = true },
-                        onSelectionClick = { viewModel.toggleSelectionMode(true) },
+                        onSelectionClick = onNavigateToArtistSelection,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.background)

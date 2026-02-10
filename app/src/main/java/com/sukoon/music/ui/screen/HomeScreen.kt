@@ -105,6 +105,9 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToSongs: () -> Unit = {},
     onNavigateToSongSelection: () -> Unit = {},
+    onNavigateToAlbumSelection: () -> Unit = {},
+    onNavigateToArtistSelection: () -> Unit = {},
+    onNavigateToGenreSelection: () -> Unit = {},
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToFolders: () -> Unit = {},
     onNavigateToGenres: () -> Unit = {},
@@ -323,19 +326,22 @@ fun HomeScreen(
                         "Albums" -> {
                             AlbumsScreen(
                                 onNavigateToAlbum = onNavigateToAlbumDetail,
-                                onBackClick = { }
+                                onBackClick = { },
+                                onNavigateToAlbumSelection = onNavigateToAlbumSelection
                             )
                         }
                         "Artists" -> {
                             ArtistsScreen(
                                 onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                onNavigateToArtistSelection = onNavigateToArtistSelection,
                                 onBackClick = { }
                             )
                         }
                         "Genres" -> {
                             GenresScreen(
                                 onNavigateToGenre = onNavigateToGenreDetail,
-                                onBackClick = { /* optional: navController.popBackStack() */ }
+                                onBackClick = { /* optional: navController.popBackStack() */ },
+                                onNavigateToGenreSelection = onNavigateToGenreSelection
                             )
                         }
                         "Playlist" -> {
