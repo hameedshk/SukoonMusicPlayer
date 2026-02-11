@@ -10,8 +10,11 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -89,8 +92,9 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isNavigationBarContrastEnforced = false
             val controller = androidx.core.view.WindowInsetsControllerCompat(window, window.decorView)
-controller.systemBarsBehavior =
-    androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.systemBarsBehavior =
+                androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.navigationBars())
         }
 
         setContent {
@@ -220,30 +224,25 @@ controller.systemBarsBehavior =
                         userPreferences = userPreferences
                     )
 
-                    // MiniPlayer above ad (z-index 1) - only when playing and not on NowPlayingScreen
-                    if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
+                    // MiniPlayer + Ad overlay positioning
+                    val isMiniPlayerVisible = playbackState.currentSong != null && !isOnNowPlayingScreen
+
+                    // MiniPlayer positioned above ad
+                    if (isMiniPlayerVisible) {
                         MiniPlayer(
                             playbackState = playbackState,
                             onPlayPauseClick = { homeViewModel.playPause() },
                             onNextClick = { homeViewModel.seekToNext() },
                             onSeek = { positionMs -> homeViewModel.seekTo(positionMs) },
                             userPreferences = userPreferences,
-                            onClick = {
-                                navController.navigate(Routes.NowPlaying.route)
-                            },
+                            onClick = { navController.navigate(Routes.NowPlaying.route) },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(
-                                    bottom = actualAdHeight.dp + SpacingMedium
-                                ) // Offset by ad height + spacing
-                                        //.background(Color.Yellow)
-
+                                .padding(bottom = actualAdHeight.dp + SpacingMedium)
                         )
                     }
 
-                    // Global ad banner at absolute bottom (z-index 0)
-                    // Hidden for premium users, respects decision agent
-                    val isMiniPlayerVisible = playbackState.currentSong != null && !isOnNowPlayingScreen
+                    // Ad banner at bottom
                     GlobalBannerAdView(
                         adMobManager = adMobManager,
                         decisionAgent = adMobDecisionAgent,
@@ -251,8 +250,7 @@ controller.systemBarsBehavior =
                         currentRoute = currentRoute,
                         isMiniPlayerVisible = isMiniPlayerVisible,
                         onAdHeightChanged = { height -> actualAdHeight = height },
-                        modifier = Modifier
-                            .align(Alignment.BottomCenter)
+                        modifier = Modifier.align(Alignment.BottomCenter)
                     )
                 }
             }

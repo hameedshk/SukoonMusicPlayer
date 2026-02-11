@@ -149,10 +149,7 @@ fun AlbumsScreen(
                                 contentDescription = "Exit selection"
                             )
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                    }
                 )
             }
         },

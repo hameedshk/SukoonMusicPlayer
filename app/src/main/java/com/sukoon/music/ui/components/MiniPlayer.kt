@@ -141,8 +141,6 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     // Swipe up (negative dragAmount) triggers full player
@@ -153,9 +151,6 @@ fun MiniPlayer(
             }
             .clickable(onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
         Column(
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -328,7 +323,6 @@ fun MiniPlayer(
                         .background(accentColor)
                 )
             }
-        }
         }
     }
 }
