@@ -186,21 +186,18 @@ fun GlobalBannerAdView(
 
     // Issue #6 Fix: Debounced decision evaluation to prevent rapid recomposition
     LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute) {
-        delay(16) // 16ms debounce (one frame at 60fps) - imperceptible but prevents rapid recomposition
-        decision = try {
-            val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
-            DevLogger.d(TAG, "Decision evaluated: shouldShow=${newDecision.shouldShow}, reason=${newDecision.reason}")
-            newDecision
-        } catch (e: Exception) {
-            DevLogger.e(TAG, "Error evaluating banner decision: ${e.message}")
-            AdDecision(false, AdFormat.BANNER, "Error evaluating decision: ${e.message}")
-        }
+         delay(16)
+      val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
+      if (newDecision.shouldShow != lastDecisionState?.shouldShow) {
+          shouldReloadAd = !shouldReloadAd // Toggle only on actual change
+          lastDecisionState = newDecision
+      }
     }
 
     // Consult decision agent and load ad if approved
     DisposableEffect(decision) {
         val currentDecision = decision
-        if (currentDecision == null) {
+        if (currentDecision?.shouldShow == true){
             DevLogger.d(TAG, "Decision is null, waiting for evaluation...")
             return@DisposableEffect onDispose { }
         }
