@@ -117,6 +117,9 @@ fun GlobalBannerAdView(
 ) {
     val context = LocalContext.current
     val TAG = "GlobalBannerAdView"
+    // GlobalBannerAdView.kt - Add decision caching & stabilize ad recreation
+  var lastDecisionState by remember { mutableStateOf<AdDecision?>(null) }
+  var shouldReloadAd by remember { mutableStateOf(false) }
 
     // Observe premium status (decision agent also checks this, but good for early exit)
     val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
@@ -188,30 +191,30 @@ fun GlobalBannerAdView(
     LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute) {
          delay(16)
       val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
-      if (newDecision.shouldShow != lastDecisionState?.shouldShow) {
+         decision = newDecision   // ⭐ REQUIRED
+     if (newDecision.shouldShow != lastDecisionState?.shouldShow) {
           shouldReloadAd = !shouldReloadAd // Toggle only on actual change
           lastDecisionState = newDecision
       }
     }
 
     // Consult decision agent and load ad if approved
-    DisposableEffect(decision) {
-        val currentDecision = decision
-        if (currentDecision?.shouldShow == true){
-            DevLogger.d(TAG, "Decision is null, waiting for evaluation...")
-            return@DisposableEffect onDispose { }
-        }
+    DisposableEffect(decision, shouldReloadAd) {
 
-        // If decision is to suppress, clean up and return
-        if (!currentDecision.shouldShow) {
-            DevLogger.d(TAG, "Banner suppressed: ${currentDecision.reason}")
-            adView?.destroy()
-            adView = null
-            return@DisposableEffect onDispose { }
-        }
+ val currentDecision = decision ?: run {
+        DevLogger.d(TAG, "Decision null, waiting...")
+        return@DisposableEffect onDispose { }
+    }
 
-        // Decision is to show - load ad
-        DevLogger.d(TAG, "Banner approved: ${currentDecision.reason}")
+    if (!currentDecision.shouldShow) {
+        DevLogger.d(TAG, "Banner suppressed: ${currentDecision.reason}")
+        adView?.destroy()
+        adView = null
+        return@DisposableEffect onDispose { }
+    }
+
+    DevLogger.d(TAG, "Banner approved: ${currentDecision.reason}")
+
         if (BuildConfig.DEBUG) {
             Log.d(TAG, "Loading ad | adUnitId=${adMobManager.getBannerAdId()}")
         }

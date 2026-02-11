@@ -680,3 +680,112 @@ fun DeleteConfirmationDialog(
         }
     )
 }
+
+@Composable
+fun StandardSongListItem(
+    song: Song,
+    isPlaying: Boolean,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onClick: () -> Unit,
+    onCheckboxClick: (Boolean) -> Unit = {},
+    onLongPress: () -> Unit = {},
+    onLikeClick: () -> Unit = {},
+    onMenuClick: () -> Unit = {}
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick) // enhanced clickable with long press could be added here if needed
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Selection Checkbox (Visible only in selection mode)
+        if (isSelectionMode) {
+            Checkbox(
+                checked = isSelected,
+                onCheckedChange = onCheckboxClick
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+
+        // Album Art
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            SubcomposeAsyncImage(
+                model = song.albumArtUri,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+                error = {
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = song.album,
+                            artistName = song.artist,
+                            songId = song.id
+                        )
+                    )
+                }
+            )
+            
+            // Playing overlay
+            if (isPlaying) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    AnimatedEqualizer(tint = Color.White)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
+
+        // Song Info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "${song.artist} • ${song.album}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Action Buttons (Hidden in selection mode)
+        if (!isSelectionMode) {
+            // Like Button
+            AnimatedFavoriteIcon(
+                isLiked = song.isLiked,
+                songId = song.id,
+                modifier = Modifier
+                    .padding(8.dp)
+                    .clickable { onLikeClick() }
+            )
+
+            // Menu Button
+            IconButton(onClick = onMenuClick) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
