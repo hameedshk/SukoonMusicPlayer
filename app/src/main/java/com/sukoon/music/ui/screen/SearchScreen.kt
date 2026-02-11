@@ -44,6 +44,8 @@ import com.sukoon.music.domain.model.SearchHistory
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SortMode
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.components.ModernSearchBar
+import com.sukoon.music.ui.components.HighlightedText
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -222,89 +224,8 @@ fun SearchScreen(
     }
 }
 
-@Composable
-private fun ModernSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClearClick: () -> Unit,
-    onBackClick: () -> Unit,
-    onSearchAction: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(56.dp),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Back Button
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
 
-            // Text Field
-            androidx.compose.foundation.text.BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 8.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
-                singleLine = true,
-                cursorBrush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions.Default.copy(
-                    imeAction = ImeAction.Search
-                ),
-                keyboardActions = KeyboardActions(
-                    onSearch = { onSearchAction() }
-                ),
-                decorationBox = { innerTextField ->
-                    Box(contentAlignment = Alignment.CenterStart) {
-                        if (query.isEmpty()) {
-                            Text(
-                                text = "Search songs, artists...",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                        innerTextField()
-                    }
-                }
-            )
 
-            // Clear/Search Icon
-            if (query.isNotEmpty()) {
-                IconButton(onClick = onClearClick) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            } else {
-                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(end = 16.dp)
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun SearchHistorySection(
@@ -662,57 +583,7 @@ private fun SearchResultItem(
     }
 }
 
-@Composable
-fun HighlightedText(
-    text: String,
-    query: String,
-    style: androidx.compose.ui.text.TextStyle,
-    color: Color,
-    highlightColor: Color = MaterialTheme.colorScheme.primary
-) {
-    if (query.isBlank()) {
-        Text(text = text, style = style, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        return
-    }
 
-    val spanStyles = remember(text, query) {
-        val spans = mutableListOf<androidx.compose.ui.text.AnnotatedString.Range<androidx.compose.ui.text.SpanStyle>>()
-        val lowerText = text.lowercase()
-        val lowerQuery = query.lowercase()
-        var startIndex = 0
-        
-        while (startIndex < text.length) {
-            val index = lowerText.indexOf(lowerQuery, startIndex)
-            if (index == -1) break
-            
-            spans.add(
-                androidx.compose.ui.text.AnnotatedString.Range(
-                    androidx.compose.ui.text.SpanStyle(
-                        color = highlightColor,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    start = index,
-                    end = index + query.length
-                )
-            )
-            startIndex = index + query.length
-        }
-        spans
-    }
-
-    val annotatedString = androidx.compose.ui.text.AnnotatedString(
-        text = text,
-        spanStyles = spanStyles
-    )
-
-    Text(
-        text = annotatedString,
-        style = style,
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis
-    )
-}
 
 @Composable
 private fun InitialSearchState(

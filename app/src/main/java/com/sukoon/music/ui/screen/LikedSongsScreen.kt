@@ -136,6 +136,7 @@ fun LikedSongsScreen(
                 onArtistFilterClick = { showArtistMenu = true },
                 onAlbumFilterClick = { showAlbumMenu = true },
                 onClearFilters = { viewModel.clearFilters() },
+                currentSongId = playbackState.currentSong?.id,
                 modifier = Modifier.padding(paddingValues)
             )
 
@@ -213,6 +214,7 @@ private fun LikedSongsContent(
     onArtistFilterClick: () -> Unit,
     onAlbumFilterClick: () -> Unit,
     onClearFilters: () -> Unit,
+    currentSongId: Long?,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -272,12 +274,27 @@ private fun LikedSongsContent(
             items = songs,
             key = { it.id }
         ) { song ->
-            LikedSongItem(
+            var showMenu by remember { mutableStateOf(false) }
+            
+            StandardSongListItem(
                 song = song,
-                menuHandler = menuHandler,
+                isPlaying = currentSongId == song.id,
+                isSelectionMode = false,
+                isSelected = false,
                 onClick = { onSongClick(song) },
-                onLikeClick = { onLikeClick(song) }
+                onCheckboxClick = {},
+                onLongPress = {},
+                onLikeClick = { onLikeClick(song) },
+                onMenuClick = { showMenu = true }
             )
+
+            if (showMenu) {
+                SongContextMenu(
+                    song = song,
+                    menuHandler = menuHandler,
+                    onDismiss = { showMenu = false }
+                )
+            }
         }
     }
 }
@@ -538,123 +555,7 @@ private fun getSortModeLabel(mode: LikedSongsSortMode): String = when (mode) {
     LikedSongsSortMode.DATE_ADDED -> "Recently Added"
 }
 
-@Composable
-private fun LikedSongItem(
-    song: Song,
-    menuHandler: SongMenuHandler,
-    onClick: () -> Unit,
-    onLikeClick: () -> Unit
-) {
-    var showMenu by remember { mutableStateOf(false) }
 
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        color = Color.Transparent
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Album Art
-            Card(
-                modifier = Modifier.size(56.dp),
-                shape = RoundedCornerShape(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (song.albumArtUri != null) {
-                        SubcomposeAsyncImage(
-                            model = song.albumArtUri,
-                            contentDescription = "Album art",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            loading = {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            },
-                            error = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(28.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(28.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Song Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.listItemTitle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "${song.artist} • ${song.album}",
-                    style = MaterialTheme.typography.listItemSubtitle,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // More options menu
-            IconButton(onClick = { showMenu = true }) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
-
-            // Like Button
-            IconButton(onClick = onLikeClick) {
-                AnimatedFavoriteIcon(
-                    isLiked = song.isLiked,
-                    songId = song.id,
-                    tint = MaterialTheme.colorScheme.primary,
-                    size = 24.dp
-                )
-            }
-        }
-    }
-
-    if (showMenu) {
-        SongContextMenu(
-            song = song,
-            menuHandler = menuHandler,
-            onDismiss = { showMenu = false }
-        )
-    }
-}
 
 @Composable
 private fun EmptyLikedSongsState(
