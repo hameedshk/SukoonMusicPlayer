@@ -297,7 +297,12 @@ fun SettingsScreen(
                     icon = Icons.Default.Search,
                     title = "Rescan Library",
                     description = if (isScanning) "Scanning..." else "Manually search for new music files",
-                    onClick = { if (!isScanning) showRescanDialog = true },
+                    onClick = {
+                        if (!isScanning) {
+                            viewModel.resetScanState()
+                            showRescanDialog = true
+                        }
+                    },
                     showLoading = isScanning
                 )
             }
@@ -1164,15 +1169,22 @@ private fun RescanDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    // Check result states first (after scan completes)
-                    if (scanState is com.sukoon.music.domain.model.ScanState.Success || scanState is com.sukoon.music.domain.model.ScanState.Error) {
-                        onDismiss()
-                    } else if (!isScanning) {
-                        // Start scan only if not already scanning and no result state
-                        onConfirm()
+                    when {
+                        // Terminal states (Success/Error) → close dialog
+                        scanState is com.sukoon.music.domain.model.ScanState.Success ||
+                        scanState is com.sukoon.music.domain.model.ScanState.Error -> {
+                            onDismiss()
+                        }
+                        // Idle or any other state → start scan if not already scanning
+                        !isScanning -> {
+                            onConfirm()
+                        }
+                        // If scanning, button is disabled, this shouldn't be reached
                     }
                 },
-                enabled = true
+                enabled = !isScanning ||
+                         scanState is com.sukoon.music.domain.model.ScanState.Success ||
+                         scanState is com.sukoon.music.domain.model.ScanState.Error
             ) {
                 Text(
                     when {

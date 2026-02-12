@@ -242,6 +242,16 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Reset scan state to Idle.
+     * Call this before opening the rescan dialog to clear previous results.
+     */
+    fun resetScanState() {
+        viewModelScope.launch {
+            songRepository.resetScanState()
+        }
+    }
+
+    /**
      * Trigger a rescan of the media library.
      */
     fun rescanLibrary() {

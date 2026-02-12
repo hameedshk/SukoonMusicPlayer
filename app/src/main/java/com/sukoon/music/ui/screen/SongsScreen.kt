@@ -74,7 +74,6 @@ fun SongsScreen(
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
     val isSongSelectionMode by viewModel.isSongSelectionMode.collectAsStateWithLifecycle()
 
-    var searchQuery by remember { mutableStateOf("") }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var sortOrder by remember { mutableStateOf(false) } // false = A-Z, true = Z-A
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
@@ -97,20 +96,12 @@ fun SongsScreen(
         onShare = shareHandler
     )
 
-    // Sort songs alphabetically and filter by search query
-    val filteredSongs = remember(songs, searchQuery, sortOrder) {
-        val filtered = songs
-            .filter { song ->
-                searchQuery.isEmpty() ||
-                song.title.contains(searchQuery, ignoreCase = true) ||
-                song.artist.contains(searchQuery, ignoreCase = true) ||
-                song.album.contains(searchQuery, ignoreCase = true)
-            }
-
+    // Sort songs alphabetically
+    val filteredSongs = remember(songs, sortOrder) {
         if (sortOrder) {
-            filtered.sortedByDescending { it.title.lowercase() }
+            songs.sortedByDescending { it.title.lowercase() }
         } else {
-            filtered.sortedBy { it.title.lowercase() }
+            songs.sortedBy { it.title.lowercase() }
         }
     }
 
@@ -151,7 +142,7 @@ fun SongsScreen(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = if (searchQuery.isEmpty()) "No songs found" else "No results for \"$searchQuery\"",
+                    text = "No songs found",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -238,15 +229,6 @@ fun SongsScreen(
                                 containerColor = MaterialTheme.colorScheme.background
                             )
                         )
-
-                        // Search Bar
-                        if (!isSongSelectionMode) {
-                            SearchBar(
-                                query = searchQuery,
-                                onQueryChange = { searchQuery = it },
-                                onClearQuery = { searchQuery = "" }
-                            )
-                        }
 
                         // Song Count Header with Sort and Selection buttons
                         if (!isSongSelectionMode) {
@@ -344,67 +326,6 @@ fun SongsScreen(
                 songToAddToPlaylist = null
             }
         )
-    }
-}
-
-/**
- * Search bar component for filtering songs.
- */
-@Composable
-private fun SearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClearQuery: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        text = "Search songs, artists, albums...",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                ),
-                singleLine = true
-            )
-
-            if (query.isNotEmpty()) {
-                IconButton(onClick = onClearQuery) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search"
-                    )
-                }
-            }
-        }
     }
 }
 

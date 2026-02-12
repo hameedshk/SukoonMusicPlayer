@@ -6,14 +6,19 @@ import android.content.ContentUris
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.sukoon.music.data.local.entity.SongEntity
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 /**
  * MediaStore data source for querying local audio files.
@@ -57,12 +62,54 @@ class MediaStoreScanner @Inject constructor(
     }
 
     /**
+     * Trigger a media scan for common music directories.
+     * This forces Android to update MediaStore with recent file changes.
+     */
+    private suspend fun triggerMediaScan() {
+        suspendCancellableCoroutine<Unit> { continuation ->
+            val musicDirs = listOfNotNull(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS),
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    Environment.getExternalStorageDirectory()
+                } else {
+                    @Suppress("DEPRECATION")
+                    Environment.getExternalStorageDirectory()
+                }
+            ).filter { it.exists() && it.isDirectory }
+
+            if (musicDirs.isEmpty()) {
+                continuation.resume(Unit)
+                return@suspendCancellableCoroutine
+            }
+
+            // Scan all music directories - callback is called for each path
+            val paths = musicDirs.map { it.absolutePath }.toTypedArray()
+            var scannedCount = 0
+
+            MediaScannerConnection.scanFile(
+                context,
+                paths,
+                null
+            ) { _, _ ->
+                // Callback is invoked for each path
+                scannedCount++
+                if (scannedCount >= paths.size && continuation.isActive) {
+                    continuation.resume(Unit)
+                }
+            }
+        }
+    }
+
+    /**
      * Scan MediaStore for all audio files.
      *
      * Query Strategy:
-     * - URI: MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-     * - Selection: IS_MUSIC = 1 (filter non-music audio files) OR all audio files if showAllAudioFiles is true
-     * - Sort Order: DATE_ADDED DESC (newest first)
+     * 1. Trigger media scan to update MediaStore with recent file changes
+     * 2. Query MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+     * 3. Filter by IS_MUSIC = 1 (unless showAllAudioFiles is true)
+     * 4. Sort by DATE_ADDED DESC (newest first)
      *
      * @param showAllAudioFiles If true, includes ringtones, notifications, and system sounds
      * @param onProgress Callback invoked for each song scanned with (count, title)
@@ -77,6 +124,12 @@ class MediaStoreScanner @Inject constructor(
         if (!hasAudioPermission()) {
             throw SecurityException("READ_MEDIA_AUDIO or READ_EXTERNAL_STORAGE permission not granted")
         }
+
+        // Force MediaStore update by triggering media scan
+        triggerMediaScan()
+
+        // Brief delay to let MediaStore propagate changes
+        kotlinx.coroutines.delay(300)
 
         val songs = mutableListOf<SongEntity>()
         val contentResolver: ContentResolver = context.contentResolver

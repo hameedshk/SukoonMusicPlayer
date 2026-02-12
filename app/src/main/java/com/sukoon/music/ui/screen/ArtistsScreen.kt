@@ -272,14 +272,6 @@ private fun ArtistsContent(
                 end = 0.dp
             )
         ) {
-            // Search Bar (always visible)
-            item {
-                ArtistSearchBar(
-                    query = searchQuery,
-                    onQueryChange = { viewModel.setSearchQuery(it) }
-                )
-            }
-
             // Recently played section
             if (!isSelectionMode && recentlyPlayedArtists.isNotEmpty() && searchQuery.isEmpty()) {
                 item {
@@ -610,64 +602,6 @@ private fun ArtistSortHeader(
         }
     }
 }
-
-@Composable
-private fun ArtistSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = "Search",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            TextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                placeholder = {
-                    Text(
-                        text = "Search artists...",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
-                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
-                ),
-                singleLine = true
-            )
-
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search"
-                    )
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun ArtistSortDialog(
     currentSortMode: ArtistSortMode,

@@ -94,6 +94,12 @@ class SongRepositoryImpl @Inject constructor(
 
     // MediaStore Scanning
 
+    override suspend fun resetScanState() {
+        withContext(Dispatchers.IO) {
+            _scanState.value = ScanState.Idle
+        }
+    }
+
     override suspend fun scanLocalMusic(): Boolean {
         return withContext(Dispatchers.IO) {
             // Prevent concurrent scans
@@ -153,7 +159,7 @@ class SongRepositoryImpl @Inject constructor(
                 false
             } finally {
                 _isScanning.value = false
-                _scanState.value = ScanState.Idle
+                // Don't reset state here - let it persist as Success/Error for UI
             }
         }
     }

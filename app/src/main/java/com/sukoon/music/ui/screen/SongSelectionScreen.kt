@@ -240,8 +240,8 @@ fun SongSelectionScreen(
                     ) {
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
@@ -260,9 +260,7 @@ fun SongSelectionScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight(),
+                                modifier = Modifier.weight(1f),
                                 textStyle = MaterialTheme.typography.bodyLarge,
                                 colors = TextFieldDefaults.colors(
                                     focusedContainerColor = Color.Transparent,

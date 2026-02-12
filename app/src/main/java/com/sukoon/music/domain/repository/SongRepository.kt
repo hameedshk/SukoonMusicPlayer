@@ -41,6 +41,12 @@ interface SongRepository {
     suspend fun getSongById(songId: Long): Song?
 
     /**
+     * Reset scan state to Idle.
+     * Should be called before opening the rescan dialog to clear previous scan results.
+     */
+    suspend fun resetScanState()
+
+    /**
      * Scan MediaStore for local audio files and save to database.
      */
     suspend fun scanLocalMusic(): Boolean
