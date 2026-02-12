@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.animation.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -196,6 +197,17 @@ import com.sukoon.music.ui.theme.*
                                     bottom = MiniPlayerHeight + SpacingSmall
                                 )
                             ) {
+                                // Search Bar (only show when not in selection mode)
+                                if (!isSelectionMode) {
+                                    item(key = "search") {
+                                        GenreSearchBar(
+                                            query = searchQuery,
+                                            onQueryChange = { viewModel.setSearchQuery(it) },
+                                            onClearQuery = { viewModel.setSearchQuery("") }
+                                        )
+                                    }
+                                }
+
                                 // Sort Header / Selection Header (sticky)
                                 stickyHeader(key = "header") {
                                     GenreSortHeader(
@@ -564,4 +576,65 @@ import com.sukoon.music.ui.theme.*
             }
         )
     }
+
+/**
+ * Search bar component for filtering genres.
+ */
+@Composable
+private fun GenreSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClearQuery: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = SpacingLarge, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = "Search",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            TextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        text = "Search genres...",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                },
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    disabledContainerColor = androidx.compose.ui.graphics.Color.Transparent,
+                    focusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                    unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent,
+                ),
+                singleLine = true
+            )
+
+            if (query.isNotEmpty()) {
+                IconButton(onClick = onClearQuery) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Clear search"
+                    )
+                }
+            }
+        }
+    }
+}
 

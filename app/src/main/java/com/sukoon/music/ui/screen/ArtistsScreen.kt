@@ -272,14 +272,12 @@ private fun ArtistsContent(
                 end = 0.dp
             )
         ) {
-            // Search Bar in Selection Mode
-            if (isSelectionMode) {
-                item {
-                    ArtistSearchBar(
-                        query = searchQuery,
-                        onQueryChange = { viewModel.setSearchQuery(it) }
-                    )
-                }
+            // Search Bar (always visible)
+            item {
+                ArtistSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { viewModel.setSearchQuery(it) }
+                )
             }
 
             // Recently played section
@@ -824,8 +822,7 @@ private fun ArtistContextMenuBottomSheet(
                 Column {
                     Text(
                         text = artist.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.cardTitle
                     )
                     Text(
                         text = "${artist.albumCount} albums · ${artist.songCount} songs",

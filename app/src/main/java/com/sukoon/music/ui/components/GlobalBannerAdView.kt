@@ -156,6 +156,8 @@ fun GlobalBannerAdView(
     var adView by remember { mutableStateOf<AdView?>(null) }
     var refreshTrigger by remember { mutableStateOf(0) }
     var decision by remember { mutableStateOf<AdDecision?>(null as AdDecision?) }
+    var loadAttempt by remember { mutableStateOf(0) }
+    var lastFailureTime by remember { mutableStateOf(0L) }
 
     // Issue #4 Fix: Lifecycle-aware timer - only runs when app is active (RESUMED state)
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -195,11 +197,21 @@ fun GlobalBannerAdView(
      if (newDecision.shouldShow != lastDecisionState?.shouldShow) {
           shouldReloadAd = !shouldReloadAd // Toggle only on actual change
           lastDecisionState = newDecision
+          loadAttempt = 0 // Reset retries on new decision cycle
       }
     }
 
+    // Retry backoff delay - waits before attempting next retry
+    LaunchedEffect(lastFailureTime) {
+        if (lastFailureTime > 0) {
+            val backoffMs = (2000L * (1L shl (loadAttempt - 1))).coerceAtMost(8000L)
+            delay(backoffMs)
+            // loadAttempt change will trigger ad load retry via DisposableEffect
+        }
+    }
+
     // Consult decision agent and load ad if approved
-    DisposableEffect(decision, shouldReloadAd) {
+    DisposableEffect(decision, shouldReloadAd, loadAttempt) {
 
  val currentDecision = decision ?: run {
         DevLogger.d(TAG, "Decision null, waiting...")
@@ -210,13 +222,14 @@ fun GlobalBannerAdView(
         DevLogger.d(TAG, "Banner suppressed: ${currentDecision.reason}")
         adView?.destroy()
         adView = null
+        loadAttempt = 0 // Reset retry count
         return@DisposableEffect onDispose { }
     }
 
     DevLogger.d(TAG, "Banner approved: ${currentDecision.reason}")
 
         if (BuildConfig.DEBUG) {
-            Log.d(TAG, "Loading ad | adUnitId=${adMobManager.getBannerAdId()}")
+            Log.d(TAG, "Loading ad | adUnitId=${adMobManager.getBannerAdId()} | attempt=${loadAttempt}")
         }
 
         val startTime = System.currentTimeMillis()
@@ -232,14 +245,26 @@ fun GlobalBannerAdView(
                     }
                     decisionAgent.recordAdLoaded(AdFormat.BANNER, loadTimeMs)
                     decisionAgent.recordAdImpression(AdFormat.BANNER)
+                    loadAttempt = 0 // Reset retry count on success
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
-                    DevLogger.e(TAG, "Banner ad failed to load: ${error.message}")
+                    DevLogger.e(TAG, "Banner ad failed to load: ${error.message} (attempt ${loadAttempt + 1}/3)")
                     if (BuildConfig.DEBUG) {
-                        Log.e(TAG, "Ad failed to load | code=${error.code} | msg=${error.message}")
+                        Log.e(TAG, "Ad failed to load | code=${error.code} | msg=${error.message} | attempt=${loadAttempt + 1}")
                     }
                     decisionAgent.recordAdFailed(AdFormat.BANNER, error.code, error.message)
+
+                    // Retry with exponential backoff (max 3 attempts)
+                    if (loadAttempt < 2) {
+                        val backoffMs = (2000L * (1L shl loadAttempt)).coerceAtMost(8000L)
+                        lastFailureTime = System.currentTimeMillis()
+                        loadAttempt++ // Trigger retry via state change
+                        DevLogger.d(TAG, "Scheduling retry in ${backoffMs}ms (attempt ${loadAttempt}/3)")
+                    } else {
+                        DevLogger.d(TAG, "Max retries (3) reached, giving up on ad load")
+                        loadAttempt = 0
+                    }
                 }
 
                 override fun onAdClicked() {

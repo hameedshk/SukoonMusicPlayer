@@ -291,41 +291,47 @@ internal fun TabPills(
 ) {
     /* val tabs = listOf("Hi Hameed", "Songs","Playlist", "Folders", "Albums", "Artists", "Genres")*/
 
-    LazyRow(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(horizontal = 16.dp)
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        items(
-            count = tabs.size,
-            key = { index -> tabs[index] }
-        ) { index ->
-            val tab = tabs[index]
-            val isSelected = tab == selectedTab
+        LazyRow(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
+        ) {
+            items(
+                count = tabs.size,
+                key = { index -> tabs[index] }
+            ) { index ->
+                val tab = tabs[index]
+                val isSelected = tab == selectedTab
 
-            Surface(
-                modifier = Modifier
-                    .height(TabPillHeight)
-                    .clickable { onTabSelected(tab) },
-                shape = PillShape,
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
-                tonalElevation = 0.dp,
-                shadowElevation = 0.dp
-            ) {
-                Box(
+                Surface(
                     modifier = Modifier
-                        .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-                    contentAlignment = Alignment.Center
+                        .height(TabPillHeight)
+                        .clickable { onTabSelected(tab) },
+                    shape = PillShape,
+                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp
                 ) {
-                    Text(
-                        text = tab,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = tab,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
                 }
             }
         }

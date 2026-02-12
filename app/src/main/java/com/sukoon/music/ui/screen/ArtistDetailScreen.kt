@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,7 +69,8 @@ fun ArtistDetailScreen(
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
-    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
@@ -83,7 +85,9 @@ fun ArtistDetailScreen(
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
-        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowDeleteConfirmation = { song ->
+            if (!isDeleting) songToDelete = song
+        },
         onShowSongInfo = { song -> showInfoForSong = song },
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
@@ -98,10 +102,12 @@ fun ArtistDetailScreen(
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadArtist(artistId)
         } else {
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
+        isDeleting = false
     }
 
     // Delete launcher for multi-select
@@ -110,6 +116,7 @@ fun ArtistDetailScreen(
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
             Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+            viewModel.loadArtist(artistId)
             songsPendingDeletion = false
         } else {
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
@@ -164,6 +171,7 @@ fun ArtistDetailScreen(
                                     multiSelectDeleteLauncher.launch(
                                         IntentSenderRequest.Builder(deleteResult.intentSender).build()
                                     )
+                                    songsPendingDeletion = false
                                 }
                                 is DeleteHelper.DeleteResult.Success -> {
                                     Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
@@ -301,19 +309,27 @@ fun ArtistDetailScreen(
             DeleteConfirmationDialog(
                 song = song,
                 onConfirm = {
-                    when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
-                        is DeleteHelper.DeleteResult.RequiresPermission -> {
-                            deleteLauncher.launch(
-                                IntentSenderRequest.Builder(result.intentSender).build()
-                            )
-                        }
-                        is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
-                            songToDelete = null
-                        }
-                        is DeleteHelper.DeleteResult.Error -> {
-                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
-                            songToDelete = null
+                    if (!isDeleting) {
+                        isDeleting = true
+
+                        when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                            is DeleteHelper.DeleteResult.RequiresPermission -> {
+                                deleteLauncher.launch(
+                                    IntentSenderRequest.Builder(result.intentSender).build()
+                                )
+                                songToDelete = null
+                                isDeleting = false
+                            }
+                            is DeleteHelper.DeleteResult.Success -> {
+                                Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                                songToDelete = null
+                                isDeleting = false
+                            }
+                            is DeleteHelper.DeleteResult.Error -> {
+                                Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                                songToDelete = null
+                                isDeleting = false
+                            }
                         }
                     }
                 },

@@ -153,6 +153,7 @@ class SongRepositoryImpl @Inject constructor(
                 false
             } finally {
                 _isScanning.value = false
+                _scanState.value = ScanState.Idle
             }
         }
     }
@@ -162,6 +163,14 @@ class SongRepositoryImpl @Inject constructor(
     override suspend fun updateLikeStatus(songId: Long, isLiked: Boolean) {
         withContext(Dispatchers.IO) {
             songDao.updateLikeStatus(songId, isLiked)
+        }
+    }
+
+    override suspend fun deleteSong(songId: Long) {
+        withContext(Dispatchers.IO) {
+            val song = songDao.getSongById(songId) ?: return@withContext
+            songDao.deleteSongById(songId)
+            mediaStoreScanner.notifyMediaStoreChanged(song.uri)
         }
     }
 

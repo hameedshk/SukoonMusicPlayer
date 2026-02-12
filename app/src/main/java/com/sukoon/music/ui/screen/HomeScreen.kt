@@ -177,7 +177,8 @@ fun HomeScreen(
     )
 
     // Delete state and launcher
-    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
 
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
@@ -189,6 +190,7 @@ fun HomeScreen(
             Toast.makeText(appContext, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
+        isDeleting = false
     }
 
     // Share handler
@@ -199,7 +201,9 @@ fun HomeScreen(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbumDetail,
         onNavigateToArtist = onNavigateToArtistDetail,
-        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowDeleteConfirmation = { song ->
+            if (!isDeleting) songToDelete = song
+        },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
     )
@@ -370,20 +374,28 @@ fun HomeScreen(
         DeleteConfirmationDialog(
             song = song,
             onConfirm = {
-                when (val result = DeleteHelper.deleteSongs(appContext, listOf(song))) {
-                    is DeleteHelper.DeleteResult.RequiresPermission -> {
-                        deleteLauncher.launch(
-                            IntentSenderRequest.Builder(result.intentSender).build()
-                        )
-                    }
-                    is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(appContext, "Song deleted successfully", Toast.LENGTH_SHORT).show()
-                        viewModel.scanLocalMusic()
-                        songToDelete = null
-                    }
-                    is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(appContext, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
+                if (!isDeleting) {
+                    isDeleting = true
+
+                    when (val result = DeleteHelper.deleteSongs(appContext, listOf(song))) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(appContext, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            viewModel.scanLocalMusic()
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(appContext, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
                     }
                 }
             },
@@ -801,7 +813,8 @@ private fun SongsContent(
     var showMenu by remember { mutableStateOf(false) }
     var selectedSongId by remember { mutableStateOf<Long?>(null) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
-    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -821,6 +834,8 @@ private fun SongsContent(
         } else {
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
+        songToDelete = null
+        isDeleting = false
     }
 
     val shareHandler = rememberShareHandler()
@@ -833,7 +848,9 @@ private fun SongsContent(
             showAddToPlaylistDialog = true
         },
         onShowSongInfo = { song -> showInfoForSong = song },
-        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowDeleteConfirmation = { song ->
+            if (!isDeleting) songToDelete = song
+        },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
     )
@@ -1101,20 +1118,28 @@ private fun SongsContent(
         DeleteConfirmationDialog(
             song = song,
             onConfirm = {
-                when (val result = menuHandler.performDelete(song)) {
-                    is DeleteHelper.DeleteResult.RequiresPermission -> {
-                        deleteLauncher.launch(
-                            IntentSenderRequest.Builder(result.intentSender).build()
-                        )
-                    }
-                    is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
-                        viewModel.scanLocalMusic()
-                        songToDelete = null
-                    }
-                    is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
+                if (!isDeleting) {
+                    isDeleting = true
+
+                    when (val result = menuHandler.performDelete(song)) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            viewModel.scanLocalMusic()
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
                     }
                 }
             },

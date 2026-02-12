@@ -1,5 +1,9 @@
 package com.sukoon.music.domain.model
 
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
 data class Song(
     val id: Long,
     val title: String,
@@ -15,7 +19,7 @@ data class Song(
     val dateAdded: Long = 0,
     val isLiked: Boolean = false,
     val genre: String = "Unknown Genre"
-) {
+) : Parcelable {
     /**
      * Format duration as readable string (e.g., "3:45" or "1:23:45").
      */

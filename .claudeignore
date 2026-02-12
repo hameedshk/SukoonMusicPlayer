@@ -1,0 +1,65 @@
+# Build outputs & caches
+build/
+app/build/
+.gradle/
+.kotlin/
+.cxx/
+externalNativeBuild/
+
+# IDE
+.idea/
+*.iml
+
+# Binaries
+*.apk
+*.aab
+*.jar
+*.aar
+*.so
+*.dex
+
+# Images & media (not needed for code indexing)
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+*.svg
+*.ico
+*.mp3
+*.wav
+*.aac
+*.ogg
+
+# Temp & working directories
+temp_genres/
+workingspace/
+
+# Build script artifacts
+build_output.txt
+.last_build_success
+.last_successful_files
+.last_successful_state
+.last_successful_commit
+
+# Large docs (not coding instructions)
+PLAN.md
+QUEUE_MANAGEMENT_IMPLEMENTATION.md
+QUEUE_UI_IMPLEMENTATION.md
+PRIVACY_POLICY.md
+REQUIRED_SKILLS.md
+
+# Room schema exports (JSON, rarely needed)
+app/schemas/
+
+# Gradle wrapper binary
+gradle/wrapper/gradle-wrapper.jar
+
+# Misc
+local.properties
+*.keystore
+*.jks
+google-services.json
+smart_run.ps1
+.aiexclude
+captures/

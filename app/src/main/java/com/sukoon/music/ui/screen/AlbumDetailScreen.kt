@@ -611,9 +611,8 @@ private fun AlbumSongItemRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.listItemTitle.copy(
-                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
-                    ),
+                    style = MaterialTheme.typography.listItemTitle,
+                    fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,

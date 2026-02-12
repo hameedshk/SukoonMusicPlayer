@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -165,7 +166,8 @@ private fun PlaylistDetailContent(
 ) {
     var showAddSongsDialog by remember { mutableStateOf(false) }
     val availableSongs by viewModel.songsNotInPlaylist.collectAsStateWithLifecycle()
-    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
     var songForInfo by remember { mutableStateOf<Song?>(null) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
@@ -181,6 +183,7 @@ private fun PlaylistDetailContent(
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
+        isDeleting = false
     }
 
     // Share handler
@@ -196,7 +199,9 @@ private fun PlaylistDetailContent(
             showAddToPlaylistDialog = true
         },
         onShowSongInfo = { song -> songForInfo = song },
-        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowDeleteConfirmation = { song ->
+            if (!isDeleting) songToDelete = song
+        },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)
         },
@@ -265,19 +270,27 @@ private fun PlaylistDetailContent(
         DeleteConfirmationDialog(
             song = song,
             onConfirm = {
-                when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
-                    is DeleteHelper.DeleteResult.RequiresPermission -> {
-                        deleteLauncher.launch(
-                            IntentSenderRequest.Builder(result.intentSender).build()
-                        )
-                    }
-                    is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
-                    }
-                    is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
+                if (!isDeleting) {
+                    isDeleting = true
+
+                    when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
                     }
                 }
             },

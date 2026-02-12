@@ -30,6 +30,9 @@ interface SongDao {
     @Delete
     suspend fun deleteSong(song: SongEntity)
 
+    @Query("DELETE FROM songs WHERE id = :songId")
+    suspend fun deleteSongById(songId: Long)
+
     @Query("DELETE FROM songs")
     suspend fun deleteAllSongs()
 

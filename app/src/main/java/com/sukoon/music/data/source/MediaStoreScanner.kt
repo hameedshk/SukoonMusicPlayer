@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -235,5 +236,19 @@ class MediaStoreScanner @Inject constructor(
 
         // Return everything before the last separator (the folder path)
         return filePath.substring(0, lastSeparatorIndex)
+    }
+
+    /**
+     * Notify MediaStore that a file has been deleted.
+     *
+     * This triggers Android's MediaScanner to re-index the deleted file,
+     * ensuring MediaStore stays in sync with the physical storage.
+     *
+     * @param songUri The content URI of the deleted song
+     */
+    fun notifyMediaStoreChanged(songUri: String) {
+        context.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
+            data = Uri.parse(songUri)
+        })
     }
 }

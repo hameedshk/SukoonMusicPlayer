@@ -9,6 +9,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -64,7 +65,8 @@ fun SmartPlaylistDetailScreen(
     val songs by viewModel.currentSmartPlaylistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var isDeleting by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
@@ -80,6 +82,7 @@ fun SmartPlaylistDetailScreen(
             Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
+        isDeleting = false
     }
 
     val shareHandler = rememberShareHandler()
@@ -94,7 +97,9 @@ fun SmartPlaylistDetailScreen(
             showAddToPlaylistDialog = true
         },
         onShare = shareHandler,
-        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowDeleteConfirmation = { song ->
+            if (!isDeleting) songToDelete = song
+        },
         onShowSongInfo = { song -> showInfoForSong = song }
     )
 
@@ -140,19 +145,27 @@ fun SmartPlaylistDetailScreen(
         DeleteConfirmationDialog(
             song = song,
             onConfirm = {
-                when (val result = menuHandler.performDelete(song)) {
-                    is DeleteHelper.DeleteResult.RequiresPermission -> {
-                        deleteLauncher.launch(
-                            IntentSenderRequest.Builder(result.intentSender).build()
-                        )
-                    }
-                    is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
-                    }
-                    is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
-                        songToDelete = null
+                if (!isDeleting) {
+                    isDeleting = true
+
+                    when (val result = menuHandler.performDelete(song)) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {
+                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            songToDelete = null
+                            isDeleting = false
+                        }
                     }
                 }
             },

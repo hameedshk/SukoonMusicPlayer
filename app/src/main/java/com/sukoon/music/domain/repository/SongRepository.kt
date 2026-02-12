@@ -51,6 +51,11 @@ interface SongRepository {
     suspend fun updateLikeStatus(songId: Long, isLiked: Boolean)
 
     /**
+     * Delete a specific song and notify MediaStore.
+     */
+    suspend fun deleteSong(songId: Long)
+
+    /**
      * Delete all songs from the database.
      */
     suspend fun clearDatabase()

@@ -129,8 +129,9 @@ fun PlaylistsScreen(
                 item {
                     Text(
                         text = "My playlists (${playlists.size})",
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(vertical = 8.dp)
+                        style = MaterialTheme.typography.sectionHeader,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
@@ -263,8 +264,9 @@ private fun SmartPlaylistsSection(
     Column {
         Text(
             text = "Smart Playlists",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 12.dp)
+            style = MaterialTheme.typography.sectionHeader,
+            modifier = Modifier.padding(bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         // 2x2 Grid
@@ -381,8 +383,9 @@ private fun PlaylistActionsSection(
     Column {
         Text(
             text = "My playlists ($playlistCount)",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 12.dp)
+            style = MaterialTheme.typography.sectionHeader,
+            modifier = Modifier.padding(bottom = 12.dp),
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         // Action items
