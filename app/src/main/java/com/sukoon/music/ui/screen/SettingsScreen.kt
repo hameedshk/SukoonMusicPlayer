@@ -9,6 +9,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -28,6 +30,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.material.icons.filled.Wallet
+import android.widget.Toast
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.AccentProfile
@@ -539,9 +542,17 @@ fun SettingsScreen(
                 onConfirm = {
                     viewModel.rescanLibrary()
                 },
-                onDismiss = {
+                onDismiss = { finalState ->
                     if (!isScanning) {
                         showRescanDialog = false
+                        // Show toast when dialog closes with success
+                        if (finalState is com.sukoon.music.domain.model.ScanState.Success) {
+                            Toast.makeText(
+                                context,
+                                "✓ Loaded ${finalState.totalSongs} songs",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     }
                 }
             )
@@ -1100,20 +1111,24 @@ private fun RescanDialog(
     isScanning: Boolean,
     scanState: com.sukoon.music.domain.model.ScanState,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: (finalState: com.sukoon.music.domain.model.ScanState) -> Unit
 ) {
     GradientAlertDialog(
         onDismissRequest = {
             // Only dismiss if not scanning
             if (!isScanning) {
-                onDismiss()
+                onDismiss(scanState)
             }
         },
         title = { Text("Rescan Library?") },
         text = {
-            Column {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 when {
                     isScanning -> {
+                        // Scanning in progress
                         Text("Scanning your device for music files...")
                         Spacer(modifier = Modifier.height(16.dp))
                         when (scanState) {
@@ -1135,32 +1150,55 @@ private fun RescanDialog(
                                     )
                                 }
                             }
-                            is com.sukoon.music.domain.model.ScanState.Success -> {
-                                Text(
-                                    text = "✓ Found ${scanState.totalSongs} songs",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Tap Done to close",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            is com.sukoon.music.domain.model.ScanState.Error -> {
-                                Text(
-                                    text = "✗ Error: ${scanState.error}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.error
-                                )
-                            }
                             else -> {
                                 CircularProgressIndicator()
                             }
                         }
                     }
+                    scanState is com.sukoon.music.domain.model.ScanState.Success -> {
+                        // Scan completed successfully
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "✓ Found ${scanState.totalSongs} songs",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Your library has been updated successfully",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
+                    scanState is com.sukoon.music.domain.model.ScanState.Error -> {
+                        // Scan failed
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "✗ Scan Failed",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = scanState.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+                    }
                     else -> {
+                        // Initial state - pre-scan
                         Text("This will scan your device for new music files. It may take a moment.")
                     }
                 }
@@ -1173,7 +1211,7 @@ private fun RescanDialog(
                         // Terminal states (Success/Error) → close dialog
                         scanState is com.sukoon.music.domain.model.ScanState.Success ||
                         scanState is com.sukoon.music.domain.model.ScanState.Error -> {
-                            onDismiss()
+                            onDismiss(scanState)
                         }
                         // Idle or any other state → start scan if not already scanning
                         !isScanning -> {
@@ -1198,7 +1236,7 @@ private fun RescanDialog(
         },
         dismissButton = {
             if (!isScanning) {
-                TextButton(onClick = onDismiss) {
+                TextButton(onClick = { onDismiss(scanState) }) {
                     Text("Cancel")
                 }
             }

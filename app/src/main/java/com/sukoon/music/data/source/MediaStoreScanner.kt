@@ -62,40 +62,37 @@ class MediaStoreScanner @Inject constructor(
     }
 
     /**
-     * Trigger a media scan for common music directories.
-     * This forces Android to update MediaStore with recent file changes.
+     * Trigger a full storage media scan.
+     * This forces Android to update MediaStore with ALL audio files from entire storage,
+     * not just specific directories like Music/Downloads/Podcasts.
+     *
+     * Strategy:
+     * Scan entire external storage root directory - this recursively discovers all subdirectories
+     * and audio files regardless of their location (custom folders, nested paths, etc.)
      */
-    private suspend fun triggerMediaScan() {
+    private suspend fun triggerFullStorageScan() {
         suspendCancellableCoroutine<Unit> { continuation ->
-            val musicDirs = listOfNotNull(
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC),
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PODCASTS),
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    Environment.getExternalStorageDirectory()
-                } else {
-                    @Suppress("DEPRECATION")
-                    Environment.getExternalStorageDirectory()
-                }
-            ).filter { it.exists() && it.isDirectory }
+            // Get external storage root directory
+            val externalStorageRoot = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                Environment.getExternalStorageDirectory()
+            } else {
+                @Suppress("DEPRECATION")
+                Environment.getExternalStorageDirectory()
+            }
 
-            if (musicDirs.isEmpty()) {
+            if (!externalStorageRoot.exists() || !externalStorageRoot.isDirectory) {
                 continuation.resume(Unit)
                 return@suspendCancellableCoroutine
             }
 
-            // Scan all music directories - callback is called for each path
-            val paths = musicDirs.map { it.absolutePath }.toTypedArray()
-            var scannedCount = 0
-
+            // Single root scan catches all subdirectories recursively
+            // MediaScanner will automatically traverse all folders and index audio files
             MediaScannerConnection.scanFile(
                 context,
-                paths,
-                null
+                arrayOf(externalStorageRoot.absolutePath),  // Scan entire storage from root
+                null,  // All MIME types (includes audio)
             ) { _, _ ->
-                // Callback is invoked for each path
-                scannedCount++
-                if (scannedCount >= paths.size && continuation.isActive) {
+                if (continuation.isActive) {
                     continuation.resume(Unit)
                 }
             }
@@ -125,8 +122,8 @@ class MediaStoreScanner @Inject constructor(
             throw SecurityException("READ_MEDIA_AUDIO or READ_EXTERNAL_STORAGE permission not granted")
         }
 
-        // Force MediaStore update by triggering media scan
-        triggerMediaScan()
+        // Force MediaStore update by triggering full storage scan
+        triggerFullStorageScan()
 
         // Brief delay to let MediaStore propagate changes
         kotlinx.coroutines.delay(300)
@@ -154,8 +151,10 @@ class MediaStoreScanner @Inject constructor(
 
         // Selection criteria: Only music files by default, all audio files if showAllAudioFiles is true
         val selection = if (showAllAudioFiles) {
+            android.util.Log.d("MediaStoreScanner", "Scanning ALL audio files (including notifications, ringtones)")
             null  // No filter - include all audio files
         } else {
+            android.util.Log.d("MediaStoreScanner", "Scanning MUSIC files only (IS_MUSIC=1)")
             "${MediaStore.Audio.Media.IS_MUSIC} = 1"  // Only music files
         }
 
@@ -243,10 +242,16 @@ class MediaStoreScanner @Inject constructor(
                 songs.add(songEntity)
                 scannedCount++
 
+                // Debug logging
+                android.util.Log.d("MediaStoreScanner", "Found: $title in $folderPath")
+
                 // Report progress
                 onProgress(scannedCount, title)
             }
         }
+
+        // Log final count
+        android.util.Log.d("MediaStoreScanner", "Scan complete: Found ${songs.size} audio files")
 
         return songs
     }
