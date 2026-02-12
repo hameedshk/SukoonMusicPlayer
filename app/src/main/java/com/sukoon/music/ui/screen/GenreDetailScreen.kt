@@ -614,7 +614,7 @@ private fun GenreSongItemRow(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
