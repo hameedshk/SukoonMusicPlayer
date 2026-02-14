@@ -197,8 +197,18 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
 
+                // Collect premium status for conditional ad rendering
+                val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
+
                 // Track actual ad height (updated dynamically from GlobalBannerAdView)
-                var actualAdHeight by remember { mutableStateOf(AD_CONTAINER_HEIGHT_DP.toFloat()) }
+                var actualAdHeight by remember(isPremium) {
+                    mutableStateOf(if (isPremium) 0f else AD_CONTAINER_HEIGHT_DP.toFloat())
+                }
+
+                // Update ad height reactively when premium status changes
+                LaunchedEffect(isPremium) {
+                    actualAdHeight = if (isPremium) 0f else AD_CONTAINER_HEIGHT_DP.toFloat()
+                }
 
                 // Calculate dynamic bottom padding based on playback state
                 // Hide mini player when on NowPlayingScreen
@@ -242,16 +252,18 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                         )
                     }
 
-                    // Ad banner at bottom
-                    GlobalBannerAdView(
-                        adMobManager = adMobManager,
-                        decisionAgent = adMobDecisionAgent,
-                        premiumManager = premiumManager,
-                        currentRoute = currentRoute,
-                        isMiniPlayerVisible = isMiniPlayerVisible,
-                        onAdHeightChanged = { height -> actualAdHeight = height },
-                        modifier = Modifier.align(Alignment.BottomCenter)
-                    )
+                    // Ad banner at bottom (only for non-premium users)
+                    if (!isPremium) {
+                        GlobalBannerAdView(
+                            adMobManager = adMobManager,
+                            decisionAgent = adMobDecisionAgent,
+                            premiumManager = premiumManager,
+                            currentRoute = currentRoute,
+                            isMiniPlayerVisible = isMiniPlayerVisible,
+                            onAdHeightChanged = { height -> actualAdHeight = height },
+                            modifier = Modifier.align(Alignment.BottomCenter)
+                        )
+                    }
                 }
             }
         }
