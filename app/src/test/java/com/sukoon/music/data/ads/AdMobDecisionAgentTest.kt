@@ -1,7 +1,6 @@
 package com.sukoon.music.data.ads
 
 import android.content.Context
-import androidx.media3.common.Player
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.repository.PlaybackRepository
@@ -10,17 +9,16 @@ import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
-import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertTrue
 
 /**
  * Comprehensive unit tests for AdMobDecisionAgent.

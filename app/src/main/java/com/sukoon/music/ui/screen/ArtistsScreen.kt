@@ -227,7 +227,7 @@ fun ArtistsScreen(
 /**
  * Artists Content - Displays artists in a list view.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun ArtistsContent(
     artists: List<Artist>,

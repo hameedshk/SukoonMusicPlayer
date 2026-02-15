@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -95,6 +96,7 @@ import com.sukoon.music.ui.theme.*
 /**
  * Home Screen - Main entry point of the app.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     onNavigateToNowPlaying: () -> Unit,
@@ -788,7 +790,7 @@ private fun EmptyAlbumsState() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 private fun SongsContent(
     songs: List<Song>,

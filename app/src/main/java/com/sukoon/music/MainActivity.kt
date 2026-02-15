@@ -101,6 +101,11 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
             // Initialize billing manager for premium purchases
             LaunchedEffect(Unit) {
                 premiumManager.initialize()
+
+                // 🐛 DEBUG: Toggle premium status for testing
+                // Uncomment one line below to test:
+                 //preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM user
+                preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM user
             }
             // Observe user preferences for theme selection
             // Use null as initialValue so we can detect when preferences are actually loaded
@@ -200,14 +205,17 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                 // Collect premium status for conditional ad rendering
                 val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
 
+                // Check if on Onboarding screen (ads hidden regardless of premium status)
+                val isOnOnboardingScreen = currentRoute == Routes.Onboarding.route
+
                 // Track actual ad height (updated dynamically from GlobalBannerAdView)
-                var actualAdHeight by remember(isPremium) {
-                    mutableStateOf(if (isPremium) 0f else AD_CONTAINER_HEIGHT_DP.toFloat())
+                var actualAdHeight by remember(isPremium, isOnOnboardingScreen) {
+                    mutableStateOf(if (isPremium || isOnOnboardingScreen) 0f else AD_CONTAINER_HEIGHT_DP.toFloat())
                 }
 
-                // Update ad height reactively when premium status changes
-                LaunchedEffect(isPremium) {
-                    actualAdHeight = if (isPremium) 0f else AD_CONTAINER_HEIGHT_DP.toFloat()
+                // Update ad height reactively when premium status or route changes
+                LaunchedEffect(isPremium, isOnOnboardingScreen) {
+                    actualAdHeight = if (isPremium || isOnOnboardingScreen) 0f else AD_CONTAINER_HEIGHT_DP.toFloat()
                 }
 
                 // Calculate dynamic bottom padding based on playback state
@@ -252,8 +260,8 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                         )
                     }
 
-                    // Ad banner at bottom (only for non-premium users)
-                    if (!isPremium) {
+                    // Ad banner at bottom (only for non-premium users, not on Onboarding)
+                    if (!isPremium && !isOnOnboardingScreen) {
                         GlobalBannerAdView(
                             adMobManager = adMobManager,
                             decisionAgent = adMobDecisionAgent,

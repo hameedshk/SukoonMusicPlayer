@@ -25,6 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -424,7 +425,7 @@ private fun FoldersContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(Color.Transparent)
                         .padding(horizontal = SpacingLarge, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -432,7 +433,8 @@ private fun FoldersContent(
                     IconButton(onClick = { folderViewModel.navigateUp() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowUpward,
-                            contentDescription = "Go to parent folder"
+                            contentDescription = "Go to parent folder",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
 
@@ -443,7 +445,8 @@ private fun FoldersContent(
                         IconButton(onClick = { folderMenuExpanded = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Folder options"
+                                contentDescription = "Folder options",
+                                tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
 

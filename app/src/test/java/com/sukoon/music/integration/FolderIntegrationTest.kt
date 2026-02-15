@@ -13,10 +13,11 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * Integration tests verifying the flow between UserPreferences and SongRepository.
@@ -44,6 +45,10 @@ class FolderIntegrationTest {
         repository = SongRepositoryImpl(
             songDao = songDao,
             recentlyPlayedDao = mockk(relaxed = true),
+            recentlyPlayedArtistDao = mockk(relaxed = true),
+            recentlyPlayedAlbumDao = mockk(relaxed = true),
+            playlistDao = mockk(relaxed = true),
+            genreCoverDao = mockk(relaxed = true),
             mediaStoreScanner = mockk(relaxed = true),
             preferencesManager = preferencesManager,
             scope = testScope
@@ -71,7 +76,7 @@ class FolderIntegrationTest {
         val folders = repository.getAllFolders().first()
         val musicFolder = folders.find { it.name == "Music" }
         assertNotNull(musicFolder)
-        assertEquals(2, musicFolder?.songCount, "Should filter out 10s song")
+        assertEquals(2, musicFolder?.songCount)
     }
 
     /**
@@ -104,7 +109,7 @@ class FolderIntegrationTest {
         // 5. Verify all folders appear again
         folders = repository.getAllFolders().first()
         assertEquals(3, folders.size)
-        assertTrue(folders.any { it.name == "B" }, "Folder B should be visible again")
+        assertTrue(folders.any { it.name == "B" })
     }
 
     private fun createSong(id: Long, title: String, path: String, duration: Long = 180000L): SongEntity {
@@ -118,11 +123,11 @@ class FolderIntegrationTest {
             albumArtUri = null,
             dateAdded = 0L,
             isLiked = false,
-            folderPath = path
+            folderPath = path,
+            genre = "Unknown Genre",
+            year = 0,
+            size = 0,
+            playCount = 0
         )
-    }
-
-    private fun assertNotNull(obj: Any?) {
-        if (obj == null) throw AssertionError("Object is null")
     }
 }

@@ -43,7 +43,10 @@ class PlaybackRepositoryQueueTest {
             context = context,
             scope = testScope,
             songRepository = songRepository,
-            preferencesManager = preferencesManager
+            preferencesManager = preferencesManager,
+            queueRepository = mockk(relaxed = true),
+            listeningStatsRepository = mockk(relaxed = true),
+            sessionController = mockk(relaxed = true)
         )
 
         // Inject mock mediaController using reflection since it's private

@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -70,7 +71,7 @@ import com.sukoon.music.ui.theme.*
  * - Empty state when no albums exist
  * - Tap to navigate to album detail screen
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AlbumsScreen(
     onNavigateToAlbum: (Long) -> Unit,

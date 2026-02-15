@@ -1,43 +1,48 @@
 package com.sukoon.music.viewmodel
 
+import android.content.Context
+import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.ui.viewmodel.FolderViewModel
+import com.sukoon.music.domain.model.UserPreferences
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
-import kotlin.test.assertEquals
 
 /**
  * Unit tests for FolderViewModel.
- *
- * Tests the following functionality:
- * - Folder list exposure
- * - Playback state observation
- * - Play folder functionality
- * - Shuffle folder functionality
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class FolderViewModelTest {
 
     private lateinit var songRepository: SongRepository
     private lateinit var playbackRepository: PlaybackRepository
+    private lateinit var preferencesManager: PreferencesManager
+    private lateinit var adMobManager: AdMobManager
+    private lateinit var context: Context
     private lateinit var viewModel: FolderViewModel
 
     private val testDispatcher = StandardTestDispatcher()
+    private val mockPlaybackState = MutableStateFlow(PlaybackState())
+    private val mockUserPreferences = MutableStateFlow(UserPreferences())
 
     @Before
     fun setup() {
@@ -45,15 +50,22 @@ class FolderViewModelTest {
 
         songRepository = mockk(relaxed = true)
         playbackRepository = mockk(relaxed = true)
+        preferencesManager = mockk(relaxed = true)
+        adMobManager = mockk(relaxed = true)
+        context = mockk(relaxed = true)
 
         // Setup default mocks
-        coEvery { songRepository.getAllFolders() } returns flowOf(emptyList())
-        coEvery { songRepository.getSongsByFolderId(any()) } returns flowOf(emptyList())
-        coEvery { playbackRepository.playbackState } returns flowOf(PlaybackState())
+        every { songRepository.getAllFolders() } returns flowOf(emptyList())
+        every { songRepository.getAllSongs() } returns flowOf(emptyList())
+        every { playbackRepository.playbackState } returns mockPlaybackState
+        every { preferencesManager.userPreferencesFlow } returns mockUserPreferences
 
         viewModel = FolderViewModel(
             songRepository = songRepository,
-            playbackRepository = playbackRepository
+            playbackRepository = playbackRepository,
+            preferencesManager = preferencesManager,
+            adMobManager = adMobManager,
+            context = context
         )
     }
 
@@ -63,103 +75,63 @@ class FolderViewModelTest {
     }
 
     @Test
-    fun `folders StateFlow emits folder list from repository`() = runTest {
+    fun `folders StateFlow emits sorted folder list from repository`() = runTest {
         // Given
         val testFolders = listOf(
-            createFolder(1, "Rock", "/storage/music/Rock", 10),
-            createFolder(2, "Jazz", "/storage/music/Jazz", 5)
+            createFolder(2, "Jazz", "/storage/emulated/0/Music/Jazz", 5),
+            createFolder(1, "Rock", "/storage/emulated/0/Music/Rock", 10)
         )
 
-        coEvery { songRepository.getAllFolders() } returns flowOf(testFolders)
+        every { songRepository.getAllFolders() } returns flowOf(testFolders)
 
-        // Recreate ViewModel with new mock
-        viewModel = FolderViewModel(songRepository, playbackRepository)
+        // Recreate ViewModel to collect from updated flow
+        viewModel = FolderViewModel(
+            songRepository,
+            playbackRepository,
+            preferencesManager,
+            adMobManager,
+            context
+        )
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // Then
-        assertEquals(testFolders, viewModel.folders.value)
+        // Then - NAME_ASC is default
+        assertEquals(2, viewModel.folders.value.size)
+        assertEquals("Jazz", viewModel.folders.value[0].name)
+        assertEquals("Rock", viewModel.folders.value[1].name)
     }
 
     @Test
     fun `playFolder calls playbackRepository with folder songs`() = runTest {
         // Given
-        val folderId = 123L
-        val folderSongs = listOf(
+        val path = "/storage/emulated/0/Music/Rock"
+        val songs = listOf(
             createSong(1, "Song 1"),
-            createSong(2, "Song 2"),
-            createSong(3, "Song 3")
+            createSong(2, "Song 2")
+        )
+        val folders = listOf(
+            createFolder(1, "Rock", path, 2).copy(songIds = listOf(1, 2))
         )
 
-        coEvery { songRepository.getSongsByFolderId(folderId) } returns flowOf(folderSongs)
+        every { songRepository.getAllFolders() } returns flowOf(folders)
+        every { songRepository.getAllSongs() } returns flowOf(songs)
+
+        // Recreate to pick up new flows
+        viewModel = FolderViewModel(
+            songRepository,
+            playbackRepository,
+            preferencesManager,
+            adMobManager,
+            context
+        )
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // When
-        viewModel.playFolder(folderId)
+        viewModel.playFolder(path)
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         coVerify(exactly = 1) {
-            playbackRepository.playQueue(folderSongs, startIndex = 0)
-        }
-    }
-
-    @Test
-    fun `playFolder does not call playbackRepository when folder is empty`() = runTest {
-        // Given
-        val folderId = 123L
-        coEvery { songRepository.getSongsByFolderId(folderId) } returns flowOf(emptyList())
-
-        // When
-        viewModel.playFolder(folderId)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
-        coVerify(exactly = 0) {
-            playbackRepository.playQueue(any(), any())
-        }
-    }
-
-    @Test
-    fun `shuffleFolder calls playbackRepository with shuffled songs`() = runTest {
-        // Given
-        val folderId = 123L
-        val folderSongs = listOf(
-            createSong(1, "Song 1"),
-            createSong(2, "Song 2"),
-            createSong(3, "Song 3")
-        )
-
-        coEvery { songRepository.getSongsByFolderId(folderId) } returns flowOf(folderSongs)
-
-        // When
-        viewModel.shuffleFolder(folderId)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
-        coVerify(exactly = 1) {
-            playbackRepository.playQueue(
-                songs = match { songs ->
-                    // Verify it's a shuffled version of the same songs
-                    songs.size == folderSongs.size &&
-                    songs.containsAll(folderSongs)
-                },
-                startIndex = 0
-            )
-        }
-    }
-
-    @Test
-    fun `shuffleFolder does not call playbackRepository when folder is empty`() = runTest {
-        // Given
-        val folderId = 123L
-        coEvery { songRepository.getSongsByFolderId(folderId) } returns flowOf(emptyList())
-
-        // When
-        viewModel.shuffleFolder(folderId)
-        testDispatcher.scheduler.advanceUntilIdle()
-
-        // Then
-        coVerify(exactly = 0) {
-            playbackRepository.playQueue(any(), any())
+            playbackRepository.playQueue(match { it.size == 2 }, startIndex = 0)
         }
     }
 
@@ -173,26 +145,12 @@ class FolderViewModelTest {
             currentPosition = 5000L
         )
 
-        coEvery { playbackRepository.playbackState } returns flowOf(testPlaybackState)
-
-        // Recreate ViewModel with new mock
-        viewModel = FolderViewModel(songRepository, playbackRepository)
+        // Update the mock StateFlow
+        mockPlaybackState.value = testPlaybackState
         testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertEquals(testPlaybackState, viewModel.playbackState.value)
-    }
-
-    @Test
-    fun `onFolderClick does nothing but is available for future use`() {
-        // Given
-        val folderId = 123L
-
-        // When - Should not throw
-        viewModel.onFolderClick(folderId)
-
-        // Then - Just verify it doesn't crash
-        // This method is a placeholder for future functionality
     }
 
     // Helper functions

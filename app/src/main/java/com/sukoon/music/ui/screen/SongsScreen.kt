@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -59,7 +60,7 @@ import com.sukoon.music.ui.theme.*
 /**
  * Songs Screen - Displays all songs in alphabetical order with search functionality.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SongsScreen(
     onBackClick: () -> Unit,

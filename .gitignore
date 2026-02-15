@@ -26,3 +26,4 @@ build_output.txt
 .last_successful_state
 .last_successful_files
 .last_build_success
+.last_device

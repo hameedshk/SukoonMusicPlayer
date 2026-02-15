@@ -39,5 +39,5 @@ secrets.properties
 
 # 6. TESTING (Optional: Exclude if not working on tests)
 # Only use these if you are focus exclusively on features, not testing
-/app/src/test/
-/app/src/androidTest/
+# /app/src/test/
+# /app/src/androidTest/
