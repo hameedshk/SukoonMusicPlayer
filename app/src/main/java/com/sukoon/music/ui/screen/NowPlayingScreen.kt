@@ -3,6 +3,7 @@ package com.sukoon.music.ui.screen
 import androidx.compose.animation.core.*
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -49,6 +50,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -284,17 +287,17 @@ private fun TopUtilityBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .padding(horizontal = 16.dp),
+            .height(44.dp)
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
             onClick = onBackClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(44.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.KeyboardArrowDown,
+                imageVector = Icons.Default.ExpandMore,
                 contentDescription = stringResource(R.string.now_playing_collapse),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
@@ -303,7 +306,7 @@ private fun TopUtilityBar(
 
         IconButton(
             onClick = onMoreClick,
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(44.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
@@ -430,9 +433,9 @@ private fun NowPlayingContent(
         val topBarOffset = (statusBarTopInset - 8.dp).coerceAtLeast(0.dp)
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val topBarHeight = 48.dp
-            val topContentPadding = (maxHeight * 0.02f).coerceIn(NowPlayingTopPaddingMin, NowPlayingTopPaddingMax)
-            val albumToMetadataSpacing = (maxHeight * 0.04f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
+            val topBarHeight = 44.dp
+            val topContentPadding = 0.dp
+            val albumToMetadataSpacing = (maxHeight * 0.03f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
             val topIntroSpacing = 0.dp
             val metadataToControlsSpacing = if (maxHeight < 700.dp) NowPlayingMetadataToControlsCompact else NowPlayingMetadataToControlsRegular
             val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
@@ -676,6 +679,7 @@ private fun AlbumArtSection(
     }
 
     // Album art container - floating with rounded corners and shadow
+    val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -701,10 +705,12 @@ private fun AlbumArtSection(
                             onDragEnd = {
                                 // Swipe left (negative): next track
                                 if (horizontalDragOffset < -swipeThresholdPx) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onNextClick()
                                 }
                                 // Swipe right (positive): previous track
                                 else if (horizontalDragOffset > swipeThresholdPx) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onPreviousClick()
                                 }
                                 horizontalDragOffset = 0f
@@ -720,7 +726,10 @@ private fun AlbumArtSection(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { onAlbumArtClick() },
-                            onDoubleTap = { onLikeClick() }
+                            onDoubleTap = {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onLikeClick()
+                            }
                         )
                     },
                 contentAlignment = Alignment.Center
@@ -878,7 +887,7 @@ private fun TrackMetadataSection(
 }
 
 /**
- * Like button with spring bounce animation
+ * Like button with spring bounce animation and color pulse
  */
 @Composable
 private fun LikeButton(
@@ -889,12 +898,18 @@ private fun LikeButton(
     var bouncing by remember(isLiked) { mutableStateOf(isLiked) }
 
     val scale by animateFloatAsState(
-        targetValue = if (bouncing) 1.3f else 1.0f,
+        targetValue = if (bouncing) 1.35f else 1.0f,
         animationSpec = spring(
-            dampingRatio = 0.4f,
-            stiffness = 600f
+            dampingRatio = 0.35f,
+            stiffness = 700f
         ),
         label = "like_bounce"
+    )
+
+    val likeColor by animateColorAsState(
+        targetValue = if (isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground,
+        animationSpec = tween(durationMillis = 300),
+        label = "like_color"
     )
 
     val likeDescriptionText = stringResource(
@@ -929,11 +944,8 @@ private fun LikeButton(
             Icon(
                 imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                 contentDescription = null,
-                tint = if (isLiked)
-                    MaterialTheme.colorScheme.primary
-                else
-                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
-                modifier = Modifier.size(26.dp)
+                tint = likeColor.copy(alpha = if (isLiked) 1f else 0.5f),
+                modifier = Modifier.size(24.dp)
             )
         }
     }
@@ -971,13 +983,18 @@ private fun SeekBarSection(
         label = "active_track_opacity"
     )
 
+    val haptic = LocalHapticFeedback.current
+
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
         Slider(
             value = displayPosition,
             onValueChange = {
-                if (!isSeeking) onSeekStart()
+                if (!isSeeking) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onSeekStart()
+                }
                 onSeekChange(it.toLong())
             },
             onValueChangeFinished = onSeekEnd,
@@ -989,7 +1006,7 @@ private fun SeekBarSection(
             colors = SliderDefaults.colors(
                 thumbColor = sliderColor,
                 activeTrackColor = sliderColor.copy(alpha = activeTrackOpacity),
-                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.20f)
             ),
             thumb = {
                 val thumbSize by animateDpAsState(
@@ -997,9 +1014,15 @@ private fun SeekBarSection(
                     animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
                     label = "thumb_size"
                 )
+                val thumbShadow by animateDpAsState(
+                    targetValue = if (isSeeking) 8.dp else 2.dp,
+                    animationSpec = tween(150),
+                    label = "thumb_shadow"
+                )
                 Box(
                     modifier = Modifier
                         .size(thumbSize)
+                        .shadow(thumbShadow, CircleShape)
                         .background(sliderColor, CircleShape)
                         .clip(CircleShape)
                 )
@@ -1114,6 +1137,7 @@ private fun PlaybackControlsSection(
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     val shuffleDesc = stringResource(R.string.now_playing_shuffle)
     val previousDesc = stringResource(R.string.now_playing_previous)
     val playDesc = stringResource(R.string.now_playing_play)
@@ -1140,7 +1164,10 @@ private fun PlaybackControlsSection(
     ) {
         // Shuffle Button (left) with press scale
         PressableIconButton(
-            onClick = onShuffleClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onShuffleClick()
+            },
             modifier = Modifier
                 .size(NowPlayingToggleButtonSize)
                 .semantics {
@@ -1149,17 +1176,32 @@ private fun PlaybackControlsSection(
                 }
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                val shuffleColor by animateColorAsState(
+                    targetValue = if (playbackState.shuffleEnabled) accentColor else MaterialTheme.colorScheme.onBackground,
+                    animationSpec = tween(300),
+                    label = "shuffle_color"
+                )
+                val shuffleAlpha by animateFloatAsState(
+                    targetValue = if (playbackState.shuffleEnabled) 1f else 0.65f,
+                    animationSpec = tween(300),
+                    label = "shuffle_alpha"
+                )
+                val shuffleRotation by animateFloatAsState(
+                    targetValue = if (playbackState.shuffleEnabled) 360f else 0f,
+                    animationSpec = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+                    label = "shuffle_rotation"
+                )
+
                 Icon(
                     imageVector = Icons.Default.Shuffle,
                     contentDescription = null,
-                    tint = if (playbackState.shuffleEnabled)
-                        accentColor
-                    else
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
-                    modifier = Modifier.size(NowPlayingToggleButtonIconSize)
+                    tint = shuffleColor.copy(alpha = shuffleAlpha),
+                    modifier = Modifier
+                        .size(NowPlayingToggleButtonIconSize)
+                        .graphicsLayer(rotationZ = shuffleRotation)
                 )
 
-                // Animated indicator dot
+                // Animated indicator dot with smooth appear/disappear
                 if (playbackState.shuffleEnabled) {
                     Box(
                         modifier = Modifier
@@ -1174,7 +1216,10 @@ private fun PlaybackControlsSection(
 
         // Previous Button with press scale
         PressableIconButton(
-            onClick = onPreviousClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPreviousClick()
+            },
             modifier = Modifier.size(NowPlayingSkipButtonSize)
         ) {
             Icon(
@@ -1187,7 +1232,10 @@ private fun PlaybackControlsSection(
 
         // Play/Pause Button (center, dominant) with press scale
         PressableIconButton(
-            onClick = onPlayPauseClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPlayPauseClick()
+            },
             modifier = Modifier
                 .size(NowPlayingPlayButtonSize)
                 .background(accentColor, CircleShape)
@@ -1211,7 +1259,10 @@ private fun PlaybackControlsSection(
 
         // Next Button with press scale
         PressableIconButton(
-            onClick = onNextClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onNextClick()
+            },
             modifier = Modifier.size(NowPlayingSkipButtonSize)
         ) {
             Icon(
@@ -1224,7 +1275,10 @@ private fun PlaybackControlsSection(
 
         // Repeat Button (right) with press scale
         PressableIconButton(
-            onClick = onRepeatClick,
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onRepeatClick()
+            },
             modifier = Modifier
                 .size(NowPlayingToggleButtonSize)
                 .semantics {
@@ -1233,20 +1287,41 @@ private fun PlaybackControlsSection(
                 }
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                val repeatColor by animateColorAsState(
+                    targetValue = when (playbackState.repeatMode) {
+                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground
+                        else -> accentColor
+                    },
+                    animationSpec = tween(300),
+                    label = "repeat_color"
+                )
+                val repeatAlpha by animateFloatAsState(
+                    targetValue = when (playbackState.repeatMode) {
+                        RepeatMode.OFF -> 0.65f
+                        else -> 1f
+                    },
+                    animationSpec = tween(300),
+                    label = "repeat_alpha"
+                )
+                val repeatScale by animateFloatAsState(
+                    targetValue = if (playbackState.repeatMode != RepeatMode.OFF) 1.15f else 1.0f,
+                    animationSpec = spring(dampingRatio = 0.5f, stiffness = 500f),
+                    label = "repeat_scale"
+                )
+
                 Icon(
                     imageVector = when (playbackState.repeatMode) {
                         RepeatMode.ONE -> Icons.Default.RepeatOne
                         else -> Icons.Default.Repeat
                     },
                     contentDescription = null,
-                    tint = when (playbackState.repeatMode) {
-                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
-                        else -> accentColor
-                    },
-                    modifier = Modifier.size(NowPlayingToggleButtonIconSize)
+                    tint = repeatColor.copy(alpha = repeatAlpha),
+                    modifier = Modifier
+                        .size(NowPlayingToggleButtonIconSize)
+                        .graphicsLayer(scaleX = repeatScale, scaleY = repeatScale)
                 )
 
-                // Animated indicator dot
+                // Animated indicator dot with smooth appear/disappear
                 if (playbackState.repeatMode != RepeatMode.OFF) {
                     Box(
                         modifier = Modifier
@@ -1275,6 +1350,8 @@ private fun SecondaryActionsSection(
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1282,41 +1359,50 @@ private fun SecondaryActionsSection(
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Lyrics Button (opens modal sheet)
-        IconButton(
-            onClick = onLyricsClick,
+        // Lyrics Button (opens modal sheet) - with accent color to highlight premium feature
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLyricsClick()
+            },
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Lyrics,
                 contentDescription = stringResource(R.string.now_playing_lyrics),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                tint = accentColor.copy(alpha = 0.8f),
                 modifier = Modifier.size(24.dp)
             )
         }
 
-        // Share Button
-        IconButton(
-            onClick = onShareClick,
+        // Share Button - standard secondary action color
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onShareClick()
+            },
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Share,
                 contentDescription = stringResource(R.string.now_playing_share),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
         }
 
-        // Queue Button
-        IconButton(
-            onClick = onQueueClick,
+        // Queue Button - standard secondary action color
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onQueueClick()
+            },
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Default.QueueMusic,
                 contentDescription = stringResource(R.string.now_playing_queue),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1342,7 +1428,7 @@ private fun EmptyNowPlayingState() {
             imageVector = Icons.Default.MusicNote,
             contentDescription = null,
             modifier = Modifier.size(96.dp),
-            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
@@ -1672,7 +1758,7 @@ private fun NoLyricsAvailable(modifier: Modifier = Modifier) {
             imageVector = Icons.Default.MusicNote,
             contentDescription = null,
             modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(

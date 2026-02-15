@@ -574,6 +574,9 @@ fun SettingsScreen(
                             premiumManager.purchasePremium(activity)
                         }
                     }
+                },
+                onRestore = {
+                    // Handle restore purchases - placeholder for future implementation
                     showPremiumDialog = false
                 }
             )
@@ -1236,49 +1239,98 @@ private fun RescanDialog(
 }
 
 @Composable
-private fun PremiumDialog(
+fun PremiumDialog(
     onDismiss: () -> Unit,
-    onPurchase: () -> Unit
+    onPurchase: () -> Unit,
+    onRestore: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Go Premium") },
+        shape = RoundedCornerShape(18.dp),
+        title = {
+            Text(
+                text = "Go Premium — Enjoy Pure Music",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
         text = {
             Column {
                 Text(
-                    text = "Remove ads and enjoy uninterrupted music playback",
+                    text = "No ads. No interruptions. Just your offline music.",
                     style = MaterialTheme.typography.bodyMedium
                 )
+
                 Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "Premium benefits:",
+                    text = "What you get",
                     style = MaterialTheme.typography.labelLarge
                 )
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text("✓ No advertisements")
-                Text("✓ Ad-free experience everywhere")
-                Text("✓ Support app development")
+
+                Benefit("Ad-free listening")
+                Benefit("Smooth, uninterrupted playback")
+                Benefit("No distractions while listening")
+                Benefit("Faster & cleaner experience")
+                Benefit("Support independent development")
+
                 Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = "\$9.99 one-time purchase",
+                    text = "₹199 — Lifetime access (India)",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary
+                )
+
+                Text(
+                    text = "$4.99 — Lifetime access (Global)",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "One-time purchase • No subscription • Secured by Google Play",
+                    style = MaterialTheme.typography.bodySmall
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                TextButton(
+                    onClick = onRestore,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                ) {
+                    Text("Restore Purchase")
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Works offline • No recurring charges • One-time purchase",
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
         },
         confirmButton = {
             Button(onClick = onPurchase) {
-                Text("Buy Premium")
+                Text("Unlock Premium")
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Maybe Later")
             }
-        },
-        shape = RoundedCornerShape(16.dp)
+        }
     )
 }
+
+@Composable
+private fun Benefit(text: String) {
+    Text("✓ $text", style = MaterialTheme.typography.bodyMedium)
+}
+
 
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
 @Composable
