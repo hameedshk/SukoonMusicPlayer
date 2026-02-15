@@ -16,6 +16,7 @@ import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
+import com.sukoon.music.ui.model.HomeTabKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -50,8 +51,8 @@ class HomeViewModel @Inject constructor(
     }
 
     // Tab State Management (persisted to DataStore, survives app restart)
-    private val _selectedTab = MutableStateFlow<String?>(null)
-    val selectedTab: StateFlow<String?> = _selectedTab.asStateFlow()
+    private val _selectedTab = MutableStateFlow(HomeTabKey.HOME)
+    val selectedTab: StateFlow<HomeTabKey> = _selectedTab.asStateFlow()
 
     init {
         // Load saved tab from DataStore on ViewModel creation
@@ -59,14 +60,14 @@ class HomeViewModel @Inject constructor(
             // First, load the saved tab value immediately (or null if not set)
             try {
                 val savedTab = preferencesManager.getSelectedHomeTabFlow().first()
-                _selectedTab.value = savedTab
+                _selectedTab.value = HomeTabKey.fromStoredValue(savedTab)
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading selected tab", e)
             }
 
             // Then collect for any future updates
             preferencesManager.getSelectedHomeTabFlow().collect { savedTab ->
-                _selectedTab.value = savedTab
+                _selectedTab.value = HomeTabKey.fromStoredValue(savedTab)
             }
         }
 
@@ -136,10 +137,10 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun setSelectedTab(tab: String) {
+    fun setSelectedTab(tab: HomeTabKey) {
         _selectedTab.value = tab
         viewModelScope.launch {
-            preferencesManager.setSelectedHomeTab(tab)
+            preferencesManager.setSelectedHomeTab(tab.storageToken)
         }
     }
 

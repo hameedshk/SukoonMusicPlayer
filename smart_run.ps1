@@ -29,6 +29,7 @@ $LAST_DEVICE_FILE = ".last_device"
 
 # ============== DEVICE HELPERS ==============
 $scriptStart = Get-Date
+Import-Module BurntToast
 
 function Format-Duration($ts) {
     return "{0:mm\:ss\.fff}" -f $ts
@@ -400,8 +401,8 @@ elseif ($needsBuild) {
 	Write-Host ("Build took: {0}" -f (Format-Duration $buildTime))
 }
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Host "❌ Build failed" -ForegroundColor Red
+if ($LASTEXITCODE -ne 0) {    
+	New-BurntToastNotification -Text "Build Failed ❌", "Check logs for errors."
     exit 1
 }
 "OK" | Out-File $BUILD_SUCCESS_FILE -Encoding ascii
@@ -423,6 +424,14 @@ else {
 $totalTime = (Get-Date) - $scriptStart
 
 Write-Host ("⏱ Total   : {0:mm\:ss}" -f (Format-Duration  $totalTime))
+
+if ($LASTEXITCODE -eq 0) {
+    New-BurntToastNotification -Text "Build Success ✅", "Your build completed successfully."
+	 [console]::beep(800,500)
+} else {
+    New-BurntToastNotification -Text "Build Failed ❌", "Check logs for errors."
+	[console]::beep(300,900)
+}
 
 # Auto-detect (default)
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1

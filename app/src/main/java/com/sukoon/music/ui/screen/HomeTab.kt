@@ -34,6 +34,7 @@ import com.sukoon.music.ui.components.RecentlyPlayedScrollSection
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
+import com.sukoon.music.ui.model.HomeTabKey
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.ui.theme.*
 import androidx.compose.foundation.layout.Spacer
@@ -108,10 +109,10 @@ fun HomeTab(
         // TERTIARY: Library Navigation Cards
         item {
             LibraryNavigationCards(
-                onSongsClick = { viewModel.setSelectedTab("Songs") },
-                onPlaylistsClick = { viewModel.setSelectedTab("Playlist") },
-                onAlbumsClick = { viewModel.setSelectedTab("Albums") },
-                onFoldersClick = { viewModel.setSelectedTab("Folders") }
+                onSongsClick = { viewModel.setSelectedTab(HomeTabKey.SONGS) },
+                onPlaylistsClick = { viewModel.setSelectedTab(HomeTabKey.PLAYLISTS) },
+                onAlbumsClick = { viewModel.setSelectedTab(HomeTabKey.ALBUMS) },
+                onFoldersClick = { viewModel.setSelectedTab(HomeTabKey.FOLDERS) }
             )
         }
 

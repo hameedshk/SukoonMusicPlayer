@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.R
@@ -66,16 +68,27 @@ fun OnboardingScreen(
         onPermissionDenied = {}
     )
 
-    val scrollState = rememberScrollState()
+  val scrollState = rememberScrollState()
+var contentHeightPx by remember { mutableStateOf(0) }
+val density = LocalDensity.current
+
+BoxWithConstraints(Modifier.fillMaxSize()) {
+    val screenHeight = maxHeight
+    val contentHeightDp = with(density) { contentHeightPx.toDp() }
+    val shouldScroll = contentHeightDp > screenHeight + 4.dp
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+			  .then(
+				if (shouldScroll) Modifier.verticalScroll(scrollState)
+				else Modifier
+					)
+            .padding(24.dp)
+			.imePadding()
+            .onSizeChanged { contentHeightPx = it.height },
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -147,13 +160,6 @@ fun OnboardingScreen(
                     style = MaterialTheme.typography.buttonText
                 )
             }
-
-            Text(
-                text = "*This is required to load your music",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
-            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -199,11 +205,11 @@ fun OnboardingScreen(
                 shape = RoundedCornerShape(12.dp),
                 isError = usernameError.isNotEmpty(),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = if (usernameError.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                    errorIndicatorColor = MaterialTheme.colorScheme.error
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+					unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+					focusedIndicatorColor = MaterialTheme.colorScheme.outline,
+				unfocusedIndicatorColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.6f),
+				errorIndicatorColor = MaterialTheme.colorScheme.error
                 )
             )
 
@@ -220,7 +226,7 @@ fun OnboardingScreen(
                     Text(
                         text = "Display name: $displayUsername",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -276,7 +282,8 @@ fun OnboardingScreen(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+				disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         ) {
             Text(
@@ -286,15 +293,15 @@ fun OnboardingScreen(
         }
 
         Text(
-            text = "Grant permission is mandatory to use app",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-
+			text = "Music access is required to use Sukoon",
+			style = MaterialTheme.typography.labelSmall,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+			textAlign = TextAlign.Center,
+			modifier = Modifier.padding(top = 12.dp)
+			)
         Spacer(modifier = Modifier.height(24.dp))
     }
+}
 }
 
 @Preview

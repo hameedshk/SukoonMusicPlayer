@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
@@ -63,6 +64,8 @@ import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.ActionButtonShape
 import com.sukoon.music.ui.theme.PillShape
+import com.sukoon.music.ui.model.HomeTabKey
+import com.sukoon.music.ui.model.HomeTabSpec
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -159,23 +162,22 @@ fun HomeScreen(
 
     // Use provided username or default greeting
     val displayUsername = username.ifBlank { "there" }
-    val defaultTab = "Hi $username"
 
     // Use ViewModel's tab state (persisted to DataStore, survives app restart)
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
 
-    val handleTabSelection: (String) -> Unit = { tab ->
+    val handleTabSelection: (HomeTabKey) -> Unit = { tab ->
         viewModel.setSelectedTab(tab)
     }
 
     val tabs = listOf(
-        "Hi $username",
-        "Songs",
-        "Playlist",
-        "Folders",
-        "Albums",
-        "Artists",
-        "Genres"
+        HomeTabSpec(HomeTabKey.HOME, "Hi $displayUsername", Icons.Default.Home),
+        HomeTabSpec(HomeTabKey.SONGS, "Songs", Icons.Default.MusicNote),
+        HomeTabSpec(HomeTabKey.PLAYLISTS, "Playlists", Icons.AutoMirrored.Filled.List),
+        HomeTabSpec(HomeTabKey.FOLDERS, "Folders", Icons.Default.Folder),
+        HomeTabSpec(HomeTabKey.ALBUMS, "Albums", Icons.Default.Album),
+        HomeTabSpec(HomeTabKey.ARTISTS, "Artists", Icons.Default.Person),
+        HomeTabSpec(HomeTabKey.GENRES, "Genres", Icons.Default.Star)
     )
 
     // Delete state and launcher
@@ -257,7 +259,7 @@ fun HomeScreen(
                 )
                 TabPills(
                     tabs = tabs,
-                    selectedTab = selectedTab ?: defaultTab,
+                    selectedTab = selectedTab,
                     onTabSelected = { handleTabSelection(it) }
                 )
             }
@@ -290,8 +292,8 @@ fun HomeScreen(
                     )
                 }
                 else -> {
-                    when (selectedTab ?: defaultTab) {
-                        "Hi $username" -> {
+                    when (selectedTab) {
+                        HomeTabKey.HOME -> {
                             HomeTab(
                                 songs = songs,
                                 recentlyPlayed = recentlyPlayed,
@@ -304,60 +306,58 @@ fun HomeScreen(
                                 onSettingsClick = onNavigateToSettings
                             )
                         }
-                        "Songs" -> {
-                            if (adMobManager != null && adMobDecisionAgent != null) {
-                                SongsContent(
-                                    songs = songs,
-                                    playbackState = playbackState,
-                                    onSongClick = { song, index ->
-                                        if (playbackState.currentSong?.id != song.id) {
-                                            viewModel.playQueue(songs, index)
-                                        } else {
-                                            onNavigateToNowPlaying()
-                                        }
-                                    },
-                                    onShuffleAllClick = { viewModel.shuffleAll() },
-                                    onPlayAllClick = { viewModel.playAll() },
-                                    viewModel = viewModel,
-                                    playlistViewModel = playlistViewModel,
-                                    adMobManager = adMobManager,
-                                    adMobDecisionAgent = adMobDecisionAgent,
-                                    isPremium = isPremium,
-                                    onNavigateToArtistDetail = onNavigateToArtistDetail,
-                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail,
-                                    onNavigateToSongSelection = onNavigateToSongSelection
-                                )
-                            }
+                        HomeTabKey.SONGS -> {
+                            SongsContent(
+                                songs = songs,
+                                playbackState = playbackState,
+                                onSongClick = { song, index ->
+                                    if (playbackState.currentSong?.id != song.id) {
+                                        viewModel.playQueue(songs, index)
+                                    } else {
+                                        onNavigateToNowPlaying()
+                                    }
+                                },
+                                onShuffleAllClick = { viewModel.shuffleAll() },
+                                onPlayAllClick = { viewModel.playAll() },
+                                viewModel = viewModel,
+                                playlistViewModel = playlistViewModel,
+                                adMobManager = adMobManager,
+                                adMobDecisionAgent = adMobDecisionAgent,
+                                isPremium = isPremium,
+                                onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                onNavigateToAlbumDetail = onNavigateToAlbumDetail,
+                                onNavigateToSongSelection = onNavigateToSongSelection
+                            )
                         }
-                        "Albums" -> {
+                        HomeTabKey.ALBUMS -> {
                             AlbumsScreen(
                                 onNavigateToAlbum = onNavigateToAlbumDetail,
                                 onBackClick = { },
                                 onNavigateToAlbumSelection = onNavigateToAlbumSelection
                             )
                         }
-                        "Artists" -> {
+                        HomeTabKey.ARTISTS -> {
                             ArtistsScreen(
                                 onNavigateToArtistDetail = onNavigateToArtistDetail,
                                 onNavigateToArtistSelection = onNavigateToArtistSelection,
                                 onBackClick = { }
                             )
                         }
-                        "Genres" -> {
+                        HomeTabKey.GENRES -> {
                             GenresScreen(
                                 onNavigateToGenre = onNavigateToGenreDetail,
                                 onBackClick = { /* optional: navController.popBackStack() */ },
                                 onNavigateToGenreSelection = onNavigateToGenreSelection
                             )
                         }
-                        "Playlist" -> {
+                        HomeTabKey.PLAYLISTS -> {
                             PlaylistsScreen(
                                onNavigateToPlaylist = onNavigateToPlaylistDetail,
                                onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
                                 onBackClick = { }
                             )
                         }
-                        "Folders" -> {
+                        HomeTabKey.FOLDERS -> {
                             FoldersScreen(
                                 onNavigateToFolder = onNavigateToFolderDetail,
                                 onNavigateToNowPlaying = onNavigateToNowPlaying,
@@ -800,8 +800,8 @@ private fun SongsContent(
     onPlayAllClick: () -> Unit,
     viewModel: HomeViewModel,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
-    adMobManager: AdMobManager,
-    adMobDecisionAgent: AdMobDecisionAgent,
+    adMobManager: AdMobManager?,
+    adMobDecisionAgent: AdMobDecisionAgent?,
     isPremium: Boolean = false,
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
@@ -980,7 +980,8 @@ private fun SongsContent(
                     }
 
                 // Inject native ads every 25 songs (only if user is not premium)
-                val displayItems = if (!isPremium) {
+                val shouldShowAds = !isPremium && adMobManager != null && adMobDecisionAgent != null
+                val displayItems = if (shouldShowAds) {
                     injectNativeAds(sortedSongs, interval = 25)
                 } else {
                     sortedSongs.map { ListItem.SongItem(it) }
@@ -1034,7 +1035,7 @@ private fun SongsContent(
                             val adIndex = displayItems.indexOf(item)
                             val albumInfo = getAlbumForAdItem(adIndex)
 
-                            if (albumInfo != null) {
+                            if (albumInfo != null && adMobManager != null && adMobDecisionAgent != null) {
                                 val (albumId, albumTrackCount) = albumInfo
                                 NativeAdLoader(
                                     adMobManager = adMobManager,
