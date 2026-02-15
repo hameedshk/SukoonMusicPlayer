@@ -190,7 +190,7 @@ fun GlobalBannerAdView(
     }
 
     // Issue #6 Fix: Debounced decision evaluation to prevent rapid recomposition
-    LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute) {
+    LaunchedEffect(refreshTrigger, isMiniPlayerVisible, currentRoute, isPremium) {
          delay(16)
       val newDecision = decisionAgent.shouldShowBanner(isMiniPlayerVisible, currentRoute)
          decision = newDecision   // ⭐ REQUIRED

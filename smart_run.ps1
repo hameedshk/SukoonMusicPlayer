@@ -25,16 +25,28 @@ $forceReinstall = $Reinstall.IsPresent
 $forceClearData = $ClearData.IsPresent
 $attachLogcat = $Logcat.IsPresent
 $device = $env:ADB_DEVICE
-
+$LAST_DEVICE_FILE = ".last_device"
 
 # ============== DEVICE HELPERS ==============
+$buildStart = Get-Date
+
+function Load-LastDevice {
+    if (Test-Path $LAST_DEVICE_FILE) {
+        $line = Get-Content $LAST_DEVICE_FILE -ErrorAction SilentlyContinue
+        if ($line -match "^(.*):(\d+)$") {
+            return @{ ip = $matches[1]; port = $matches[2] }
+        }
+    }
+    return $null
+}
+
+function Save-LastDevice($ip, $port) {
+    "$ip`:$port" | Out-File $LAST_DEVICE_FILE -Encoding ascii -Force
+}
 
 function Get-ConnectedDevices {
-
   $devices = @()
-
     adb devices | ForEach-Object {
-
         # Skip header line
         if ($_ -match "^List of devices") { return }
 
@@ -217,8 +229,14 @@ Start-Sleep -Seconds 3
 
 if ((Get-Device-Status) -ne "ONLINE") {
     Write-Host "⚠️ Device not connected — manual connect required" -ForegroundColor Yellow
+    $cfg = Load-LastDevice
+
+if (-not $cfg) {
     $cfg = Prompt-For-AdbTarget
-    Try-Adb-Connect $cfg.ip $cfg.port
+}
+
+Try-Adb-Connect $cfg.ip $cfg.port
+Save-LastDevice $cfg.ip $cfg.port
 }
 
 $devices = Get-ConnectedDevices
@@ -390,6 +408,11 @@ if ($attachLogcat) {
 else {
     Write-Host "ℹ️ Logcat disabled (use -Logcat to enable)" -ForegroundColor DarkGray
 }
+
+$buildEnd = Get-Date
+$duration = $buildEnd - $buildStart
+
+Write-Host "Build completed in $($duration.ToString())"
 
 # Auto-detect (default)
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1
