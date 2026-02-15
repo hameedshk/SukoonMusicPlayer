@@ -226,9 +226,9 @@ fun MiniPlayer(
                     Icon(
                         imageVector = Icons.Default.ExpandLess,
                         contentDescription = "Tap or swipe up to expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                         modifier = Modifier
-                            .size(18.dp)
+                            .size(21.dp)
                             .padding(start = 8.dp)
                     )
                 }

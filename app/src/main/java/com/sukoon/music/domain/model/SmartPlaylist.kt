@@ -8,7 +8,9 @@ enum class SmartPlaylistType {
     MY_FAVOURITE,      // Liked/favorited songs
     LAST_ADDED,        // Recently added songs
     RECENTLY_PLAYED,   // Songs played recently
-    MOST_PLAYED;       // Songs with highest play count
+    MOST_PLAYED,       // Songs with highest play count
+    NEVER_PLAYED,      // Songs that haven't been played yet
+    DISCOVER;          // Random mix of songs to discover
 
     companion object {
         // Negative IDs to distinguish from real playlist IDs
@@ -16,12 +18,16 @@ enum class SmartPlaylistType {
         const val LAST_ADDED_ID = -2L
         const val RECENTLY_PLAYED_ID = -3L
         const val MOST_PLAYED_ID = -4L
+        const val NEVER_PLAYED_ID = -5L
+        const val DISCOVER_ID = -6L
 
         fun fromId(id: Long): SmartPlaylistType? = when (id) {
             MY_FAVOURITE_ID -> MY_FAVOURITE
             LAST_ADDED_ID -> LAST_ADDED
             RECENTLY_PLAYED_ID -> RECENTLY_PLAYED
             MOST_PLAYED_ID -> MOST_PLAYED
+            NEVER_PLAYED_ID -> NEVER_PLAYED
+            DISCOVER_ID -> DISCOVER
             else -> null
         }
 
@@ -30,6 +36,8 @@ enum class SmartPlaylistType {
             LAST_ADDED -> LAST_ADDED_ID
             RECENTLY_PLAYED -> RECENTLY_PLAYED_ID
             MOST_PLAYED -> MOST_PLAYED_ID
+            NEVER_PLAYED -> NEVER_PLAYED_ID
+            DISCOVER -> DISCOVER_ID
         }
     }
 }
@@ -52,6 +60,8 @@ data class SmartPlaylist(
             SmartPlaylistType.LAST_ADDED -> "Last added"
             SmartPlaylistType.RECENTLY_PLAYED -> "Recently played"
             SmartPlaylistType.MOST_PLAYED -> "Most played"
+            SmartPlaylistType.NEVER_PLAYED -> "Never played"
+            SmartPlaylistType.DISCOVER -> "Discover mix"
         }
     }
 }

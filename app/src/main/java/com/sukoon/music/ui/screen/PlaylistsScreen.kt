@@ -301,6 +301,8 @@ private fun getSmartPlaylistColor(type: SmartPlaylistType): Color {
         SmartPlaylistType.LAST_ADDED -> Color(0xFF4A9B6A).copy(alpha = 0.3f)    // Green
         SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF7E57C2).copy(alpha = 0.3f) // Purple
         SmartPlaylistType.MOST_PLAYED -> Color(0xFFE57373).copy(alpha = 0.3f)   // Red
+        SmartPlaylistType.NEVER_PLAYED -> Color(0xFF90A4AE).copy(alpha = 0.3f)  // Gray-Blue
+        SmartPlaylistType.DISCOVER -> Color(0xFFD4E157).copy(alpha = 0.3f)      // Lime
     }
 }
 
@@ -364,7 +366,7 @@ private fun SmartPlaylistCard(
                     .align(Alignment.BottomEnd)
                     .padding(16.dp)
                     .size(32.dp),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.9f)
             )
         }
     }

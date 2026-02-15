@@ -438,7 +438,15 @@ private fun FoldersContent(
                         )
                     }
 
-                    Spacer(modifier = Modifier.weight(1f))
+                    // 📂 Navigation Title (Current folder name)
+                    Text(
+                        text = path.substringAfterLast('/').ifEmpty { path },
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        modifier = Modifier.weight(1f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
 
                     // ⋮ Overflow menu
                     Box {

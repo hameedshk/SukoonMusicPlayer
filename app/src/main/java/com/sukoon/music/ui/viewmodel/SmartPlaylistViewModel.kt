@@ -56,6 +56,8 @@ class SmartPlaylistViewModel @Inject constructor(
                 SmartPlaylistType.LAST_ADDED -> songRepository.getLastAddedSongs()
                 SmartPlaylistType.RECENTLY_PLAYED -> songRepository.getRecentlyPlayed()
                 SmartPlaylistType.MOST_PLAYED -> songRepository.getMostPlayedSongs()
+                SmartPlaylistType.NEVER_PLAYED -> songRepository.getNeverPlayedSongs()
+                SmartPlaylistType.DISCOVER -> songRepository.getDiscoverMixSongs()
                 null -> flowOf(emptyList())
             }
         }

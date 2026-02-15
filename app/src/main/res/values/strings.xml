@@ -8,4 +8,34 @@
     <string name="privacy_policy">Privacy Policy</string>
     <string name="terms_of_service">Terms of Service</string>
     <string name="open_source_licenses">Open Source Licenses</string>
+
+    <!-- NowPlaying Screen -->
+    <string name="now_playing_collapse">Collapse player</string>
+    <string name="now_playing_more_options">More options</string>
+    <string name="now_playing_album_art">Album art for %1$s</string>
+    <string name="now_playing_play">Play</string>
+    <string name="now_playing_pause">Pause</string>
+    <string name="now_playing_previous">Previous track</string>
+    <string name="now_playing_next">Next track</string>
+    <string name="now_playing_shuffle">Shuffle</string>
+    <string name="now_playing_shuffle_on">Shuffle on</string>
+    <string name="now_playing_shuffle_off">Shuffle off</string>
+    <string name="now_playing_repeat">Repeat</string>
+    <string name="now_playing_repeat_off">Repeat off</string>
+    <string name="now_playing_repeat_all">Repeat all</string>
+    <string name="now_playing_repeat_one">Repeat one</string>
+    <string name="now_playing_like">Like</string>
+    <string name="now_playing_unlike">Unlike</string>
+    <string name="now_playing_liked">Liked</string>
+    <string name="now_playing_not_liked">Not liked</string>
+    <string name="now_playing_lyrics">Lyrics</string>
+    <string name="now_playing_share">Share</string>
+    <string name="now_playing_queue">Queue</string>
+    <string name="now_playing_close_lyrics">Close lyrics</string>
+    <string name="now_playing_no_song">No song playing</string>
+    <string name="now_playing_select_song">Select a song from your library to start playing</string>
+    <string name="now_playing_unknown_song">Unknown Song</string>
+    <string name="now_playing_loading_lyrics">Loading lyrics\u2026</string>
+    <string name="now_playing_no_lyrics">No lyrics available</string>
+    <string name="now_playing_lyrics_error">Failed to load lyrics</string>
 </resources>

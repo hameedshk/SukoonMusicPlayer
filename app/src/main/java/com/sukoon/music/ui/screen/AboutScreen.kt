@@ -199,7 +199,7 @@ fun AboutScreen(
                             onClick = {
                                 // Open terms of service using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("${AppUrls.BASE}terms")
+                                    data = android.net.Uri.parse("${AppUrls.BASE}apps/sukoon-music/terms-conditions")
                                 }
                                 try {
                                     context.startActivity(intent)

@@ -219,4 +219,7 @@ interface SongRepository {
      * Get albums to rediscover - albums played before but not in the last 30 days.
      */
     fun getRediscoverAlbums(): Flow<List<Album>>
+    fun getNeverPlayedSongs(): Flow<List<Song>>
+    fun getDiscoverMixSongs(): Flow<List<Song>>
+    fun getNeverPlayedCount(): Flow<Int>
 }

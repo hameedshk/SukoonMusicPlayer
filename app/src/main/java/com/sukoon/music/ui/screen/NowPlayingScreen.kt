@@ -5,6 +5,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
@@ -25,14 +27,21 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.sukoon.music.R
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
@@ -96,29 +105,59 @@ import com.sukoon.music.ui.theme.*
  * without extensive visual verification across multiple device sizes
  * (compact, medium, expanded height classes).
  */
-private val NowPlayingTopPaddingMin = 4.dp
-private val NowPlayingTopPaddingMax = 10.dp
-private val NowPlayingAlbumToMetadataMin = 20.dp
-private val NowPlayingAlbumToMetadataMax = 32.dp
-private val NowPlayingMetadataToControlsCompact = 6.dp
-private val NowPlayingMetadataToControlsRegular = 10.dp
-private val NowPlayingSeekToControlsCompact = 10.dp
-private val NowPlayingSeekToControlsRegular = 14.dp
-private val NowPlayingControlsBottomCompact = 8.dp
-private val NowPlayingControlsBottomRegular = 12.dp
+// Album Art
+private val NowPlayingAlbumArtRoundedCorners = 16.dp
+private val NowPlayingAlbumArtHorizontalPadding = 24.dp
+private val NowPlayingAlbumArtShadow = 12.dp
+
+// Spacing
+private val NowPlayingTopPaddingMin = 0.dp
+private val NowPlayingTopPaddingMax = 2.dp
+private val NowPlayingAlbumToMetadataMin = 12.dp
+private val NowPlayingAlbumToMetadataMax = 24.dp
+private val NowPlayingMetadataToControlsCompact = 2.dp
+private val NowPlayingMetadataToControlsRegular = 4.dp
+private val NowPlayingSeekToControlsCompact = 6.dp
+private val NowPlayingSeekToControlsRegular = 8.dp
+private val NowPlayingControlsBottomCompact = 2.dp
+private val NowPlayingControlsBottomRegular = 2.dp
 private val NowPlayingControlsToSecondaryCompact = 0.dp
-private val NowPlayingControlsToSecondaryRegular = 3.dp
-private val NowPlayingMetadataTopPadding = 16.dp
-private val NowPlayingMetadataBottomPadding = 4.dp
-private val NowPlayingMetadataHorizontalPadding = 24.dp
+private val NowPlayingControlsToSecondaryRegular = 0.dp
+private val NowPlayingMetadataTopPadding = 4.dp
+private val NowPlayingMetadataBottomPadding = 0.dp
+private val NowPlayingMetadataHorizontalPadding = 28.dp
 private val NowPlayingMetadataActionLaneWidth = 56.dp
+
+// Seek Bar
 private val NowPlayingSliderTouchHeight = 44.dp
-private val NowPlayingTitleFontSize = 24.sp
-private val NowPlayingTitleLineHeight = 30.sp
-private val NowPlayingArtistFontSize = 16.sp
-private val NowPlayingTimelineFontSize = 12.sp
+private val NowPlayingSeekBarTrackHeight = 2.dp
+private val NowPlayingSeekBarActiveHeight = 3.dp
+private val NowPlayingSeekBarThumbMinSize = 8.dp
+private val NowPlayingSeekBarThumbMaxSize = 14.dp
+
+// Typography
+private val NowPlayingTitleFontSize = 22.sp
+private val NowPlayingTitleLineHeight = 28.sp
+private val NowPlayingArtistFontSize = 15.sp
+private val NowPlayingTimelineFontSize = 11.sp
 private val NowPlayingHelperFontSize = 13.sp
 private val NowPlayingLyricsFontSize = 14.sp
+private val NowPlayingLyricsActiveFontSize = 26.sp
+private val NowPlayingLyricsInactiveFontSize = 18.sp
+private val NowPlayingLyricsLineSpacing = 20.dp
+
+// Playback Controls
+private val NowPlayingPlayButtonSize = 68.dp
+private val NowPlayingPlayButtonIconSize = 36.dp
+private val NowPlayingSkipButtonSize = 52.dp
+private val NowPlayingSkipButtonIconSize = 32.dp
+private val NowPlayingToggleButtonSize = 48.dp
+private val NowPlayingToggleButtonIconSize = 22.dp
+
+// Animations
+private val NowPlayingSongCrossfadeDuration = 800
+private val NowPlayingLikeBounceDuration = 300
+private val NowPlayingScreenEntryDuration = 500
 
 /**
  * Now Playing Screen - Full-screen best style music player.
@@ -158,21 +197,16 @@ fun NowPlayingScreen(
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Liquid Mesh Background - persists outside Crossfade
-        key(playbackState.currentSong?.id) {
-            LiquidMeshBackground(
-                palette = palette,
-                songId = playbackState.currentSong?.id,
-                modifier = Modifier.fillMaxSize()
-            )
-        }
+        // Liquid Mesh Background - animated aurora with smooth color transitions
+        LiquidMeshBackground(
+            palette = palette,
+            songId = playbackState.currentSong?.id,
+            isPlaying = playbackState.isPlaying,
+            modifier = Modifier.fillMaxSize()
+        )
 
-        Crossfade(
-            targetState = playbackState.currentSong?.id,
-            animationSpec = tween(durationMillis = 1000),
-            label = "nowPlayingCrossfade"
-        ) { songId ->
-            Scaffold(
+        // Content without parent-level Crossfade (transitions moved to individual components)
+        Scaffold(
                 containerColor = Color.Transparent
             ) { paddingValues ->
             // Swipe down gesture to collapse Now Playing screen
@@ -233,7 +267,6 @@ fun NowPlayingScreen(
                 }
             }
         }
-        }
     }
 }
 
@@ -252,7 +285,7 @@ private fun TopUtilityBar(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
-            .padding(horizontal = 12.dp),
+            .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -262,7 +295,7 @@ private fun TopUtilityBar(
         ) {
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
-                contentDescription = "Collapse",
+                contentDescription = stringResource(R.string.now_playing_collapse),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
@@ -274,7 +307,7 @@ private fun TopUtilityBar(
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
+                contentDescription = stringResource(R.string.now_playing_more_options),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
@@ -315,8 +348,8 @@ private fun NowPlayingContent(
     // Immersive mode state (hides controls temporarily)
     var isImmersiveMode by remember { mutableStateOf(false) }
 
-    // Overlay states
-    var showLyricsOverlay by remember { mutableStateOf(false) }
+    // Modal states
+    var showLyricsModal by remember { mutableStateOf(false) }
     var showQueueModal by remember { mutableStateOf(false) }
     var showSongContextMenu by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
@@ -391,7 +424,6 @@ private fun NowPlayingContent(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 12.dp)
             .alpha(screenAlpha)
     ) {
         val statusBarTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
@@ -401,15 +433,15 @@ private fun NowPlayingContent(
             val topBarHeight = 48.dp
             val topContentPadding = (maxHeight * 0.02f).coerceIn(NowPlayingTopPaddingMin, NowPlayingTopPaddingMax)
             val albumToMetadataSpacing = (maxHeight * 0.04f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
-            val topIntroSpacing = if (maxHeight < 700.dp) 0.dp else 4.dp
+            val topIntroSpacing = 0.dp
             val metadataToControlsSpacing = if (maxHeight < 700.dp) NowPlayingMetadataToControlsCompact else NowPlayingMetadataToControlsRegular
             val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
             val primaryControlsBottomSpacing = if (maxHeight < 700.dp) NowPlayingControlsBottomCompact else NowPlayingControlsBottomRegular
             val controlsToSecondarySpacing = if (maxHeight < 700.dp) NowPlayingControlsToSecondaryCompact else NowPlayingControlsToSecondaryRegular
             val albumArtWeight = when {
-                maxHeight < 700.dp -> 0.48f
-                maxHeight < 840.dp -> 0.52f
-                else -> 0.55f
+                maxHeight < 700.dp -> 0.52f
+                maxHeight < 840.dp -> 0.56f
+                else -> 0.60f
             }
 
             // Content uses adaptive spacing so controls remain balanced on small and tall screens.
@@ -429,12 +461,17 @@ private fun NowPlayingContent(
                 AlbumArtSection(
                     song = song,
                     onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
-                    showLyricsOverlay = showLyricsOverlay,
+                    showLyricsModal = showLyricsModal,
                     lyricsState = lyricsState,
                     currentPosition = currentPosition,
                     accentColor = accentColor,
                     onNextClick = onNextClick,
                     onPreviousClick = onPreviousClick,
+                    onLikeClick = {
+                        playbackState.currentSong?.let { s ->
+                            onLikeClick()
+                        }
+                    },
                     modifier = Modifier.weight(albumArtWeight)
                 )
 
@@ -469,7 +506,7 @@ private fun NowPlayingContent(
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
+                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 28.dp)
                     ) {
                         // Seek Bar
                         SeekBarSection(
@@ -522,8 +559,7 @@ private fun NowPlayingContent(
                         song = song,
                         playbackState = playbackState,
                     accentColor = accentColor,
-                    onLyricsClick = { showLyricsOverlay = !showLyricsOverlay },
-                    showLyricsOverlay = showLyricsOverlay,
+                    onLyricsClick = { showLyricsModal = true },
                     onShareClick = { shareHandler(song) },
                     onQueueClick = { showQueueModal = true }
                 )
@@ -595,19 +631,32 @@ private fun NowPlayingContent(
             onDismiss = { songToDelete = null }
         )
     }
+
+    // Lyrics Modal Sheet
+    if (showLyricsModal) {
+        LyricsModalSheet(
+            song = song,
+            lyricsState = lyricsState,
+            currentPosition = currentPosition,
+            accentColor = accentColor,
+            onDismiss = { showLyricsModal = false },
+            onSeekTo = { position -> onSeekTo(position) }
+        )
+    }
 }
 
 @Composable
 private fun AlbumArtSection(
     song: Song,
     onAlbumArtClick: () -> Unit,
-    showLyricsOverlay: Boolean = false,
+    showLyricsModal: Boolean = false,
     lyricsState: LyricsState = LyricsState.NotFound,
     currentPosition: Long = 0L,
     accentColor: Color = MaterialTheme.colorScheme.primary,
     onNextClick: () -> Unit = {},
     onPreviousClick: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLikeClick: () -> Unit = {}
 ) {
     // Track whether album art loaded successfully
     var hasAlbumArt by remember { mutableStateOf(false) }
@@ -626,473 +675,266 @@ private fun AlbumArtSection(
             .build()
     }
 
-    // Album art container - full-bleed, S-style presentation
-    // Extends edge-to-edge with subtle blur effect on edges
+    // Album art container - floating with rounded corners and shadow
     Box(
         modifier = modifier
-            .fillMaxWidth()  // Full-bleed across screen width
-            .aspectRatio(1f)
-            .padding(horizontal = 16.dp)
-            .shadow(
-                elevation = 16.dp,
-                shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Black.copy(alpha = 0.1f),
-                spotColor = Color.Black.copy(alpha = 0.15f)
-            )
-            .clip(RoundedCornerShape(16.dp))
-            .clickable(
-                onClick = onAlbumArtClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
-            .pointerInput(swipeThresholdPx) {
-                detectHorizontalDragGestures(
-                    onDragEnd = {
-                        // Swipe left (negative): next track
-                        if (horizontalDragOffset < -swipeThresholdPx) {
-                            onNextClick()
-                        }
-                        // Swipe right (positive): previous track
-                        else if (horizontalDragOffset > swipeThresholdPx) {
-                            onPreviousClick()
-                        }
-                        horizontalDragOffset = 0f
-                    },
-                    onDragCancel = {
-                        horizontalDragOffset = 0f
-                    },
-                    onHorizontalDrag = { _, dragAmount ->
-                        horizontalDragOffset += dragAmount
-                    }
-                )
+            .fillMaxWidth()
+            .padding(horizontal = NowPlayingAlbumArtHorizontalPadding)
+    ) {
+        // Crossfade on song change
+        AnimatedContent(
+            targetState = song.id,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(NowPlayingSongCrossfadeDuration)) togetherWith
+                        fadeOut(animationSpec = tween(NowPlayingSongCrossfadeDuration))
             },
-        contentAlignment = Alignment.Center
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            // Album Art Background
-            SubcomposeAsyncImage(
-                model = albumArtRequest,
-                contentDescription = "Album art for ${song.album}",
+            label = "album_art_crossfade"
+        ) { songId ->
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop,
-                filterQuality = FilterQuality.High,
-                loading = {
-                    hasAlbumArt = false
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                                    )
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(40.dp),
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                            strokeWidth = 3.dp
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .shadow(NowPlayingAlbumArtShadow, RoundedCornerShape(NowPlayingAlbumArtRoundedCorners))
+                    .clip(RoundedCornerShape(NowPlayingAlbumArtRoundedCorners))
+                    .pointerInput(swipeThresholdPx) {
+                        detectHorizontalDragGestures(
+                            onDragEnd = {
+                                // Swipe left (negative): next track
+                                if (horizontalDragOffset < -swipeThresholdPx) {
+                                    onNextClick()
+                                }
+                                // Swipe right (positive): previous track
+                                else if (horizontalDragOffset > swipeThresholdPx) {
+                                    onPreviousClick()
+                                }
+                                horizontalDragOffset = 0f
+                            },
+                            onDragCancel = {
+                                horizontalDragOffset = 0f
+                            },
+                            onHorizontalDrag = { _, dragAmount ->
+                                horizontalDragOffset += dragAmount
+                            }
                         )
                     }
-                },
-                error = {
-                    hasAlbumArt = false
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                    .pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onAlbumArtClick() },
+                            onDoubleTap = { onLikeClick() }
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                // Album Art Image
+                SubcomposeAsyncImage(
+                    model = albumArtRequest,
+                    contentDescription = stringResource(R.string.now_playing_album_art, song.title),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.High,
+                    loading = {
+                        hasAlbumArt = false
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                        )
                                     )
-                                )
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(16.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                        )
-                    }
-                },
-                onSuccess = { hasAlbumArt = true }
-            )
-
-            // Only apply scrim effects when actual album art is loaded
-            if (hasAlbumArt) {
-                // Edge blur/fade effects - creates S-like sophisticated look
-                // Subtle vignette that fades edges to background
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.12f)
                                 ),
-                                radius = Float.POSITIVE_INFINITY,
-                                center = androidx.compose.ui.geometry.Offset(
-                                    0.5f, 0.5f
-                                )
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                strokeWidth = 3.dp
                             )
-                        )
-                )
-
-                // Subtle bottom gradient glow for depth
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.20f)
+                        }
+                    },
+                    error = {
+                        hasAlbumArt = false
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                        )
+                                    )
                                 ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MusicNote,
+                                contentDescription = null,
+                                modifier = Modifier.size(64.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                             )
-                        )
+                        }
+                    },
+                    onSuccess = { hasAlbumArt = true }
                 )
-            }
-
-            // Lyrics Overlay
-            if (showLyricsOverlay) {
-                // Blurred background scrim
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
-                                    MaterialTheme.colorScheme.scrim.copy(alpha = 0.60f)
-                                )
-                            )
-                        )
-                        .blur(14.dp)
-                )
-
-                // Foreground contrast scrim
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.25f))
-                )
-
-                // Lyrics content
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fillMaxHeight(0.8f)
-                        .align(Alignment.Center),
-                    contentAlignment = Alignment.Center
-                ) {
-                    LyricsOverlayContent(
-                        lyricsState = lyricsState,
-                        currentPosition = currentPosition,
-                        accentColor = accentColor
-                    )
-                }
             }
         }
     }
 }
 
-/**
- * Lyrics overlay content - displayed on top of album art.
- * Compact design optimized for overlay visibility.
- */
-@Composable
-private fun LyricsOverlayContent(
-    lyricsState: LyricsState,
-    currentPosition: Long,
-    accentColor: Color
-) {
-    when (lyricsState) {
-        is LyricsState.Loading -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(32.dp),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    strokeWidth = 3.dp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Loading lyrics...",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = NowPlayingHelperFontSize
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-                )
-            }
-        }
-
-        is LyricsState.Success -> {
-            val parsedLines = lyricsState.parsedLines
-            if (parsedLines.isNotEmpty()) {
-                // Synced lyrics with active line highlighting
-                CompactSyncedLyricsView(
-                    lines = parsedLines,
-                    currentPosition = currentPosition,
-                    accentColor = accentColor
-                )
-            } else if (!lyricsState.lyrics.plainLyrics.isNullOrBlank()) {
-                // Plain lyrics without timestamps
-                CompactPlainLyricsView(text = lyricsState.lyrics.plainLyrics)
-            } else {
-                // No lyrics available for the song
-                CompactLyricsNotAvailable()
-            }
-        }
-
-        is LyricsState.Error -> {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Error,
-                    contentDescription = null,
-                    modifier = Modifier.size(40.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Failed to load lyrics",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = NowPlayingHelperFontSize
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
-        is LyricsState.NotFound -> {
-            CompactLyricsNotAvailable()
-        }
-    }
-}
 
 /**
- * Compact synced lyrics view for overlay.
- */
-@Composable
-private fun CompactSyncedLyricsView(
-    lines: List<LyricLine>,
-    currentPosition: Long,
-    accentColor: Color
-) {
-    val listState = rememberLazyListState()
-    val activeLine = remember(currentPosition) {
-        LrcParser.findActiveLine(lines, currentPosition)
-    }
-
-    // Auto-scroll to active line
-    LaunchedEffect(activeLine) {
-        if (activeLine >= 0 && activeLine < lines.size) {
-            listState.animateScrollToItem(
-                index = activeLine,
-                scrollOffset = -80
-            )
-        }
-    }
-
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(10.dp),
-        contentPadding = PaddingValues(vertical = 12.dp, horizontal = 12.dp)
-    ) {
-        itemsIndexed(
-            items = lines,
-            key = { index, _ -> index }
-        ) { index, line ->
-            val isActive = index == activeLine
-            Text(
-                text = line.text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isActive) {
-                    MaterialTheme.colorScheme.onSurface
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
-                },
-                fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-/**
- * Compact plain lyrics view for overlay.
- */
-@Composable
-private fun CompactPlainLyricsView(text: String) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        contentPadding = PaddingValues(12.dp)
-    ) {
-        item {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = NowPlayingLyricsFontSize
-                ),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                textAlign = TextAlign.Center,
-                lineHeight = 22.sp
-            )
-        }
-    }
-}
-
-/**
- * Compact lyrics not available view for overlay.
- */
-@Composable
-private fun CompactLyricsNotAvailable() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Icon(
-            imageVector = Icons.Default.MusicNote,
-            contentDescription = null,
-            modifier = Modifier.size(40.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = "No lyrics available",
-            style = MaterialTheme.typography.bodySmall.copy(
-                fontSize = NowPlayingHelperFontSize
-            ),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-        )
-    }
-}
-
-/**
- * C. TrackMetadataSection - Displays song title and artist name.
- * Title: 18sp SemiBold, lineHeight 22sp, 1 line with ellipsis
- * Artist: 14sp Normal, 70% opacity, 1 line with ellipsis
- * Internal spacing: 4dp (compact S-style)
- * Subtle scrim background ensures readability over any album art
- * Scrim: Semi-transparent dark (dark theme) or light (light theme)
+ * C. TrackMetadataSection - Displays song title and artist name with like bounce.
+ * Title: 22sp Bold with marquee for long titles
+ * Artist: 15sp, 75% opacity
+ * Like button with spring bounce animation (1.0 → 1.3 → 1.0)
+ * Crossfade on song change
  */
 @Composable
 private fun TrackMetadataSection(
     song: Song,
     onLikeClick: () -> Unit
 ) {
-    val likeStateDescription = if (song.isLiked) "Liked" else "Not liked"
+    val likeStateDescription = if (song.isLiked) stringResource(R.string.now_playing_liked) else stringResource(R.string.now_playing_not_liked)
 
-    // Metadata directly on screen background - calm and subordinate
-    // Proper spacing to prevent visual overlap with album art
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                top = NowPlayingMetadataTopPadding,
-                bottom = NowPlayingMetadataBottomPadding,
-                start = NowPlayingMetadataHorizontalPadding,
-                end = NowPlayingMetadataHorizontalPadding
-            ),
-        horizontalAlignment = Alignment.Start
-    ) {
-        // Spotify-style metadata: text stack on left, like/favorite pinned right.
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+    // Crossfade on song change
+    AnimatedContent(
+        targetState = song.id,
+        transitionSpec = {
+            fadeIn(animationSpec = tween(NowPlayingSongCrossfadeDuration)) togetherWith
+                    fadeOut(animationSpec = tween(NowPlayingSongCrossfadeDuration))
+        },
+        label = "metadata_crossfade"
+    ) { songId ->
+        // Metadata without scrim background (aurora provides contrast)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = NowPlayingMetadataTopPadding,
+                    bottom = NowPlayingMetadataBottomPadding,
+                    start = NowPlayingMetadataHorizontalPadding,
+                    end = NowPlayingMetadataHorizontalPadding
+                ),
+            horizontalAlignment = Alignment.Start
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp)
+            // Text stack on left, like/favorite pinned right
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
             ) {
-                Text(
-                    text = song.title.ifBlank { "Unknown Song" },
-                    style = MaterialTheme.typography.songTitleLarge.copy(
-                        fontSize = NowPlayingTitleFontSize,
-                        lineHeight = NowPlayingTitleLineHeight,
-                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f),
-                    textAlign = TextAlign.Start
-                )
-
-                if (song.artist.isNotBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp)
+                ) {
+                    // Title with marquee for long names
                     Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = NowPlayingArtistFontSize,
-                            fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                        text = song.title.ifBlank { stringResource(R.string.now_playing_unknown_song) },
+                        style = MaterialTheme.typography.songTitleLarge.copy(
+                            fontSize = NowPlayingTitleFontSize,
+                            lineHeight = NowPlayingTitleLineHeight,
+                            fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.70f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        textAlign = TextAlign.Start
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.basicMarquee(
+                            iterations = Int.MAX_VALUE,
+                            repeatDelayMillis = 3000,
+                            velocity = 30.dp
+                        )
                     )
+
+                    if (song.artist.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = song.artist,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = NowPlayingArtistFontSize,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start
+                        )
+                    }
                 }
 
+                // Like button with bounce animation
+                LikeButton(
+                    isLiked = song.isLiked,
+                    onLikeClick = onLikeClick,
+                    stateDescription = likeStateDescription
+                )
             }
+        }
+    }
+}
 
-            Box(
-                modifier = Modifier.width(NowPlayingMetadataActionLaneWidth),
-                contentAlignment = Alignment.TopEnd
-            ) {
-                IconButton(
-                    onClick = onLikeClick,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .semantics {
-                            role = Role.Button
-                            contentDescription = "Favorite"
-                            stateDescription = likeStateDescription
-                        }
-                ) {
-                    Icon(
-                        imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (song.isLiked) "Unlike" else "Like",
-                        tint = if (song.isLiked)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                        modifier = Modifier.size(28.dp)
-                    )
+/**
+ * Like button with spring bounce animation
+ */
+@Composable
+private fun LikeButton(
+    isLiked: Boolean,
+    onLikeClick: () -> Unit,
+    stateDescription: String
+) {
+    var bouncing by remember(isLiked) { mutableStateOf(isLiked) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (bouncing) 1.3f else 1.0f,
+        animationSpec = spring(
+            dampingRatio = 0.4f,
+            stiffness = 600f
+        ),
+        label = "like_bounce"
+    )
+
+    val likeDescriptionText = stringResource(
+        if (isLiked) R.string.now_playing_unlike else R.string.now_playing_like
+    )
+
+    LaunchedEffect(isLiked) {
+        if (isLiked) {
+            bouncing = true
+            delay(NowPlayingLikeBounceDuration.toLong())
+            bouncing = false
+        }
+    }
+
+    Box(
+        modifier = Modifier.width(NowPlayingMetadataActionLaneWidth),
+        contentAlignment = Alignment.TopEnd
+    ) {
+        IconButton(
+            onClick = onLikeClick,
+            modifier = Modifier
+                .size(48.dp)
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale
+                )
+                .semantics {
+                    role = Role.Button
+                    contentDescription = likeDescriptionText
                 }
-            }
+        ) {
+            Icon(
+                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = null,
+                tint = if (isLiked)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                modifier = Modifier.size(26.dp)
+            )
         }
     }
 }
@@ -1147,12 +989,12 @@ private fun SeekBarSection(
             colors = SliderDefaults.colors(
                 thumbColor = sliderColor,
                 activeTrackColor = sliderColor.copy(alpha = activeTrackOpacity),
-                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+                inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f)
             ),
             thumb = {
                 val thumbSize by animateDpAsState(
-                    targetValue = if (isSeeking) 12.dp else 6.dp,
-                    animationSpec = tween(150),
+                    targetValue = if (isSeeking) NowPlayingSeekBarThumbMaxSize else NowPlayingSeekBarThumbMinSize,
+                    animationSpec = spring(dampingRatio = 0.6f, stiffness = 400f),
                     label = "thumb_size"
                 )
                 Box(
@@ -1200,27 +1042,67 @@ private fun SeekBarSection(
                     fontSize = NowPlayingTimelineFontSize,
                     fontWeight = FontWeight.Medium
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
+            // Spotify convention: show remaining time with minus sign
+            val remainingMs = (duration - displayPosition.toLong()).coerceAtLeast(0L)
             Text(
-                text = formatDuration(duration),
+                text = "-${formatDuration(remainingMs)}",
                 style = MaterialTheme.typography.compactLabel.copy(
                     fontSize = NowPlayingTimelineFontSize,
                     fontWeight = FontWeight.Medium
                 ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
             )
         }
     }
 }
 
 /**
- * D. PlaybackControlsSection - Primary playback controls.
+ * PressableIconButton - Reusable wrapper that adds press-scale feedback
+ * Scales from 1.0 to 0.92 on press with spring animation
+ */
+@Composable
+private fun PressableIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1.0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 800f),
+        label = "press_scale"
+    )
+
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier
+            .graphicsLayer(scaleX = scale, scaleY = scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    }
+                )
+            }
+    ) {
+        content()
+    }
+}
+
+/**
+ * D. PlaybackControlsSection - Primary playback controls with press feedback
  * Layout: Shuffle : Previous : Play/Pause : Next : Repeat
- * Play/Pause dominates at center with 56dp touch target
- * Shuffle/Repeat: 44dp touch targets, 22dp icons
- * Previous/Next: 56dp touch targets, 40dp icons
- * Spacing: 12dp between controls for compact arrangement
+ * Play/Pause: 68dp circle, 36dp icon with morphing animation
+ * Skip buttons: 52dp touch, 32dp icon with press scale
+ * Toggle buttons: 48dp touch, 22dp icon with press scale
+ * Indicator dots with smooth appear/disappear animation
  */
 @Composable
 private fun PlaybackControlsSection(
@@ -1232,42 +1114,52 @@ private fun PlaybackControlsSection(
     onShuffleClick: () -> Unit,
     onRepeatClick: () -> Unit
 ) {
-    val shuffleStateDescription = if (playbackState.shuffleEnabled) "On" else "Off"
-    val repeatStateDescription = when (playbackState.repeatMode) {
-        RepeatMode.OFF -> "Off"
-        RepeatMode.ALL -> "All songs"
-        RepeatMode.ONE -> "Current song"
-    }
+    val shuffleDesc = stringResource(R.string.now_playing_shuffle)
+    val previousDesc = stringResource(R.string.now_playing_previous)
+    val playDesc = stringResource(R.string.now_playing_play)
+    val pauseDesc = stringResource(R.string.now_playing_pause)
+    val nextDesc = stringResource(R.string.now_playing_next)
+    val repeatDesc = stringResource(R.string.now_playing_repeat)
+    val shuffleStateDesc = stringResource(
+        if (playbackState.shuffleEnabled) R.string.now_playing_shuffle_on else R.string.now_playing_shuffle_off
+    )
+    val repeatStateDesc = stringResource(
+        when (playbackState.repeatMode) {
+            RepeatMode.OFF -> R.string.now_playing_repeat_off
+            RepeatMode.ALL -> R.string.now_playing_repeat_all
+            RepeatMode.ONE -> R.string.now_playing_repeat_one
+        }
+    )
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Shuffle Button (left)
-        IconButton(
+        // Shuffle Button (left) with press scale
+        PressableIconButton(
             onClick = onShuffleClick,
             modifier = Modifier
-                .size(48.dp)
+                .size(NowPlayingToggleButtonSize)
                 .semantics {
                     role = Role.Button
-                    contentDescription = "Shuffle"
-                    stateDescription = shuffleStateDescription
+                    contentDescription = shuffleDesc
                 }
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     imageVector = Icons.Default.Shuffle,
-                    contentDescription = "Shuffle",
+                    contentDescription = null,
                     tint = if (playbackState.shuffleEnabled)
                         accentColor
                     else
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f),
-                    modifier = Modifier.size(22.dp)
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f),
+                    modifier = Modifier.size(NowPlayingToggleButtonIconSize)
                 )
 
+                // Animated indicator dot
                 if (playbackState.shuffleEnabled) {
                     Box(
                         modifier = Modifier
@@ -1280,81 +1172,81 @@ private fun PlaybackControlsSection(
             }
         }
 
-        // Previous Button
-        IconButton(
+        // Previous Button with press scale
+        PressableIconButton(
             onClick = onPreviousClick,
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(NowPlayingSkipButtonSize)
         ) {
             Icon(
                 imageVector = Icons.Default.SkipPrevious,
-                contentDescription = "Previous",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.90f),
-                modifier = Modifier.size(36.dp)
+                contentDescription = previousDesc,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(NowPlayingSkipButtonIconSize)
             )
         }
 
-        // Play/Pause Button (center, focal point)
-        IconButton(
+        // Play/Pause Button (center, dominant) with press scale
+        PressableIconButton(
             onClick = onPlayPauseClick,
             modifier = Modifier
-                .size(64.dp)
+                .size(NowPlayingPlayButtonSize)
                 .background(accentColor, CircleShape)
         ) {
             AnimatedContent(
                 targetState = playbackState.isPlaying,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(140)) togetherWith
-                            fadeOut(animationSpec = tween(140))
+                    scaleIn(initialScale = 0.8f) + fadeIn(animationSpec = tween(150)) togetherWith
+                            scaleOut(targetScale = 0.8f) + fadeOut(animationSpec = tween(150))
                 },
                 label = "play_pause_icon"
             ) { isPlaying ->
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    contentDescription = if (isPlaying) pauseDesc else playDesc,
                     tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(NowPlayingPlayButtonIconSize)
                 )
             }
         }
 
-        // Next Button
-        IconButton(
+        // Next Button with press scale
+        PressableIconButton(
             onClick = onNextClick,
-            modifier = Modifier.size(56.dp)
+            modifier = Modifier.size(NowPlayingSkipButtonSize)
         ) {
             Icon(
                 imageVector = Icons.Default.SkipNext,
-                contentDescription = "Next",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.90f),
-                modifier = Modifier.size(36.dp)
+                contentDescription = nextDesc,
+                tint = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.size(NowPlayingSkipButtonIconSize)
             )
         }
 
-        // Repeat Button (right)
-        IconButton(
+        // Repeat Button (right) with press scale
+        PressableIconButton(
             onClick = onRepeatClick,
             modifier = Modifier
-                .size(48.dp)
+                .size(NowPlayingToggleButtonSize)
                 .semantics {
                     role = Role.Button
-                    contentDescription = "Repeat"
-                    stateDescription = repeatStateDescription
+                    contentDescription = repeatDesc
                 }
         ) {
-            Box(contentAlignment = Alignment.Center) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
                 Icon(
                     imageVector = when (playbackState.repeatMode) {
                         RepeatMode.ONE -> Icons.Default.RepeatOne
                         else -> Icons.Default.Repeat
                     },
-                    contentDescription = "Repeat",
+                    contentDescription = null,
                     tint = when (playbackState.repeatMode) {
-                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.68f)
+                        RepeatMode.OFF -> MaterialTheme.colorScheme.onBackground.copy(alpha = 0.45f)
                         else -> accentColor
                     },
-                    modifier = Modifier.size(22.dp)
+                    modifier = Modifier.size(NowPlayingToggleButtonIconSize)
                 )
 
+                // Animated indicator dot
                 if (playbackState.repeatMode != RepeatMode.OFF) {
                     Box(
                         modifier = Modifier
@@ -1370,11 +1262,9 @@ private fun PlaybackControlsSection(
 }
 
 /**
- * E. SecondaryActionsSection - Secondary actions (Lyrics, Like, Share, Queue).
- * Icon sizes: 20dp (minimal, de-emphasized)
- * Touch targets: 48dp (uniform, equal hierarchy)
- * Spacing: spacedBy(32.dp) for minimal, airy feel
- * Opacity: 0.6f default, 0.9f on active
+ * E. SecondaryActionsSection - Secondary actions (Lyrics | Share | Queue)
+ * 3-button row with 24dp icons, 48dp touch targets, 60% alpha default
+ * Lyrics button opens modal bottom sheet
  */
 @Composable
 private fun SecondaryActionsSection(
@@ -1382,34 +1272,25 @@ private fun SecondaryActionsSection(
     playbackState: PlaybackState,
     accentColor: Color,
     onLyricsClick: () -> Unit,
-    showLyricsOverlay: Boolean,
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit
 ) {
-    val lyricsStateDescription = if (showLyricsOverlay) "Shown" else "Hidden"
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp, horizontal = 12.dp),
+            .padding(vertical = 6.dp, horizontal = 28.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Lyrics Button
+        // Lyrics Button (opens modal sheet)
         IconButton(
             onClick = onLyricsClick,
-            modifier = Modifier
-                .size(48.dp)
-                .semantics {
-                    role = Role.Button
-                    contentDescription = "Lyrics"
-                    stateDescription = lyricsStateDescription
-                }
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.Lyrics,
-                contentDescription = "Lyrics",
-                tint = if (showLyricsOverlay) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                contentDescription = stringResource(R.string.now_playing_lyrics),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1421,8 +1302,8 @@ private fun SecondaryActionsSection(
         ) {
             Icon(
                 imageVector = Icons.Default.Share,
-                contentDescription = "Share",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                contentDescription = stringResource(R.string.now_playing_share),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1433,9 +1314,9 @@ private fun SecondaryActionsSection(
             modifier = Modifier.size(48.dp)
         ) {
             Icon(
-                imageVector = Icons.Default.QueueMusic,
-                contentDescription = "Queue",
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f),
+                imageVector = Icons.AutoMirrored.Default.QueueMusic,
+                contentDescription = stringResource(R.string.now_playing_queue),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                 modifier = Modifier.size(24.dp)
             )
         }
@@ -1465,15 +1346,339 @@ private fun EmptyNowPlayingState() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "No song playing",
+            text = stringResource(R.string.now_playing_no_song),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Select a song from your library to start playing",
+            text = stringResource(R.string.now_playing_select_song),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+/**
+ * LyricsModalSheet - Full-screen modal bottom sheet for synced lyrics
+ * Displays large, readable lyrics with active line highlighting
+ * Supports tap-to-seek on lyric lines
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LyricsModalSheet(
+    song: Song,
+    lyricsState: LyricsState,
+    currentPosition: Long,
+    accentColor: Color,
+    onDismiss: () -> Unit,
+    onSeekTo: (Long) -> Unit
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .width(32.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+            )
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight(0.9f)
+                .fillMaxWidth()
+                .padding(bottom = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Header: Song info
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(R.string.now_playing_lyrics),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = song.title.ifBlank { stringResource(R.string.now_playing_unknown_song) },
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = song.artist.ifBlank { "Unknown Artist" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Divider
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            // Lyrics content - fills remaining space
+            SpotifyStyleSyncedLyrics(
+                lyricsState = lyricsState,
+                currentPosition = currentPosition,
+                accentColor = accentColor,
+                onSeekTo = onSeekTo,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+/**
+ * SpotifyStyleSyncedLyrics - Premium large-text synced lyrics display
+ * Active line: 26sp Bold, white (full opacity)
+ * Inactive lines: 18sp Normal, 35% opacity
+ * Auto-scrolls to keep active line in upper third of screen
+ * Tap any line to seek to that timestamp
+ * Gradient fade edges for polish
+ */
+@Composable
+private fun SpotifyStyleSyncedLyrics(
+    lyricsState: LyricsState,
+    currentPosition: Long,
+    accentColor: Color,
+    onSeekTo: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    when (lyricsState) {
+        is LyricsState.Loading -> {
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = accentColor,
+                    strokeWidth = 3.dp
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.now_playing_loading_lyrics),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+
+        is LyricsState.Success -> {
+            val parsedLines = lyricsState.parsedLines
+            if (parsedLines.isNotEmpty()) {
+                SyncedLyricsView(
+                    lines = parsedLines,
+                    currentPosition = currentPosition,
+                    accentColor = accentColor,
+                    onSeekTo = onSeekTo,
+                    modifier = modifier
+                )
+            } else if (!lyricsState.lyrics.plainLyrics.isNullOrBlank()) {
+                PlainLyricsView(
+                    text = lyricsState.lyrics.plainLyrics,
+                    modifier = modifier
+                )
+            } else {
+                NoLyricsAvailable(modifier = modifier)
+            }
+        }
+
+        is LyricsState.Error -> {
+            Column(
+                modifier = modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Error,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = stringResource(R.string.now_playing_lyrics_error),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
+        is LyricsState.NotFound -> {
+            NoLyricsAvailable(modifier = modifier)
+        }
+    }
+}
+
+/**
+ * SyncedLyricsView - LazyColumn with large Spotify-style text
+ */
+@Composable
+private fun SyncedLyricsView(
+    lines: List<LyricLine>,
+    currentPosition: Long,
+    accentColor: Color,
+    onSeekTo: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    val activeLine = remember(currentPosition) {
+        LrcParser.findActiveLine(lines, currentPosition)
+    }
+
+    // Auto-scroll to keep active line in upper third
+    LaunchedEffect(activeLine) {
+        if (activeLine >= 0 && activeLine < lines.size) {
+            listState.animateScrollToItem(
+                index = activeLine.coerceAtLeast(0),
+                scrollOffset = -(150).dp.value.toInt()  // Keep in upper third
+            )
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(NowPlayingLyricsLineSpacing),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 60.dp)
+        ) {
+            itemsIndexed(
+                items = lines,
+                key = { index, _ -> index }
+            ) { index, line ->
+                val isActive = index == activeLine
+                Text(
+                    text = line.text,
+                    style = MaterialTheme.typography.displaySmall.copy(
+                        fontSize = if (isActive) NowPlayingLyricsActiveFontSize else NowPlayingLyricsInactiveFontSize,
+                        fontWeight = if (isActive) FontWeight.Bold else FontWeight.Normal,
+                        lineHeight = 32.sp
+                    ),
+                    color = if (isActive) {
+                        MaterialTheme.colorScheme.onSurface
+                    } else {
+                        MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
+                    },
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            onSeekTo(line.timestamp)
+                        }
+                        .padding(vertical = 8.dp)
+                )
+            }
+        }
+
+        // Gradient fade edges
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .align(Alignment.TopCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface,
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0f)
+                        )
+                    )
+                )
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp)
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0f),
+                            MaterialTheme.colorScheme.surface
+                        )
+                    )
+                )
+        )
+    }
+}
+
+/**
+ * PlainLyricsView - For unsynced lyrics without timestamps
+ */
+@Composable
+private fun PlainLyricsView(
+    text: String,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        item {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    lineHeight = 28.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+/**
+ * NoLyricsAvailable - Empty state for missing lyrics
+ */
+@Composable
+private fun NoLyricsAvailable(modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = stringResource(R.string.now_playing_no_lyrics),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
     }

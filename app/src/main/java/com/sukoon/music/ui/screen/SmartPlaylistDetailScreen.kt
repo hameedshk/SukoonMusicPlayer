@@ -499,6 +499,8 @@ private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
         SmartPlaylistType.LAST_ADDED -> "No songs added" to "Scan your music library to get started"
         SmartPlaylistType.RECENTLY_PLAYED -> "No recently played songs" to "Start playing music to see your history"
         SmartPlaylistType.MOST_PLAYED -> "No play history yet" to "Songs you play often will appear here"
+        SmartPlaylistType.NEVER_PLAYED -> "Everything has been played" to "Check your history to find your favorites"
+        SmartPlaylistType.DISCOVER -> "Nothing to discover" to "Add more songs to your library"
     }
 
     Column(

@@ -4,10 +4,15 @@ import android.media.MediaMetadataRetriever
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
@@ -109,55 +114,52 @@ fun SongInfoDialog(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
                 ) {
-                    item { InfoField("Title", song.title) }
+                    item { InfoField(Icons.Default.Title, "Title", song.title) }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     item {
                         val format = getFormatFromPath(song.path)
-                        InfoField("Format", format)
+                        InfoField(Icons.Default.AudioFile, "Format", format)
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField("Size", formatFileSize(song.size)) }
+                    item { InfoField(Icons.Default.Storage, "Size", formatFileSize(song.size)) }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField("Duration", song.durationFormatted()) }
+                    item { InfoField(Icons.Default.Timer, "Duration", song.durationFormatted()) }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     // --- TECHNICAL DETAILS (Using technicalInfo) ---
                     item {technicalInfo.bitrateKbps?.let {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        InfoField("Bitrate", "$it kbps")
+                        InfoField(Icons.Default.SettingsSuggest, "Bitrate", "$it kbps")
                     }}
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
-
+                    
                     item {
                         technicalInfo.samplingRateHz?.let {
                             Spacer(modifier = Modifier.height(16.dp))
-                            InfoField("Sampling rate", "$it Hz")
+                            InfoField(Icons.Default.Speed, "Sampling rate", "$it Hz")
                         }
                     }
-                    item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     item {
                         technicalInfo.channels?.let {
                             Spacer(modifier = Modifier.height(16.dp))
-                            InfoField("Channels", "$it Hz")
+                            InfoField(Icons.Default.Speaker, "Channels", if (it == 1) "Mono" else "Stereo")
                         }
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     // --- REMAINING METADATA ---
-                    item { InfoField("Artist", song.artist.ifEmpty { "<unknown>" }) }
+                    item { InfoField(Icons.Default.Person, "Artist", song.artist.ifEmpty { "<unknown>" }) }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     item {
                         val fileName = song.path.substringAfterLast("/")
-                        InfoField("File name", fileName)
+                        InfoField(Icons.Default.Description, "File name", fileName)
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField("Location", song.path) }
+                    item { InfoField(Icons.Default.Folder, "Location", song.path) }
                     item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
 
@@ -176,23 +178,31 @@ fun SongInfoDialog(
 }
 
 @Composable
-private fun InfoField(label: String, value: String) {
+private fun InfoField(icon: ImageVector, label: String, value: String) {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.weight(0.4f)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(24.dp),
+            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
         )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(0.6f)
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

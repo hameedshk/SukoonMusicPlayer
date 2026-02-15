@@ -733,4 +733,28 @@ class SongRepositoryImpl @Inject constructor(
             allAlbums.shuffled().take(10)
         }
     }
+
+    override fun getNeverPlayedSongs(): Flow<List<Song>> {
+        return combine(
+            recentlyPlayedDao.getRecentlyPlayed(),
+            getAllSongs()
+        ) { history, allSongs ->
+            val playedIds = history.map { it.songId }.toSet()
+            allSongs.filter { it.id !in playedIds }
+        }
+    }
+
+    override fun getDiscoverMixSongs(): Flow<List<Song>> {
+        return getAllSongs().map { it.shuffled().take(25) }
+    }
+
+    override fun getNeverPlayedCount(): Flow<Int> {
+        return combine(
+            recentlyPlayedDao.getRecentlyPlayed(),
+            getAllSongs()
+        ) { history, allSongs ->
+            val playedIds = history.map { it.songId }.toSet()
+            allSongs.count { it.id !in playedIds }
+        }
+    }
 }

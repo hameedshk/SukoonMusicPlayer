@@ -659,6 +659,8 @@ internal fun getSmartPlaylistIcon(type: SmartPlaylistType): ImageVector {
         SmartPlaylistType.LAST_ADDED -> Icons.Default.Add
         SmartPlaylistType.RECENTLY_PLAYED -> Icons.Default.History
         SmartPlaylistType.MOST_PLAYED -> Icons.Default.PlayArrow
+        SmartPlaylistType.NEVER_PLAYED -> Icons.Default.Block
+        SmartPlaylistType.DISCOVER -> Icons.Default.Explore
     }
 }
 
@@ -902,7 +904,9 @@ fun ContinueListeningCard(
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = song.title.cleanMetadata(),
-            style = MaterialTheme.typography.listItemTitle,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -910,7 +914,7 @@ fun ContinueListeningCard(
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = song.artist,
-            style = MaterialTheme.typography.listItemSubtitle,
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -934,7 +938,9 @@ fun RecentlyPlayedScrollSection(
         // Section header - consistent with other sections
         Text(
             text = "Recently played",
-            style = MaterialTheme.typography.sectionHeader,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
         )
@@ -1040,7 +1046,9 @@ fun LibraryNavigationCards(
         // Section header - consistent with other sections
         Text(
             text = "Your library",
-            style = MaterialTheme.typography.sectionHeader,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground
         )
 

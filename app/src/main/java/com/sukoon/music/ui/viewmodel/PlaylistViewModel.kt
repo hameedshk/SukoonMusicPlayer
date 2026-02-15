@@ -71,8 +71,9 @@ class PlaylistViewModel @Inject constructor(
         songRepository.getLikedSongsCount(),
         songRepository.getAllSongs(),  // For "Last added" count
         songRepository.getRecentlyPlayedCount(),
-        songRepository.getMostPlayedCount()
-    ) { likedCount, allSongs, recentCount, mostPlayedCount ->
+        songRepository.getMostPlayedCount(),
+        songRepository.getNeverPlayedCount()
+    ) { likedCount, allSongs, recentCount, mostPlayedCount, neverPlayedCount ->
         listOf(
             SmartPlaylist(
                 type = SmartPlaylistType.MY_FAVOURITE,
@@ -93,6 +94,16 @@ class PlaylistViewModel @Inject constructor(
                 type = SmartPlaylistType.MOST_PLAYED,
                 title = SmartPlaylist.getDisplayName(SmartPlaylistType.MOST_PLAYED),
                 songCount = mostPlayedCount
+            ),
+            SmartPlaylist(
+                type = SmartPlaylistType.NEVER_PLAYED,
+                title = SmartPlaylist.getDisplayName(SmartPlaylistType.NEVER_PLAYED),
+                songCount = neverPlayedCount
+            ),
+            SmartPlaylist(
+                type = SmartPlaylistType.DISCOVER,
+                title = SmartPlaylist.getDisplayName(SmartPlaylistType.DISCOVER),
+                songCount = 25 // Fixed size for discover mix
             )
         )
     }.stateIn(
