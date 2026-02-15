@@ -28,7 +28,11 @@ $device = $env:ADB_DEVICE
 $LAST_DEVICE_FILE = ".last_device"
 
 # ============== DEVICE HELPERS ==============
-$buildStart = Get-Date
+$scriptStart = Get-Date
+
+function Format-Duration($ts) {
+    return "{0:mm\:ss\.fff}" -f $ts
+}
 
 function Load-LastDevice {
     if (Test-Path $LAST_DEVICE_FILE) {
@@ -109,9 +113,13 @@ function Get-WorkingTreeSnapshot {
 
 # ============ WORKING TREE STATE ============
 function Get-WorkingTreeHash {
-    Get-WorkingTreeSnapshot |
-        Out-String |
-        git hash-object --stdin
+     # Fast: uses git index + working tree diff instead of hashing every file
+    $indexHash = git write-tree 2>$null
+
+    # If there are uncommitted changes, include them
+    $diffHash = git diff --name-only | git hash-object --stdin 2>$null
+
+    return "$indexHash$diffHash" | git hash-object --stdin
 }
 
 function Get-ChangedFilesSinceLastRun {
@@ -359,7 +367,7 @@ Write-Host "▶ Gradle started..." -ForegroundColor Cyan
 
 if ($needsClean) {
     Write-Host "🧹 CLEAN build" -ForegroundColor Yellow
-
+	$buildStart = Get-Date
     if ($verboseGradle) {
         ./gradlew clean :app:installDebug --console=plain --profile
     }
@@ -371,10 +379,12 @@ if ($needsClean) {
                 }
             }
     }
+	$buildTime = (Get-Date) - $buildStart
+	Write-Host ("CLEAN & Build took: {0}" -f (Format-Duration $buildTime))
 }
 elseif ($needsBuild) {
     Write-Host "🚀 INCREMENTAL build" -ForegroundColor Cyan
-
+	$buildStart = Get-Date
     if ($verboseGradle) {
         ./gradlew :app:installDebug --console=plain --profile
     }
@@ -386,6 +396,8 @@ elseif ($needsBuild) {
                 }
             }
     }
+	$buildTime = (Get-Date) - $buildStart
+	Write-Host ("Build took: {0}" -f (Format-Duration $buildTime))
 }
 
 if ($LASTEXITCODE -ne 0) {
@@ -408,11 +420,9 @@ if ($attachLogcat) {
 else {
     Write-Host "ℹ️ Logcat disabled (use -Logcat to enable)" -ForegroundColor DarkGray
 }
+$totalTime = (Get-Date) - $scriptStart
 
-$buildEnd = Get-Date
-$duration = $buildEnd - $buildStart
-
-Write-Host "Build completed in $($duration.ToString())"
+Write-Host ("⏱ Total   : {0:mm\:ss}" -f (Format-Duration  $totalTime))
 
 # Auto-detect (default)
 #powershell -ExecutionPolicy Bypass -File smart_run.ps1

@@ -73,6 +73,12 @@ android {
         buildConfigField("Boolean", "USE_TEST_ADS", "true")
     }
 
+packaging {
+    resources {
+        excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+}
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -81,6 +87,14 @@ android {
                 "proguard-rules.pro"
             )
         }
+
+        debug {
+        isMinifyEnabled = false
+        isShrinkResources = false
+        isDebuggable = true
+        isJniDebuggable = false
+        isPseudoLocalesEnabled = false
+    }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11

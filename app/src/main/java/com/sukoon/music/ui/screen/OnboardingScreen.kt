@@ -1,10 +1,14 @@
 package com.sukoon.music.ui.screen
 
+import android.content.Intent
+import android.net.Uri
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -13,60 +17,55 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.layout.ContentScale
 import com.sukoon.music.R
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
-import com.sukoon.music.domain.model.AppTheme
-import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import kotlinx.coroutines.launch
-import javax.inject.Inject
-import com.sukoon.music.ui.theme.*
 
-/**
- * Onboarding Screen - Two-step setup:
- * 1. Grant music library permission
- * 2. Optional: Enter user's display name
- */
 @Composable
 fun OnboardingScreen(
     onOnboardingComplete: () -> Unit,
     preferencesManager: PreferencesManager
 ) {
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
     var username by remember { mutableStateOf("") }
+    var isSaving by remember { mutableStateOf(false) }
 
-    // Username validation: 3-10 alphabets only
-    val isUsernameValid = username.isEmpty() || (username.length in 3..10 && username.all { it.isLetter() })
-    val usernameError = when {
-        username.isNotEmpty() && username.length < 3 -> "Minimum 3 characters required"
-        username.isNotEmpty() && username.length > 10 -> "Maximum 10 characters allowed"
-        username.isNotEmpty() && !username.all { it.isLetter() } -> "Only alphabets allowed"
-        else -> ""
-    }
+    val scrollState = rememberScrollState()
 
-    // Convert to CamelCase (first letter uppercase, rest lowercase)
-    val displayUsername = username.replaceFirstChar { it.uppercase() }
-        .drop(1).lowercase()
-        .let { if (username.isNotEmpty()) username.first().uppercase() + it else "" }
-
-    // Permission state
     val permissionState = rememberAudioPermissionState(
         onPermissionGranted = {},
         onPermissionDenied = {}
     )
 
-    val scrollState = rememberScrollState()
+    /* ---------------- Username Validation ---------------- */
+
+    val trimmedName = username.trim()
+
+    val isUsernameValid =
+        trimmedName.isEmpty() || (trimmedName.length in 2..20 && trimmedName.all { it.isLetter() || it.isWhitespace() })
+
+    val usernameError = when {
+        trimmedName.isNotEmpty() && trimmedName.length < 2 -> "Name must be at least 2 characters"
+        trimmedName.length > 20 -> "Name cannot exceed 20 characters"
+        trimmedName.any { !(it.isLetter() || it.isWhitespace()) } -> "Only letters and spaces allowed"
+        else -> ""
+    }
+
+    val displayUsername =
+        trimmedName.split(" ").joinToString(" ") { word ->
+            word.replaceFirstChar { it.uppercase() }
+        }
+
+    /* ---------------- UI ---------------- */
 
     Column(
         modifier = Modifier
@@ -74,236 +73,171 @@ fun OnboardingScreen(
             .background(MaterialTheme.colorScheme.background)
             .verticalScroll(scrollState)
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // App branding
+        Spacer(Modifier.height(12.dp))
+
+        /* ---------- Branding ---------- */
+
         Text(
             text = "Sukoon",
-            style = MaterialTheme.typography.screenHeader,
-            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
+
         Text(
-            text = "Offline Music Player",
-            style = MaterialTheme.typography.labelSmall,
+            text = "Your calm, offline music space",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(bottom = 24.dp)
         )
 
-        // Symbol image
         Image(
             painter = painterResource(R.drawable.symbol),
-            contentDescription = "Sukoon Music Player",
-            modifier = Modifier
-                .size(180.dp)
-                .padding(bottom = 24.dp),
+            contentDescription = "Sukoon logo",
+            modifier = Modifier.size(170.dp),
             contentScale = ContentScale.Fit
         )
 
-        // Metadata tags
+        Spacer(Modifier.height(28.dp))
+
+        /* ---------- Permission Section ---------- */
+
         Text(
-            text = "Offline • Private • On-device",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 32.dp, top = 12.dp)
+            text = "Access Your Music",
+            style = MaterialTheme.typography.titleMedium
         )
 
-        // Step 1: Permission
-        Column(
+        Text(
+            text = "Allow Sukoon to scan your device and instantly show your offline songs.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
+            textAlign = TextAlign.Center
+        )
+
+        Button(
+            onClick = { permissionState.requestPermission() },
+            enabled = !permissionState.hasPermission,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp)
+                .height(48.dp),
+            shape = RoundedCornerShape(12.dp)
         ) {
             Text(
-                text = "Step 1: Find Your Music",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                if (permissionState.hasPermission) "✓ Music Access Granted"
+                else "Allow Music Access"
             )
-            Text(
-                text = "To play your offline songs, Sukoon needs permission to access your device library.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
-            )
-            
-            Button(
-                onClick = { permissionState.requestPermission() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp),
-                enabled = !permissionState.hasPermission,
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
-            ) {
-                Text(
-                    text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
-                    style = MaterialTheme.typography.buttonText
-                )
-            }
+        }
 
+        if (!permissionState.hasPermission) {
+            TextButton(
+                onClick = {
+                    val intent = Intent(
+                        Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", context.packageName, null)
+                    )
+                    context.startActivity(intent)
+                }
+            ) {
+                Text("Permission denied? Open Settings")
+            }
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        /* ---------- Username Section ---------- */
+
+        Text(
+            text = "Personalize (Optional)",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Text(
+            text = "What name should Sukoon use for greetings and playlists?",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 6.dp, bottom = 16.dp),
+            textAlign = TextAlign.Center
+        )
+
+        OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            isError = usernameError.isNotEmpty(),
+            placeholder = { Text("Your name") },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { }),
+            shape = RoundedCornerShape(12.dp)
+        )
+
+        if (usernameError.isNotEmpty()) {
             Text(
-                text = "*This is required to load your music",
+                usernameError,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.padding(top = 6.dp)
+            )
+        } else if (displayUsername.isNotEmpty()) {
+            Text(
+                "Display name: $displayUsername",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(top = 6.dp)
             )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Step 2: Username (Optional)
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 6.dp)
         ) {
+            Icon(Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(14.dp))
+            Spacer(Modifier.width(6.dp))
             Text(
-                text = "Step 2: Personalize Your Library",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onBackground
+                "Stored only on your device",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = "What name should we use for your playlists and greetings?",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp)
-            )
-
-            TextField(
-                value = username,
-                onValueChange = { newValue ->
-                    // Only allow alphabets, limit to 10 characters
-                    val filtered = newValue.filter { it.isLetter() }
-                    if (filtered.length <= 10) {
-                        username = filtered
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                placeholder = {
-                    Text(
-                        "Your name",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                shape = RoundedCornerShape(12.dp),
-                isError = usernameError.isNotEmpty(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                    focusedIndicatorColor = if (usernameError.isEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                    unfocusedIndicatorColor = MaterialTheme.colorScheme.surfaceVariant,
-                    errorIndicatorColor = MaterialTheme.colorScheme.error
-                )
-            )
-
-            // Error message or info text
-            if (usernameError.isNotEmpty()) {
-                Text(
-                    text = usernameError,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            } else {
-                if (username.isNotEmpty()) {
-                    Text(
-                        text = "Display name: $displayUsername",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "Your name is only stored locally on the device",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 8.dp)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
 
-        // Start Listening Button
+        /* ---------- Start Button ---------- */
+
         Button(
             onClick = {
                 scope.launch {
+                    isSaving = true
                     try {
-                        // Mark onboarding as complete first (waits for flow emission)
                         preferencesManager.setOnboardingCompleted()
-                        // Save username in CamelCase if provided (waits for flow emission)
-                        if (username.isNotBlank()) {
+                        if (displayUsername.isNotBlank()) {
                             preferencesManager.setUsername(displayUsername)
                         }
-                        // Both setOnboardingCompleted() and setUsername() now wait for flow emission
-                        // so navigation will happen only after DataStore propagation is complete
-                        onOnboardingComplete()
-                    } catch (e: Exception) {
-                        // Log error but still navigate
-                        android.util.Log.e("OnboardingScreen", "Error saving preferences", e)
+                    } finally {
                         onOnboardingComplete()
                     }
                 }
             },
+            enabled = permissionState.hasPermission && isUsernameValid && !isSaving,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp),
-            enabled = permissionState.hasPermission && isUsernameValid,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
-            )
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text(
-                text = "Start Listening",
-                style = MaterialTheme.typography.buttonText
-            )
+            if (isSaving) {
+                CircularProgressIndicator(
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp)
+                )
+            } else {
+                Text("Start Listening")
+            }
         }
 
-        Text(
-            text = "Grant permission is mandatory to use app",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
-@Preview
-@Composable
-fun OnboardingScreenPreview() {
-    SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
-        Surface(modifier = Modifier.fillMaxSize()) {
-            // Note: This won't work in preview because PreferencesManager requires Context
-            // But showing the structure
-        }
+        Spacer(Modifier.height(24.dp))
     }
 }
