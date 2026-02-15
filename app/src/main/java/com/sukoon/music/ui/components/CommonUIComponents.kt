@@ -8,13 +8,14 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.*
@@ -35,9 +36,12 @@ import android.util.Log
 import coil.compose.SubcomposeAsyncImage
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.sukoon.music.R
+import com.sukoon.music.ui.model.HomeTabKey
+import com.sukoon.music.ui.model.HomeTabSpec
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
 
@@ -285,46 +289,56 @@ internal fun RedesignedTopBar(
 
 @Composable
 internal fun TabPills(
-    tabs: List<String>,
-    selectedTab: String,
-    onTabSelected: (String) -> Unit
+    tabs: List<HomeTabSpec>,
+    selectedTab: HomeTabKey,
+    onTabSelected: (HomeTabKey) -> Unit
 ) {
-    /* val tabs = listOf("Hi Hameed", "Songs","Playlist", "Folders", "Albums", "Artists", "Genres")*/
-
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp),
+            .padding(vertical = 8.dp)
+            .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         items(
-            count = tabs.size,
-            key = { index -> tabs[index] }
-        ) { index ->
-            val tab = tabs[index]
-            val isSelected = tab == selectedTab
+            items = tabs,
+            key = { it.key }
+        ) { tab ->
+            val isSelected = tab.key == selectedTab
 
             Surface(
                 modifier = Modifier
                     .height(TabPillHeight)
-                    .clickable { onTabSelected(tab) },
+                    .selectable(
+                        selected = isSelected,
+                        onClick = { onTabSelected(tab.key) },
+                        role = Role.Tab
+                    ),
                 shape = PillShape,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                 tonalElevation = 0.dp,
                 shadowElevation = 0.dp
             ) {
-                Box(
+                Row(
                     modifier = Modifier
-                        .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = SpacingMedium, vertical = SpacingMedium),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
+                    Icon(
+                        imageVector = tab.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
                     Text(
-                        text = tab,
+                        text = tab.label,
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
                 }
             }
@@ -780,7 +794,6 @@ fun ContinueListeningCard(
     val playButtonInteractionSource = remember { MutableInteractionSource() }
     var isCardPressed by remember { mutableStateOf(false) }
     var isPlayButtonPressed by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(cardInteractionSource) {
         cardInteractionSource.interactions.collect { interaction ->
@@ -864,10 +877,7 @@ fun ContinueListeningCard(
                         onClick = {
                             Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
                             onPlayClick()
-                            coroutineScope.launch {
-                                delay(100)
-                                onClick()
-                            }
+                            onClick()
                         },
                         modifier = Modifier
                             .size(56.dp)
@@ -892,9 +902,7 @@ fun ContinueListeningCard(
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = song.title.cleanMetadata(),
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.listItemTitle,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -902,7 +910,7 @@ fun ContinueListeningCard(
         Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = song.artist,
-            style = MaterialTheme.typography.bodyMedium,
+            style = MaterialTheme.typography.listItemSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -926,9 +934,7 @@ fun RecentlyPlayedScrollSection(
         // Section header - consistent with other sections
         Text(
             text = "Recently played",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.sectionHeader,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
         )
@@ -1034,9 +1040,7 @@ fun LibraryNavigationCards(
         // Section header - consistent with other sections
         Text(
             text = "Your library",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Bold
-            ),
+            style = MaterialTheme.typography.sectionHeader,
             color = MaterialTheme.colorScheme.onBackground
         )
 

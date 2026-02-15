@@ -1,6 +1,7 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,13 +12,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
@@ -33,19 +39,28 @@ fun AboutScreen(
     val context = LocalContext.current
 
     Scaffold(
+        modifier = Modifier.gradientBackground(),
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
-                title = { Text("About Sukoon Music Player") },
+                title = {
+                    Text(
+                        "About Sukoon Music Player",
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -55,33 +70,47 @@ fun AboutScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally,
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 24.dp)
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = 24.dp,
+                bottom = 8.dp
+            )
         ) {
-            // App Icon & Name
+            // App Logo & Version Header (Non-clickable)
             item {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
+                Column(
                     modifier = Modifier
-                        .size(80.dp)
-                        .padding(bottom = 16.dp),
-                    tint = MaterialTheme.colorScheme.primary
-                )
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_icon_cat),
+                        contentDescription = "Sukoon Music Player App Icon",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .padding(bottom = 16.dp),
+                        contentScale = ContentScale.Fit
+                    )
 
-                Text(
-                    text = "Sukoon Music Player",
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
+                    Text(
+                        text = "Sukoon Music Player",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
 
-                Text(
-                    text = "Version ${viewModel.getAppVersion()}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(bottom = 24.dp)
-                )
+                    Text(
+                        text = "Version ${viewModel.getAppVersion()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(bottom = 24.dp)
+                    )
+                }
+            }
 
+            // App Description
+            item {
                 Text(
                     text = "An offline-only local music player with high-fidelity UI and background playback.",
                     style = MaterialTheme.typography.bodyMedium,
@@ -152,7 +181,7 @@ fun AboutScreen(
                             onClick = {
                                 // Open privacy policy using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                                    data = android.net.Uri.parse("${AppUrls.BASE}privacy")
+                                    data = android.net.Uri.parse("${AppUrls.BASE}apps/sukoon-music/privacy-policy")
                                 }
                                 try {
                                     context.startActivity(intent)
@@ -196,13 +225,12 @@ fun AboutScreen(
 
             // Copyright
             item {
-                Spacer(modifier = Modifier.height(32.dp))
                 val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                 Text(
                     text = "© $currentYear Sukoon Music Player",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(top = 16.dp)
+                    modifier = Modifier.padding(top = 24.dp)
                 )
             }
         }

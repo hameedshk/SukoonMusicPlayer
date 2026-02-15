@@ -75,9 +75,7 @@ fun RediscoverAlbumsSection(
                 )
                 Text(
                     text = "You Loved This Before",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
@@ -247,15 +245,14 @@ fun RediscoverAlbumCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = album.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.listItemTitle,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = album.artist,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.listItemSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

@@ -378,8 +378,8 @@ fun SettingsScreen(
                 )
             }
 
-            // App Section
-            item { SettingsSectionHeader(title = "App") }
+            // About & Support Section
+            item { SettingsSectionHeader(title = "About & Support") }
 
             item {
                 SettingsItem(
@@ -387,15 +387,6 @@ fun SettingsScreen(
                     title = "About",
                     description = "Version ${viewModel.getAppVersion()}",
                     onClick = onNavigateToAbout
-                )
-            }
-
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Security,
-                    title = "Licenses",
-                    description = "Open source licenses",
-                    onClick = { /* Navigate to licenses */ }
                 )
             }
 

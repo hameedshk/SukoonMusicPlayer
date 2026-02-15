@@ -74,7 +74,7 @@ fun HomeTab(
                 // Section header
                 Text(
                     text = "Continue listening",
-                    style = MaterialTheme.typography.cardTitle,
+                    style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )

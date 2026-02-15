@@ -156,7 +156,7 @@ BoxWithConstraints(Modifier.fillMaxSize()) {
                 )
             ) {
                 Text(
-                    text = if (permissionState.hasPermission) "✓ Permission Granted" else "Grant Permission",
+                    text = if (permissionState.hasPermission) "✓ Permission Granted" else "Allow Music Access",
                     style = MaterialTheme.typography.buttonText
                 )
             }

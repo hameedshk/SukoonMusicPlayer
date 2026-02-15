@@ -62,9 +62,7 @@ fun <T> RecentlyPlayedSection(
                 )
                 Text(
                     text = title,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
+                    style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
@@ -226,15 +224,14 @@ fun RecentlyPlayedSongCard(
         Spacer(modifier = Modifier.height(SpacingSmall))
         Text(
             text = song.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.listItemTitle,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = song.artist,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.listItemSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -282,14 +279,13 @@ fun RecentlyPlayedAlbumCard(
         Spacer(modifier = Modifier.height(SpacingSmall))
         Text(
             text = album.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.listItemTitle,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = album.artist,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.listItemSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
