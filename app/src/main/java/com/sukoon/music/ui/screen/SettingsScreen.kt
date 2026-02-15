@@ -568,7 +568,7 @@ fun SettingsScreen(
 
         if (showPremiumDialog) {
             PremiumDialog(
-                priceText = premiumManager?.getFormattedPrice() ?: "…",  
+                priceText = "$4.99 USD",  
                 onDismiss = { showPremiumDialog = false },
                 onPurchase = {
                     // Get the current activity context

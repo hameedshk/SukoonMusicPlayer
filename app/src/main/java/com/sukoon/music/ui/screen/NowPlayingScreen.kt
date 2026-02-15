@@ -110,7 +110,7 @@ import com.sukoon.music.ui.theme.*
  */
 // Album Art
 private val NowPlayingAlbumArtRoundedCorners = 16.dp
-private val NowPlayingAlbumArtHorizontalPadding = 24.dp
+private val NowPlayingAlbumArtHorizontalPadding = 16.dp
 private val NowPlayingAlbumArtShadow = 12.dp
 
 // Spacing
@@ -441,20 +441,20 @@ private fun NowPlayingContent(
             .alpha(screenAlpha)
     ) {
         val statusBarTopInset = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
-        val topBarOffset = (statusBarTopInset - 8.dp).coerceAtLeast(0.dp)
+        val topBarOffset = (statusBarTopInset - 4.dp).coerceAtLeast(0.dp)
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val topBarHeight = 44.dp
+            val topBarHeight = 36.dp
             val topContentPadding = 0.dp
-            val albumToMetadataSpacing = (maxHeight * 0.03f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
-            val metadataToControlsSpacing = if (maxHeight < 700.dp) 8.dp else 12.dp
+            val albumToMetadataSpacing = (maxHeight * 0.02f).coerceIn(NowPlayingAlbumToMetadataMin, 16.dp)
+            val metadataToControlsSpacing = if (maxHeight < 700.dp) 4.dp else 8.dp
             val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
             val primaryControlsBottomSpacing = if (maxHeight < 700.dp) NowPlayingControlsBottomCompact else NowPlayingControlsBottomRegular
             val controlsToSecondarySpacing = if (maxHeight < 700.dp) NowPlayingControlsToSecondaryCompact else NowPlayingControlsToSecondaryRegular
             val albumArtWeight = when {
-                maxHeight < 700.dp -> 0.52f
-                maxHeight < 840.dp -> 0.56f
-                else -> 0.60f
+                maxHeight < 700.dp -> 0.62f
+                maxHeight < 840.dp -> 0.66f
+                else -> 0.70f
             }
 
             // Content uses adaptive spacing so controls remain balanced on small and tall screens.
@@ -492,7 +492,7 @@ private fun NowPlayingContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(40.dp)
+                        .height(24.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -534,7 +534,7 @@ private fun NowPlayingContent(
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 24.dp)
+                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
                     ) {
                         // Seek Bar
                         SeekBarSection(
@@ -577,7 +577,7 @@ private fun NowPlayingContent(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(30.dp)
+                        .height(20.dp)
                         .background(
                             Brush.verticalGradient(
                                 colors = listOf(
@@ -1444,8 +1444,8 @@ private fun SecondaryActionsSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 24.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .padding(vertical = 6.dp, horizontal = 20.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Lyrics Button (opens modal sheet) - with accent color to highlight premium feature
