@@ -122,13 +122,13 @@ private val NowPlayingMetadataToControlsCompact = 2.dp
 private val NowPlayingMetadataToControlsRegular = 4.dp
 private val NowPlayingSeekToControlsCompact = 6.dp
 private val NowPlayingSeekToControlsRegular = 8.dp
-private val NowPlayingControlsBottomCompact = 2.dp
-private val NowPlayingControlsBottomRegular = 2.dp
+private val NowPlayingControlsBottomCompact = 6.dp
+private val NowPlayingControlsBottomRegular = 6.dp
 private val NowPlayingControlsToSecondaryCompact = 0.dp
 private val NowPlayingControlsToSecondaryRegular = 0.dp
 private val NowPlayingMetadataTopPadding = 4.dp
 private val NowPlayingMetadataBottomPadding = 0.dp
-private val NowPlayingMetadataHorizontalPadding = 28.dp
+private val NowPlayingMetadataHorizontalPadding = 24.dp
 private val NowPlayingMetadataActionLaneWidth = 56.dp
 
 // Seek Bar
@@ -206,6 +206,15 @@ fun NowPlayingScreen(
             songId = playbackState.currentSong?.id,
             isPlaying = playbackState.isPlaying,
             modifier = Modifier.fillMaxSize()
+        )
+
+        // Premium blur/overlay effect for polish
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Color.Black.copy(alpha = 0.06f)
+                )
         )
 
         // Content without parent-level Crossfade (transitions moved to individual components)
@@ -424,6 +433,8 @@ private fun NowPlayingContent(
         label = "screen_entry"
     )
 
+    var showQuickActionMenu by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -436,8 +447,7 @@ private fun NowPlayingContent(
             val topBarHeight = 44.dp
             val topContentPadding = 0.dp
             val albumToMetadataSpacing = (maxHeight * 0.03f).coerceIn(NowPlayingAlbumToMetadataMin, NowPlayingAlbumToMetadataMax)
-            val topIntroSpacing = 0.dp
-            val metadataToControlsSpacing = if (maxHeight < 700.dp) NowPlayingMetadataToControlsCompact else NowPlayingMetadataToControlsRegular
+            val metadataToControlsSpacing = if (maxHeight < 700.dp) 8.dp else 12.dp
             val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
             val primaryControlsBottomSpacing = if (maxHeight < 700.dp) NowPlayingControlsBottomCompact else NowPlayingControlsBottomRegular
             val controlsToSecondarySpacing = if (maxHeight < 700.dp) NowPlayingControlsToSecondaryCompact else NowPlayingControlsToSecondaryRegular
@@ -458,8 +468,6 @@ private fun NowPlayingContent(
                     ),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Spacer(modifier = Modifier.height(topIntroSpacing))
-
                 // B. Album Art - Prominent, album-first design
                 AlbumArtSection(
                     song = song,
@@ -479,6 +487,23 @@ private fun NowPlayingContent(
                 )
 
                 Spacer(modifier = Modifier.height(albumToMetadataSpacing))
+
+                // Top scrim gradient for metadata readability
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    Color.Black.copy(alpha = 0.08f)
+                                ),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
+                )
 
                 // C. Track Metadata with animation (calm, subordinate)
                 AnimatedVisibility(
@@ -509,7 +534,7 @@ private fun NowPlayingContent(
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 28.dp)
+                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 24.dp)
                     ) {
                         // Seek Bar
                         SeekBarSection(
@@ -546,7 +571,24 @@ private fun NowPlayingContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(controlsToSecondarySpacing))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Bottom scrim gradient for secondary actions readability
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(30.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Black.copy(alpha = 0.08f),
+                                    Color.Transparent
+                                ),
+                                startY = 0f,
+                                endY = Float.POSITIVE_INFINITY
+                            )
+                        )
+                )
 
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
@@ -561,12 +603,30 @@ private fun NowPlayingContent(
                     SecondaryActionsSection(
                         song = song,
                         playbackState = playbackState,
-                    accentColor = accentColor,
-                    onLyricsClick = { showLyricsModal = true },
-                    onShareClick = { shareHandler(song) },
-                    onQueueClick = { showQueueModal = true }
-                )
-            }
+                        accentColor = accentColor,
+                        onLyricsClick = { showLyricsModal = true },
+                        onShareClick = { shareHandler(song) },
+                        onQueueClick = { showQueueModal = true }
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Floating quick action button
+                    FloatingActionButton(
+                        onClick = { showQuickActionMenu = true },
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .padding(bottom = 8.dp),
+                        containerColor = accentColor.copy(alpha = 0.85f),
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlaylistAdd,
+                            contentDescription = "Add to playlist",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
         }
         }
 
@@ -734,60 +794,78 @@ private fun AlbumArtSection(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                // Album Art Image
-                SubcomposeAsyncImage(
-                    model = albumArtRequest,
-                    contentDescription = stringResource(R.string.now_playing_album_art, song.title),
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    filterQuality = FilterQuality.High,
-                    loading = {
-                        hasAlbumArt = false
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                // Album Art Image with gradient overlay
+                Box(modifier = Modifier.fillMaxSize()) {
+                    SubcomposeAsyncImage(
+                        model = albumArtRequest,
+                        contentDescription = stringResource(R.string.now_playing_album_art, song.title),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.High,
+                        loading = {
+                            hasAlbumArt = false
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                            )
                                         )
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(40.dp),
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                strokeWidth = 3.dp
-                            )
-                        }
-                    },
-                    error = {
-                        hasAlbumArt = false
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(40.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    strokeWidth = 3.dp
+                                )
+                            }
+                        },
+                        error = {
+                            hasAlbumArt = false
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
+                                            )
                                         )
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MusicNote,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                )
+                            }
+                        },
+                        onSuccess = { hasAlbumArt = true }
+                    )
+
+                    // Subtle gradient overlay for premium look
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        Color.Black.copy(alpha = 0.15f)
+                                    ),
+                                    startY = 0f,
+                                    endY = Float.POSITIVE_INFINITY
+                                )
                             )
-                        }
-                    },
-                    onSuccess = { hasAlbumArt = true }
-                )
+                    )
+                }
             }
         }
     }
@@ -1321,15 +1399,26 @@ private fun PlaybackControlsSection(
                         .graphicsLayer(scaleX = repeatScale, scaleY = repeatScale)
                 )
 
-                // Animated indicator dot with smooth appear/disappear
+                // Mode indicator badge for better clarity
                 if (playbackState.repeatMode != RepeatMode.OFF) {
                     Box(
                         modifier = Modifier
-                            .align(Alignment.BottomCenter)
-                            .offset(y = 8.dp)
-                            .size(4.dp)
-                            .background(accentColor, CircleShape)
-                    )
+                            .align(Alignment.TopEnd)
+                            .offset(x = 4.dp, y = (-4).dp)
+                            .size(14.dp)
+                            .background(accentColor, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = when (playbackState.repeatMode) {
+                                RepeatMode.ONE -> "1"
+                                else -> "∞"
+                            },
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -1355,7 +1444,7 @@ private fun SecondaryActionsSection(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 28.dp),
+            .padding(vertical = 6.dp, horizontal = 24.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {

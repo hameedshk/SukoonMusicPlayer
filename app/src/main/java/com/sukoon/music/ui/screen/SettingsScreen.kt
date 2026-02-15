@@ -43,6 +43,9 @@ import androidx.activity.ComponentActivity
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
 import com.sukoon.music.ui.theme.*
+import androidx.compose.ui.window.DialogProperties
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 
 /**
  * Enhanced Settings Screen with functional preferences and storage management.
@@ -403,17 +406,17 @@ fun SettingsScreen(
             }
 
             // Account Section
-            item { SettingsSectionHeader(title = "Account") }
+        //    item { SettingsSectionHeader(title = "Account") } 
 
-            item {
-                SettingsItem(
-                    icon = Icons.AutoMirrored.Filled.ExitToApp,
-                    title = "Logout",
-                    description = "Clear all data and sign out",
-                    onClick = { showLogoutDialog = true },
-                    isDestructive = true
-                )
-            }
+        //     item {
+        //         SettingsItem(
+        //             icon = Icons.AutoMirrored.Filled.ExitToApp,
+        //             title = "Logout",
+        //             description = "Clear all data and sign out",
+        //             onClick = { showLogoutDialog = true },
+        //             isDestructive = true
+        //         )
+        //     }
 
             // Footer Spacer
             item { Spacer(modifier = Modifier.height(8.dp)) }
@@ -565,6 +568,7 @@ fun SettingsScreen(
 
         if (showPremiumDialog) {
             PremiumDialog(
+                priceText = premiumManager?.getFormattedPrice() ?: "…",  
                 onDismiss = { showPremiumDialog = false },
                 onPurchase = {
                     // Get the current activity context
@@ -1240,60 +1244,86 @@ private fun RescanDialog(
 
 @Composable
 fun PremiumDialog(
+    priceText: String,
     onDismiss: () -> Unit,
     onPurchase: () -> Unit,
     onRestore: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        shape = RoundedCornerShape(18.dp),
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+        shape = RoundedCornerShape(22.dp),
+        modifier = Modifier.fillMaxWidth(0.92f),
+
         title = {
-            Text(
-                text = "Go Premium — Enjoy Pure Music",
-                style = MaterialTheme.typography.titleLarge
-            )
-        },
-        text = {
-            Column {
-                Text(
-                    text = "No ads. No interruptions. Just your offline music.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "What you get",
-                    style = MaterialTheme.typography.labelLarge
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Benefit("Ad-free listening")
-                Benefit("Smooth, uninterrupted playback")
-                Benefit("No distractions while listening")
-                Benefit("Faster & cleaner experience")
-                Benefit("Support independent development")
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "₹199 — Lifetime access (India)",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Text(
-                    text = "$4.99 — Lifetime access (Global)",
-                    style = MaterialTheme.typography.bodySmall
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.WorkspacePremium,
+                    contentDescription = "Premium",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(46.dp)
                 )
 
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "One-time purchase • No subscription • Secured by Google Play",
-                    style = MaterialTheme.typography.bodySmall
+                    text = "Go Premium",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
                 )
+
+                Text(
+                    text = "Enjoy pure, uninterrupted music",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        },
+
+        text = {
+            Column(
+                modifier = Modifier
+                    .padding(horizontal = 6.dp)
+                    .heightIn(min = 360.dp, max = 540.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                PremiumBenefit("Ad-free listening")
+                PremiumBenefit("No interruptions during playback")
+                PremiumBenefit("Cleaner, faster experience")
+                PremiumBenefit("Works fully offline")
+                PremiumBenefit("Support Sukoon development")
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Price Highlight Card
+                Surface(
+                    shape = RoundedCornerShape(14.dp),
+                    tonalElevation = 3.dp,
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(vertical = 14.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = priceText,
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+
+                        Text(
+                            text = "Lifetime access • One-time purchase",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -1304,20 +1334,30 @@ fun PremiumDialog(
                     Text("Restore Purchase")
                 }
 
-                Spacer(modifier = Modifier.height(4.dp))
-
                 Text(
-                    text = "Works offline • No recurring charges • One-time purchase",
+                    text = "No subscription • No recurring charges • Secured by Google Play",
                     style = MaterialTheme.typography.labelSmall,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         },
+
         confirmButton = {
-            Button(onClick = onPurchase) {
-                Text("Unlock Premium")
+            Button(
+                onClick = onPurchase,
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = "Unlock Premium",
+                    fontWeight = FontWeight.Bold
+                )
             }
         },
+
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Maybe Later")
@@ -1325,6 +1365,24 @@ fun PremiumDialog(
         }
     )
 }
+
+@Composable
+private fun PremiumBenefit(text: String) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(vertical = 4.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Default.CheckCircle,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodyMedium)
+    }
+}
+
 
 @Composable
 private fun Benefit(text: String) {
