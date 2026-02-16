@@ -174,8 +174,9 @@ class FolderDetailViewModel @Inject constructor(
      */
     fun playFolder(folderSongs: List<Song>) {
         if (folderSongs.isEmpty()) return
+        val folderName = folder.value?.name ?: "Folder"
         viewModelScope.launch {
-            playbackRepository.playQueue(folderSongs, startIndex = 0)
+            playbackRepository.playQueue(folderSongs, startIndex = 0, queueName = "Folder: $folderName")
         }
     }
 
@@ -186,9 +187,9 @@ class FolderDetailViewModel @Inject constructor(
      */
     fun shuffleFolder(folderSongs: List<Song>) {
         if (folderSongs.isEmpty()) return
+        val folderName = folder.value?.name ?: "Folder"
         viewModelScope.launch {
-            val shuffledSongs = folderSongs.shuffled()
-            playbackRepository.playQueue(shuffledSongs, startIndex = 0)
+            playbackRepository.shuffleAndPlayQueue(folderSongs, queueName = "Folder: $folderName")
         }
     }
 
@@ -200,10 +201,11 @@ class FolderDetailViewModel @Inject constructor(
      * @param folderSongs The full folder song list for queue context
      */
     fun playSong(song: Song, folderSongs: List<Song>) {
+        val folderName = folder.value?.name ?: "Folder"
         viewModelScope.launch {
             val index = folderSongs.indexOf(song)
             if (index >= 0) {
-                playbackRepository.playQueue(folderSongs, startIndex = index)
+                playbackRepository.playQueue(folderSongs, startIndex = index, queueName = "Folder: $folderName")
             }
         }
     }

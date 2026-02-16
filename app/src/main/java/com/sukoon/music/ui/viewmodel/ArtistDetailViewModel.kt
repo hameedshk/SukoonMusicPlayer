@@ -145,8 +145,9 @@ class ArtistDetailViewModel @Inject constructor(
      */
     fun playArtist(artistSongs: List<Song>) {
         if (artistSongs.isEmpty()) return
+        val artistName = artist.value?.name ?: "Artist"
         viewModelScope.launch {
-            playbackRepository.playQueue(artistSongs, startIndex = 0)
+            playbackRepository.playQueue(artistSongs, startIndex = 0, queueName = "Artist: $artistName")
         }
     }
 
@@ -157,9 +158,9 @@ class ArtistDetailViewModel @Inject constructor(
      */
     fun shuffleArtist(artistSongs: List<Song>) {
         if (artistSongs.isEmpty()) return
+        val artistName = artist.value?.name ?: "Artist"
         viewModelScope.launch {
-            val shuffledSongs = artistSongs.shuffled()
-            playbackRepository.playQueue(shuffledSongs, startIndex = 0)
+            playbackRepository.shuffleAndPlayQueue(artistSongs, queueName = "Artist: $artistName")
         }
     }
 
@@ -171,10 +172,11 @@ class ArtistDetailViewModel @Inject constructor(
      * @param artistSongs The full artist song list for queue context
      */
     fun playSong(song: Song, artistSongs: List<Song>) {
+        val artistName = artist.value?.name ?: "Artist"
         viewModelScope.launch {
             val index = artistSongs.indexOf(song)
             if (index >= 0) {
-                playbackRepository.playQueue(artistSongs, startIndex = index)
+                playbackRepository.playQueue(artistSongs, startIndex = index, queueName = "Artist: $artistName")
             }
         }
     }
@@ -268,11 +270,12 @@ class ArtistDetailViewModel @Inject constructor(
     fun playSelectedSongs(allSongs: List<Song>) {
         val ids = _selectedSongIds.value
         if (ids.isEmpty()) return
+        val artistName = artist.value?.name ?: "Artist"
 
         viewModelScope.launch {
             val selectedSongs = allSongs.filter { ids.contains(it.id) }
             if (selectedSongs.isNotEmpty()) {
-                playbackRepository.playQueue(selectedSongs, startIndex = 0)
+                playbackRepository.playQueue(selectedSongs, startIndex = 0, queueName = "Selection from $artistName")
                 toggleSelectionMode(false)
             }
         }

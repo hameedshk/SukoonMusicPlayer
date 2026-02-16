@@ -28,6 +28,8 @@ import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -91,6 +93,9 @@ class MusicPlaybackService : MediaSessionService() {
     private var crossfadeManager: com.sukoon.music.data.audio.CrossfadeManager? = null
     private var currentCrossfadeDurationMs: Int = 0
 
+    // Sleep timer job
+    private var sleepTimerJob: Job? = null
+
     companion object {
         private const val NOTIFICATION_ID = 101
         private const val CHANNEL_ID = "sukoon_music_playback"
@@ -111,6 +116,7 @@ class MusicPlaybackService : MediaSessionService() {
             initializePlayer()
             registerAudioNoisyReceiver()
             observeResumeOnAudioFocusSetting()
+            observeSleepTimer()
         } catch (e: Exception) {
             DevLogger.e("MusicPlaybackService", "Failed to initialize service", e)
             // If initialization fails, stop the service
@@ -366,6 +372,43 @@ class MusicPlaybackService : MediaSessionService() {
             preferencesManager.userPreferencesFlow.collect { preferences ->
                 resumeOnAudioFocus = preferences.resumeOnAudioFocus
                 DevLogger.d("MusicPlaybackService", "Resume on audio focus: $resumeOnAudioFocus")
+            }
+        }
+    }
+
+    /**
+     * Observe sleep timer target time and schedule a pause.
+     * This survives app restart because targetTime is persisted in DataStore.
+     */
+    private fun observeSleepTimer() {
+        scope.launch {
+            preferencesManager.userPreferencesFlow.collect { preferences ->
+                val targetTime = preferences.sleepTimerTargetTimeMs
+                val currentTime = System.currentTimeMillis()
+
+                // Cancel existing job if any
+                sleepTimerJob?.cancel()
+
+                if (targetTime > currentTime) {
+                    val remainingMs = targetTime - currentTime
+                    DevLogger.d("MusicPlaybackService", "Sleep timer scheduled: pausing in ${remainingMs / 1000}s")
+                    
+                    sleepTimerJob = scope.launch {
+                        delay(remainingMs)
+                        withContext(Dispatchers.Main) {
+                            if (player.isPlaying || player.playWhenReady) {
+                                DevLogger.d("MusicPlaybackService", "Sleep timer reached: pausing playback")
+                                player.pause()
+                            }
+                            // Reset target time in preferences to 0 so it doesn't trigger again
+                            preferencesManager.setSleepTimerTargetTime(0L)
+                        }
+                    }
+                } else if (targetTime > 0) {
+                    // Target time is in the past, reset it (cleanup)
+                    DevLogger.d("MusicPlaybackService", "Sleep timer target was in past, resetting")
+                    preferencesManager.setSleepTimerTargetTime(0L)
+                }
             }
         }
     }

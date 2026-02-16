@@ -105,11 +105,12 @@ class SmartPlaylistViewModel @Inject constructor(
      * Play all songs in the current smart playlist starting from the first song.
      */
     fun playSmartPlaylist(playlistType: SmartPlaylistType) {
+        val playlistTitle = com.sukoon.music.domain.model.SmartPlaylist.getDisplayName(playlistType)
         viewModelScope.launch {
             val songs = currentSmartPlaylistSongs.value
 
             if (songs.isNotEmpty()) {
-                playbackRepository.playQueue(songs, startIndex = 0)
+                playbackRepository.playQueue(songs, startIndex = 0, queueName = playlistTitle)
             }
         }
     }
@@ -118,11 +119,12 @@ class SmartPlaylistViewModel @Inject constructor(
      * Play all songs in the current smart playlist with shuffle enabled.
      */
     fun shuffleSmartPlaylist(playlistType: SmartPlaylistType) {
+        val playlistTitle = com.sukoon.music.domain.model.SmartPlaylist.getDisplayName(playlistType)
         viewModelScope.launch {
             val songs = currentSmartPlaylistSongs.value
 
             if (songs.isNotEmpty()) {
-                playbackRepository.shuffleAndPlayQueue(songs)
+                playbackRepository.shuffleAndPlayQueue(songs, queueName = playlistTitle)
             }
         }
     }

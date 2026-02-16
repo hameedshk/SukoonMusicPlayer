@@ -99,31 +99,34 @@ class AlbumDetailViewModel @Inject constructor(
     /**
      * Play all songs in the album from the beginning.
      */
-    fun playAlbum(albumSongs: List<Song>) {
-        if (albumSongs.isEmpty()) return
+    fun playAlbum(allSongs: List<Song>) {
+        if (allSongs.isEmpty()) return
+        val albumName = album.value?.title ?: "Album"
         viewModelScope.launch {
-            playbackRepository.playQueue(albumSongs, startIndex = 0)
+            playbackRepository.playQueue(allSongs, startIndex = 0, queueName = "Album: $albumName")
         }
     }
 
     /**
      * Shuffle and play all songs in the album.
      */
-    fun shuffleAlbum(albumSongs: List<Song>) {
-        if (albumSongs.isEmpty()) return
+    fun shuffleAlbum(allSongs: List<Song>) {
+        if (allSongs.isEmpty()) return
+        val albumName = album.value?.title ?: "Album"
         viewModelScope.launch {
-            playbackRepository.shuffleAndPlayQueue(albumSongs)
+            playbackRepository.shuffleAndPlayQueue(allSongs, queueName = "Album: $albumName")
         }
     }
 
     /**
      * Play a specific song from the album.
      */
-    fun playSong(song: Song, albumSongs: List<Song>) {
+    fun playSong(song: Song, allSongs: List<Song>) {
+        val albumName = album.value?.title ?: "Album"
         viewModelScope.launch {
-            val index = albumSongs.indexOf(song)
+            val index = allSongs.indexOf(song)
             if (index >= 0) {
-                playbackRepository.playQueue(albumSongs, startIndex = index)
+                playbackRepository.playQueue(allSongs, startIndex = index, queueName = "Album: $albumName")
             }
         }
     }
@@ -168,11 +171,12 @@ class AlbumDetailViewModel @Inject constructor(
     fun playSelectedSongs(allSongs: List<Song>) {
         val ids = _selectedSongIds.value
         if (ids.isEmpty()) return
+        val albumName = album.value?.title ?: "Album"
 
         viewModelScope.launch {
             val selectedSongs = allSongs.filter { ids.contains(it.id) }
             if (selectedSongs.isNotEmpty()) {
-                playbackRepository.playQueue(selectedSongs, startIndex = 0)
+                playbackRepository.playQueue(selectedSongs, startIndex = 0, queueName = "Selection from $albumName")
                 toggleSelectionMode(false)
             }
         }

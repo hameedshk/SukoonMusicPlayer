@@ -301,12 +301,14 @@ class PlaylistViewModel @Inject constructor(
      */
     fun playPlaylist(playlistId: Long) {
         viewModelScope.launch {
+            val playlist = playlists.value.find { it.id == playlistId }
+            val playlistName = playlist?.name ?: "Playlist"
             val songs = playlistRepository.getSongsInPlaylist(playlistId)
                 .stateIn(viewModelScope)
                 .value
 
             if (songs.isNotEmpty()) {
-                playbackRepository.playQueue(songs, startIndex = 0)
+                playbackRepository.playQueue(songs, startIndex = 0, queueName = "Playlist: $playlistName")
             }
         }
     }
@@ -317,12 +319,14 @@ class PlaylistViewModel @Inject constructor(
      */
     fun shufflePlaylist(playlistId: Long) {
         viewModelScope.launch {
+            val playlist = playlists.value.find { it.id == playlistId }
+            val playlistName = playlist?.name ?: "Playlist"
             val songs = playlistRepository.getSongsInPlaylist(playlistId)
                 .stateIn(viewModelScope)
                 .value
 
             if (songs.isNotEmpty()) {
-                playbackRepository.shuffleAndPlayQueue(songs)
+                playbackRepository.shuffleAndPlayQueue(songs, queueName = "Playlist: $playlistName")
             }
         }
     }

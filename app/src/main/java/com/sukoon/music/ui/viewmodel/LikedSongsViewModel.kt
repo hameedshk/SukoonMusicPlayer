@@ -130,8 +130,7 @@ class LikedSongsViewModel @Inject constructor(
         viewModelScope.launch {
             val songs = likedSongs.value
             if (songs.isNotEmpty()) {
-                playbackRepository.playSong(songs.first())
-                // TODO: Add queue functionality to play all songs in order
+                playbackRepository.playQueue(songs, startIndex = 0, queueName = "Liked Songs")
             }
         }
     }
@@ -143,7 +142,7 @@ class LikedSongsViewModel @Inject constructor(
         viewModelScope.launch {
             val songs = likedSongs.value
             if (songs.isNotEmpty()) {
-                playbackRepository.shuffleAndPlayQueue(songs)
+                playbackRepository.shuffleAndPlayQueue(songs, queueName = "Liked Songs")
             }
         }
     }

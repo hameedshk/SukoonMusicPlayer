@@ -58,6 +58,7 @@ class PreferencesManager @Inject constructor(
         private val KEY_CROSSFADE_DURATION = intPreferencesKey("crossfade_duration_ms")
         private val KEY_PAUSE_ON_AUDIO_NOISY = booleanPreferencesKey("pause_on_audio_noisy")
         private val KEY_RESUME_ON_AUDIO_FOCUS = booleanPreferencesKey("resume_on_audio_focus")
+        private val KEY_SLEEP_TIMER_TARGET_TIME = stringPreferencesKey("sleep_timer_target_time_ms") // String for Long support
 
         // Audio Quality
         private val KEY_AUDIO_QUALITY = stringPreferencesKey("audio_quality")
@@ -79,6 +80,7 @@ class PreferencesManager @Inject constructor(
         private val KEY_LAST_PLAYBACK_POSITION = stringPreferencesKey("last_playback_position_ms") // String to support Long
         private val KEY_LAST_QUEUE_INDEX = intPreferencesKey("last_queue_index")
         private val KEY_LAST_SONG_ID = stringPreferencesKey("last_song_id") // String to support Long
+        private val KEY_LAST_QUEUE_NAME = stringPreferencesKey("last_queue_name")
 
         // Onboarding
         private val KEY_USERNAME = stringPreferencesKey("username")
@@ -106,6 +108,7 @@ class PreferencesManager @Inject constructor(
                 folderSortMode = parseFolderSortMode(preferences[KEY_FOLDER_SORT_MODE]),
                 minimumAudioDuration = preferences[KEY_MINIMUM_AUDIO_DURATION] ?: 30,
                 showAllAudioFiles = preferences[KEY_SHOW_ALL_AUDIO_FILES] ?: false,
+                lastQueueName = preferences[KEY_LAST_QUEUE_NAME],
                 // Playback
                 showNotificationControls = preferences[KEY_SHOW_NOTIFICATIONS] ?: true,
                 gaplessPlaybackEnabled = preferences[KEY_GAPLESS_PLAYBACK] ?: true,
@@ -118,7 +121,9 @@ class PreferencesManager @Inject constructor(
                 audioNormalizationEnabled = preferences[KEY_AUDIO_NORMALIZATION] ?: false,
                 // Onboarding
                 username = preferences[KEY_USERNAME] ?: "",
-                hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false
+                hasCompletedOnboarding = preferences[KEY_HAS_COMPLETED_ONBOARDING] ?: false,
+                // Sleep Timer
+                sleepTimerTargetTimeMs = preferences[KEY_SLEEP_TIMER_TARGET_TIME]?.toLongOrNull() ?: 0L
             )
         }
 
@@ -242,6 +247,16 @@ class PreferencesManager @Inject constructor(
     suspend fun setResumeOnAudioFocus(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_RESUME_ON_AUDIO_FOCUS] = enabled
+        }
+    }
+
+    /**
+     * Update sleep timer target time.
+     * @param targetTimeMs Target time in milliseconds since epoch (0 = disabled)
+     */
+    suspend fun setSleepTimerTargetTime(targetTimeMs: Long) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SLEEP_TIMER_TARGET_TIME] = targetTimeMs.toString()
         }
     }
 
@@ -505,6 +520,26 @@ class PreferencesManager @Inject constructor(
             preferences[KEY_LAST_SONG_ID] = songId.toString()
             preferences[KEY_LAST_QUEUE_INDEX] = queueIndex
             preferences[KEY_LAST_PLAYBACK_POSITION] = positionMs.toString()
+        }
+    }
+
+    /**
+     * Save current playback state for recovery after process death.
+     * @param songId ID of currently playing song
+     * @param queueIndex Current index in queue
+     * @param positionMs Current playback position in milliseconds
+     * @param queueName Name of the source (Album, Playlist, etc.)
+     */
+    suspend fun savePlaybackStateExtended(songId: Long, queueIndex: Int, positionMs: Long, queueName: String?) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_LAST_SONG_ID] = songId.toString()
+            preferences[KEY_LAST_QUEUE_INDEX] = queueIndex
+            preferences[KEY_LAST_PLAYBACK_POSITION] = positionMs.toString()
+            if (queueName != null) {
+                preferences[KEY_LAST_QUEUE_NAME] = queueName
+            } else {
+                preferences.remove(KEY_LAST_QUEUE_NAME)
+            }
         }
     }
 

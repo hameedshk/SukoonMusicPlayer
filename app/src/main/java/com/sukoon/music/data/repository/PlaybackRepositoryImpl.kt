@@ -25,6 +25,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -57,6 +58,9 @@ class PlaybackRepositoryImpl @Inject constructor(
     // MediaController Reference
     private var mediaController: MediaController? = null
     private var connectionJob: Job? = null
+
+    // Track the current source name (e.g., "Album: Graduation", "Playlist: Favorites")
+    private var currentSourceName: String? = null
 
     // Audio Focus State Tracking
     private var pausedByAudioFocusLoss = false
@@ -263,6 +267,10 @@ class PlaybackRepositoryImpl @Inject constructor(
                         mediaController?.setMediaItems(mediaItems)
                     }
 
+                    // Restore the source name if available
+                    val userPrefs = preferencesManager.userPreferencesFlow.first()
+                    currentSourceName = userPrefs.lastQueueName
+
                     // Prepare but don't auto-play (user must explicitly start)
                     mediaController?.prepare()
 
@@ -291,10 +299,11 @@ class PlaybackRepositoryImpl @Inject constructor(
         // Save state in background
         scope.launch {
             try {
-                preferencesManager.savePlaybackState(
+                preferencesManager.savePlaybackStateExtended(
                     songId = currentSongId,
                     queueIndex = currentIndex,
-                    positionMs = currentPosition
+                    positionMs = currentPosition,
+                    queueName = currentSourceName
                 )
             } catch (e: Exception) {
                 // Log but don't crash - state saving is not critical
@@ -347,7 +356,7 @@ class PlaybackRepositoryImpl @Inject constructor(
                 queue = queue,
                 currentQueueIndex = controller.currentMediaItemIndex,
                 currentQueueId = currentSavedQueueId,
-                currentQueueName = if (currentSavedQueueId != null) "Current Queue" else null,
+                currentQueueName = currentSourceName ?: if (currentSavedQueueId != null) "Current Queue" else null,
                 queueTimestamp = System.currentTimeMillis(),
 
                 // Audio focus state
@@ -439,12 +448,13 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     // Queue Management
 
-    override suspend fun playSong(song: Song) {
+    override suspend fun playSong(song: Song, queueName: String?) {
         // Guard: Don't restart if already playing this song
         if (_playbackState.value.currentSong?.id == song.id) {
             return
         }
 
+        currentSourceName = queueName
         mediaController?.let { controller ->
             try {
                 controller.setMediaItem(song.toMediaItem())
@@ -459,12 +469,13 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun playQueue(songs: List<Song>, startIndex: Int) {
+    override suspend fun playQueue(songs: List<Song>, startIndex: Int, queueName: String?) {
         // Guard: Don't restart if already playing the same song at startIndex
         if (startIndex in songs.indices && _playbackState.value.currentSong?.id == songs[startIndex].id) {
             return
         }
 
+        currentSourceName = queueName
         mediaController?.let { controller ->
             try {
                 controller.setMediaItems(
@@ -483,7 +494,7 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun shuffleAndPlayQueue(songs: List<Song>) {
+    override suspend fun shuffleAndPlayQueue(songs: List<Song>, queueName: String?) {
         if (songs.isEmpty()) return
 
         // Fisher-Yates shuffle algorithm
@@ -496,7 +507,7 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
 
         // Play shuffled queue and disable ExoPlayer's shuffle since we shuffled manually
-        playQueue(shuffled, startIndex = 0)
+        playQueue(shuffled, startIndex = 0, queueName = queueName)
         setShuffleEnabled(false)
     }
 

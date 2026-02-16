@@ -107,7 +107,9 @@ class QueueViewModel @Inject constructor(
             try {
                 val songs = queueRepository.restoreQueue(queueId)
                 if (songs != null && songs.isNotEmpty()) {
-                    playbackRepository.playQueue(songs, startIndex = 0)
+                    val savedQueue = savedQueues.value.find { it.id == queueId }
+                    val queueName = savedQueue?.name ?: "Saved Queue"
+                    playbackRepository.playQueue(songs, startIndex = 0, queueName = "Queue: $queueName")
                     queueRepository.setCurrentQueue(queueId)
                     _uiState.value = _uiState.value.copy(
                         message = "Queue loaded",
@@ -183,7 +185,7 @@ class QueueViewModel @Inject constructor(
                 }
 
                 // Replace entire queue with reordered list
-                playbackRepository.playQueue(currentQueue, startIndex = newCurrentIndex)
+                playbackRepository.playQueue(currentQueue, startIndex = newCurrentIndex, queueName = playbackState.value.currentQueueName)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     message = "Failed to reorder queue: ${e.message}",
@@ -246,7 +248,7 @@ class QueueViewModel @Inject constructor(
                 // Put current song at the front
                 currentSong?.let { queue.add(0, it) }
 
-                playbackRepository.playQueue(queue, startIndex = 0)
+                playbackRepository.playQueue(queue, startIndex = 0, queueName = playbackState.value.currentQueueName)
                 _uiState.value = _uiState.value.copy(
                     message = "Queue shuffled",
                     isError = false

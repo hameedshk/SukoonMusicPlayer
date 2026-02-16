@@ -46,6 +46,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -85,6 +92,7 @@ import com.sukoon.music.ui.components.SongContextMenu
 import com.sukoon.music.ui.components.SongInfoDialog
 import com.sukoon.music.ui.components.rememberShareHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.util.rememberAlbumPalette
@@ -292,6 +300,7 @@ fun NowPlayingScreen(
 @Composable
 private fun TopUtilityBar(
     song: Song,
+    queueName: String?,
     onBackClick: () -> Unit,
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -314,6 +323,37 @@ private fun TopUtilityBar(
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 1f)
             )
+        }
+
+        // Center: Playing From context (if available)
+        if (!queueName.isNullOrBlank()) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = "PLAYING FROM",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        letterSpacing = 0.5.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = queueName,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        } else {
+            Spacer(modifier = Modifier.weight(1f))
         }
 
         IconButton(
@@ -508,7 +548,15 @@ private fun NowPlayingContent(
                 ) {
                     TrackMetadataSection(
                         song = song,
-                        onLikeClick = onLikeClick
+                        onLikeClick = onLikeClick,
+                        onArtistClick = { 
+                            val artistId = song.artist.hashCode().toLong()
+                            onNavigateToArtist(artistId)
+                        },
+                        onAlbumClick = {
+                            val albumId = song.album.hashCode().toLong()
+                            onNavigateToAlbum(albumId)
+                        }
                     )
                 }
 
@@ -551,6 +599,7 @@ private fun NowPlayingContent(
                         PlaybackControlsSection(
                             playbackState = playbackState,
                             accentColor = accentColor,
+                            currentPosition = currentPosition,
                             onPreviousClick = onPreviousClick,
                             onPlayPauseClick = onPlayPauseClick,
                             onNextClick = onNextClick,
@@ -590,6 +639,7 @@ private fun NowPlayingContent(
         // A. Pinned TopUtilityBar - Fixed position outside scrollable content
         TopUtilityBar(
             song = song,
+            queueName = playbackState.currentQueueName,
             onBackClick = onBackClick,
             onMoreClick = { showSongContextMenu = true },
             modifier = Modifier
@@ -733,7 +783,7 @@ private fun AlbumArtSection(
         targetValue = 1.015f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 3500, easing = LinearEasing),
-            repeatMode = RepeatMode.Reverse
+            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
         ),
         label = "breath_scale"
     )
@@ -814,18 +864,21 @@ private fun AlbumArtSection(
                         loading = {
                             hasAlbumArt = false
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
-                                            )
-                                        )
-                                    ),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
+                                // Content-aware gradient background from song metadata
+                                PlaceholderAlbumArt.Placeholder(
+                                    seed = PlaceholderAlbumArt.generateSeed(
+                                        albumName = song.album,
+                                        artistName = song.artist,
+                                        songId = song.id
+                                    ),
+                                    modifier = Modifier.fillMaxSize(),
+                                    iconOpacity = 0f
+                                )
+
+                                // Loading spinner overlay
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(40.dp),
                                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
@@ -836,23 +889,20 @@ private fun AlbumArtSection(
                         error = {
                             hasAlbumArt = false
                             Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.85f)
-                                            )
-                                        )
-                                    ),
+                                modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                // Content-aware gradient background from song metadata
+                                PlaceholderAlbumArt.Placeholder(
+                                    seed = PlaceholderAlbumArt.generateSeed(
+                                        albumName = song.album,
+                                        artistName = song.artist,
+                                        songId = song.id
+                                    ),
+                                    modifier = Modifier.fillMaxSize(),
+                                    icon = Icons.Default.MusicNote,
+                                    iconSize = 64,
+                                    iconOpacity = 0.8f
                                 )
                             }
                         },
@@ -891,7 +941,9 @@ private fun AlbumArtSection(
 @Composable
 private fun TrackMetadataSection(
     song: Song,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    onArtistClick: () -> Unit,
+    onAlbumClick: () -> Unit
 ) {
     val likeStateDescription = if (song.isLiked) stringResource(R.string.now_playing_liked) else stringResource(R.string.now_playing_not_liked)
 
@@ -957,7 +1009,12 @@ private fun TrackMetadataSection(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Start
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null, // No ripple for cleaner look
+                                onClick = onArtistClick
+                            )
                         )
                     }
 
@@ -972,7 +1029,12 @@ private fun TrackMetadataSection(
                             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            textAlign = TextAlign.Start
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onAlbumClick
+                            )
                         )
                     }
                 }
@@ -1247,6 +1309,92 @@ private fun PressableIconButton(
 }
 
 /**
+ * Play Button with Circular Progress Ring
+ * Shows progress around the play button as song plays
+ */
+@Composable
+private fun PlayButtonWithProgress(
+    isPlaying: Boolean,
+    currentPosition: Long,
+    duration: Long,
+    accentColor: Color,
+    onPlayPauseClick: () -> Unit,
+    haptic: HapticFeedback,
+    playDesc: String,
+    pauseDesc: String
+) {
+    val progress = if (duration > 0) currentPosition.toFloat() / duration.toFloat() else 0f
+    val density = LocalDensity.current
+    val trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 100, easing = LinearEasing),
+        label = "progress_ring"
+    )
+
+    Box(
+        modifier = Modifier.size(76.dp),  // 68dp + 8dp for ring
+        contentAlignment = Alignment.Center
+    ) {
+        // Circular progress ring drawn on Canvas
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val strokeWidth = with(density) { 4.dp.toPx() }
+            val radius = (size.minDimension - strokeWidth) / 2
+
+            // Background track (subtle, always visible)
+            drawArc(
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(radius * 2, radius * 2),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+
+            // Active progress arc (fills as song plays)
+            drawArc(
+                color = accentColor,
+                startAngle = -90f,
+                sweepAngle = 360f * animatedProgress,
+                useCenter = false,
+                topLeft = Offset(strokeWidth / 2, strokeWidth / 2),
+                size = Size(radius * 2, radius * 2),
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
+
+        // Play button (centered in the ring)
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onPlayPauseClick()
+            },
+            modifier = Modifier
+                .size(68.dp)
+                .background(accentColor, CircleShape)
+        ) {
+            AnimatedContent(
+                targetState = isPlaying,
+                transitionSpec = {
+                    scaleIn(initialScale = 0.8f) + fadeIn(animationSpec = tween(150)) togetherWith
+                            scaleOut(targetScale = 0.8f) + fadeOut(animationSpec = tween(150))
+                },
+                label = "play_pause_icon"
+            ) { playing ->
+                Icon(
+                    imageVector = if (playing) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (playing) pauseDesc else playDesc,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(36.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
  * D. PlaybackControlsSection - Primary playback controls with press feedback
  * Layout: Shuffle : Previous : Play/Pause : Next : Repeat
  * Play/Pause: 68dp circle, 36dp icon with morphing animation
@@ -1258,6 +1406,7 @@ private fun PressableIconButton(
 private fun PlaybackControlsSection(
     playbackState: PlaybackState,
     accentColor: Color,
+    currentPosition: Long,
     onPreviousClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -1357,32 +1506,17 @@ private fun PlaybackControlsSection(
             )
         }
 
-        // Play/Pause Button (center, dominant) with press scale
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onPlayPauseClick()
-            },
-            modifier = Modifier
-                .size(NowPlayingPlayButtonSize)
-                .background(accentColor, CircleShape)
-        ) {
-            AnimatedContent(
-                targetState = playbackState.isPlaying,
-                transitionSpec = {
-                    scaleIn(initialScale = 0.8f) + fadeIn(animationSpec = tween(150)) togetherWith
-                            scaleOut(targetScale = 0.8f) + fadeOut(animationSpec = tween(150))
-                },
-                label = "play_pause_icon"
-            ) { isPlaying ->
-                Icon(
-                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                    contentDescription = if (isPlaying) pauseDesc else playDesc,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(NowPlayingPlayButtonIconSize)
-                )
-            }
-        }
+        // Play/Pause Button with Progress Ring (center, dominant)
+        PlayButtonWithProgress(
+            isPlaying = playbackState.isPlaying,
+            currentPosition = currentPosition,
+            duration = playbackState.duration,
+            accentColor = accentColor,
+            onPlayPauseClick = onPlayPauseClick,
+            haptic = haptic,
+            playDesc = playDesc,
+            pauseDesc = pauseDesc
+        )
 
         // Next Button with press scale
         PressableIconButton(

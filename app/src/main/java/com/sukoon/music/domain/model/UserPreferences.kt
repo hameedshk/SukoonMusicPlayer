@@ -102,7 +102,18 @@ data class UserPreferences(
     /**
      * Whether user has completed onboarding (permission granted).
      */
-    val hasCompletedOnboarding: Boolean = false
+    val hasCompletedOnboarding: Boolean = false,
+
+    /**
+     * Target time in milliseconds when the sleep timer should pause playback.
+     * 0 if no timer is active.
+     */
+    val sleepTimerTargetTimeMs: Long = 0L,
+
+    /**
+     * Name of the last active source (Album, Playlist, etc.)
+     */
+    val lastQueueName: String? = null
 )
 
 /**

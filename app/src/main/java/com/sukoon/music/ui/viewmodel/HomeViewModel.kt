@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -237,9 +239,9 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun playQueue(songs: List<Song>, startIndex: Int = 0) {
+    fun playQueue(songs: List<Song>, startIndex: Int = 0, queueName: String? = null) {
         viewModelScope.launch {
-            playbackRepository.playQueue(songs, startIndex)
+            playbackRepository.playQueue(songs, startIndex, queueName = queueName)
         }
     }
 
@@ -247,7 +249,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val allSongs = songs.value
             if (allSongs.isNotEmpty()) {
-                playbackRepository.shuffleAndPlayQueue(allSongs)
+                playbackRepository.shuffleAndPlayQueue(allSongs, queueName = "All Songs")
             }
         }
     }
@@ -257,7 +259,7 @@ class HomeViewModel @Inject constructor(
             val allSongs = songs.value
             if (allSongs.isNotEmpty()) {
                 playbackRepository.setShuffleEnabled(false)
-                playbackRepository.playQueue(allSongs, startIndex = 0)
+                playbackRepository.playQueue(allSongs, startIndex = 0, queueName = "All Songs")
             }
         }
     }
@@ -423,7 +425,7 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             val selectedSongs = songs.value.filter { it.id in _selectedSongIds.value }
             if (selectedSongs.isNotEmpty()) {
-                playbackRepository.playQueue(selectedSongs)
+                playbackRepository.playQueue(selectedSongs, queueName = "Selection")
                 _isSongSelectionMode.value = false
                 _selectedSongIds.value = emptySet()
             }
@@ -465,35 +467,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    // Sleep Timer Management
-    private var sleepTimerJob: Job? = null
-    private val _isSleepTimerActive = MutableStateFlow(false)
-    val isSleepTimerActive: StateFlow<Boolean> = _isSleepTimerActive.asStateFlow()
+    // Sleep Timer Management (reactive from persistent store)
+    val isSleepTimerActive: StateFlow<Boolean> = settingsRepository.userPreferences
+        .map { it.sleepTimerTargetTimeMs > System.currentTimeMillis() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /**
      * Set a sleep timer to pause playback after [minutes].
      * Passing 0 cancels the current timer.
      */
     fun setSleepTimer(minutes: Int) {
-        // Cancel any existing timer
-        sleepTimerJob?.cancel()
-        _isSleepTimerActive.value = false
-        
-        if (minutes > 0) {
-            _isSleepTimerActive.value = true
-            sleepTimerJob = viewModelScope.launch {
-                try {
-                    delay(minutes * 60 * 1000L)
-                    playbackRepository.pause()
-                    _isSleepTimerActive.value = false
-                    sleepTimerJob = null
-                } catch (e: Exception) {
-                    _isSleepTimerActive.value = false
-                    Log.d(TAG, "Sleep timer cancelled or error: ${e.message}")
-                }
+        viewModelScope.launch {
+            if (minutes > 0) {
+                val targetTimeMs = System.currentTimeMillis() + (minutes * 60 * 1000L)
+                settingsRepository.setSleepTimerTargetTime(targetTimeMs)
+            } else {
+                settingsRepository.setSleepTimerTargetTime(0L)
             }
-        } else {
-            sleepTimerJob = null
         }
     }
 }

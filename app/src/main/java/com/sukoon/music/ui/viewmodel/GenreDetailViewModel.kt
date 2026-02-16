@@ -96,8 +96,9 @@ class GenreDetailViewModel @Inject constructor(
      */
     fun playGenre(songs: List<Song>) {
         if (songs.isEmpty()) return
+        val genreName = genre.value?.name ?: "Genre"
         viewModelScope.launch {
-            playbackRepository.playQueue(songs, startIndex = 0)
+            playbackRepository.playQueue(songs, startIndex = 0, queueName = "Genre: $genreName")
         }
     }
 
@@ -106,8 +107,9 @@ class GenreDetailViewModel @Inject constructor(
      */
     fun shuffleGenre(songs: List<Song>) {
         if (songs.isEmpty()) return
+        val genreName = genre.value?.name ?: "Genre"
         viewModelScope.launch {
-            playbackRepository.shuffleAndPlayQueue(songs)
+            playbackRepository.shuffleAndPlayQueue(songs, queueName = "Genre: $genreName")
         }
     }
 
@@ -115,10 +117,11 @@ class GenreDetailViewModel @Inject constructor(
      * Play a specific song from the genre.
      */
     fun playSong(song: Song, songs: List<Song>) {
+        val genreName = genre.value?.name ?: "Genre"
         viewModelScope.launch {
             val index = songs.indexOf(song)
             if (index >= 0) {
-                playbackRepository.playQueue(songs, startIndex = index)
+                playbackRepository.playQueue(songs, startIndex = index, queueName = "Genre: $genreName")
             }
         }
     }
@@ -197,11 +200,12 @@ class GenreDetailViewModel @Inject constructor(
     fun playSelectedSongs(allSongs: List<Song>) {
         val ids = _selectedSongIds.value
         if (ids.isEmpty()) return
+        val genreName = genre.value?.name ?: "Genre"
 
         viewModelScope.launch {
             val selectedSongs = allSongs.filter { ids.contains(it.id) }
             if (selectedSongs.isNotEmpty()) {
-                playbackRepository.playQueue(selectedSongs, startIndex = 0)
+                playbackRepository.playQueue(selectedSongs, startIndex = 0, queueName = "Selection from $genreName")
                 toggleSelectionMode(false)
             }
         }

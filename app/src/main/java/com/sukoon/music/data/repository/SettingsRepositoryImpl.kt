@@ -133,6 +133,10 @@ class SettingsRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun setSleepTimerTargetTime(targetTimeMs: Long) {
+        preferencesManager.setSleepTimerTargetTime(targetTimeMs)
+    }
+
     /**
      * Get database file size in bytes.
      */

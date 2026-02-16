@@ -60,20 +60,20 @@ interface PlaybackRepository {
      * Clears the current queue and plays the specified song.
      * @param song Song to play
      */
-    suspend fun playSong(song: Song)
+    suspend fun playSong(song: Song, queueName: String? = null)
 
     /**
      * Play a queue of songs starting at a specific index.
      * @param songs List of songs to queue
      * @param startIndex Index of the song to start playing (default: 0)
      */
-    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0)
+    suspend fun playQueue(songs: List<Song>, startIndex: Int = 0, queueName: String? = null)
 
     /**
      * Shuffle and play a queue of songs using Fisher-Yates algorithm.
      * @param songs List of songs to shuffle and play
      */
-    suspend fun shuffleAndPlayQueue(songs: List<Song>)
+    suspend fun shuffleAndPlayQueue(songs: List<Song>, queueName: String? = null)
 
     /**
      * Add a song to the end of the current queue.

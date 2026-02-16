@@ -140,6 +140,12 @@ interface SettingsRepository {
      * IMPORTANT: Does NOT delete physical music files
      */
     suspend fun clearAllData()
+
+    /**
+     * Set the target time for the sleep timer to pause playback.
+     * @param targetTimeMs Milliseconds since epoch (0 = disabled)
+     */
+    suspend fun setSleepTimerTargetTime(targetTimeMs: Long)
 }
 
 /**
