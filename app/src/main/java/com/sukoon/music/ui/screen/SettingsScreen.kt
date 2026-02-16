@@ -169,6 +169,27 @@ fun SettingsScreen(
                 )
             }
 
+            // Premium & Ads Section
+            item { SettingsSectionHeader("Premium & Ads") }
+            item {
+                SettingsItem(
+                    icon = Icons.Default.WorkspacePremium,
+                    title = "Remove Ads",
+                    description = if (isPremium) {
+                        "Premium active - ads are already removed"
+                    } else {
+                        "Upgrade to Premium for an ad-free experience"
+                    },
+                    onClick = {
+                        analyticsTracker?.logEvent(
+                            name = "remove_ads_tap",
+                            params = mapOf("source" to "settings")
+                        )
+                        showPremiumDialog = true
+                    }
+                )
+            }
+
             // Privacy & Playback Section
             item { SettingsSectionHeader("Privacy & Playback") }
             item {
@@ -305,37 +326,37 @@ fun SettingsScreen(
             }
 
             // Storage Management Section
-            item { SettingsSectionHeader("Storage Management") }
+            // item { SettingsSectionHeader("Storage Management") }
 
-            // Storage Pie Chart
-            if (storageStats != null) {
-                item {
-                    com.sukoon.music.ui.screen.settings.components.StoragePieChart(
-                        storageStats = storageStats!!,
-                        modifier = Modifier.padding(vertical = 8.dp)
-                    )
-                }
-            }
+            // // Storage Pie Chart
+            // storageStats?.let { stats ->
+            //     item {
+            //         com.sukoon.music.ui.screen.settings.components.StoragePieChart(
+            //             storageStats = stats,
+            //             modifier = Modifier.padding(vertical = 8.dp)
+            //         )
+            //     }
+            // }
 
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Delete,
-                    title = "Clear Cache",
-                    description = "Delete cached album art",
-                    onClick = { showClearCacheDialog = true },
-                    showLoading = isClearingCache
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.DeleteForever,
-                    title = "Clear Database",
-                    description = "Delete all song metadata",
-                    onClick = { showClearDatabaseDialog = true },
-                    isDestructive = true,
-                    showLoading = isClearingData
-                )
-            }
+            // item {
+            //     SettingsItem(
+            //         icon = Icons.Default.Delete,
+            //         title = "Clear Cache",
+            //         description = "Delete cached album art",
+            //         onClick = { showClearCacheDialog = true },
+            //         showLoading = isClearingCache
+            //     )
+            // }
+            // item {
+            //     SettingsItem(
+            //         icon = Icons.Default.DeleteForever,
+            //         title = "Clear Database",
+            //         description = "Delete all song metadata",
+            //         onClick = { showClearDatabaseDialog = true },
+            //         isDestructive = true,
+            //         showLoading = isClearingData
+            //     )
+            // }
 
             // About & Legal Section
             item { SettingsSectionHeader("About & Legal") }
@@ -379,7 +400,7 @@ fun SettingsScreen(
                     description = "Read our terms",
                     onClick = {
                         val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://shkcorp.com/terms")
+                            data = Uri.parse("https://www.shkcorp.com/apps/sukoon-music/terms-conditions")
                         }
                         context.startActivity(intent)
                     }

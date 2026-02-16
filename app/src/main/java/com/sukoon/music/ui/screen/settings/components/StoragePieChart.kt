@@ -183,7 +183,7 @@ private fun DrawScope.drawStoragePieChart(
 
     // Music segment
     if (musicBytes > 0) {
-        val angle = (musicBytes / total) * 360f
+        val angle = (musicBytes.toFloat() / total.toFloat()) * 360f
         drawArc(
             color = musicColor,
             startAngle = startAngle,
@@ -197,7 +197,7 @@ private fun DrawScope.drawStoragePieChart(
 
     // Cache segment
     if (cacheBytes > 0) {
-        val angle = (cacheBytes / total) * 360f
+        val angle = (cacheBytes.toFloat() / total.toFloat()) * 360f
         drawArc(
             color = cacheColor,
             startAngle = startAngle,
@@ -211,7 +211,7 @@ private fun DrawScope.drawStoragePieChart(
 
     // Database segment
     if (databaseBytes > 0) {
-        val angle = (databaseBytes / total) * 360f
+        val angle = (databaseBytes.toFloat() / total.toFloat()) * 360f
         drawArc(
             color = databaseColor,
             startAngle = startAngle,
