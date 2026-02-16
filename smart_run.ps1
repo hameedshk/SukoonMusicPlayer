@@ -114,13 +114,15 @@ function Get-WorkingTreeSnapshot {
 
 # ============ WORKING TREE STATE ============
 function Get-WorkingTreeHash {
-     # Fast: uses git index + working tree diff instead of hashing every file
-    $indexHash = git write-tree 2>$null
+     git update-index -q --refresh
 
-    # If there are uncommitted changes, include them
-    $diffHash = git diff --name-only | git hash-object --stdin 2>$null
+    $head = git rev-parse HEAD
+    $staged = git diff --cached --name-only
+    $unstaged = git diff --name-only
+    $untracked = git ls-files --others --exclude-standard
 
-    return "$indexHash$diffHash" | git hash-object --stdin
+    $state = "$head`n$staged`n$unstaged`n$untracked"
+    return $state | git hash-object --stdin
 }
 
 function Get-ChangedFilesSinceLastRun {
@@ -279,7 +281,13 @@ else {
 Write-Host "📱 Using device: $env:ADB_DEVICE" -ForegroundColor Green
 
 # ---------- FORCE OVERRIDE (EARLY EXIT GUARD) ----------
+$start = Get-Date
 $currentHash = Get-WorkingTreeHash
+$end = Get-Date
+$duraion = $end - $start
+Write-Host "working tree hash: $duraion"
+
+$start = Get-Date
 if ($forceFullBuild -or $forceReinstall -or $forceClearData) {
     Write-Host "🔥 Force flag detected — skipping working tree hash check" -ForegroundColor Cyan
 }
@@ -293,6 +301,7 @@ if (Test-Path $STATE_HASH_FILE) {
         Write-Host "📝 No changes + last build succeeded — skipping build"
         Launch-App
         if ($attachLogcat) { Attach-Logcat }
+		New-BurntToastNotification -Text "No build needed ✅"
         exit 0
     }
     elseif ($currentHash -eq $lastHash -and -not $lastBuildSucceeded) {
@@ -302,9 +311,13 @@ if (Test-Path $STATE_HASH_FILE) {
 
 }
 
-$changedFiles = Get-ChangedFilesSinceLastRun
 
+$changedFiles = Get-ChangedFilesSinceLastRun
+$end = Get-Date
+$duration = $end - $start
+Write-Host "if loop $duration"
 # ---------- DISPLAY CHANGES ----------
+$start = Get-Date
 if ($changedFiles.Count -gt 0) {
     Write-Host "📝 Files changed since last successful run:" -ForegroundColor Yellow
     foreach ($f in $changedFiles) {
@@ -341,6 +354,9 @@ foreach ($file in $changedFiles) {
     }
 }
 
+$end = Get-Date
+$duration = $end - $start
+Write-Host "for loop $duration"
 # ---------- FORCE FULL BUILD ----------
 # Force Gradle to use selected device
 $env:ANDROID_SERIAL = $device

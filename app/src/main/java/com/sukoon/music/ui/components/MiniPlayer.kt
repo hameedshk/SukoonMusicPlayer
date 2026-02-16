@@ -20,7 +20,6 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.animation.AnimatedContent
@@ -56,6 +55,8 @@ import com.sukoon.music.ui.util.candidateAccent
 import com.sukoon.music.ui.util.AccentResolver
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.theme.*
+import androidx.compose.foundation.border
+import com.sukoon.music.ui.theme.LocalIsAmoled
 
 /**
  * Shimmer effect modifier for loading states.
@@ -118,6 +119,16 @@ fun MiniPlayer(
     // This ensures MiniPlayer updates immediately when accent profile changes in settings
     val accentColor = MaterialTheme.colorScheme.primary
 
+    // Frosted glass styling - theme-aware
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+    val isAmoled = LocalIsAmoled.current
+
+    val borderColor = when {
+        isAmoled -> Color.White.copy(alpha = 0.08f)
+        isDarkTheme -> Color.White.copy(alpha = 0.12f)
+        else -> Color.Black.copy(alpha = 0.08f)
+    }
+
 
     // Real-time position tracking - optimized with derivedStateOf
     // Only updates offset, not full recomposition of MiniPlayer
@@ -141,6 +152,9 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 12.dp)
+            .clip(MiniPlayerShape)
+            .background(MaterialTheme.colorScheme.surface)
+            .border(0.5.dp, borderColor, MiniPlayerShape)
             .pointerInput(Unit) {
                 detectVerticalDragGestures { change, dragAmount ->
                     // Swipe up (negative dragAmount) triggers full player
@@ -209,29 +223,13 @@ fun MiniPlayer(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = playbackState.currentSong.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Subtle chevron affordance (swipe up or tap to expand)
-                    Icon(
-                        imageVector = Icons.Default.ExpandLess,
-                        contentDescription = "Tap or swipe up to expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        modifier = Modifier
-                            .size(21.dp)
-                            .padding(start = 8.dp)
-                    )
-                }
+                Text(
+                    text = playbackState.currentSong.artist,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
             // Large Play/Pause Button with press feedback
@@ -313,7 +311,7 @@ fun MiniPlayer(
                             }
                         }
                     }
-                    .background(MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f))
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
             ) {
                 // Progress fill
                 Box(

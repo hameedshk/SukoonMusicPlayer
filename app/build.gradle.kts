@@ -79,22 +79,34 @@ packaging {
     }
 }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("C:/Users/ksham/Desktop/release-key.jks")
+            storePassword = "abc@123"
+            keyAlias = "release"
+            keyPassword = "abc@123"
+        }
+    }
+
     buildTypes {
-        release {
-            isMinifyEnabled = false
+
+ getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
 
-        debug {
-        isMinifyEnabled = false
-        isShrinkResources = false
-        isDebuggable = true
-        isJniDebuggable = false
-        isPseudoLocalesEnabled = false
-    }
+        getByName("debug") {
+            isMinifyEnabled = false
+            isShrinkResources = false
+            isDebuggable = true
+        }
+
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -155,6 +167,10 @@ dependencies {
 
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.5.0")
+
+    //firebase 
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")

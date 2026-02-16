@@ -52,6 +52,7 @@ import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import com.google.firebase.analytics.FirebaseAnalytics
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -67,11 +68,14 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var premiumManager: PremiumManager
-
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
+// Initialize Firebase Analytics (The missing reference fix)
+    firebaseAnalytics = FirebaseAnalytics.getInstance(this)
         // Enable edge-to-edge content with fully transparent system bars
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
@@ -104,7 +108,7 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
                 // 🐛 DEBUG: Toggle premium status for testing
                 // Uncomment one line below to test:
-                 //preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM user
+                //preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM user
                 preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM user
             }
             // Observe user preferences for theme selection
@@ -231,7 +235,10 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
                 // Global layout: NavHost + MiniPlayer + Ad
                 // No system bar padding - content draws edge-to-edge behind both status and nav bars
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                ) {
                     // Main navigation content with bottom padding
                     SukoonNavHost(
                         navController = navController,
@@ -287,7 +294,9 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         super.onResume()
         // Notify ad decision agent that app is returning to foreground
         adMobDecisionAgent.onAppForegrounded()
-    }
+    }   
+
+
 
     override fun onDestroy() {
         super.onDestroy()
