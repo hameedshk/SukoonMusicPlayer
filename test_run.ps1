@@ -221,3 +221,5 @@ Write-Host ""
 #todos
 #ensure typed ip device is conncected
 #work on pairing
+#adb -s RZGYB1Z91JX shell monkey -p com.sukoon.music -v 5000 | Tee-Object -FilePath "monkey_log.txt"
+#Select-String -Path "monkey_log.txt" -Pattern "finish*"

@@ -138,15 +138,16 @@ fun MiniPlayer(
     }
 
     // Position ticker - 100ms for smooth real-time feedback
-    LaunchedEffect(playbackState.isPlaying) {
-        positionOffset = 0L
-        if (playbackState.isPlaying) {
-            while (isActive && (playbackState.currentPosition + positionOffset) < playbackState.duration) {
-                delay(100) // 10 updates/sec for smooth visual feedback
-                positionOffset += 100
-            }
-        }
-    }
+ LaunchedEffect(playbackState.isPlaying, playbackState.currentSong?.id, playbackState.isLoading, playbackState.error) {
+      positionOffset = 0L
+      if (playbackState.isPlaying && !playbackState.isLoading && playbackState.error == null) {
+          while (isActive && playbackState.isPlaying && !playbackState.isLoading && playbackState.error == null &&
+                 (playbackState.currentPosition + positionOffset) < playbackState.duration) {
+              delay(100)
+              positionOffset += 100
+          }
+      }
+  }
 
     Box(
         modifier = modifier
