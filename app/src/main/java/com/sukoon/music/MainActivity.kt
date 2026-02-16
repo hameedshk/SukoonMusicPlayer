@@ -50,9 +50,9 @@ import androidx.compose.runtime.setValue
 import com.sukoon.music.ui.navigation.SukoonNavHost
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.HomeViewModel
+import com.sukoon.music.data.analytics.AnalyticsTracker
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import com.google.firebase.analytics.FirebaseAnalytics
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -68,14 +68,13 @@ class MainActivity : ComponentActivity() {
 
     @Inject
     lateinit var premiumManager: PremiumManager
-    private lateinit var firebaseAnalytics: FirebaseAnalytics
+
+    @Inject
+    lateinit var analyticsTracker: AnalyticsTracker
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
-
-// Initialize Firebase Analytics (The missing reference fix)
-    firebaseAnalytics = FirebaseAnalytics.getInstance(this)
         // Enable edge-to-edge content with fully transparent system bars
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(
@@ -202,12 +201,25 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                 val currentBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = currentBackStackEntry?.destination?.route
 
+                LaunchedEffect(currentRoute) {
+                    currentRoute?.let { route ->
+                        analyticsTracker.logScreenView(
+                            screenName = route,
+                            screenClass = "MainActivity"
+                        )
+                    }
+                }
+
                 // Get playback state for MiniPlayer visibility and padding
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
 
                 // Collect premium status for conditional ad rendering
                 val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
+
+                LaunchedEffect(isPremium) {
+                    analyticsTracker.setUserProperty("is_premium", isPremium.toString())
+                }
 
                 // Check if on Onboarding screen (ads hidden regardless of premium status)
                 val isOnOnboardingScreen = currentRoute == Routes.Onboarding.route
@@ -287,7 +299,10 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
     override fun onPause() {
         super.onPause()
         // Notify ad decision agent that app is going to background
-        adMobDecisionAgent.onAppBackgrounded()
+        // Avoid treating configuration changes (rotation) as a real background event.
+        if (!isChangingConfigurations) {
+            adMobDecisionAgent.onAppBackgrounded()
+        }
     }
 
     override fun onResume() {

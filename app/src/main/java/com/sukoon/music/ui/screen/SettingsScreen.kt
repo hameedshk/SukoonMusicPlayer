@@ -46,6 +46,8 @@ import com.sukoon.music.ui.theme.*
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
+import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
+import dagger.hilt.android.EntryPointAccessors
 
 /**
  * Enhanced Settings Screen with functional preferences and storage management.
@@ -78,6 +80,15 @@ fun SettingsScreen(
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val appContext = context.applicationContext
+    val analyticsTracker = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                AnalyticsEntryPoint::class.java
+            ).analyticsTracker()
+        }.getOrNull()
+    }
     val coroutineScope = rememberCoroutineScope()
     var showThemeDialog by remember { mutableStateOf(false) }
     var showAccentDialog by remember { mutableStateOf(false) }
@@ -571,6 +582,10 @@ fun SettingsScreen(
                 priceText = "$4.99 USD",  
                 onDismiss = { showPremiumDialog = false },
                 onPurchase = {
+                    analyticsTracker?.logEvent(
+                        name = "premium_purchase_tap",
+                        params = mapOf("source" to "settings")
+                    )
                     // Get the current activity context
                     val activity = context as? ComponentActivity
                     if (activity != null && premiumManager != null) {

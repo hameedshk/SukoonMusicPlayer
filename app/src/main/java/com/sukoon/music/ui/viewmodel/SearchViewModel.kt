@@ -9,9 +9,12 @@ import com.sukoon.music.domain.model.SortMode
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SearchHistoryRepository
 import com.sukoon.music.domain.repository.SongRepository
+import com.sukoon.music.data.analytics.AnalyticsTracker
+import com.google.firebase.analytics.FirebaseAnalytics
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import javax.inject.Inject
 import com.sukoon.music.ui.theme.*
 
@@ -33,6 +36,7 @@ import com.sukoon.music.ui.theme.*
 class SearchViewModel @Inject constructor(
     private val songRepository: SongRepository,
     private val searchHistoryRepository: SearchHistoryRepository,
+    private val analyticsTracker: AnalyticsTracker,
     val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
@@ -127,6 +131,14 @@ class SearchViewModel @Inject constructor(
     fun saveSearchToHistory() {
         val query = _searchQuery.value.trim()
         if (query.isNotBlank()) {
+            analyticsTracker.logEvent(
+                name = FirebaseAnalytics.Event.SEARCH,
+                params = mapOf(
+                    "query_length" to query.length,
+                    "results_count" to searchResults.value.size,
+                    "from_history" to false
+                )
+            )
             viewModelScope.launch {
                 searchHistoryRepository.saveSearch(query)
             }
@@ -139,7 +151,19 @@ class SearchViewModel @Inject constructor(
      */
     fun applySearchFromHistory(query: String) {
         _searchQuery.value = query
+        val trimmedQuery = query.trim()
         viewModelScope.launch {
+            if (trimmedQuery.isNotBlank()) {
+                yield()
+                analyticsTracker.logEvent(
+                    name = FirebaseAnalytics.Event.SEARCH,
+                    params = mapOf(
+                        "query_length" to trimmedQuery.length,
+                        "results_count" to searchResults.value.size,
+                        "from_history" to true
+                    )
+                )
+            }
             searchHistoryRepository.saveSearch(query)
         }
     }

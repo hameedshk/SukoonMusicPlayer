@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -30,7 +31,10 @@ import com.sukoon.music.R
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.ui.permissions.rememberAudioPermissionState
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.google.firebase.analytics.FirebaseAnalytics
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.sukoon.music.ui.theme.*
@@ -47,6 +51,15 @@ fun OnboardingScreen(
 ) {
     val scope = rememberCoroutineScope()
     var username by remember { mutableStateOf("") }
+    val appContext = LocalContext.current.applicationContext
+    val analyticsTracker = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                AnalyticsEntryPoint::class.java
+            ).analyticsTracker()
+        }.getOrNull()
+    }
 
     // Username validation: 3-10 alphabets only
     val isUsernameValid = username.isEmpty() || (username.length in 3..10 && username.all { it.isLetter() })
@@ -267,6 +280,10 @@ BoxWithConstraints(Modifier.fillMaxSize()) {
                         }
                         // Both setOnboardingCompleted() and setUsername() now wait for flow emission
                         // so navigation will happen only after DataStore propagation is complete
+                        analyticsTracker?.logEvent(
+                            name = FirebaseAnalytics.Event.TUTORIAL_COMPLETE,
+                            params = mapOf("has_username" to username.isNotBlank())
+                        )
                         onOnboardingComplete()
                     } catch (e: Exception) {
                         // Log error but still navigate

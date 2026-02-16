@@ -16,6 +16,7 @@ import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
+import com.sukoon.music.data.analytics.AnalyticsTracker
 import com.sukoon.music.ui.model.HomeTabKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -46,6 +47,7 @@ class HomeViewModel @Inject constructor(
     val adMobManager: com.sukoon.music.data.ads.AdMobManager,
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController,
+    private val analyticsTracker: AnalyticsTracker,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -228,12 +230,21 @@ class HomeViewModel @Inject constructor(
     }
 
     fun playSong(song: Song) {
+        analyticsTracker.logEvent(
+            name = "play_song",
+            params = mapOf("song_id" to song.id)
+        )
         viewModelScope.launch {
             playbackRepository.playSong(song)
         }
     }
 
     fun playPause() {
+        val isCurrentlyPlaying = playbackState.value.isPlaying
+        analyticsTracker.logEvent(
+            name = if (isCurrentlyPlaying) "pause_tap" else "play_tap",
+            params = mapOf("song_id" to playbackState.value.currentSong?.id)
+        )
         viewModelScope.launch {
             playbackRepository.playPause()
         }
@@ -265,12 +276,20 @@ class HomeViewModel @Inject constructor(
     }
 
     fun seekToNext() {
+        analyticsTracker.logEvent(
+            name = "next_tap",
+            params = mapOf("song_id" to playbackState.value.currentSong?.id)
+        )
         viewModelScope.launch {
             playbackRepository.seekToNext()
         }
     }
 
     fun seekToPrevious() {
+        analyticsTracker.logEvent(
+            name = "prev_tap",
+            params = mapOf("song_id" to playbackState.value.currentSong?.id)
+        )
         viewModelScope.launch {
             playbackRepository.seekToPrevious()
         }
