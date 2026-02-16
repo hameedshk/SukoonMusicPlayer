@@ -94,6 +94,9 @@ import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import androidx.compose.animation.Crossfade
+import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.SleepTimerDialog
+import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 
 /**
@@ -343,7 +346,8 @@ private fun NowPlayingContent(
     onNavigateToQueue: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
-    viewModel: HomeViewModel
+    viewModel: HomeViewModel,
+    playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val song = playbackState.currentSong ?: return
 
@@ -363,6 +367,8 @@ private fun NowPlayingContent(
     // Modal states
     var showLyricsModal by remember { mutableStateOf(false) }
     var showQueueModal by remember { mutableStateOf(false) }
+    var showPlaylistDialog by remember { mutableStateOf(false) }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showSongContextMenu by remember { mutableStateOf(false) }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
@@ -403,6 +409,9 @@ private fun NowPlayingContent(
         viewModel.fetchLyrics(song)
     }
 
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val isSleepTimerActive by viewModel.isSleepTimerActive.collectAsStateWithLifecycle()
+
     // Position ticker - restarts when playbackState.currentPosition changes (e.g., on repeat)
     LaunchedEffect(playbackState.isPlaying, playbackState.currentPosition) {
         positionOffset = 0L
@@ -432,8 +441,6 @@ private fun NowPlayingContent(
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "screen_entry"
     )
-
-    var showQuickActionMenu by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -471,6 +478,7 @@ private fun NowPlayingContent(
                 // B. Album Art - Prominent, album-first design
                 AlbumArtSection(
                     song = song,
+                    isPlaying = playbackState.isPlaying,
                     onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
                     showLyricsModal = showLyricsModal,
                     lyricsState = lyricsState,
@@ -487,23 +495,6 @@ private fun NowPlayingContent(
                 )
 
                 Spacer(modifier = Modifier.height(albumToMetadataSpacing))
-
-                // Top scrim gradient for metadata readability
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(24.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    Color.Black.copy(alpha = 0.08f)
-                                ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
-                            )
-                        )
-                )
 
                 // C. Track Metadata with animation (calm, subordinate)
                 AnimatedVisibility(
@@ -571,67 +562,6 @@ private fun NowPlayingContent(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Bottom scrim gradient for secondary actions readability
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(20.dp)
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Black.copy(alpha = 0.08f),
-                                    Color.Transparent
-                                ),
-                                startY = 0f,
-                                endY = Float.POSITIVE_INFINITY
-                            )
-                        )
-                )
-
-                // D. Up Next Mini Preview
-                val nextSong = playbackState.queue.getOrNull(playbackState.currentQueueIndex + 1)
-                if (nextSong != null && !isImmersiveMode) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 8.dp)
-                            .clickable { showQueueModal = true },
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Label
-                        Text(
-                            text = stringResource(R.string.up_next),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
-                        )
-
-                        // Next track thumbnail (24dp)
-                        SubcomposeAsyncImage(
-                            model = nextSong.albumArtUri,
-                            contentDescription = null,
-                            modifier = Modifier
-                                .size(24.dp)
-                                .clip(RoundedCornerShape(4.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        // Next track title
-                        Text(
-                            text = nextSong.title,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
                     visible = !isImmersiveMode,
@@ -648,26 +578,11 @@ private fun NowPlayingContent(
                         accentColor = accentColor,
                         onLyricsClick = { showLyricsModal = true },
                         onShareClick = { shareHandler(song) },
-                        onQueueClick = { showQueueModal = true }
+                        onQueueClick = { showQueueModal = true },
+                        onAddToPlaylistClick = { showPlaylistDialog = true },
+                        onTimerClick = { showSleepTimerDialog = true },
+                        isTimerActive = isSleepTimerActive
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Floating quick action button
-                    FloatingActionButton(
-                        onClick = { showQuickActionMenu = true },
-                        modifier = Modifier
-                            .align(Alignment.CenterHorizontally)
-                            .padding(bottom = 8.dp),
-                        containerColor = accentColor.copy(alpha = 0.85f),
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PlaylistAdd,
-                            contentDescription = "Add to playlist",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
                 }
         }
         }
@@ -701,6 +616,33 @@ private fun NowPlayingContent(
             song = song,
             menuHandler = songMenuHandler,
             onDismiss = { showSongContextMenu = false }
+        )
+    }
+
+    if (showPlaylistDialog) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, song.id)
+                showPlaylistDialog = false
+                Toast.makeText(context, "Added to playlist", Toast.LENGTH_SHORT).show()
+            },
+            onDismiss = { showPlaylistDialog = false }
+        )
+    }
+
+    if (showSleepTimerDialog) {
+        SleepTimerDialog(
+            onTimerSelected = { minutes ->
+                viewModel.setSleepTimer(minutes)
+                showSleepTimerDialog = false
+                if (minutes > 0) {
+                    Toast.makeText(context, "Timer set for $minutes minutes", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Timer cancelled", Toast.LENGTH_SHORT).show()
+                }
+            },
+            onDismiss = { showSleepTimerDialog = false }
         )
     }
 
@@ -753,6 +695,7 @@ private fun NowPlayingContent(
 @Composable
 private fun AlbumArtSection(
     song: Song,
+    isPlaying: Boolean,
     onAlbumArtClick: () -> Unit,
     showLyricsModal: Boolean = false,
     lyricsState: LyricsState = LyricsState.NotFound,
@@ -782,10 +725,34 @@ private fun AlbumArtSection(
 
     // Album art container - floating with rounded corners and shadow
     val haptic = LocalHapticFeedback.current
+
+    // Subtle breathing animation when playing (1.0 to 1.015 scale)
+    val infiniteTransition = rememberInfiniteTransition(label = "album_art_breath")
+    val breathScale by infiniteTransition.animateFloat(
+        initialValue = 1.0f,
+        targetValue = 1.015f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 3500, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "breath_scale"
+    )
+
+    // Smoothly transition between animated scale and static 1.0 when pausing
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isPlaying) breathScale else 1.0f,
+        animationSpec = tween(durationMillis = 1000),
+        label = "smooth_breath_transition"
+    )
+
     Box(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = NowPlayingAlbumArtHorizontalPadding)
+            .graphicsLayer {
+                scaleX = animatedScale
+                scaleY = animatedScale
+            }
     ) {
         // Crossfade on song change
         AnimatedContent(
@@ -1519,7 +1486,10 @@ private fun SecondaryActionsSection(
     accentColor: Color,
     onLyricsClick: () -> Unit,
     onShareClick: () -> Unit,
-    onQueueClick: () -> Unit
+    onQueueClick: () -> Unit,
+    onAddToPlaylistClick: () -> Unit,
+    onTimerClick: () -> Unit,
+    isTimerActive: Boolean
 ) {
     val haptic = LocalHapticFeedback.current
 
@@ -1527,10 +1497,26 @@ private fun SecondaryActionsSection(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 6.dp, horizontal = 20.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Lyrics Button (opens modal sheet) - with accent color to highlight premium feature
+        // 1. Add to Playlist
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onAddToPlaylistClick()
+            },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlaylistAdd,
+                contentDescription = "Add to playlist",
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // 2. Lyrics Button (with accent color to highlight premium feature)
         PressableIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1546,7 +1532,7 @@ private fun SecondaryActionsSection(
             )
         }
 
-        // Share Button - standard secondary action color
+        // 3. Share Button
         PressableIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1562,7 +1548,7 @@ private fun SecondaryActionsSection(
             )
         }
 
-        // Queue Button - standard secondary action color
+        // 4. Queue Button
         PressableIconButton(
             onClick = {
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1574,6 +1560,22 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.AutoMirrored.Default.QueueMusic,
                 contentDescription = stringResource(R.string.now_playing_queue),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // 5. Sleep Timer
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onTimerClick()
+            },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Timer,
+                contentDescription = "Sleep timer",
+                tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
         }

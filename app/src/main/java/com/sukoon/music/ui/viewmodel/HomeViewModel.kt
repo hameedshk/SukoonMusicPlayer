@@ -20,6 +20,7 @@ import com.sukoon.music.ui.model.HomeTabKey
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -461,6 +462,38 @@ class HomeViewModel @Inject constructor(
                 _selectedSongIds.value = emptySet()
                 _isSongSelectionMode.value = false
             }
+        }
+    }
+
+    // Sleep Timer Management
+    private var sleepTimerJob: Job? = null
+    private val _isSleepTimerActive = MutableStateFlow(false)
+    val isSleepTimerActive: StateFlow<Boolean> = _isSleepTimerActive.asStateFlow()
+
+    /**
+     * Set a sleep timer to pause playback after [minutes].
+     * Passing 0 cancels the current timer.
+     */
+    fun setSleepTimer(minutes: Int) {
+        // Cancel any existing timer
+        sleepTimerJob?.cancel()
+        _isSleepTimerActive.value = false
+        
+        if (minutes > 0) {
+            _isSleepTimerActive.value = true
+            sleepTimerJob = viewModelScope.launch {
+                try {
+                    delay(minutes * 60 * 1000L)
+                    playbackRepository.pause()
+                    _isSleepTimerActive.value = false
+                    sleepTimerJob = null
+                } catch (e: Exception) {
+                    _isSleepTimerActive.value = false
+                    Log.d(TAG, "Sleep timer cancelled or error: ${e.message}")
+                }
+            }
+        } else {
+            sleepTimerJob = null
         }
     }
 }
