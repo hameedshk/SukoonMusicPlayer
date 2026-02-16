@@ -69,11 +69,11 @@ class PlaylistViewModel @Inject constructor(
      */
     val smartPlaylists: StateFlow<List<SmartPlaylist>> = combine(
         songRepository.getLikedSongsCount(),
-        songRepository.getAllSongs(),  // For "Last added" count
+        songRepository.getLastAddedSongs(),
         songRepository.getRecentlyPlayedCount(),
         songRepository.getMostPlayedCount(),
         songRepository.getNeverPlayedCount()
-    ) { likedCount, allSongs, recentCount, mostPlayedCount, neverPlayedCount ->
+    ) { likedCount, lastAddedSongs, recentCount, mostPlayedCount, neverPlayedCount ->
         listOf(
             SmartPlaylist(
                 type = SmartPlaylistType.MY_FAVOURITE,
@@ -83,7 +83,7 @@ class PlaylistViewModel @Inject constructor(
             SmartPlaylist(
                 type = SmartPlaylistType.LAST_ADDED,
                 title = SmartPlaylist.getDisplayName(SmartPlaylistType.LAST_ADDED),
-                songCount = allSongs.size
+                songCount = lastAddedSongs.size
             ),
             SmartPlaylist(
                 type = SmartPlaylistType.RECENTLY_PLAYED,

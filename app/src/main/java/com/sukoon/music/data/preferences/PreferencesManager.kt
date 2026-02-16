@@ -36,6 +36,7 @@ class PreferencesManager @Inject constructor(
     companion object {
         // Premium
         private val KEY_IS_PREMIUM_USER = booleanPreferencesKey("is_premium_user")
+        private val KEY_PREMIUM_BANNER_DISMISSED = booleanPreferencesKey("premium_banner_dismissed")
 
         // Privacy
         private val KEY_PRIVATE_SESSION = booleanPreferencesKey("private_session_enabled")
@@ -88,6 +89,13 @@ class PreferencesManager @Inject constructor(
 
         // UI State
         private val KEY_SELECTED_HOME_TAB = stringPreferencesKey("selected_home_tab")
+
+        // Ratings & Feedback
+        private val KEY_APP_LAUNCH_COUNT = intPreferencesKey("app_launch_count")
+        private val KEY_FIRST_INSTALL_TIME = stringPreferencesKey("first_install_time_ms")
+        private val KEY_RATING_BANNER_DISMISSED = booleanPreferencesKey("rating_banner_dismissed")
+        private val KEY_HAS_RATED_APP = booleanPreferencesKey("has_rated_app")
+        private val KEY_LAST_RATING_PROMPT_TIME = stringPreferencesKey("last_rating_prompt_time_ms")
     }
 
     /**
@@ -597,6 +605,126 @@ class PreferencesManager @Inject constructor(
     suspend fun setIsPremiumUser(isPremium: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_IS_PREMIUM_USER] = isPremium
+        }
+    }
+
+    /**
+     * Observe premium banner dismissed state as a reactive Flow.
+     * True if user has dismissed the premium banner.
+     */
+    fun isPremiumBannerDismissedFlow(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_PREMIUM_BANNER_DISMISSED] ?: false
+        }
+    }
+
+    /**
+     * Set premium banner dismissed state.
+     * Called when user clicks the X button on the premium banner.
+     *
+     * @param dismissed True if banner has been dismissed
+     */
+    suspend fun setPremiumBannerDismissed(dismissed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_PREMIUM_BANNER_DISMISSED] = dismissed
+        }
+    }
+
+    // --- Ratings & Feedback ---
+
+    /**
+     * Increment app launch count.
+     * Call this on every app launch to track engagement.
+     */
+    suspend fun incrementAppLaunchCount() {
+        context.dataStore.edit { preferences ->
+            val current = preferences[KEY_APP_LAUNCH_COUNT] ?: 0
+            preferences[KEY_APP_LAUNCH_COUNT] = current + 1
+        }
+    }
+
+    /**
+     * Get app launch count.
+     */
+    suspend fun getAppLaunchCount(): Int {
+        val preferences = context.dataStore.data.first()
+        return preferences[KEY_APP_LAUNCH_COUNT] ?: 0
+    }
+
+    /**
+     * Set first install time (only on first launch).
+     * @param timeMs Time in milliseconds since epoch
+     */
+    suspend fun setFirstInstallTime(timeMs: Long) {
+        context.dataStore.edit { preferences ->
+            if (preferences[KEY_FIRST_INSTALL_TIME] == null) {
+                preferences[KEY_FIRST_INSTALL_TIME] = timeMs.toString()
+            }
+        }
+    }
+
+    /**
+     * Get first install time.
+     */
+    suspend fun getFirstInstallTime(): Long {
+        val preferences = context.dataStore.data.first()
+        return preferences[KEY_FIRST_INSTALL_TIME]?.toLongOrNull() ?: 0L
+    }
+
+    /**
+     * Observe rating banner dismissed state.
+     */
+    fun isRatingBannerDismissedFlow(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_RATING_BANNER_DISMISSED] ?: false
+        }
+    }
+
+    /**
+     * Set rating banner dismissed state.
+     */
+    suspend fun setRatingBannerDismissed(dismissed: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_RATING_BANNER_DISMISSED] = dismissed
+        }
+    }
+
+    /**
+     * Observe "has rated app" state.
+     */
+    fun hasRatedAppFlow(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_HAS_RATED_APP] ?: false
+        }
+    }
+
+    /**
+     * Set has rated app state.
+     * Called after user completes rating flow.
+     */
+    suspend fun setHasRatedApp(rated: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_HAS_RATED_APP] = rated
+        }
+    }
+
+    /**
+     * Check if should show rating banner based on smart conditions.
+     */
+    fun shouldShowRatingBannerFlow(): Flow<Boolean> {
+        return context.dataStore.data.map { preferences ->
+            val launchCount = preferences[KEY_APP_LAUNCH_COUNT] ?: 0
+            val firstInstallTimeMs = preferences[KEY_FIRST_INSTALL_TIME]?.toLongOrNull() ?: 0L
+            val isBannerDismissed = preferences[KEY_RATING_BANNER_DISMISSED] ?: false
+            val hasRated = preferences[KEY_HAS_RATED_APP] ?: false
+
+            val daysSinceInstall = if (firstInstallTimeMs > 0) {
+                (System.currentTimeMillis() - firstInstallTimeMs) / (1000 * 60 * 60 * 24)
+            } else {
+                0L
+            }
+
+            !hasRated && !isBannerDismissed && launchCount >= 10 && daysSinceInstall >= 3
         }
     }
 }

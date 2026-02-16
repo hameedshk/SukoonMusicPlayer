@@ -109,6 +109,14 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                 // Uncomment one line below to test:
                 //preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM user
                 preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM user
+
+                // Increment app launch count for rating banner logic
+                preferencesManager.incrementAppLaunchCount()
+
+                // Set first install time on very first launch
+                if (preferencesManager.getFirstInstallTime() == 0L) {
+                    preferencesManager.setFirstInstallTime(System.currentTimeMillis())
+                }
             }
             // Observe user preferences for theme selection
             // Use null as initialValue so we can detect when preferences are actually loaded

@@ -137,6 +137,34 @@ class SettingsRepositoryImpl @Inject constructor(
         preferencesManager.setSleepTimerTargetTime(targetTimeMs)
     }
 
+    override fun premiumBannerDismissedFlow(): Flow<Boolean> {
+        return preferencesManager.isPremiumBannerDismissedFlow()
+    }
+
+    override suspend fun setPremiumBannerDismissed(dismissed: Boolean) {
+        preferencesManager.setPremiumBannerDismissed(dismissed)
+    }
+
+    override suspend fun incrementAppLaunchCount() {
+        preferencesManager.incrementAppLaunchCount()
+    }
+
+    override suspend fun setFirstInstallTime(timeMs: Long) {
+        preferencesManager.setFirstInstallTime(timeMs)
+    }
+
+    override fun shouldShowRatingBannerFlow(): Flow<Boolean> {
+        return preferencesManager.shouldShowRatingBannerFlow()
+    }
+
+    override suspend fun setRatingBannerDismissed(dismissed: Boolean) {
+        preferencesManager.setRatingBannerDismissed(dismissed)
+    }
+
+    override suspend fun setHasRatedApp(rated: Boolean) {
+        preferencesManager.setHasRatedApp(rated)
+    }
+
     /**
      * Get database file size in bytes.
      */

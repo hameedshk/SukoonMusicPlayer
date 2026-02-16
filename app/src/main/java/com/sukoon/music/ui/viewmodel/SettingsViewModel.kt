@@ -1,7 +1,9 @@
 package com.sukoon.music.ui.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import android.app.Activity
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AudioQuality
@@ -9,6 +11,7 @@ import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.domain.repository.StorageStats
+import com.sukoon.music.util.InAppReviewHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -23,13 +26,58 @@ import com.sukoon.music.ui.theme.*
  * - Provide storage statistics
  * - Handle data clearing operations
  * - Manage app configuration
+ * - Manage premium banner dismissal state
  */
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val songRepository: SongRepository,
-    private val sessionController: com.sukoon.music.domain.usecase.SessionController
+    private val sessionController: com.sukoon.music.domain.usecase.SessionController,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    // --- Premium Banner State (Persisted via DataStore) ---
+
+    val premiumBannerDismissed: StateFlow<Boolean> = settingsRepository.premiumBannerDismissedFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun dismissPremiumBanner() {
+        viewModelScope.launch {
+            settingsRepository.setPremiumBannerDismissed(true)
+        }
+    }
+
+    // --- Rating Banner State (Persisted via DataStore) ---
+
+    val shouldShowRatingBanner: StateFlow<Boolean> = settingsRepository.shouldShowRatingBannerFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun triggerInAppReview(activity: Activity) {
+        viewModelScope.launch {
+            val reviewHelper = InAppReviewHelper(activity)
+            reviewHelper.requestReview()
+                .onSuccess {
+                    settingsRepository.setHasRatedApp(true)
+                }
+                .onFailure { error ->
+                    android.util.Log.e("SettingsViewModel", "In-app review failed", error)
+                }
+        }
+    }
+
+    fun dismissRatingBanner() {
+        viewModelScope.launch {
+            settingsRepository.setRatingBannerDismissed(true)
+        }
+    }
 
     // --- User Preferences ---
 

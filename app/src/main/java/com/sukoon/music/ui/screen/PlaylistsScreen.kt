@@ -3,9 +3,6 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -27,6 +24,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Star
@@ -62,6 +60,12 @@ import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 
+private enum class PlaylistSortMode(val label: String) {
+    RECENT("Recently added"),
+    NAME("Name A-Z"),
+    SONG_COUNT("Song count")
+}
+
 /**
  * Playlists Screen - Shows smart playlists and user playlists.
  *
@@ -75,24 +79,41 @@ import com.sukoon.music.ui.theme.*
 fun PlaylistsScreen(
     onNavigateToPlaylist: (Long) -> Unit,
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
+    onNavigateToRestore: () -> Unit,
     onBackClick: () -> Unit,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
     val smartPlaylists by viewModel.smartPlaylists.collectAsStateWithLifecycle()
-    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val availableSongs by viewModel.availableSongs.collectAsStateWithLifecycle()
+    val deletedPlaylistsCount by viewModel.deletedPlaylistsCount.collectAsStateWithLifecycle()
 
     var showCreateDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
-    var importJson by remember { mutableStateOf("") }
     var importResult by remember { mutableStateOf<String?>(null) }
     var playlistToDelete by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
     var playlistToRename by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
     var newPlaylistId by remember { mutableStateOf<Long?>(null) }
     var showAddSongsDialog by remember { mutableStateOf(false) }
+    var playlistSearchQuery by remember { mutableStateOf("") }
+    var playlistSortMode by remember { mutableStateOf(PlaylistSortMode.RECENT) }
 
     val scope = rememberCoroutineScope()
+    val visiblePlaylists = remember(playlists, playlistSearchQuery, playlistSortMode) {
+        val filtered = playlists.filter { playlist ->
+            if (playlistSearchQuery.isBlank()) {
+                true
+            } else {
+                playlist.name.contains(playlistSearchQuery, ignoreCase = true) ||
+                    (playlist.description?.contains(playlistSearchQuery, ignoreCase = true) == true)
+            }
+        }
+        when (playlistSortMode) {
+            PlaylistSortMode.RECENT -> filtered.sortedByDescending { it.createdAt }
+            PlaylistSortMode.NAME -> filtered.sortedBy { it.name.lowercase() }
+            PlaylistSortMode.SONG_COUNT -> filtered.sortedByDescending { it.songCount }
+        }
+    }
 
     LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -115,50 +136,70 @@ fun PlaylistsScreen(
             // Secondary Action List Section
             item {
                 PlaylistActionsSection(
-                    playlistCount = playlists.size,
                     onCreateClick = { showCreateDialog = true },
+                    onRestoreClick = onNavigateToRestore,
                     onImportClick = {
                         showImportDialog = true
                         importResult = null
-                    }
+                    },
+                    deletedPlaylistsCount = deletedPlaylistsCount
                 )
             }
 
             // User Playlists Grid
             if (playlists.isNotEmpty()) {
                 item {
+                    PlaylistListControls(
+                        query = playlistSearchQuery,
+                        onQueryChange = { playlistSearchQuery = it },
+                        sortMode = playlistSortMode,
+                        onSortModeChange = { playlistSortMode = it }
+                    )
+                }
+                item {
+                    val heading = if (playlistSearchQuery.isBlank()) {
+                        "My playlists (${visiblePlaylists.size})"
+                    } else {
+                        "My playlists (${visiblePlaylists.size} of ${playlists.size})"
+                    }
                     Text(
-                        text = "My playlists (${playlists.size})",
-                        style = MaterialTheme.typography.sectionHeader,
+                        text = heading,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         modifier = Modifier.padding(vertical = 8.dp),
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
 
-                items(
-                    items = playlists.chunked(2),
-                    key = { row -> row.first().id }
-                ) { rowPlaylists ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowPlaylists.forEach { playlist ->
-                            Box(modifier = Modifier.weight(1f)) {
-                                PlaylistCard(
-                                    playlist = playlist,
-                                    onClick = { onNavigateToPlaylist(playlist.id) },
-                                    onDeleteClick = { playlistToDelete = playlist },
-                                    onPlayClick = { viewModel.playPlaylist(playlist.id) },
-                                    onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
-                                    onRenameClick = { playlistToRename = playlist }
-                                )
+                if (visiblePlaylists.isNotEmpty()) {
+                    items(
+                        items = visiblePlaylists.chunked(2),
+                        key = { row -> row.first().id }
+                    ) { rowPlaylists ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            rowPlaylists.forEach { playlist ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    PlaylistCard(
+                                        playlist = playlist,
+                                        onClick = { onNavigateToPlaylist(playlist.id) },
+                                        onDeleteClick = { playlistToDelete = playlist },
+                                        onPlayClick = { viewModel.playPlaylist(playlist.id) },
+                                        onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
+                                        onRenameClick = { playlistToRename = playlist }
+                                    )
+                                }
+                            }
+                            // Add empty space if row has only one playlist
+                            if (rowPlaylists.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
                             }
                         }
-                        // Add empty space if row has only one playlist
-                        if (rowPlaylists.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
+                    }
+                } else {
+                    item {
+                        EmptyFilteredPlaylistsState(query = playlistSearchQuery)
                     }
                 }
             } else {
@@ -211,7 +252,6 @@ fun PlaylistsScreen(
             ImportPlaylistDialog(
                 onDismiss = {
                     showImportDialog = false
-                    importJson = ""
                     importResult = null
                 },
                 onImport = { json ->
@@ -264,7 +304,7 @@ private fun SmartPlaylistsSection(
     Column {
         Text(
             text = "Smart Playlists",
-            style = MaterialTheme.typography.sectionHeader,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp),
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -297,12 +337,12 @@ private fun SmartPlaylistsSection(
 @Composable
 private fun getSmartPlaylistColor(type: SmartPlaylistType): Color {
     return when (type) {
-        SmartPlaylistType.MY_FAVOURITE -> Color(0xFF4A6FA5).copy(alpha = 0.3f)  // Blue
-        SmartPlaylistType.LAST_ADDED -> Color(0xFF4A9B6A).copy(alpha = 0.3f)    // Green
-        SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF7E57C2).copy(alpha = 0.3f) // Purple
-        SmartPlaylistType.MOST_PLAYED -> Color(0xFFE57373).copy(alpha = 0.3f)   // Red
-        SmartPlaylistType.NEVER_PLAYED -> Color(0xFF90A4AE).copy(alpha = 0.3f)  // Gray-Blue
-        SmartPlaylistType.DISCOVER -> Color(0xFFD4E157).copy(alpha = 0.3f)      // Lime
+        SmartPlaylistType.MY_FAVOURITE -> Color(0xFF4A6FA5).copy(alpha = 0.2f)  // Blue
+        SmartPlaylistType.LAST_ADDED -> Color(0xFF4A9B6A).copy(alpha = 0.2f)    // Green
+        SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF7E57C2).copy(alpha = 0.2f) // Purple
+        SmartPlaylistType.MOST_PLAYED -> Color(0xFFE57373).copy(alpha = 0.2f)   // Red
+        SmartPlaylistType.NEVER_PLAYED -> Color(0xFF90A4AE).copy(alpha = 0.2f)  // Gray-Blue
+        SmartPlaylistType.DISCOVER -> Color(0xFFD4E157).copy(alpha = 0.2f)      // Lime
     }
 }
 
@@ -334,7 +374,7 @@ private fun SmartPlaylistCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.7f))
         ) {
             // Content
             Column(
@@ -377,15 +417,15 @@ private fun SmartPlaylistCard(
  */
 @Composable
 private fun PlaylistActionsSection(
-    playlistCount: Int,
     onCreateClick: () -> Unit,
     onRestoreClick: () -> Unit,
-    onImportClick: () -> Unit
+    onImportClick: () -> Unit,
+    deletedPlaylistsCount: Int
 ) {
     Column {
         Text(
-            text = "My playlists ($playlistCount)",
-            style = MaterialTheme.typography.sectionHeader,
+            text = "Playlist actions",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 12.dp),
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -393,14 +433,23 @@ private fun PlaylistActionsSection(
         // Action items
         PlaylistActionItem(
             icon = Icons.Default.Add,
-            text = "Create new playlist",
+            text = "Create playlist",
             onClick = onCreateClick
         )
 
         PlaylistActionItem(
             icon = Icons.Default.Restore,
-            text = "Restore playlist",
-            onClick = onRestoreClick
+            text = "Restore from trash",
+            onClick = onRestoreClick,
+            trailingContent = if (deletedPlaylistsCount > 0) {
+                {
+                    Badge {
+                        Text(deletedPlaylistsCount.toString())
+                    }
+                }
+            } else {
+                null
+            }
         )
 
         PlaylistActionItem(
@@ -418,7 +467,8 @@ private fun PlaylistActionsSection(
 private fun PlaylistActionItem(
     icon: ImageVector,
     text: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    trailingContent: (@Composable (() -> Unit))? = null
 ) {
     Surface(
         onClick = onClick,
@@ -434,18 +484,84 @@ private fun PlaylistActionItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+            Row(
+                modifier = Modifier.weight(1f),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            trailingContent?.invoke()
         }
+    }
+}
+
+@Composable
+private fun PlaylistListControls(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    sortMode: PlaylistSortMode,
+    onSortModeChange: (PlaylistSortMode) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        OutlinedTextField(
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            placeholder = { Text("Search playlists...") },
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Search playlists"
+                )
+            }
+        )
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(PlaylistSortMode.values().toList()) { mode ->
+                FilterChip(
+                    selected = sortMode == mode,
+                    onClick = { onSortModeChange(mode) },
+                    label = { Text(mode.label) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun EmptyFilteredPlaylistsState(query: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 32.dp, horizontal = 20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No playlists match \"$query\"",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Try another search or change sorting.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -703,7 +819,7 @@ private fun EmptyPlaylistsState(
 
         Button(
             onClick = onCreateClick,
-            modifier = Modifier.fillMaxWidth(0.7f)
+            modifier = Modifier.fillMaxWidth()
         ) {
             Text("Create playlist")
         }
@@ -1171,7 +1287,7 @@ private fun AddSongsToNewPlaylistDialog(
                     placeholder = { Text("Search songs...") },
                     leadingIcon = {
                         Icon(
-                            imageVector = Icons.Default.Add, // Using Add icon as Search is already imported
+                            imageVector = Icons.Default.Search,
                             contentDescription = "Search"
                         )
                     },
@@ -1364,6 +1480,7 @@ private fun PlaylistsScreenPreview() {
         PlaylistsScreen(
             onNavigateToPlaylist = {},
             onNavigateToSmartPlaylist = {},
+            onNavigateToRestore = {},
             onBackClick = {}
         )
     }
@@ -1832,45 +1949,3 @@ private fun HomeScreenAddSongsToNewPlaylistDialog(
     }
 }
 
-@Composable
-private fun PlaylistActionsSection(
-    playlistCount: Int,
-    onCreateClick: () -> Unit,
-    onImportClick: () -> Unit
-) {
-    Column {
-        Text(
-            text = "My playlists ($playlistCount)",
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        Surface(
-            onClick = onCreateClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            color = Color.Transparent
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = "Create new playlist",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}

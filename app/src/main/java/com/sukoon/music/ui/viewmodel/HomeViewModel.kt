@@ -2,6 +2,7 @@ package com.sukoon.music.ui.viewmodel
 
 import android.content.Context
 import android.util.Log
+import android.app.Activity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukoon.music.data.mediastore.DeleteHelper
@@ -18,6 +19,7 @@ import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.data.analytics.AnalyticsTracker
 import com.sukoon.music.ui.model.HomeTabKey
+import com.sukoon.music.util.InAppReviewHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -503,6 +505,34 @@ class HomeViewModel @Inject constructor(
             } else {
                 settingsRepository.setSleepTimerTargetTime(0L)
             }
+        }
+    }
+
+    // --- Rating Banner State (Persisted via DataStore) ---
+
+    val shouldShowRatingBanner: StateFlow<Boolean> = settingsRepository.shouldShowRatingBannerFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
+
+    fun triggerInAppReview(activity: Activity) {
+        viewModelScope.launch {
+            val reviewHelper = InAppReviewHelper(activity)
+            reviewHelper.requestReview()
+                .onSuccess {
+                    settingsRepository.setHasRatedApp(true)
+                }
+                .onFailure { error ->
+                    Log.e("HomeViewModel", "In-app review failed", error)
+                }
+        }
+    }
+
+    fun dismissRatingBanner() {
+        viewModelScope.launch {
+            settingsRepository.setRatingBannerDismissed(true)
         }
     }
 }

@@ -146,6 +146,43 @@ interface SettingsRepository {
      * @param targetTimeMs Milliseconds since epoch (0 = disabled)
      */
     suspend fun setSleepTimerTargetTime(targetTimeMs: Long)
+
+    /**
+     * Observe premium banner dismissed state.
+     * @return Flow emitting true if user has dismissed the premium banner
+     */
+    fun premiumBannerDismissedFlow(): kotlinx.coroutines.flow.Flow<Boolean>
+
+    /**
+     * Set premium banner dismissed state.
+     * @param dismissed True if banner has been dismissed
+     */
+    suspend fun setPremiumBannerDismissed(dismissed: Boolean)
+
+    /**
+     * Increment app launch count for rating logic.
+     */
+    suspend fun incrementAppLaunchCount()
+
+    /**
+     * Set first install time (only on first launch).
+     */
+    suspend fun setFirstInstallTime(timeMs: Long)
+
+    /**
+     * Check if rating banner should be shown.
+     */
+    fun shouldShowRatingBannerFlow(): kotlinx.coroutines.flow.Flow<Boolean>
+
+    /**
+     * Dismiss the rating banner.
+     */
+    suspend fun setRatingBannerDismissed(dismissed: Boolean)
+
+    /**
+     * Set that user has rated the app.
+     */
+    suspend fun setHasRatedApp(rated: Boolean)
 }
 
 /**

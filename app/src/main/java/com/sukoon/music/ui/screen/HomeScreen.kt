@@ -118,6 +118,7 @@ fun HomeScreen(
     onNavigateToGenres: () -> Unit = {},
     onNavigateToPlaylistDetail: (Long) -> Unit = {},
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
+    onNavigateToRestorePlaylist: () -> Unit = {},
     onNavigateToFolderDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToGenreDetail: (Long) -> Unit = {},
@@ -354,6 +355,7 @@ fun HomeScreen(
                             PlaylistsScreen(
                                onNavigateToPlaylist = onNavigateToPlaylistDetail,
                                onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
+                                onNavigateToRestore = onNavigateToRestorePlaylist,
                                 onBackClick = { }
                             )
                         }

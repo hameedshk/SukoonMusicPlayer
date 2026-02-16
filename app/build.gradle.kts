@@ -176,6 +176,10 @@ dependencies {
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")
 
+    // Google Play In-App Review API (for ratings and feedback)
+    implementation("com.google.android.play:review:2.0.1")
+    implementation("com.google.android.play:review-ktx:2.0.1")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 

@@ -38,6 +38,10 @@ import com.sukoon.music.ui.model.HomeTabKey
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.ui.theme.*
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.runtime.LaunchedEffect
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.platform.LocalContext
+import com.sukoon.music.ui.components.RatingBanner
 
 @Composable
 fun HomeTab(
@@ -56,6 +60,10 @@ fun HomeTab(
 
     // Collect private session state
     val sessionState = viewModel.sessionState.collectAsStateWithLifecycle().value
+
+    // Collect rating banner state
+    val shouldShowRatingBanner = viewModel.shouldShowRatingBanner.collectAsStateWithLifecycle().value
+    val appContext = LocalContext.current
 
     LazyColumn(
         modifier = Modifier
@@ -114,6 +122,22 @@ fun HomeTab(
                 onAlbumsClick = { viewModel.setSelectedTab(HomeTabKey.ALBUMS) },
                 onFoldersClick = { viewModel.setSelectedTab(HomeTabKey.FOLDERS) }
             )
+        }
+
+        // Rating Banner (conditional, smart visibility based on engagement)
+        if (shouldShowRatingBanner) {
+            item {
+                RatingBanner(
+                    onDismiss = { viewModel.dismissRatingBanner() },
+                    onClick = {
+                        val activity = appContext as? ComponentActivity
+                        if (activity != null) {
+                            viewModel.triggerInAppReview(activity)
+                        }
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                )
+            }
         }
 
         // OPTIONAL: Listening Stats (below primary content when not private session)

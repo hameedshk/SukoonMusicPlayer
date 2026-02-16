@@ -3,6 +3,10 @@
     <string name="about_app_description">An offline-only local music player with high-fidelity UI and background playback.</string>
     <string name="rate_us">Rate us</string>
     <string name="rate_us_description">Share your feedback on Google Play</string>
+    <string name="send_feedback">Send Feedback</string>
+    <string name="send_feedback_description">Report issues or suggest features</string>
+    <string name="rating_banner_title">Enjoying Sukoon?</string>
+    <string name="rating_banner_subtitle">Rate us on Google Play</string>
     <string name="share_app">Share Sukoon Music Player</string>
     <string name="share_app_description">Share with friends and family</string>
     <string name="privacy_policy">Privacy Policy</string>
@@ -39,4 +43,119 @@
     <string name="now_playing_no_lyrics">No lyrics available</string>
     <string name="now_playing_lyrics_error">Failed to load lyrics</string>
     <string name="up_next">Up Next</string>
+
+    <!-- Settings Screen - Premium Banner -->
+    <string name="settings_premium_banner_title">Unlock Premium</string>
+    <string name="settings_premium_banner_subtitle">Remove ads • Lifetime • $4.99</string>
+    <string name="settings_premium_banner_dismiss">Dismiss premium banner</string>
+
+    <!-- Settings Screen - Section Headers -->
+    <string name="settings_section_privacy">Privacy</string>
+    <string name="settings_section_appearance">Appearance</string>
+    <string name="settings_section_playback">Playback</string>
+    <string name="settings_section_quality">Quality Settings</string>
+    <string name="settings_section_playback_features">Playback Features</string>
+    <string name="settings_section_equalizer">Equalizer</string>
+    <string name="settings_section_scan_settings">Scan Settings</string>
+    <string name="settings_section_folders">Folder Management</string>
+    <string name="settings_section_permissions">Permissions</string>
+    <string name="settings_section_storage_usage">Storage Usage</string>
+    <string name="settings_section_cache">Cache Management</string>
+    <string name="settings_section_database">Database</string>
+    <string name="settings_section_app_info">App Information</string>
+    <string name="settings_section_legal">Legal</string>
+    <string name="settings_section_developer">Developer</string>
+    <string name="settings_section_advanced">Advanced</string>
+
+    <!-- Settings Screen - General Tab -->
+    <string name="settings_private_session_title">Private Session</string>
+    <string name="settings_private_session_desc">Don\'t save your listening history</string>
+    <string name="settings_theme_title">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_amoled">AMOLED</string>
+    <string name="settings_accent_title">Accent Color</string>
+    <string name="settings_notification_controls_title">Show Notification Controls</string>
+    <string name="settings_notification_controls_desc">Display playback controls in notification</string>
+
+    <!-- Settings Screen - Audio Tab -->
+    <string name="settings_audio_quality_title">Audio Quality</string>
+    <string name="settings_audio_buffer_title">Audio Buffer</string>
+    <string name="settings_gapless_title">Gapless Playback</string>
+    <string name="settings_gapless_desc">Seamless transitions between tracks</string>
+    <string name="settings_crossfade_title">Crossfade Duration</string>
+    <string name="settings_normalization_title">Audio Normalization</string>
+    <string name="settings_normalization_desc">Normalize volume across tracks</string>
+    <string name="settings_equalizer_title">Equalizer</string>
+    <string name="settings_equalizer_desc">5-band EQ with bass boost</string>
+
+    <!-- Settings Screen - Library Tab -->
+    <string name="settings_audio_permission_title">Audio Permission</string>
+    <string name="settings_permission_granted">Permission granted</string>
+    <string name="settings_permission_denied">Permission denied - tap to grant</string>
+    <string name="settings_scan_on_startup_title">Scan on Startup</string>
+    <string name="settings_scan_on_startup_desc">Automatically scan for new music</string>
+    <string name="settings_min_duration_title">Minimum Audio Duration</string>
+    <string name="settings_show_all_audio_title">Show All Audio Files</string>
+    <string name="settings_show_all_audio_desc">Show hidden files and short clips</string>
+    <string name="settings_excluded_folders_title">Excluded Folders</string>
+    <string name="settings_excluded_folders_desc">Manage folders to exclude from scan</string>
+    <string name="settings_rescan_library_title">Rescan Library</string>
+    <string name="settings_rescan_library_desc">Manually search for new music files</string>
+
+    <!-- Settings Screen - Storage Tab -->
+    <string name="settings_storage_error">Unable to load storage information</string>
+    <string name="settings_storage_empty">No data to display</string>
+    <string name="settings_storage_chart_label">Storage usage breakdown</string>
+    <string name="settings_storage_music">Music</string>
+    <string name="settings_storage_cache">Cache</string>
+    <string name="settings_storage_database">Database</string>
+    <string name="settings_clear_cache_title">Clear Cache</string>
+    <string name="settings_clear_cache_desc">Delete cached album art</string>
+    <string name="settings_clear_database_title">Clear Database</string>
+    <string name="settings_clear_database_desc">Delete all song metadata</string>
+
+    <!-- Settings Screen - Premium Tab -->
+    <string name="settings_premium_active">Premium Active</string>
+    <string name="settings_premium_inactive">Get Premium</string>
+    <string name="settings_premium_features_title">Features</string>
+    <string name="settings_premium_benefits_title">Why Premium?</string>
+    <string name="settings_premium_feature_label">Feature</string>
+    <string name="settings_premium_free">Free</string>
+    <string name="settings_premium_paid">Premium</string>
+    <string name="settings_premium_feature_1">Ad-Free Experience</string>
+    <string name="settings_premium_feature_2">Advanced Equalizer</string>
+    <string name="settings_premium_feature_3">Custom Playlists</string>
+    <string name="settings_premium_feature_4">Offline Lyrics</string>
+    <string name="settings_premium_feature_5">Priority Support</string>
+    <string name="settings_premium_benefit_1_title">No Interruptions</string>
+    <string name="settings_premium_benefit_1_desc">Enjoy uninterrupted music listening</string>
+    <string name="settings_premium_benefit_2_title">Full Control</string>
+    <string name="settings_premium_benefit_2_desc">Advanced audio customization</string>
+    <string name="settings_premium_benefit_3_title">Better Sound</string>
+    <string name="settings_premium_benefit_3_desc">Optimized audio quality</string>
+    <string name="settings_premium_benefit_4_title">Support Development</string>
+    <string name="settings_premium_benefit_4_desc">Help us keep improving</string>
+    <string name="settings_premium_price">$4.99</string>
+    <string name="settings_premium_lifetime">Lifetime Access</string>
+    <string name="settings_premium_included">Included</string>
+    <string name="settings_premium_not_included">Not Included</string>
+    <string name="settings_premium_buy_button">Get Premium</string>
+    <string name="settings_premium_restore_button">Restore Purchases</string>
+    <string name="settings_premium_thank_you">Thank You!</string>
+    <string name="settings_premium_thank_you_desc">Thank you for supporting Sukoon Music Player</string>
+
+    <!-- Settings Screen - About Tab -->
+    <string name="settings_app_version_title">Version</string>
+    <string name="settings_package_name_title">Package Name</string>
+    <string name="settings_privacy_policy_title">Privacy Policy</string>
+    <string name="settings_privacy_policy_desc">Read our privacy policy</string>
+    <string name="settings_terms_title">Terms of Service</string>
+    <string name="settings_terms_desc">Read our terms</string>
+    <string name="settings_licenses_title">Licenses</string>
+    <string name="settings_licenses_desc">Open source licenses</string>
+    <string name="settings_developer_title">About Developer</string>
+    <string name="settings_developer_desc">Visit our website</string>
+    <string name="settings_logout_title">Logout</string>
+    <string name="settings_logout_desc">Clear all data and sign out</string>
 </resources>
