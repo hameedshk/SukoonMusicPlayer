@@ -596,7 +596,7 @@ fun MultiSelectActionBottomBar(
 
     Surface(
         tonalElevation = 8.dp,
-        shadowElevation = 8.dp
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier

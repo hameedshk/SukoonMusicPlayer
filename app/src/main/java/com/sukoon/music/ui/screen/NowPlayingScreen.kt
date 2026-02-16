@@ -445,7 +445,7 @@ private fun NowPlayingContent(
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val topBarHeight = 36.dp
-            val topContentPadding = 0.dp
+            val topContentPadding = 12.dp
             val albumToMetadataSpacing = (maxHeight * 0.02f).coerceIn(NowPlayingAlbumToMetadataMin, 16.dp)
             val metadataToControlsSpacing = if (maxHeight < 700.dp) 4.dp else 8.dp
             val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
@@ -589,6 +589,48 @@ private fun NowPlayingContent(
                             )
                         )
                 )
+
+                // D. Up Next Mini Preview
+                val nextSong = playbackState.queue.getOrNull(playbackState.currentQueueIndex + 1)
+                if (nextSong != null && !isImmersiveMode) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 8.dp)
+                            .clickable { showQueueModal = true },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Label
+                        Text(
+                            text = stringResource(R.string.up_next),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                        )
+
+                        // Next track thumbnail (24dp)
+                        SubcomposeAsyncImage(
+                            model = nextSong.albumArtUri,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(RoundedCornerShape(4.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+
+                        // Next track title
+                        Text(
+                            text = nextSong.title,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
@@ -951,6 +993,21 @@ private fun TrackMetadataSection(
                             textAlign = TextAlign.Start
                         )
                     }
+
+                    if (song.album.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = song.album,
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Normal
+                            ),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            textAlign = TextAlign.Start
+                        )
+                    }
                 }
 
                 // Like button with bounce animation
@@ -1066,6 +1123,31 @@ private fun SeekBarSection(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
+        // Timestamp preview during seeking
+        AnimatedVisibility(
+            visible = isSeeking,
+            enter = fadeIn(animationSpec = tween(150)),
+            exit = fadeOut(animationSpec = tween(150))
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(8.dp)
+                    )
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text(
+                    text = formatDuration(seekPosition),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = sliderColor,
+                    fontSize = 12.sp
+                )
+            }
+        }
+
         Slider(
             value = displayPosition,
             onValueChange = {

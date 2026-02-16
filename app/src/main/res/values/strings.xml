@@ -38,4 +38,5 @@
     <string name="now_playing_loading_lyrics">Loading lyrics\u2026</string>
     <string name="now_playing_no_lyrics">No lyrics available</string>
     <string name="now_playing_lyrics_error">Failed to load lyrics</string>
+    <string name="up_next">Up Next</string>
 </resources>
