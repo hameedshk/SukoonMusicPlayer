@@ -74,10 +74,12 @@ class BillingManager @Inject constructor(
                 override fun onBillingSetupFinished(billingResult: BillingResult) {
                     if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                         isConnected = true
+                        android.util.Log.d("BillingManager", "✓ Billing connected successfully")
                         // Query existing purchases
                         queryPremiumPurchases()
                         continuation.resume(Unit)
                     } else {
+                        android.util.Log.e("BillingManager", "✗ Setup failed: ${billingResult.debugMessage} (code: ${billingResult.responseCode})")
                         _billingState.value = BillingState.Error("Setup failed: ${billingResult.debugMessage}")
                         continuation.resume(Unit)
                     }
@@ -115,6 +117,7 @@ class BillingManager @Inject constructor(
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
                     val productDetails = productDetailsList[0]
                     cachedProductDetails = productDetails
+                    android.util.Log.d("BillingManager", "✓ Product loaded: ${productDetails.productId} - ${productDetails.title}")
                     continuation.resume(
                         ProductDetails(
                             productId = productDetails.productId,
@@ -124,6 +127,7 @@ class BillingManager @Inject constructor(
                         )
                     )
                 } else {
+                    android.util.Log.e("BillingManager", "✗ Product query failed: code=${billingResult.responseCode} message=${billingResult.debugMessage} products=${productDetailsList?.size ?: 0}")
                     continuation.resume(null)
                 }
             }
