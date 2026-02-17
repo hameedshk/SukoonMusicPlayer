@@ -46,6 +46,7 @@ import com.sukoon.music.ui.components.SettingsGroupCard
 import com.sukoon.music.ui.components.SettingsGroupRow
 import com.sukoon.music.ui.components.SettingsRowModel
 import com.sukoon.music.ui.components.ValuePlacement
+import com.sukoon.music.ui.screen.settings.components.PremiumDialog
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -86,6 +87,7 @@ fun SettingsScreen(
     val isScanning by viewModel.isScanning.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val premiumBannerDismissed by viewModel.premiumBannerDismissed.collectAsStateWithLifecycle()
+    val billingState by viewModel.billingState.collectAsStateWithLifecycle()
     val isPremium by remember {
         if (premiumManager != null) {
             premiumManager.isPremiumUser
@@ -592,8 +594,12 @@ fun SettingsScreen(
 
         if (showPremiumDialog) {
             PremiumDialog(
+                billingState = billingState,
                 priceText = "$4.99 USD",
-                onDismiss = { showPremiumDialog = false },
+                onDismiss = {
+                    showPremiumDialog = false
+                    viewModel.resetBillingState()
+                },
                 onPurchase = {
                     analyticsTracker?.logEvent(
                         name = "premium_purchase_tap",
@@ -607,9 +613,22 @@ fun SettingsScreen(
                     }
                 },
                 onRestore = {
-                    showPremiumDialog = false
+                    analyticsTracker?.logEvent(
+                        name = "premium_restore_tap",
+                        params = emptyMap()
+                    )
+                    viewModel.restorePurchases()
                 }
             )
+
+            // Auto-dismiss success dialog after 2 seconds
+            if (billingState is com.sukoon.music.data.billing.BillingState.Success) {
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(2000)
+                    showPremiumDialog = false
+                    viewModel.resetBillingState()
+                }
+            }
         }
     }
 }

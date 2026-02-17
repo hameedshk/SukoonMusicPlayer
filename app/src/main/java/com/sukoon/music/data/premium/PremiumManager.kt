@@ -2,6 +2,7 @@ package com.sukoon.music.data.premium
 
 import android.app.Activity
 import com.sukoon.music.data.billing.BillingManager
+import com.sukoon.music.data.billing.BillingState
 import com.sukoon.music.data.preferences.PreferencesManager
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -37,6 +38,12 @@ class PremiumManager @Inject constructor(
      * ```
      */
     val isPremiumUser: Flow<Boolean> = preferencesManager.isPremiumUserFlow()
+
+    /**
+     * Observe billing state (Loading, Success, Error, Idle).
+     * Use this in purchase dialogs to show user feedback.
+     */
+    val billingState: Flow<BillingState> = billingManager.billingState
 
     /**
      * Check if user is premium (non-blocking).
@@ -84,5 +91,21 @@ class PremiumManager @Inject constructor(
      */
     fun disconnect() {
         billingManager.disconnect()
+    }
+
+    /**
+     * Reset billing state to Idle.
+     * Call when dismissing purchase dialogs.
+     */
+    fun resetBillingState() {
+        billingManager.resetBillingState()
+    }
+
+    /**
+     * Restore purchases from Google Play.
+     * For users who reinstalled the app or switched devices.
+     */
+    suspend fun restorePurchases() {
+        billingManager.queryAndRestorePremiumPurchases()
     }
 }
