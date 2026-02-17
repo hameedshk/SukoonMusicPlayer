@@ -31,3 +31,6 @@ build_output.txt
 
 monkey_log.txt
 *monkey_log*
+
+# Git worktrees
+.worktrees/
