@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -37,6 +39,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
+import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.animation.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -293,79 +296,109 @@ fun HomeScreen(
                     )
                 }
                 else -> {
-                    when (selectedTab) {
-                        HomeTabKey.HOME -> {
-                            HomeTab(
-                                songs = songs,
-                                recentlyPlayed = recentlyPlayed,
-                                rediscoverAlbums = rediscoverAlbums,
-                                playbackState = playbackState,
-                                viewModel = viewModel,
-                                onNavigateToNowPlaying = onNavigateToNowPlaying,
-                                onNavigateToAlbumDetail = onNavigateToAlbumDetail,
-                                onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
-                                onSettingsClick = onNavigateToSettings
-                            )
-                        }
-                        HomeTabKey.SONGS -> {
-                            SongsContent(
-                                songs = songs,
-                                playbackState = playbackState,
-                                onSongClick = { song, index ->
-                                    if (playbackState.currentSong?.id != song.id) {
-                                        viewModel.playQueue(songs, index)
-                                    } else {
-                                        onNavigateToNowPlaying()
-                                    }
-                                },
-                                onShuffleAllClick = { viewModel.shuffleAll() },
-                                onPlayAllClick = { viewModel.playAll() },
-                                viewModel = viewModel,
-                                playlistViewModel = playlistViewModel,
-                                adMobManager = adMobManager,
-                                adMobDecisionAgent = adMobDecisionAgent,
-                                isPremium = isPremium,
-                                onNavigateToArtistDetail = onNavigateToArtistDetail,
-                                onNavigateToAlbumDetail = onNavigateToAlbumDetail,
-                                onNavigateToSongSelection = onNavigateToSongSelection
-                            )
-                        }
-                        HomeTabKey.ALBUMS -> {
-                            AlbumsScreen(
-                                onNavigateToAlbum = onNavigateToAlbumDetail,
-                                onBackClick = { },
-                                onNavigateToAlbumSelection = onNavigateToAlbumSelection
-                            )
-                        }
-                        HomeTabKey.ARTISTS -> {
-                            ArtistsScreen(
-                                onNavigateToArtistDetail = onNavigateToArtistDetail,
-                                onNavigateToArtistSelection = onNavigateToArtistSelection,
-                                onBackClick = { }
-                            )
-                        }
-                        HomeTabKey.GENRES -> {
-                            GenresScreen(
-                                onNavigateToGenre = onNavigateToGenreDetail,
-                                onBackClick = { /* optional: navController.popBackStack() */ },
-                                onNavigateToGenreSelection = onNavigateToGenreSelection
-                            )
-                        }
-                        HomeTabKey.PLAYLISTS -> {
-                            PlaylistsScreen(
-                               onNavigateToPlaylist = onNavigateToPlaylistDetail,
-                               onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
-                                onNavigateToRestore = onNavigateToRestorePlaylist,
-                                onBackClick = { }
-                            )
-                        }
-                        HomeTabKey.FOLDERS -> {
-                            FoldersScreen(
-                                onNavigateToFolder = onNavigateToFolderDetail,
-                                onNavigateToNowPlaying = onNavigateToNowPlaying,
-                                onBackClick = {}
+                    val pagerState = rememberPagerState(
+                        initialPage = tabs.indexOfFirst { it.key == selectedTab }.coerceAtLeast(0),
+                        pageCount = { tabs.size }
+                    )
 
-                            )
+                    // Sync pager state to ViewModel
+                    LaunchedEffect(pagerState.currentPage) {
+                        snapshotFlow { pagerState.currentPage }
+                            .distinctUntilChanged()
+                            .collect { page ->
+                                val newTab = tabs.getOrNull(page)?.key
+                                if (newTab != null && newTab != selectedTab) {
+                                    handleTabSelection(newTab)
+                                }
+                            }
+                    }
+
+                    // Sync ViewModel state to pager (for pill clicks)
+                    LaunchedEffect(selectedTab) {
+                        val targetPage = tabs.indexOfFirst { it.key == selectedTab }
+                        if (targetPage != -1 && targetPage != pagerState.currentPage) {
+                            pagerState.animateScrollToPage(targetPage)
+                        }
+                    }
+
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { pageIndex ->
+                        when (tabs[pageIndex].key) {
+                            HomeTabKey.HOME -> {
+                                HomeTab(
+                                    songs = songs,
+                                    recentlyPlayed = recentlyPlayed,
+                                    rediscoverAlbums = rediscoverAlbums,
+                                    playbackState = playbackState,
+                                    viewModel = viewModel,
+                                    onNavigateToNowPlaying = onNavigateToNowPlaying,
+                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail,
+                                    onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
+                                    onSettingsClick = onNavigateToSettings
+                                )
+                            }
+                            HomeTabKey.SONGS -> {
+                                SongsContent(
+                                    songs = songs,
+                                    playbackState = playbackState,
+                                    onSongClick = { song, index ->
+                                        if (playbackState.currentSong?.id != song.id) {
+                                            viewModel.playQueue(songs, index)
+                                        } else {
+                                            onNavigateToNowPlaying()
+                                        }
+                                    },
+                                    onShuffleAllClick = { viewModel.shuffleAll() },
+                                    onPlayAllClick = { viewModel.playAll() },
+                                    viewModel = viewModel,
+                                    playlistViewModel = playlistViewModel,
+                                    adMobManager = adMobManager,
+                                    adMobDecisionAgent = adMobDecisionAgent,
+                                    isPremium = isPremium,
+                                    onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                    onNavigateToAlbumDetail = onNavigateToAlbumDetail,
+                                    onNavigateToSongSelection = onNavigateToSongSelection
+                                )
+                            }
+                            HomeTabKey.ALBUMS -> {
+                                AlbumsScreen(
+                                    onNavigateToAlbum = onNavigateToAlbumDetail,
+                                    onBackClick = { },
+                                    onNavigateToAlbumSelection = onNavigateToAlbumSelection
+                                )
+                            }
+                            HomeTabKey.ARTISTS -> {
+                                ArtistsScreen(
+                                    onNavigateToArtistDetail = onNavigateToArtistDetail,
+                                    onNavigateToArtistSelection = onNavigateToArtistSelection,
+                                    onBackClick = { }
+                                )
+                            }
+                            HomeTabKey.GENRES -> {
+                                GenresScreen(
+                                    onNavigateToGenre = onNavigateToGenreDetail,
+                                    onBackClick = { /* optional: navController.popBackStack() */ },
+                                    onNavigateToGenreSelection = onNavigateToGenreSelection
+                                )
+                            }
+                            HomeTabKey.PLAYLISTS -> {
+                                PlaylistsScreen(
+                                   onNavigateToPlaylist = onNavigateToPlaylistDetail,
+                                   onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
+                                    onNavigateToRestore = onNavigateToRestorePlaylist,
+                                    onBackClick = { }
+                                )
+                            }
+                            HomeTabKey.FOLDERS -> {
+                                FoldersScreen(
+                                    onNavigateToFolder = onNavigateToFolderDetail,
+                                    onNavigateToNowPlaying = onNavigateToNowPlaying,
+                                    onBackClick = {}
+
+                                )
+                            }
                         }
                     }
                 }

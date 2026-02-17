@@ -322,6 +322,12 @@ fun SukoonNavHost(
                 onBackClick = {
                     navController.navigateUp()
                 },
+                onNavigateToPlaylists = {
+                    navController.navigate(Routes.Playlists.route)
+                },
+                onNavigateToSongs = {
+                    navController.navigate(Routes.Songs.route)
+                },
                 onNavigateToEqualizer = {
                     navController.navigate(Routes.Equalizer.route)
                 },
@@ -330,6 +336,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToAbout = {
                     navController.navigate(Routes.About.route)
+                },
+                onNavigateToRestorePlaylist = {
+                    navController.navigate(Routes.RestorePlaylist.route)
                 },
                 premiumManager = premiumManager
             )

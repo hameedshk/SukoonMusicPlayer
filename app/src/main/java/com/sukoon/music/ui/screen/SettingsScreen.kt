@@ -1,6 +1,8 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -21,6 +24,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -61,9 +65,12 @@ import com.sukoon.music.util.FeedbackHelper
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    onNavigateToPlaylists: () -> Unit = {},
+    onNavigateToSongs: () -> Unit = {},
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToExcludedFolders: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToRestorePlaylist: () -> Unit = {},
     premiumManager: PremiumManager? = null,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
@@ -113,7 +120,9 @@ fun SettingsScreen(
         // Permission result handled
     }
 
+    val accentTokens = accent()
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
@@ -135,302 +144,356 @@ fun SettingsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(vertical = SpacingLarge),
+            verticalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
-            // Premium Banner
             item {
                 PremiumBanner(
                     isPremium = isPremium,
                     isDismissed = premiumBannerDismissed,
                     onDismiss = { viewModel.dismissPremiumBanner() },
                     onClick = { showPremiumDialog = true },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-            }
-
-            // Appearance Section
-            item { SettingsSectionHeader("Appearance") }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Palette,
-                    title = "Theme",
-                    description = getThemeDescription(userPreferences.theme),
-                    onClick = { showThemeDialog = true }
+                    modifier = Modifier.padding(horizontal = SpacingLarge)
                 )
             }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.ColorLens,
-                    title = "Accent Color",
-                    description = userPreferences.accentProfile.label,
-                    onClick = { showAccentDialog = true }
-                )
-            }
-
-            // Premium & Ads Section
-            item { SettingsSectionHeader("Premium & Ads") }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.WorkspacePremium,
-                    title = "Remove Ads",
-                    description = if (isPremium) {
-                        "Premium active - ads are already removed"
-                    } else {
-                        "Upgrade to Premium for an ad-free experience"
-                    },
-                    onClick = {
-                        analyticsTracker?.logEvent(
-                            name = "remove_ads_tap",
-                            params = mapOf("source" to "settings")
-                        )
-                        showPremiumDialog = true
-                    }
-                )
-            }
-
-            // Privacy & Playback Section
-            item { SettingsSectionHeader("Privacy & Playback") }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.VisibilityOff,
-                    title = "Private Session",
-                    description = "Don't save your listening history",
-                    checked = userPreferences.isPrivateSessionEnabled,
-                    onCheckedChange = { viewModel.togglePrivateSession() }
-                )
-            }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.Notifications,
-                    title = "Show Notification Controls",
-                    description = "Display playback controls in notification",
-                    checked = userPreferences.showNotificationControls,
-                    onCheckedChange = { viewModel.setShowNotificationControls(it) }
-                )
-            }
-
-            // Audio & Quality Section
-            item { SettingsSectionHeader("Audio & Quality") }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.HighQuality,
-                    title = "Audio Quality",
-                    description = getAudioQualityDescription(userPreferences.audioQuality),
-                    onClick = { showAudioQualityDialog = true }
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Storage,
-                    title = "Audio Buffer",
-                    description = "${userPreferences.audioBufferMs}ms",
-                    onClick = { showBufferDialog = true }
-                )
-            }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.Speed,
-                    title = "Gapless Playback",
-                    description = "Seamless transitions between tracks",
-                    checked = userPreferences.gaplessPlaybackEnabled,
-                    onCheckedChange = { viewModel.toggleGaplessPlayback() }
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.AutoAwesome,
-                    title = "Crossfade Duration",
-                    description = "${userPreferences.crossfadeDurationMs}ms",
-                    onClick = { showCrossfadeDialog = true }
-                )
-            }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.Settings,
-                    title = "Audio Normalization",
-                    description = "Normalize volume across tracks",
-                    checked = userPreferences.audioNormalizationEnabled,
-                    onCheckedChange = { viewModel.toggleAudioNormalization() }
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Equalizer,
-                    title = "Equalizer",
-                    description = "5-band EQ with bass boost",
-                    onClick = onNavigateToEqualizer
-                )
-            }
-
-            // Library & Scanning Section
-            item { SettingsSectionHeader("Library & Scanning") }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.PermMedia,
-                    title = "Audio Permission",
-                    description = "✓ Granted",
-                    onClick = {
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                            permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
-                        }
-                    }
-                )
-            }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.Search,
-                    title = "Scan on Startup",
-                    description = "Automatically scan for new music",
-                    checked = userPreferences.scanOnStartup,
-                    onCheckedChange = { viewModel.toggleScanOnStartup() }
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Timer,
-                    title = "Minimum Audio Duration",
-                    description = "${userPreferences.minimumAudioDuration}s",
-                    onClick = { showMinDurationDialog = true }
-                )
-            }
-            item {
-                SettingsSwitchItem(
-                    icon = Icons.Default.AudioFile,
-                    title = "Show All Audio Files",
-                    description = "Show hidden files and short clips",
-                    checked = userPreferences.showAllAudioFiles,
-                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() }
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.FolderOff,
-                    title = "Excluded Folders",
-                    description = "Manage folders to exclude from scan",
-                    onClick = onNavigateToExcludedFolders
-                )
-            }
-            item {
-                SettingsItem(
-                    icon = Icons.Default.Refresh,
-                    title = "Rescan Library",
-                    description = "Manually search for new music files",
-                    onClick = {
-                        viewModel.resetScanState()
-                        showRescanDialog = true
-                    },
-                    showLoading = isScanning
-                )
-            }
-
-            // Storage Management Section
-            // item { SettingsSectionHeader("Storage Management") }
-
-            // // Storage Pie Chart
-            // storageStats?.let { stats ->
-            //     item {
-            //         com.sukoon.music.ui.screen.settings.components.StoragePieChart(
-            //             storageStats = stats,
-            //             modifier = Modifier.padding(vertical = 8.dp)
+            // item {
+            //     SettingsGroupCard(
+            //         modifier = Modifier.padding(horizontal = SpacingLarge),
+            //         rows = listOf(
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.CloudUpload,
+            //                 title = "Backup & restore",
+            //                 value = "Log in",
+            //                 onClick = { showComingSoonToast(context, "Backup & restore coming soon") }
+            //             ),
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.LibraryMusic,
+            //                 title = "Playlists and songs",
+            //                 onClick = onNavigateToPlaylists
+            //             ),
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.PlayArrow,
+            //                 title = "Playtime",
+            //                 onClick = { showComingSoonToast(context, "Playtime coming soon") }
+            //             )
             //         )
-            //     }
-            // }
-
-            // item {
-            //     SettingsItem(
-            //         icon = Icons.Default.Delete,
-            //         title = "Clear Cache",
-            //         description = "Delete cached album art",
-            //         onClick = { showClearCacheDialog = true },
-            //         showLoading = isClearingCache
             //     )
             // }
-            // item {
-            //     SettingsItem(
-            //         icon = Icons.Default.DeleteForever,
-            //         title = "Clear Database",
-            //         description = "Delete all song metadata",
-            //         onClick = { showClearDatabaseDialog = true },
-            //         isDestructive = true,
-            //         showLoading = isClearingData
-            //     )
-            // }
-
-            // About & Legal Section
-            item { SettingsSectionHeader("About & Legal") }
             item {
-                SettingsItem(
-                    icon = Icons.Default.Info,
-                    title = "Version",
-                    description = viewModel.getAppVersion(),
-                    onClick = {}
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Palette,
+                            title = "Theme",
+                            value = getThemeDescription(userPreferences.theme),
+                            onClick = { showThemeDialog = true }
+                        ),                     
+                        SettingsRowModel(
+                            icon = Icons.Default.ColorLens,
+                            title = "Accent Color",
+                            value = userPreferences.accentProfile.label,
+                            onClick = { showAccentDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Timer,
+                            title = "Sleep timer",
+                            value = getSleepTimerLabel(userPreferences.sleepTimerTargetTimeMs),
+                            onClick = { showComingSoonToast(context, "Sleep timer coming soon") }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.WorkspacePremium,
+                            title = "Remove ads",
+                            value = if (isPremium) "Premium active" else "48% OFF",
+                            valueColor = accentTokens.active,
+                            onClick = {
+                                analyticsTracker?.logEvent(
+                                    name = "remove_ads_tap",
+                                    params = mapOf("source" to "settings")
+                                )
+                                showPremiumDialog = true
+                            }
+                        )
+                    )
                 )
             }
             item {
-                SettingsItem(
-                    icon = Icons.Default.Star,
-                    title = "Rate Us",
-                    description = "Share your feedback on Google Play",
-                    onClick = {
-                        analyticsTracker?.logEvent("rate_us_item_tap", mapOf("source" to "settings"))
-                        val activity = context as? ComponentActivity
-                        if (activity != null) {
-                            viewModel.triggerInAppReview(activity)
-                        }
-                    }
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.VisibilityOff,
+                        //     title = "Hidden files",
+                        //     value = if (userPreferences.showAllAudioFiles) "Visible" else "Hidden",
+                        //     onClick = { showComingSoonToast(context, "Hidden files coming soon") }
+                        // ),
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.Delete,
+                        //     title = "Recently deleted",
+                        //     value = "0 files",
+                        //     onClick = onNavigateToRestorePlaylist
+                        // ),
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.PlayCircle,
+                        //     title = "Playback settings",
+                        //     onClick = { showComingSoonToast(context, "Playback settings coming soon") }
+                        // ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Notifications,
+                            title = "Notification settings",
+                            onClick = { showComingSoonToast(context, "Notification settings coming soon") }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Language,
+                            title = "Language",
+                            value = "English",
+                            onClick = { showComingSoonToast(context, "Language support coming soon") }
+                        )
+                    )
                 )
             }
             item {
-                SettingsItem(
-                    icon = Icons.Default.Email,
-                    title = "Send Feedback",
-                    description = "Report issues or suggest features",
-                    onClick = {
-                        analyticsTracker?.logEvent("feedback_tap", mapOf("source" to "settings"))
-                        FeedbackHelper.sendFeedback(context, viewModel.getAppVersion())
-                    }
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Email,
+                            title = "Feedback",
+                            onClick = {
+                                analyticsTracker?.logEvent("feedback_tap", mapOf("source" to "settings"))
+                                FeedbackHelper.sendFeedback(context, viewModel.getAppVersion())
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Info,
+                            title = "About",
+                            onClick = onNavigateToAbout
+                        )
+                    )
                 )
             }
             item {
-                SettingsItem(
-                    icon = Icons.Default.Description,
-                    title = "Terms of Service",
-                    description = "Read our terms",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://www.shkcorp.com/apps/sukoon-music/terms-conditions")
-                        }
-                        context.startActivity(intent)
-                    }
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.ColorLens,
+                            title = "Accent Color",
+                            value = userPreferences.accentProfile.label,
+                            valueColor = accentTokens.active,
+                            onClick = { showAccentDialog = true }
+                        )
+                    )
                 )
             }
             item {
-                SettingsItem(
-                    icon = Icons.Default.CodeOff,
-                    title = "Licenses",
-                    description = "Open source licenses",
-                    onClick = {}
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.VisibilityOff,
+                            title = "Private Session",
+                            // value = "Dont save your listening history",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.togglePrivateSession() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.isPrivateSessionEnabled,
+                                    onCheckedChange = { viewModel.togglePrivateSession() }
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Notifications,
+                            title = "Show Notification Controls",
+                            value = "Display playback controls in notification",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.showNotificationControls,
+                                    onCheckedChange = { viewModel.setShowNotificationControls(it) }
+                                )
+                            }
+                        )
+                    )
                 )
             }
             item {
-                SettingsItem(
-                    icon = Icons.Default.PersonOutline,
-                    title = "About Developer",
-                    description = "Visit our website",
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW).apply {
-                            data = Uri.parse("https://shkcorp.com")
-                        }
-                        context.startActivity(intent)
-                    }
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.HighQuality,
+                            title = "Audio Quality",
+                            value = getAudioQualityDescription(userPreferences.audioQuality),
+                            onClick = { showAudioQualityDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Storage,
+                            title = "Audio Buffer",
+                            value = "${userPreferences.audioBufferMs}ms",
+                            onClick = { showBufferDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Speed,
+                            title = "Gapless Playback",
+                            value = "Seamless transitions between tracks",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.toggleGaplessPlayback() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.gaplessPlaybackEnabled,
+                                    onCheckedChange = { viewModel.toggleGaplessPlayback() }
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.AutoAwesome,
+                            title = "Crossfade Duration",
+                            value = getCrossfadeLabel(userPreferences.crossfadeDurationMs),
+                            onClick = { showCrossfadeDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Settings,
+                            title = "Audio Normalization",
+                            value = "Normalize volume across tracks",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.toggleAudioNormalization() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.audioNormalizationEnabled,
+                                    onCheckedChange = { viewModel.toggleAudioNormalization() }
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Equalizer,
+                            title = "Equalizer",
+                            value = "5-band EQ with bass boost",
+                            onClick = onNavigateToEqualizer
+                        )
+                    )
                 )
             }
-
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.PermMedia,
+                            title = "Audio Permission",
+                            value = "Granted",
+                            onClick = {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
+                                }
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Search,
+                            title = "Scan on Startup",
+                            value = "Automatically scan for new music",
+                            onClick = { viewModel.toggleScanOnStartup() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.scanOnStartup,
+                                    onCheckedChange = { viewModel.toggleScanOnStartup() }
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Timer,
+                            title = "Minimum Audio Duration",
+                            value = "${userPreferences.minimumAudioDuration}s",
+                            onClick = { showMinDurationDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.AudioFile,
+                            title = "Show All Audio Files",
+                            value = "Show hidden files and short clips",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.toggleShowAllAudioFiles() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.showAllAudioFiles,
+                                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() }
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.FolderOff,
+                            title = "Excluded Folders",
+                            value = " folders to exclude from scan",
+                            onClick = onNavigateToExcludedFolders
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Refresh,
+                            title = "Rescan Library",
+                            value = " Search for new music files",
+                            onClick = {
+                                viewModel.resetScanState()
+                                showRescanDialog = true
+                            },
+                            showLoading = isScanning
+                        )
+                    )
+                )
+            }
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Info,
+                            title = "Version",
+                            value = viewModel.getAppVersion()
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Star,
+                            title = "Rate Us",
+                            value = "Share your feedback on Google Play",
+                            onClick = {
+                                analyticsTracker?.logEvent("rate_us_item_tap", mapOf("source" to "settings"))
+                                val activity = context as? ComponentActivity
+                                if (activity != null) {
+                                    viewModel.triggerInAppReview(activity)
+                                }
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Description,
+                            title = "Terms of Service",
+                            value = "Read our terms",
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse("https://www.shkcorp.com/apps/sukoon-music/terms-conditions")
+                                }
+                                context.startActivity(intent)
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.CodeOff,
+                            title = "Licenses",
+                            value = "Open source licenses"
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.PersonOutline,
+                            title = "About Developer",
+                            value = "Visit our website",
+                            onClick = {
+                                val intent = Intent(Intent.ACTION_VIEW).apply {
+                                    data = Uri.parse("https://shkcorp.com")
+                                }
+                                context.startActivity(intent)
+                            }
+                        )
+                    )
+                )
+            }
         }
-
         // Dialogs
         if (showThemeDialog) {
             ThemeSelectionDialog(
@@ -768,6 +831,147 @@ private fun SettingsSwitchItem(
         }
     }
 }
+
+private enum class ValuePlacement { Inline, Below }
+
+private data class SettingsRowModel(
+    val icon: ImageVector,
+    val title: String,
+    val value: String? = null,
+    val valuePlacement: ValuePlacement = ValuePlacement.Inline,
+    val valueColor: Color? = null,
+    val onClick: (() -> Unit)? = null,
+    val trailingContent: (@Composable () -> Unit)? = null,
+    val showLoading: Boolean = false
+)
+
+@Composable
+private fun SettingsGroupCard(
+    modifier: Modifier = Modifier,
+    rows: List<SettingsRowModel>
+) {
+    val accentTokens = accent()
+        Card(
+            modifier = modifier.border(
+                width = 1.dp,
+                color = accentTokens.primary.copy(alpha = 0.24f),
+                shape = RoundedCornerShape(20.dp)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationMedium)
+    ) {
+        Column {
+            rows.forEachIndexed { index, row ->
+                SettingsGroupRow(row = row, showDivider = index < rows.lastIndex)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsGroupRow(
+    row: SettingsRowModel,
+    showDivider: Boolean
+) {
+    Column {
+        val clickableModifier = if (row.onClick != null) {
+            Modifier.clickable(onClick = row.onClick)
+        } else {
+            Modifier
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(clickableModifier)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = row.icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                text = row.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (row.value != null && row.valuePlacement == ValuePlacement.Inline) {
+                val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = row.value,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = valueColor,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            when {
+                row.trailingContent != null -> row.trailingContent.invoke()
+                row.showLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+                row.onClick != null -> {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+
+        if (row.value != null && row.valuePlacement == ValuePlacement.Below) {
+            val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+            Text(
+                text = row.value,
+                style = MaterialTheme.typography.bodySmall,
+                color = valueColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 56.dp, vertical = 2.dp)
+            )
+        }
+        if (showDivider) {
+            Divider(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
+        }
+    }
+}
+
+private fun showComingSoonToast(context: Context, message: String) {
+    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+}
+
+private fun getSleepTimerLabel(targetMs: Long): String =
+    if (targetMs <= System.currentTimeMillis()) {
+        "Off"
+    } else {
+        "On"
+    }
+
+private fun getCrossfadeLabel(durationMs: Int): String =
+    if (durationMs <= 0) "Off" else "${durationMs}ms"
 
 @Composable
 private fun ThemeSelectionDialog(
