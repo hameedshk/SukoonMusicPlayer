@@ -17,6 +17,8 @@ import com.sukoon.music.data.analytics.AnalyticsTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -186,7 +188,9 @@ class BillingManager @Inject constructor(
 
                 if (isPremium) {
                     // CRITICAL FIX: Grant premium status in DataStore
-                    preferencesManager.setIsPremiumUser(true)
+                    GlobalScope.launch {
+                        preferencesManager.setIsPremiumUser(true)
+                    }
                     _billingState.value = BillingState.Success("Premium activated!")
                 } else {
                     _billingState.value = BillingState.Idle
@@ -228,7 +232,9 @@ class BillingManager @Inject constructor(
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                 // CRITICAL FIX: Grant premium status in DataStore after acknowledgment
-                preferencesManager.setIsPremiumUser(true)
+                GlobalScope.launch {
+                    preferencesManager.setIsPremiumUser(true)
+                }
                 _billingState.value = BillingState.Success("Premium activated!")
 
                 // Analytics: Purchase succeeded
@@ -285,7 +291,9 @@ class BillingManager @Inject constructor(
 
                     if (premiumPurchase != null) {
                         // Grant premium status
-                        preferencesManager.setIsPremiumUser(true)
+                        GlobalScope.launch {
+                            preferencesManager.setIsPremiumUser(true)
+                        }
                         _billingState.value = BillingState.Success("Premium restored!")
                         analyticsTracker?.logEvent("premium_restore_success", emptyMap())
                     } else {

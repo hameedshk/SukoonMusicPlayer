@@ -26,6 +26,11 @@ fun PremiumDialog(
         is BillingState.Success -> {
             AlertDialog(
                 onDismissRequest = onDismiss,
+                confirmButton = {
+                    TextButton(onClick = onDismiss) {
+                        Text("Continue")
+                    }
+                },
                 title = { Text("Premium Activated!") },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -47,11 +52,6 @@ fun PremiumDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = onDismiss) {
-                        Text("Continue")
-                    }
                 }
             )
         }
@@ -59,6 +59,11 @@ fun PremiumDialog(
         is BillingState.Error -> {
             AlertDialog(
                 onDismissRequest = onDismiss,
+                confirmButton = {
+                    TextButton(onClick = onDismiss) {
+                        Text("OK")
+                    }
+                },
                 title = { Text("Purchase Failed") },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -74,11 +79,6 @@ fun PremiumDialog(
                             textAlign = TextAlign.Center
                         )
                     }
-                },
-                confirmButton = {
-                    TextButton(onClick = onDismiss) {
-                        Text("OK")
-                    }
                 }
             )
         }
@@ -86,6 +86,7 @@ fun PremiumDialog(
         is BillingState.Loading -> {
             AlertDialog(
                 onDismissRequest = { },
+                confirmButton = { },
                 title = { Text("Processing Purchase...") },
                 text = {
                     Box(
@@ -101,6 +102,23 @@ fun PremiumDialog(
         is BillingState.Idle -> {
             AlertDialog(
                 onDismissRequest = onDismiss,
+                confirmButton = {
+                    Button(onClick = onPurchase) {
+                        Text("Get Premium")
+                    }
+                },
+                dismissButton = {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        TextButton(onClick = onRestore) {
+                            Text("Restore")
+                        }
+                        TextButton(onClick = onDismiss) {
+                            Text("Cancel")
+                        }
+                    }
+                },
                 title = { Text("Sukoon Premium") },
                 text = {
                     Column(Modifier.fillMaxWidth()) {
@@ -119,36 +137,6 @@ fun PremiumDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
-                        Spacer(Modifier.height(16.dp))
-
-                        // Primary action button
-                        Button(
-                            onClick = onPurchase,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Get Premium")
-                        }
-
-                        // Secondary actions
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            TextButton(
-                                onClick = onRestore,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Restore")
-                            }
-                            TextButton(
-                                onClick = onDismiss,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Text("Cancel")
-                            }
-                        }
                     }
                 }
             )
