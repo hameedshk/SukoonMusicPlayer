@@ -53,7 +53,7 @@ fun ArtistRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Leading: Artwork (Circular)
@@ -101,10 +101,11 @@ fun ArtistRow(
 
             // Trailing: Menu
             Box {
-                IconButton(onClick = { showMenu = true }) {
+                IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
                         contentDescription = "Menu",
+                        modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -125,37 +126,37 @@ fun ArtistRow(
                     DropdownMenuItem(
                         text = { Text("Play") },
                         onClick = { onPlayClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Play next") },
                         onClick = { onPlayNextClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
+                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Add to queue") },
                         onClick = { onAddToQueueClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.AddToQueue, null) }
+                        leadingIcon = { Icon(Icons.Default.AddToQueue, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Add to playlist") },
                         onClick = { onAddToPlaylistClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.PlaylistAdd, null) }
+                        leadingIcon = { Icon(Icons.Default.PlaylistAdd, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Edit tags") },
                         onClick = { onEditTagsClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.Edit, null) }
+                        leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Change cover") },
                         onClick = { onChangeCoverClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.Image, null) }
+                        leadingIcon = { Icon(Icons.Default.Image, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
                         text = { Text("Delete from device") },
                         onClick = { onDeleteClick(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
+                        leadingIcon = { Icon(Icons.Default.Delete, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) }
                     )
                 }
             }
@@ -169,6 +170,6 @@ private fun ArtistIconPlaceholder() {
         imageVector = Icons.Default.Person,
         contentDescription = null,
         tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
-        modifier = Modifier.size(32.dp)
+        modifier = Modifier.size(28.dp)
     )
 }

@@ -84,7 +84,7 @@ fun HomeTab(
                     text = "Continue listening",
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(horizontal = SpacingLarge, vertical = SpacingSmall)
                 )
 
                 ContinueListeningCard(
@@ -135,7 +135,7 @@ fun HomeTab(
                             viewModel.triggerInAppReview(activity)
                         }
                     },
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                    modifier = Modifier.padding(SpacingSmall)
                 )
             }
         }

@@ -25,10 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -484,7 +486,7 @@ private fun AlbumCard(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = album.artist,
                     style = MaterialTheme.typography.bodySmall,
@@ -492,11 +494,14 @@ private fun AlbumCard(
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${album.songCount} songs",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    text = "${album.songCount}",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        fontSize = 11.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                 )
             }
         }
@@ -633,8 +638,8 @@ private fun RecentlyPlayedAlbumCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = album.title,
-            style = MaterialTheme.typography.listItemTitle,
-            maxLines = 1,
+            style = MaterialTheme.typography.listItemTitle.copy(fontWeight = FontWeight.SemiBold),
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis
         )
         Text(

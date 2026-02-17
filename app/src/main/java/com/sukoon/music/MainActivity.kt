@@ -34,13 +34,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.sukoon.music.data.ads.AdMobDecisionAgent
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
-import com.sukoon.music.ui.components.GlobalBannerAdView
-import com.sukoon.music.ui.components.AD_CONTAINER_HEIGHT_DP
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.theme.MiniPlayerHeight
 import com.sukoon.music.ui.theme.SpacingMedium
@@ -51,6 +48,7 @@ import com.sukoon.music.ui.navigation.SukoonNavHost
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.data.analytics.AnalyticsTracker
+import com.sukoon.music.util.RemoteConfigManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
@@ -64,14 +62,14 @@ class MainActivity : ComponentActivity() {
     lateinit var adMobManager: AdMobManager
 
     @Inject
-    lateinit var adMobDecisionAgent: AdMobDecisionAgent
-
-    @Inject
     lateinit var premiumManager: PremiumManager
 
     @Inject
     lateinit var analyticsTracker: AnalyticsTracker
-    
+
+    @Inject
+    lateinit var remoteConfigManager: RemoteConfigManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -101,9 +99,10 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         }
 
         setContent {
-            // Initialize billing manager for premium purchases
+            // Initialize billing manager and remote config for premium purchases and feature flags
             LaunchedEffect(Unit) {
                 premiumManager.initialize()
+                remoteConfigManager.initialize()
 
                 // Debug override for testing (only in debug builds)
                 if (BuildConfig.DEBUG) {
@@ -234,25 +233,14 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                 // Check if on Onboarding screen (ads hidden regardless of premium status)
                 val isOnOnboardingScreen = currentRoute == Routes.Onboarding.route
 
-                // Track actual ad height (updated dynamically from GlobalBannerAdView)
-                var actualAdHeight by remember(isPremium, isOnOnboardingScreen) {
-                    mutableStateOf(if (isPremium || isOnOnboardingScreen) 0f else AD_CONTAINER_HEIGHT_DP.toFloat())
-                }
-
-                // Update ad height reactively when premium status or route changes
-                LaunchedEffect(isPremium, isOnOnboardingScreen) {
-                    actualAdHeight = if (isPremium || isOnOnboardingScreen) 0f else AD_CONTAINER_HEIGHT_DP.toFloat()
-                }
-
                 // Calculate dynamic bottom padding based on playback state
                 // Hide mini player when on NowPlayingScreen
                 val isOnNowPlayingScreen = currentRoute == Routes.NowPlaying.route
                 val bottomPadding = if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
-                    // Ad + MiniPlayer + spacing between them
-                    (actualAdHeight + MiniPlayerHeight.value + SpacingMedium.value).dp
+                    // MiniPlayer + spacing
+                    (MiniPlayerHeight.value + SpacingMedium.value).dp
                 } else {
-                    // Ad only
-                    actualAdHeight.dp
+                    0.dp
                 }
 
                 // Global layout: NavHost + MiniPlayer + Ad
@@ -274,7 +262,7 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                     // MiniPlayer + Ad overlay positioning
                     val isMiniPlayerVisible = playbackState.currentSong != null && !isOnNowPlayingScreen
 
-                    // MiniPlayer positioned above ad
+                    // MiniPlayer positioned at bottom
                     if (isMiniPlayerVisible) {
                         MiniPlayer(
                             playbackState = playbackState,
@@ -285,20 +273,7 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                             onClick = { navController.navigate(Routes.NowPlaying.route) },
                             modifier = Modifier
                                 .align(Alignment.BottomCenter)
-                                .padding(bottom = actualAdHeight.dp + SpacingMedium)
-                        )
-                    }
-
-                    // Ad banner at bottom (only for non-premium users, not on Onboarding)
-                    if (!isPremium && !isOnOnboardingScreen) {
-                        GlobalBannerAdView(
-                            adMobManager = adMobManager,
-                            decisionAgent = adMobDecisionAgent,
-                            premiumManager = premiumManager,
-                            currentRoute = currentRoute,
-                            isMiniPlayerVisible = isMiniPlayerVisible,
-                            onAdHeightChanged = { height -> actualAdHeight = height },
-                            modifier = Modifier.align(Alignment.BottomCenter)
+                                .padding(bottom = SpacingMedium)
                         )
                     }
                 }
@@ -306,20 +281,7 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
         }
     }
 
-    override fun onPause() {
-        super.onPause()
-        // Notify ad decision agent that app is going to background
-        // Avoid treating configuration changes (rotation) as a real background event.
-        if (!isChangingConfigurations) {
-            adMobDecisionAgent.onAppBackgrounded()
-        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        // Notify ad decision agent that app is returning to foreground
-        adMobDecisionAgent.onAppForegrounded()
-    }   
+   
 
 
 

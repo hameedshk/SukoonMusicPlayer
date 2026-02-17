@@ -613,10 +613,10 @@ interface AdMobManagerEntryPoint {
 }
 
 /**
- * Hilt entry point for accessing AdMobDecisionAgent from non-injected context.
+ * Hilt entry point for accessing RemoteConfigManager from non-injected context.
  */
 @dagger.hilt.EntryPoint
 @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
-interface AdMobDecisionAgentEntryPoint {
-    fun adMobDecisionAgent(): com.sukoon.music.data.ads.AdMobDecisionAgent
+interface RemoteConfigManagerEntryPoint {
+    fun remoteConfigManager(): com.sukoon.music.util.RemoteConfigManager
 }

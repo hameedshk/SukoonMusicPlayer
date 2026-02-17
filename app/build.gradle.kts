@@ -172,9 +172,10 @@ dependencies {
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.5.0")
 
-    //firebase 
+    //firebase
     implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")
+    implementation("com.google.firebase:firebase-config-ktx")
 
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")

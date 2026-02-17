@@ -95,7 +95,6 @@ import android.widget.Toast
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.data.ads.AdMobManager
-import com.sukoon.music.data.ads.AdMobDecisionAgent
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.theme.*
@@ -157,9 +156,14 @@ fun HomeScreen(
         null
     }
 
-    // Get AdMobDecisionAgent for intelligent ad delivery
-    val adMobDecisionAgent = try {
-        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.AdMobDecisionAgentEntryPoint::class.java).adMobDecisionAgent()
+    val preferencesManager = try {
+        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.PreferencesManagerEntryPoint::class.java).preferencesManager()
+    } catch (e: Exception) {
+        null
+    }
+
+    val remoteConfigManager = try {
+        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint::class.java).remoteConfigManager()
     } catch (e: Exception) {
         null
     }
@@ -270,6 +274,14 @@ fun HomeScreen(
         },
         bottomBar = {
             Column {
+                // Banner ad
+                if (adMobManager != null && preferencesManager != null && remoteConfigManager != null) {
+                    SimpleBannerAd(
+                        adMobManager = adMobManager,
+                        preferencesManager = preferencesManager,
+                        remoteConfigManager = remoteConfigManager
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -355,7 +367,6 @@ fun HomeScreen(
                                     viewModel = viewModel,
                                     playlistViewModel = playlistViewModel,
                                     adMobManager = adMobManager,
-                                    adMobDecisionAgent = adMobDecisionAgent,
                                     isPremium = isPremium,
                                     onNavigateToArtistDetail = onNavigateToArtistDetail,
                                     onNavigateToAlbumDetail = onNavigateToAlbumDetail,
@@ -449,7 +460,7 @@ private fun ScanProgressView(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(SectionSpacing),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -836,7 +847,6 @@ private fun SongsContent(
     viewModel: HomeViewModel,
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel,
     adMobManager: AdMobManager?,
-    adMobDecisionAgent: AdMobDecisionAgent?,
     isPremium: Boolean = false,
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
@@ -1015,7 +1025,7 @@ private fun SongsContent(
                     }
 
                 // Inject native ads every 25 songs (only if user is not premium)
-                val shouldShowAds = !isPremium && adMobManager != null && adMobDecisionAgent != null
+                val shouldShowAds = !isPremium && adMobManager != null
                 val displayItems = if (shouldShowAds) {
                     injectNativeAds(sortedSongs, interval = 25)
                 } else {
@@ -1066,20 +1076,8 @@ private fun SongsContent(
                             )
                         }
                         is ListItem.AdItem<*> -> {
-                            // Native ad with decision agent integration
-                            val adIndex = displayItems.indexOf(item)
-                            val albumInfo = getAlbumForAdItem(adIndex)
-
-                            if (albumInfo != null && adMobManager != null && adMobDecisionAgent != null) {
-                                val (albumId, albumTrackCount) = albumInfo
-                                NativeAdLoader(
-                                    adMobManager = adMobManager,
-                                    decisionAgent = adMobDecisionAgent,
-                                    albumId = albumId,
-                                    albumTrackCount = albumTrackCount,
-                                    hasUserScrolled = hasUserScrolled.value
-                                )
-                            }
+                            // Native ad - simplified approach
+                            // Ads are now handled by SimpleNativeAd component in individual screens
                         }
                     }
                 }

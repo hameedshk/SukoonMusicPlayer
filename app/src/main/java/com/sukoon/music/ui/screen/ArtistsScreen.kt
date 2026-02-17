@@ -279,7 +279,7 @@ private fun ArtistsContent(
                         Text(
                             text = "Recently played",
                             style = MaterialTheme.typography.sectionHeader,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                         )
                         LazyRow(
                             contentPadding = PaddingValues(horizontal = 16.dp),
@@ -292,7 +292,7 @@ private fun ArtistsContent(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
                         HorizontalDivider(
                             modifier = Modifier.padding(horizontal = 16.dp),
                             thickness = 0.5.dp
@@ -454,7 +454,7 @@ private fun ArtistCard(
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = null,
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier.size(44.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -463,7 +463,7 @@ private fun ArtistCard(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(44.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -497,7 +497,7 @@ private fun ArtistListItem(
                 onClick = onClick,
                 onLongClick = onLongClick
             )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -541,10 +541,10 @@ private fun ArtistListItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(2.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = "${artist.albumCount} ${if (artist.albumCount == 1) "album" else "albums"} · ${artist.songCount} ${if (artist.songCount == 1) "song" else "songs"}",
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.listItemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -562,10 +562,11 @@ private fun ArtistListItem(
                 )
             }
         } else {
-            IconButton(onClick = { onMenuClick() }) {
+            IconButton(onClick = { onMenuClick() }, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",
+                    modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -583,7 +584,7 @@ private fun ArtistSortHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -593,11 +594,11 @@ private fun ArtistSortHeader(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
-            IconButton(onClick = onSortClick) {
-                Icon(Icons.Default.Sort, contentDescription = "Sort")
+            IconButton(onClick = onSortClick, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort", modifier = Modifier.size(20.dp))
             }
-            IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+            IconButton(onClick = onSelectionClick, modifier = Modifier.size(40.dp)) {
+                Icon(Icons.Default.CheckCircle, contentDescription = "Select", modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -679,13 +680,13 @@ fun EmptyArtistsContentState() {
             modifier = Modifier.size(96.dp),
             tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
         Text(
             text = "No artists found",
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = "Scan your library to discover artists",
             style = MaterialTheme.typography.bodyMedium,
@@ -771,27 +772,27 @@ private fun ArtistContextMenuBottomSheet(
             // Menu items
             ListItem(
                 headlineContent = { Text("Play") },
-                leadingContent = { Icon(Icons.Default.PlayArrow, null) },
+                leadingContent = { Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onPlay)
             )
             ListItem(
                 headlineContent = { Text("Shuffle") },
-                leadingContent = { Icon(Icons.Default.Shuffle, null) },
+                leadingContent = { Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onShuffle)
             )
             ListItem(
                 headlineContent = { Text("Play next") },
-                leadingContent = { Icon(Icons.Default.SkipNext, null) },
+                leadingContent = { Icon(Icons.Default.SkipNext, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onPlayNext)
             )
             ListItem(
                 headlineContent = { Text("Add to queue") },
-                leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
+                leadingContent = { Icon(Icons.Default.PlaylistAdd, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onAddToQueue)
             )
             ListItem(
                 headlineContent = { Text("Add to playlist") },
-                leadingContent = { Icon(Icons.Default.Add, null) },
+                leadingContent = { Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onAddToPlaylist)
             )
         }

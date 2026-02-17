@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -361,13 +362,13 @@ private fun SongListItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = 12.dp),
+                .padding(horizontal = SpacingLarge, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             // Album Art
             Surface(
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(64.dp),
                 shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {
@@ -403,25 +404,34 @@ private fun SongListItem(
             ) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 18.sp,
+                        fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold
+                    ),
                     color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fadeEllipsis()
                 )
                 Text(
                     text = song.artist,
-                    style = MaterialTheme.typography.bodyMedium,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 11.5.sp
+                    ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fadeEllipsis()
                 )
             }
 
             // Duration
             Text(
                 text = song.durationFormatted(),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 11.5.sp,
+                    fontFamily = FontFamily.Monospace
+                ),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(end = 8.dp)
             )

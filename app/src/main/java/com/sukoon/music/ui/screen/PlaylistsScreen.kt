@@ -164,8 +164,10 @@ fun PlaylistsScreen(
                     }
                     Text(
                         text = heading,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        modifier = Modifier.padding(vertical = 8.dp),
+                        style = MaterialTheme.typography.playlistSectionHeader,
+                        modifier = Modifier
+                            .padding(vertical = 8.dp)
+                            .baselineGridPadding(4, 4),
                         color = MaterialTheme.colorScheme.onBackground
                     )
                 }
@@ -304,8 +306,10 @@ private fun SmartPlaylistsSection(
     Column {
         Text(
             text = "Smart Playlists",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 12.dp),
+            style = MaterialTheme.typography.playlistSectionHeader,
+            modifier = Modifier
+                .padding(bottom = 12.dp)
+                .baselineGridPadding(4, 4),
             color = MaterialTheme.colorScheme.onBackground
         )
 
@@ -367,8 +371,8 @@ private fun SmartPlaylistCard(
             containerColor = backgroundColor
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
+            defaultElevation = 1.dp,
+            pressedElevation = 2.dp
         )
     ) {
         Box(
@@ -387,13 +391,15 @@ private fun SmartPlaylistCard(
                     Text(
                         text = smartPlaylist.title,
                         style = MaterialTheme.typography.cardTitle,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.baselineGridPadding(0, 2)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${smartPlaylist.songCount} songs",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.baselineGridPadding(0, 2)
                     )
                 }
             }
@@ -425,8 +431,10 @@ private fun PlaylistActionsSection(
     Column {
         Text(
             text = "Playlist actions",
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            modifier = Modifier.padding(bottom = 12.dp),
+            style = MaterialTheme.typography.playlistSectionHeader,
+            modifier = Modifier
+                .padding(bottom = 12.dp)
+                .baselineGridPadding(4, 4),
             color = MaterialTheme.colorScheme.onBackground
         )
 
@@ -492,7 +500,7 @@ private fun PlaylistActionItem(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
@@ -587,17 +595,7 @@ private fun PlaylistsGrid(
             // Add native ad before this playlist if we've shown enough playlists
             if (index > 0 && index % adInterval == 0) {
                 item(key = "ad_$itemIndex") {
-                    // Native ad takes full width (spans 2 columns)
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        NativeAdCard(
-                            adMobManager = adMobManager,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    // Native ad placeholder - ads are handled by SimpleNativeAd in individual screens
                 }
                 itemIndex++
             }
@@ -639,8 +637,8 @@ private fun PlaylistCard(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
+            defaultElevation = 1.dp,
+            pressedElevation = 2.dp
         )
     ) {
         Column(
@@ -737,16 +735,21 @@ private fun PlaylistCard(
             ) {
                 Text(
                     text = playlist.name,
-                    style = MaterialTheme.typography.cardTitle,
-                    maxLines = 2,
+                    style = MaterialTheme.typography.playlistCardTitle,
+                    maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fadeEllipsis()
+                        .baselineGridPadding(0, 2)
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "${playlist.songCount} songs",
-                    style = MaterialTheme.typography.cardSubtitle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.playlistCardSubtitle,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.baselineGridPadding(0, 2)
                 )
             }
         }

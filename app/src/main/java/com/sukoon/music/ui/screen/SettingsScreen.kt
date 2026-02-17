@@ -46,6 +46,7 @@ import com.sukoon.music.ui.components.SettingsGroupCard
 import com.sukoon.music.ui.components.SettingsGroupRow
 import com.sukoon.music.ui.components.SettingsRowModel
 import com.sukoon.music.ui.components.ValuePlacement
+import com.sukoon.music.ui.theme.switchPadding
 import com.sukoon.music.ui.screen.settings.components.PremiumDialog
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -296,7 +297,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.isPrivateSessionEnabled,
-                                    onCheckedChange = { viewModel.togglePrivateSession() }
+                                    onCheckedChange = { viewModel.togglePrivateSession() },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         ),
@@ -309,7 +311,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.showNotificationControls,
-                                    onCheckedChange = { viewModel.setShowNotificationControls(it) }
+                                    onCheckedChange = { viewModel.setShowNotificationControls(it) },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         )
@@ -341,7 +344,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.gaplessPlaybackEnabled,
-                                    onCheckedChange = { viewModel.toggleGaplessPlayback() }
+                                    onCheckedChange = { viewModel.toggleGaplessPlayback() },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         ),
@@ -360,7 +364,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.audioNormalizationEnabled,
-                                    onCheckedChange = { viewModel.toggleAudioNormalization() }
+                                    onCheckedChange = { viewModel.toggleAudioNormalization() },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         ),
@@ -395,7 +400,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.scanOnStartup,
-                                    onCheckedChange = { viewModel.toggleScanOnStartup() }
+                                    onCheckedChange = { viewModel.toggleScanOnStartup() },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         ),
@@ -414,7 +420,8 @@ fun SettingsScreen(
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.showAllAudioFiles,
-                                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() }
+                                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() },
+                                    modifier = Modifier.switchPadding()
                                 )
                             }
                         ),

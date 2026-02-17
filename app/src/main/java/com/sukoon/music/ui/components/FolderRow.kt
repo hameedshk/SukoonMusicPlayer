@@ -2,8 +2,10 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ripple
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
@@ -18,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.ui.theme.*
@@ -53,7 +56,11 @@ fun FolderRow(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onFolderClick),
+            .clickable(
+                onClick = onFolderClick,
+                indication = ripple(bounded = true),
+                interactionSource = remember { MutableInteractionSource() }
+            ),
         color = Color.Transparent
     ) {
         Row(
@@ -95,15 +102,19 @@ fun FolderRow(
             // Middle: Info
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = folder.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.3.sp
+                    ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(end = 4.dp)
                 )
 
                 // Metadata badges with vibrant accent colors
@@ -118,24 +129,26 @@ fun FolderRow(
                     // Song count badge
                     Surface(
                         color = badgeBg,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(2.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MusicNote,
                                 contentDescription = null,
                                 tint = iconAccent,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = "${folder.songCount}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = iconAccent,
-                                fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.3.sp
+                                ),
+                                color = iconAccent
                             )
                         }
                     }
@@ -143,24 +156,26 @@ fun FolderRow(
                     // Duration badge
                     Surface(
                         color = badgeBg,
-                        shape = RoundedCornerShape(4.dp)
+                        shape = RoundedCornerShape(2.dp)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Schedule,
                                 contentDescription = null,
                                 tint = iconAccent,
-                                modifier = Modifier.size(12.dp)
+                                modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = folder.formattedDuration(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = iconAccent,
-                                fontWeight = FontWeight.SemiBold
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 0.3.sp
+                                ),
+                                color = iconAccent
                             )
                         }
                     }

@@ -2,6 +2,7 @@ package com.sukoon.music.ui.theme
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -18,6 +19,15 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AccentTokens
 import com.sukoon.music.ui.theme.*
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.graphics.BlendMode
+
+// ============================================================================
+// Golden Ratio & Baseline Grid (Swiss Minimalism)
+// ============================================================================
+const val BaselineGridDp = 4
+const val CompactVerticalPadding = 10
+const val StandardHorizontalPadding = 16
 
 // Gradient colors (LOCKED - not user-configurable)
 private val GradientTop = Color(0xFF121212)
@@ -338,3 +348,46 @@ fun SukoonMusicPlayerTheme(
  */
 @Composable
 fun accent(): AccentTokens = LocalAccentTokens.current
+
+/**
+ * Audit Fix #5: Switch padding modifier for precise 6.5dp alignment.
+ * Ensures Switch has exactly MinimumTouchSpacing (6.5dp) padding for proper ripple feedback.
+ */
+fun Modifier.switchPadding(): Modifier {
+    return this.padding(start = 6.5.dp)
+}
+
+// ============================================================================
+// Baseline Grid & Typography Modifiers (Swiss Minimalism)
+// ============================================================================
+
+/**
+ * Apply 4dp baseline grid padding for text descender alignment.
+ * Ensures all text sits on a consistent baseline grid, preventing visual misalignment.
+ */
+fun Modifier.baselineGridPadding(topDp: Int = 4, bottomDp: Int = 4): Modifier {
+    return this.then(
+        Modifier.padding(top = topDp.dp, bottom = bottomDp.dp)
+    )
+}
+
+/**
+ * Fade-to-transparent truncation for long titles.
+ * Masks text overflow with a gradient fade instead of hard ellipsis.
+ * Used for playlist names and other long text that shouldn't hard-truncate.
+ */
+fun Modifier.fadeEllipsis(): Modifier {
+    return this.drawWithContent {
+        val fadeStartX = size.width * 0.75f
+        val brush = Brush.horizontalGradient(
+            colors = listOf(Color.Black, Color.Black, Color.Transparent),
+            startX = fadeStartX,
+            endX = size.width + 4.dp.toPx()
+        )
+        drawContent()
+        drawRect(
+            brush = brush,
+            blendMode = BlendMode.DstIn
+        )
+    }
+}

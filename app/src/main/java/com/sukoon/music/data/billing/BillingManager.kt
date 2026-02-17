@@ -10,6 +10,8 @@ import com.sukoon.music.data.analytics.AnalyticsTracker
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -23,7 +25,7 @@ class BillingManager @Inject constructor(
     companion object {
         // STATIC TEST → "android.test.purchased"
         // PRODUCTION → "sukoon_premium_lifetime"
-        const val PREMIUM_PRODUCT_ID = "android.test.purchased"
+        const val PREMIUM_PRODUCT_ID = "sukoon_premium_lifetime"
     }
 
     private val appContext = context.applicationContext
@@ -64,6 +66,8 @@ class BillingManager @Inject constructor(
                     scope.launch { initialize() }
                 }
             })
+
+            cont.invokeOnCancellation { }
         }
     }
 
@@ -72,7 +76,7 @@ class BillingManager @Inject constructor(
     suspend fun queryPremiumProduct(): UiProduct? {
         if (!isConnected) return null
 
-        return suspendCancellableCoroutine { cont ->
+        return suspendCancellableCoroutine<UiProduct?> { cont ->
             val params = QueryProductDetailsParams.newBuilder()
                 .setProductList(
                     listOf(
@@ -117,6 +121,8 @@ class BillingManager @Inject constructor(
                     cont.resume(null)
                 }
             }
+
+            cont.invokeOnCancellation { }
         }
     }
 
@@ -134,12 +140,15 @@ class BillingManager @Inject constructor(
 
         val details = cachedProductDetails
 
-        // Static fallback (no ProductDetails available)
+        // DEBUG ONLY: Simulate purchase for testing without Google Play
         if (details == null && PREMIUM_PRODUCT_ID.startsWith("android.test")) {
-            Log.d("BillingManager", "Launching static purchase fallback")
-
-            val params = BillingFlowParams.newBuilder().build()
-            billingClient.launchBillingFlow(activity, params)
+            Log.d("BillingManager", "Simulating purchase (test mode)")
+            _billingState.value = BillingState.Loading
+            scope.launch {
+                delay(1000) // Simulate API delay
+                _billingState.value = BillingState.Success("Test purchase complete")
+                grantPremium()
+            }
             return
         }
 

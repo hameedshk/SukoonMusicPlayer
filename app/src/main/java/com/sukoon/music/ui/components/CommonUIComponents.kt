@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.theme.fadeEllipsis
 
 @Composable
 internal fun PillButton(
@@ -1228,32 +1229,44 @@ internal fun SettingsGroupRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(clickableModifier)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = SpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
+            // Audit Fix #2: Reduce icon from 24dp to 20dp for optical balance
             Icon(
                 imageVector = row.icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(20.dp),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
+            // Title with fadeEllipsis for long text (Audit Fix #4)
             Text(
                 text = row.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 18.sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .weight(1f)
+                    .fadeEllipsis(),
+                maxLines = 1
             )
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.width(8.dp))
 
+            // Audit Fix #1: Value up to 16sp Regular for 1:1.125 ratio with title
             if (row.value != null && row.valuePlacement == ValuePlacement.Inline) {
                 val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
                 Text(
                     text = row.value,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal
+                    ),
                     color = valueColor,
                     maxLines = 1
                 )
@@ -1279,11 +1292,15 @@ internal fun SettingsGroupRow(
             }
         }
 
+        // Value Below placement
         if (row.value != null && row.valuePlacement == ValuePlacement.Below) {
             val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
             Text(
                 text = row.value,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Normal
+                ),
                 color = valueColor,
                 modifier = Modifier
                     .fillMaxWidth()

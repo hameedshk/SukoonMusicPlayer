@@ -166,6 +166,16 @@ val Typography.cardTitle: TextStyle
 val Typography.cardSubtitle: TextStyle
     get() = bodySmall
 
+// Playlist card title (φ-scaled 31sp from 12sp baseline)
+// Usage: Playlist name on PlaylistCard
+val Typography.playlistCardTitle: TextStyle
+    get() = titleMedium.copy(fontWeight = FontWeight.Bold, fontSize = 30.sp, lineHeight = 38.sp)
+
+// Playlist card subtitle (monospace for song count alignment)
+// Usage: Song count on PlaylistCard with baseline grid
+val Typography.playlistCardSubtitle: TextStyle
+    get() = bodySmall.copy(fontSize = 12.sp, fontFamily = FontFamily.Monospace, lineHeight = 16.sp)
+
 // Compact card title (for smaller/grid card layouts)
 // Usage: Album grid titles in artist detail, compact list cards
 val Typography.compactCardTitle: TextStyle
@@ -175,24 +185,30 @@ val Typography.compactCardTitle: TextStyle
 // List Item Typography
 // ============================================================================
 
-// List item primary text (song/album/artist names in lists)
+// List item primary text (song/album/artist names in lists) - φ-scaled
 // Usage: HomeScreen song list, SearchScreen results, PlaylistDetailScreen songs
 val Typography.listItemTitle: TextStyle
-    get() = bodyLarge.copy(fontWeight = FontWeight.Medium)
+    get() = bodyLarge.copy(fontSize = 18.sp, fontWeight = FontWeight.Medium)
 
-// List item secondary text (artist name under song, duration, metadata)
-// Usage: Secondary info in song/album list items
+// List item secondary text (artist name under song, duration, metadata) - φ-scaled monospace
+// Usage: Secondary info in song/album list items with tabular alignment
 val Typography.listItemSubtitle: TextStyle
-    get() = bodySmall
+    get() = bodySmall.copy(fontSize = 11.sp, fontFamily = FontFamily.Monospace, letterSpacing = 0.2.sp)
 
 // ============================================================================
 // Section & Header Typography
 // ============================================================================
 
 // Section header (category dividers: "Recently Played", "Playlists", etc.)
-// Usage: HomeScreen sections, SettingsScreen groups, SearchScreen categories
+// φ-scaled 24sp for Playlists screen primary headers
+// Usage: "Smart Playlists", "My playlists" section headers
 val Typography.sectionHeader: TextStyle
-    get() = titleSmall.copy(fontWeight = FontWeight.Bold)
+    get() = headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp)
+
+// Playlist primary section header (24sp, φ-scaled from card subtitle)
+// Usage: "Smart Playlists", "Playlist actions", "My playlists" headers
+val Typography.playlistSectionHeader: TextStyle
+    get() = headlineSmall.copy(fontWeight = FontWeight.Bold, fontSize = 24.sp, lineHeight = 32.sp)
 
 // Screen/page header (main title at top of screen)
 // Usage: HomeScreen header, AlbumsScreen title, SearchScreen results header
