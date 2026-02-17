@@ -89,6 +89,11 @@ sealed class Routes(val route: String) {
     data object Settings : Routes("settings")
 
     /**
+     * Feedback report screen - user can submit issues/suggestions.
+     */
+    data object FeedbackReport : Routes("feedback_report")
+
+    /**
      * Equalizer screen - Audio effects and 5-band equalizer control.
      */
     data object Equalizer : Routes("equalizer")

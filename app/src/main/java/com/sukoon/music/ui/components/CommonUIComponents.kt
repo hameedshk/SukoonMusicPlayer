@@ -2,6 +2,7 @@ package com.sukoon.music.ui.components
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -9,6 +10,7 @@ import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
@@ -293,7 +295,18 @@ internal fun TabPills(
     selectedTab: HomeTabKey,
     onTabSelected: (HomeTabKey) -> Unit
 ) {
+    val lazyListState = rememberLazyListState()
+
+    // Scroll to selected tab when it changes
+    LaunchedEffect(selectedTab) {
+        val selectedIndex = tabs.indexOfFirst { it.key == selectedTab }
+        if (selectedIndex != -1) {
+            lazyListState.animateScrollToItem(selectedIndex)
+        }
+    }
+
     LazyRow(
+        state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
@@ -1153,6 +1166,135 @@ private fun LibraryCard(
                 text = title,
                 style = MaterialTheme.typography.cardTitle,
                 color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+// ==================== Settings Card Components ====================
+
+internal enum class ValuePlacement { Inline, Below }
+
+internal data class SettingsRowModel(
+    val icon: ImageVector,
+    val title: String,
+    val value: String? = null,
+    val valuePlacement: ValuePlacement = ValuePlacement.Inline,
+    val valueColor: Color? = null,
+    val onClick: (() -> Unit)? = null,
+    val trailingContent: (@Composable () -> Unit)? = null,
+    val showLoading: Boolean = false
+)
+
+@Composable
+internal fun SettingsGroupCard(
+    modifier: Modifier = Modifier,
+    rows: List<SettingsRowModel>
+) {
+    val accentTokens = accent()
+    Card(
+        modifier = modifier.border(
+            width = 1.dp,
+            color = accentTokens.primary.copy(alpha = 0.24f),
+            shape = RoundedCornerShape(20.dp)
+        ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationMedium)
+    ) {
+        Column {
+            rows.forEachIndexed { index, row ->
+                SettingsGroupRow(row = row, showDivider = index < rows.lastIndex)
+            }
+        }
+    }
+}
+
+@Composable
+internal fun SettingsGroupRow(
+    row: SettingsRowModel,
+    showDivider: Boolean
+) {
+    Column {
+        val clickableModifier = if (row.onClick != null) {
+            Modifier.clickable(onClick = row.onClick)
+        } else {
+            Modifier
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(clickableModifier)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = row.icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Text(
+                text = row.title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            if (row.value != null && row.valuePlacement == ValuePlacement.Inline) {
+                val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+                Text(
+                    text = row.value,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = valueColor,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+
+            when {
+                row.trailingContent != null -> row.trailingContent.invoke()
+                row.showLoading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp
+                    )
+                }
+                row.onClick != null -> {
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                    )
+                }
+            }
+        }
+
+        if (row.value != null && row.valuePlacement == ValuePlacement.Below) {
+            val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
+            Text(
+                text = row.value,
+                style = MaterialTheme.typography.bodySmall,
+                color = valueColor,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 56.dp, vertical = 2.dp)
+            )
+        }
+        if (showDivider) {
+            Divider(
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 16.dp)
             )
         }
     }

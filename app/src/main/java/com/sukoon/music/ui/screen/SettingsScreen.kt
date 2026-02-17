@@ -42,6 +42,10 @@ import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.components.GradientAlertDialog
 import com.sukoon.music.ui.components.PremiumBanner
+import com.sukoon.music.ui.components.SettingsGroupCard
+import com.sukoon.music.ui.components.SettingsGroupRow
+import com.sukoon.music.ui.components.SettingsRowModel
+import com.sukoon.music.ui.components.ValuePlacement
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -50,7 +54,6 @@ import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.ui.theme.*
 import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
 import dagger.hilt.android.EntryPointAccessors
-import com.sukoon.music.util.FeedbackHelper
 
 /**
  * Settings Screen with vertical sectioned list layout.
@@ -70,6 +73,7 @@ fun SettingsScreen(
     onNavigateToEqualizer: () -> Unit = {},
     onNavigateToExcludedFolders: () -> Unit = {},
     onNavigateToAbout: () -> Unit = {},
+    onNavigateToFeedbackReport: () -> Unit = {},
     onNavigateToRestorePlaylist: () -> Unit = {},
     premiumManager: PremiumManager? = null,
     viewModel: SettingsViewModel = hiltViewModel()
@@ -136,7 +140,7 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -261,29 +265,18 @@ fun SettingsScreen(
                         SettingsRowModel(
                             icon = Icons.Default.Email,
                             title = "Feedback",
+                            value = "Share your feedback on Google Play",
+                            valuePlacement = ValuePlacement.Below,
+                            valueColor = accentTokens.active,
                             onClick = {
                                 analyticsTracker?.logEvent("feedback_tap", mapOf("source" to "settings"))
-                                FeedbackHelper.sendFeedback(context, viewModel.getAppVersion())
+                                onNavigateToFeedbackReport()
                             }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Info,
                             title = "About",
                             onClick = onNavigateToAbout
-                        )
-                    )
-                )
-            }
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.ColorLens,
-                            title = "Accent Color",
-                            value = userPreferences.accentProfile.label,
-                            valueColor = accentTokens.active,
-                            onClick = { showAccentDialog = true }
                         )
                     )
                 )
@@ -462,34 +455,7 @@ fun SettingsScreen(
                                     viewModel.triggerInAppReview(activity)
                                 }
                             }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Description,
-                            title = "Terms of Service",
-                            value = "Read our terms",
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = Uri.parse("https://www.shkcorp.com/apps/sukoon-music/terms-conditions")
-                                }
-                                context.startActivity(intent)
-                            }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.CodeOff,
-                            title = "Licenses",
-                            value = "Open source licenses"
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.PersonOutline,
-                            title = "About Developer",
-                            value = "Visit our website",
-                            onClick = {
-                                val intent = Intent(Intent.ACTION_VIEW).apply {
-                                    data = Uri.parse("https://shkcorp.com")
-                                }
-                                context.startActivity(intent)
-                            }
-                        )
+                        )                      
                     )
                 )
             }
@@ -832,132 +798,6 @@ private fun SettingsSwitchItem(
     }
 }
 
-private enum class ValuePlacement { Inline, Below }
-
-private data class SettingsRowModel(
-    val icon: ImageVector,
-    val title: String,
-    val value: String? = null,
-    val valuePlacement: ValuePlacement = ValuePlacement.Inline,
-    val valueColor: Color? = null,
-    val onClick: (() -> Unit)? = null,
-    val trailingContent: (@Composable () -> Unit)? = null,
-    val showLoading: Boolean = false
-)
-
-@Composable
-private fun SettingsGroupCard(
-    modifier: Modifier = Modifier,
-    rows: List<SettingsRowModel>
-) {
-    val accentTokens = accent()
-        Card(
-            modifier = modifier.border(
-                width = 1.dp,
-                color = accentTokens.primary.copy(alpha = 0.24f),
-                shape = RoundedCornerShape(20.dp)
-            ),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationMedium)
-    ) {
-        Column {
-            rows.forEachIndexed { index, row ->
-                SettingsGroupRow(row = row, showDivider = index < rows.lastIndex)
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsGroupRow(
-    row: SettingsRowModel,
-    showDivider: Boolean
-) {
-    Column {
-        val clickableModifier = if (row.onClick != null) {
-            Modifier.clickable(onClick = row.onClick)
-        } else {
-            Modifier
-        }
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(clickableModifier)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = row.icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Text(
-                text = row.title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            if (row.value != null && row.valuePlacement == ValuePlacement.Inline) {
-                val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
-                Text(
-                    text = row.value,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = valueColor,
-                    maxLines = 1
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-
-            when {
-                row.trailingContent != null -> row.trailingContent.invoke()
-                row.showLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(20.dp),
-                        strokeWidth = 2.dp
-                    )
-                }
-                row.onClick != null -> {
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                    )
-                }
-            }
-        }
-
-        if (row.value != null && row.valuePlacement == ValuePlacement.Below) {
-            val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
-            Text(
-                text = row.value,
-                style = MaterialTheme.typography.bodySmall,
-                color = valueColor,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 56.dp, vertical = 2.dp)
-            )
-        }
-        if (showDivider) {
-            Divider(
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-        }
-    }
-}
 
 private fun showComingSoonToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()

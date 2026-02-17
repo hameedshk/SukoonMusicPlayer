@@ -343,6 +343,11 @@ fun SukoonNavHost(
                 premiumManager = premiumManager
             )
         }
+        composable(route = Routes.FeedbackReport.route) {
+            FeedbackReportScreen(
+                onBackClick = { navController.navigateUp() }
+            )
+        }
 
         // About Screen - App information and links
         composable(route = Routes.About.route) {
