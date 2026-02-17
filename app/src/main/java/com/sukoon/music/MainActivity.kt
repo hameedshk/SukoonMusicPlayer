@@ -105,10 +105,12 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
             LaunchedEffect(Unit) {
                 premiumManager.initialize()
 
-                // 🐛 DEBUG: Toggle premium status for testing
-                // Uncomment one line below to test:
-                //preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM user
-                preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM user
+                // Debug override for testing (only in debug builds)
+                if (BuildConfig.DEBUG) {
+                    // Uncomment ONE line to test specific state:
+                    // preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM
+                    // preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM
+                }
 
                 // Increment app launch count for rating banner logic
                 preferencesManager.incrementAppLaunchCount()

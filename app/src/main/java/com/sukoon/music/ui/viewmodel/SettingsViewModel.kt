@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.data.billing.BillingState
+import com.sukoon.music.data.premium.PremiumManager
 
 /**
  * ViewModel for the Settings Screen.
@@ -33,6 +35,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val songRepository: SongRepository,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController,
+    private val premiumManager: PremiumManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -48,6 +51,25 @@ class SettingsViewModel @Inject constructor(
     fun dismissPremiumBanner() {
         viewModelScope.launch {
             settingsRepository.setPremiumBannerDismissed(true)
+        }
+    }
+
+    // --- Billing State ---
+
+    val billingState: StateFlow<BillingState> = premiumManager.billingState
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = BillingState.Idle
+        )
+
+    fun resetBillingState() {
+        premiumManager.resetBillingState()
+    }
+
+    fun restorePurchases() {
+        viewModelScope.launch {
+            premiumManager.restorePurchases()
         }
     }
 

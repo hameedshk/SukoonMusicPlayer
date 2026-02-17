@@ -13,6 +13,7 @@ import com.android.billingclient.api.QueryProductDetailsParams
 import com.android.billingclient.api.QueryPurchasesParams
 import com.android.billingclient.api.SkuDetailsParams
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.data.analytics.AnalyticsTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -33,12 +34,13 @@ import kotlin.coroutines.resume
 @Singleton
 class BillingManager @Inject constructor(
     @ApplicationContext context: Context,
-    private val preferencesManager: PreferencesManager
+    private val preferencesManager: PreferencesManager,
+    private val analyticsTracker: AnalyticsTracker? = null
 ) : PurchasesUpdatedListener {
 
     companion object {
         // Product ID for premium subscription (must match Play Console)
-        const val PREMIUM_PRODUCT_ID = "sukoon_premium_monthly"
+        const val PREMIUM_PRODUCT_ID = "sukoon_premium_lifetime"
 
         // Test product IDs for testing
         const val TEST_PRODUCT_ID = "android.test.purchased"
@@ -183,6 +185,8 @@ class BillingManager @Inject constructor(
                 val isPremium = premiumPurchase != null && premiumPurchase.isAcknowledged
 
                 if (isPremium) {
+                    // CRITICAL FIX: Grant premium status in DataStore
+                    preferencesManager.setIsPremiumUser(true)
                     _billingState.value = BillingState.Success("Premium activated!")
                 } else {
                     _billingState.value = BillingState.Idle
@@ -208,6 +212,7 @@ class BillingManager @Inject constructor(
             }
         } else {
             _billingState.value = BillingState.Error("Purchase cancelled or failed")
+            analyticsTracker?.logEvent("premium_purchase_cancelled", emptyMap())
         }
     }
 
@@ -222,9 +227,21 @@ class BillingManager @Inject constructor(
 
         billingClient.acknowledgePurchase(acknowledgePurchaseParams) { billingResult ->
             if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                // CRITICAL FIX: Grant premium status in DataStore after acknowledgment
+                preferencesManager.setIsPremiumUser(true)
                 _billingState.value = BillingState.Success("Premium activated!")
+
+                // Analytics: Purchase succeeded
+                analyticsTracker?.logEvent("premium_purchase_success", mapOf(
+                    "product_id" to PREMIUM_PRODUCT_ID
+                ))
             } else {
                 _billingState.value = BillingState.Error("Failed to activate premium")
+
+                // Analytics: Purchase failed
+                analyticsTracker?.logEvent("premium_purchase_failed", mapOf(
+                    "error" to (billingResult.debugMessage ?: "unknown")
+                ))
             }
         }
     }
@@ -237,6 +254,50 @@ class BillingManager @Inject constructor(
         if (isConnected) {
             billingClient.endConnection()
             isConnected = false
+        }
+    }
+
+    /**
+     * Reset billing state to Idle.
+     * Call after dismissing purchase dialogs.
+     */
+    fun resetBillingState() {
+        _billingState.value = BillingState.Idle
+    }
+
+    /**
+     * Query and restore premium purchases from Google Play.
+     * Sets BillingState to Success if premium purchase found, Error otherwise.
+     */
+    suspend fun queryAndRestorePremiumPurchases() {
+        _billingState.value = BillingState.Loading
+
+        suspendCancellableCoroutine { continuation ->
+            billingClient.queryPurchasesAsync(
+                QueryPurchasesParams.newBuilder()
+                    .setProductType(BillingClient.ProductType.INAPP)
+                    .build()
+            ) { billingResult, purchasesList ->
+                if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
+                    val premiumPurchase = purchasesList.find {
+                        it.products.contains(PREMIUM_PRODUCT_ID) && it.isAcknowledged
+                    }
+
+                    if (premiumPurchase != null) {
+                        // Grant premium status
+                        preferencesManager.setIsPremiumUser(true)
+                        _billingState.value = BillingState.Success("Premium restored!")
+                        analyticsTracker?.logEvent("premium_restore_success", emptyMap())
+                    } else {
+                        _billingState.value = BillingState.Error("No premium purchase found")
+                        analyticsTracker?.logEvent("premium_restore_failed", mapOf("reason" to "no_purchase_found"))
+                    }
+                } else {
+                    _billingState.value = BillingState.Error("Failed to query purchases")
+                    analyticsTracker?.logEvent("premium_restore_failed", mapOf("reason" to "query_error"))
+                }
+                continuation.resume(Unit)
+            }
         }
     }
 }
