@@ -31,6 +31,9 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
+        // Supported locales (limits APK size by excluding unused translations from dependencies)
+        resourceConfigurations += listOf("en", "hi")
+
         // Gemini AI Configuration (for metadata correction)
         buildConfigField(
             "String",

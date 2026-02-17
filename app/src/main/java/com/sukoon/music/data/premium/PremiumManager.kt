@@ -106,6 +106,6 @@ class PremiumManager @Inject constructor(
      * For users who reinstalled the app or switched devices.
      */
     suspend fun restorePurchases() {
-        billingManager.queryAndRestorePremiumPurchases()
+        billingManager.restorePurchases()
     }
 }

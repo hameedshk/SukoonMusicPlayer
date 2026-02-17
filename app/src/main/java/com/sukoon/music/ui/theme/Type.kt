@@ -243,6 +243,28 @@ val Typography.alphabetLabel: TextStyle
     get() = labelSmall.copy(fontSize = 10.sp)
 
 // ============================================================================
+// Golden Ratio Typography (φ ≈ 1.618)
+// ============================================================================
+
+// Genre/Collection title in lists (18sp, φ-scaled from subtitle)
+// Usage: GenreRow primary text, collection names
+val Typography.genreTitle: TextStyle
+    get() = bodyLarge.copy(
+        fontSize = 18.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.3.sp
+    )
+
+// Genre/Collection count in lists (11.5sp monospace, φ-scaled from title)
+// Usage: Song count in GenreRow, track counts (tabular figures prevent layout shift)
+val Typography.genreMetadata: TextStyle
+    get() = bodySmall.copy(
+        fontSize = 11.5.sp,
+        fontFamily = FontFamily.Monospace,
+        letterSpacing = 0.2.sp
+    )
+
+// ============================================================================
 // Stats Card Typography
 // ============================================================================
 

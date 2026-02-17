@@ -75,7 +75,7 @@ fun PremiumDialog(
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            text = billingState.message,
+                            text = billingState.msg,
                             textAlign = TextAlign.Center
                         )
                     }

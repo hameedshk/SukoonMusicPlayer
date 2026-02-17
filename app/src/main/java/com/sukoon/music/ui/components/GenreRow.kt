@@ -14,6 +14,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -61,7 +62,7 @@ fun GenreRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Leading: Genre Icon (always shown)
@@ -102,19 +103,37 @@ fun GenreRow(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = genre.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                // Genre name with fade-right effect for long text
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = genre.name,
+                        style = MaterialTheme.typography.genreTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    // Gradient fade on right edge for premium truncation
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .width(32.dp)
+                            .height(20.dp)
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.Transparent,
+                                        MaterialTheme.colorScheme.surface
+                                    ),
+                                    startX = 0f,
+                                    endX = Float.MAX_VALUE
+                                )
+                            )
+                    )
+                }
                 Text(
                     text = genre.formattedSongCount(),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.genreMetadata,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 1
                 )
             }
 
