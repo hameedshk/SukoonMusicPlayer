@@ -42,7 +42,9 @@ class BillingManager @Inject constructor(
 
     companion object {
         // Product ID for premium subscription (must match Play Console)
-        const val PREMIUM_PRODUCT_ID = "sukoon_premium_lifetime"
+        // FOR TESTING: Use "android.test.purchased"
+        // FOR PRODUCTION: Use "sukoon_premium_lifetime" (after creating in Play Console)
+        const val PREMIUM_PRODUCT_ID = "android.test.purchased"
 
         // Test product IDs for testing
         const val TEST_PRODUCT_ID = "android.test.purchased"
