@@ -7,6 +7,7 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.worker.SleepTimerWorker
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,7 +65,7 @@ sealed class SleepTimerState {
  */
 @Singleton
 class SleepTimerManager @Inject constructor(
-    private val context: Context,
+    @ApplicationContext private val context: Context,
     private val preferencesManager: PreferencesManager
 ) {
     companion object {
@@ -205,7 +206,6 @@ class SleepTimerManager @Inject constructor(
         if (delayMs > 0) {
             val workRequest = OneTimeWorkRequestBuilder<SleepTimerWorker>()
                 .setInitialDelay(delayMs, java.util.concurrent.TimeUnit.MILLISECONDS)
-                .setBackoffPolicy(BackoffPolicy.EXPONENTIAL, 15, java.util.concurrent.TimeUnit.SECONDS)
                 .build()
 
             WorkManager.getInstance(context).enqueueUniqueWork(
