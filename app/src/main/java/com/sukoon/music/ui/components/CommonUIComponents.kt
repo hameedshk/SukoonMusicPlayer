@@ -348,16 +348,11 @@ internal fun TabPills(
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
-                    // Animated weight transition (200ms) for state change smoothness
-                    val animatedFontWeight by animateValueAsState(
-                        targetValue = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        animationSpec = tween<FontWeight>(durationMillis = 200),
-                        label = "tab_weight_transition"
-                    )
+                    // Font weight changes with selection state (no interpolation needed for discrete value)
                     Text(
                         text = tab.label,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = animatedFontWeight,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                         maxLines = 1,
