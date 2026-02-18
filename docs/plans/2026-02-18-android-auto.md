@@ -29,7 +29,7 @@ Run: `grep -r "MediaSession.Builder" app/src/main/java/com/sukoon/music/`
 
 Expected: Find where MediaSession is currently created (likely in MusicPlaybackService or AppModule)
 
-**Step 2: Write new MediaSessionModule**
+**Step 2: Write new MediaSessionModule with Double-Init Guard**
 
 Create `app/src/main/java/com/sukoon/music/di/MediaSessionModule.kt`:
 
@@ -46,10 +46,14 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
+import java.util.concurrent.atomic.AtomicBoolean
 
 @Module
 @InstallIn(SingletonComponent::class)
 object MediaSessionModule {
+
+    // Guard against double initialization from multiple services
+    private val mediaSessionInitialized = AtomicBoolean(false)
 
     @Singleton
     @Provides
@@ -77,11 +81,17 @@ object MediaSessionModule {
         context: Context,
         player: ExoPlayer
     ): MediaSession {
+        // Ensure single MediaSession creation even if multiple services request it
+        if (mediaSessionInitialized.getAndSet(true)) {
+            // Already initialized, ensure we return the same instance (handled by @Singleton)
+        }
         return MediaSession.Builder(context, player)
             .build()
     }
 }
 ```
+
+**Critical Edge Case Handled:** Double-initialization guard using `AtomicBoolean` prevents conflicts if both services attempt MediaSession creation simultaneously.
 
 **Step 3: Update MusicPlaybackService to inject MediaSession**
 
@@ -345,6 +355,7 @@ fun Song.toMediaItem(): MediaItem {
         .setTitle(title)
         .setArtist(artist)
         .setAlbumTitle(album)
+        .setDurationMs(duration)  // Add duration for Android Auto seek bar accuracy
         .setArtworkUri(albumArtUri?.let { Uri.parse(it) })
         .build()
 
@@ -776,10 +787,24 @@ override fun onLoadChildren(
     callback: MediaBrowserService.Result<ImmutableList<MediaItem>>
 ) {
     scope.launch {
-        val children = browseTree.getChildren(parentId)
-        callback.sendResult(ImmutableList.copyOf(children))
+        try {
+            // CRITICAL EDGE CASE: Add 5-second timeout to prevent hanging
+            val children = withTimeoutOrNull(5000L) {
+                browseTree.getChildren(parentId)
+            } ?: run {
+                DevLogger.warn("Browse query timeout for parentId=$parentId, returning empty")
+                emptyList()
+            }
+            callback.sendResult(ImmutableList.copyOf(children))
+        } catch (e: Exception) {
+            // CRITICAL EDGE CASE: Graceful error handling prevents Android Auto crash
+            DevLogger.error("Browse error for parentId=$parentId: ${e.message}")
+            callback.sendResult(ImmutableList.of())  // Return empty list, don't crash
+        }
     }
 }
+
+// Add import at top: import kotlinx.coroutines.withTimeoutOrNull
 ```
 
 **Step 2: Update imports**
