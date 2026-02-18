@@ -1,96 +1,83 @@
 package com.sukoon.music.ui.components
-
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.TimerOff
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.sukoon.music.ui.theme.*
+import androidx.compose.ui.unit.sp
+import com.sukoon.music.domain.manager.SleepTimerState
 
-/**
- * Dialog for setting a sleep timer.
- */
 @Composable
-fun SleepTimerDialog(
-    onTimerSelected: (Int) -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val options = listOf(
-        TimerOption("Off", 0, Icons.Default.TimerOff),
-        TimerOption("15 minutes", 15, Icons.Default.Timer),
-        TimerOption("30 minutes", 30, Icons.Default.Timer),
-        TimerOption("45 minutes", 45, Icons.Default.Timer),
-        TimerOption("60 minutes", 60, Icons.Default.Timer)
-    )
-
+fun SleepTimerDialog(currentState: SleepTimerState, onDismiss: () -> Unit, onSetTimer: (minutes: Int) -> Unit, onCancelTimer: () -> Unit) {
+    var customMinutes by remember { mutableStateOf("") }
+    var showCustomInput by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("Sleep Timer")
+        title = { Text(when { currentState is SleepTimerState.Active -> "Sleep Timer Active"; showCustomInput -> "Custom Duration"; else -> "Set Sleep Timer" }) },
+        text = { Column(modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            when {
+                currentState is SleepTimerState.Active && !showCustomInput -> ActiveTimerContent(state = currentState, onCancel = onCancelTimer)
+                showCustomInput -> CustomTimerInput(value = customMinutes, onValueChange = { customMinutes = it }, onSetTimer = { minutes -> if (minutes > 0) { onSetTimer(minutes); onDismiss() } }, onBack = { showCustomInput = false; customMinutes = "" })
+                else -> PresetOptions(onPresetSelected = { minutes -> onSetTimer(minutes); onDismiss() }, onCustomSelected = { showCustomInput = true })
             }
-        },
-        text = {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                items(options) { option ->
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onTimerSelected(option.minutes) },
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Icon(
-                                imageVector = option.icon,
-                                contentDescription = null,
-                                tint = if (option.minutes == 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Text(
-                                text = option.label,
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        modifier = modifier
+        } },
+        confirmButton = { if (currentState is SleepTimerState.Active && !showCustomInput) { Button(onClick = onDismiss) { Text("Done") } } },
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
-private data class TimerOption(
-    val label: String,
-    val minutes: Int,
-    val icon: ImageVector
-)
+@Composable
+private fun ActiveTimerContent(state: SleepTimerState.Active, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Playback will pause in:", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(formatTimerDisplay(state.remainingMinutes), fontSize = 32.sp, color = MaterialTheme.colorScheme.primary)
+        Text("Total duration: ${state.totalMinutes} minutes", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedButton(onClick = onCancel, modifier = Modifier.fillMaxWidth()) { Text("Cancel Timer") }
+    }
+}
+
+@Composable
+private fun PresetOptions(onPresetSelected: (minutes: Int) -> Unit, onCustomSelected: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PresetButton("15 minutes", 15, onPresetSelected)
+        PresetButton("30 minutes", 30, onPresetSelected)
+        PresetButton("1 hour", 60, onPresetSelected)
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(onClick = onCustomSelected, modifier = Modifier.fillMaxWidth()) { Text("Custom Duration") }
+    }
+}
+
+@Composable
+private fun PresetButton(label: String, minutes: Int, onSelected: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Button(onClick = { onSelected(minutes) }, modifier = modifier.fillMaxWidth()) { Text(label) }
+}
+
+@Composable
+private fun CustomTimerInput(value: String, onValueChange: (String) -> Unit, onSetTimer: (minutes: Int) -> Unit, onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("Enter duration in minutes:", fontSize = 14.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextField(value = value, onValueChange = { newValue -> if (newValue.all { it.isDigit() }) { onValueChange(newValue) } }, label = { Text("Minutes") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth(), singleLine = true)
+        val minutes = value.toIntOrNull() ?: 0
+        if (minutes <= 0 && value.isNotEmpty()) { Text("Please enter a number greater than 0", fontSize = 12.sp, color = MaterialTheme.colorScheme.error) }
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedButton(onClick = onBack, modifier = Modifier.weight(1f)) { Text("Back") }
+            Button(onClick = { val timerMinutes = value.toIntOrNull() ?: 0; if (timerMinutes > 0) { onSetTimer(timerMinutes) } }, enabled = minutes > 0, modifier = Modifier.weight(1f)) { Text("Set") }
+        }
+    }
+}
+
+private fun formatTimerDisplay(minutes: Int): String = when {
+    minutes < 1 -> "Expiring soon"
+    minutes < 60 -> "$minutes min"
+    else -> {
+        val hours = minutes / 60
+        val mins = minutes % 60
+        if (mins == 0) "${hours}h" else "${hours}h ${mins}m"
+    }
+}

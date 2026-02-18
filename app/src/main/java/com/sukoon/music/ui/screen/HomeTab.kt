@@ -12,10 +12,13 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-// Add these to your imports in HomeTab.kt
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.text.font.FontWeight
@@ -27,13 +30,15 @@ import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.ActionButtonGrid
 import com.sukoon.music.ui.components.ContinueListeningCard
+import com.sukoon.music.ui.components.HeroHeaderCard
 import com.sukoon.music.ui.components.LastAddedSection
-import com.sukoon.music.ui.components.LibraryNavigationCards
 import com.sukoon.music.ui.components.ListeningStatsCard
+import com.sukoon.music.ui.components.QuickActionsRow
 import com.sukoon.music.ui.components.RecentlyPlayedScrollSection
 import com.sukoon.music.ui.components.RecentlyPlayedSection
 import com.sukoon.music.ui.components.RecentlyPlayedSongCard
 import com.sukoon.music.ui.components.RediscoverAlbumsSection
+import com.sukoon.music.ui.components.SleepTimerDialog
 import com.sukoon.music.ui.model.HomeTabKey
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import com.sukoon.music.ui.theme.*
@@ -53,52 +58,88 @@ fun HomeTab(
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToAlbumDetail: (Long) -> Unit,
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
+    onNavigateToLikedSongs: () -> Unit = {},
     onSettingsClick: () -> Unit = {}
 ) {
-    // Collect listening stats from ViewModel
+    // Collect stats from ViewModel
     val listeningStats = viewModel.listeningStats.collectAsStateWithLifecycle().value
+    val currentAlbumArtUri = viewModel.currentAlbumArtUri.collectAsStateWithLifecycle().value
+    val sleepTimerState = viewModel.sleepTimerState.collectAsStateWithLifecycle().value
+    val likedSongsCount = viewModel.likedSongsCount.collectAsStateWithLifecycle().value
+    val username = viewModel.username.collectAsStateWithLifecycle().value
+    val scanState = viewModel.scanState.collectAsStateWithLifecycle().value
 
-    // Collect private session state
+    // Private session and rating banner state
     val sessionState = viewModel.sessionState.collectAsStateWithLifecycle().value
-
-    // Collect rating banner state
     val shouldShowRatingBanner = viewModel.shouldShowRatingBanner.collectAsStateWithLifecycle().value
     val appContext = LocalContext.current
 
+    // Sleep timer dialog state
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+    if (showSleepTimerDialog) {
+        SleepTimerDialog(
+            currentState = sleepTimerState,
+            onDismiss = { showSleepTimerDialog = false },
+            onSetTimer = { minutes -> viewModel.setSleepTimer(minutes) },
+            onCancelTimer = { viewModel.cancelSleepTimer() }
+        )
+    }
+
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = 0.dp,  // No top padding - handled by Scaffold topBar
-            bottom = MiniPlayerHeight + SpacingSmall,  // Space for mini player overlay (64dp + 8dp)
+            top = 0.dp,
+            bottom = MiniPlayerHeight + SpacingSmall,
             start = 0.dp,
             end = 0.dp
         ),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing)
     ) {
-        // PRIMARY: Continue Listening Card (album art + one-tap resume)
+        // HERO: Premium header with greeting + weekly stats
+        item {
+            HeroHeaderCard(
+                username = username,
+                stats = listeningStats.takeIf { !sessionState.isActive },
+                albumArtUri = currentAlbumArtUri,
+                isPrivateSession = sessionState.isActive,
+                emptyState = songs.isEmpty(),
+                modifier = Modifier.padding(horizontal = SpacingSmall)
+            )
+        }
+
+        // QUICK ACTIONS: Shuffle, Sleep Timer, Scan, Liked Songs
+        item {
+            QuickActionsRow(
+                onShuffleAll = { viewModel.shuffleAll() },
+                onSleepTimer = { showSleepTimerDialog = true },
+                onScanMusic = { viewModel.scanLocalMusic() },
+                onLikedSongs = onNavigateToLikedSongs,
+                shuffleEnabled = songs.isNotEmpty(),
+                sleepTimerState = sleepTimerState,
+                scanState = scanState,
+                likedSongsCount = likedSongsCount,
+                modifier = Modifier.padding(horizontal = SpacingSmall)
+            )
+        }
+
+        // Continue Listening Card
         if (playbackState.currentSong != null && recentlyPlayed.isNotEmpty()) {
             item {
-                // Section header
                 Text(
                     text = "Continue listening",
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = SpacingLarge, vertical = SpacingSmall)
                 )
-
                 ContinueListeningCard(
                     song = playbackState.currentSong,
-                    onPlayClick = {
-                        // Simply toggle play/pause on current song
-                        viewModel.playPause()
-                    },
+                    onPlayClick = { viewModel.playPause() },
                     onClick = onNavigateToNowPlaying
                 )
             }
         }
 
-        // SECONDARY: Recently Played Horizontal Scroll
+        // Recently Played Horizontal Scroll
         if (recentlyPlayed.isNotEmpty() && !sessionState.isActive) {
             item {
                 RecentlyPlayedScrollSection(
@@ -114,17 +155,7 @@ fun HomeTab(
             }
         }
 
-        // TERTIARY: Library Navigation Cards
-        item {
-            LibraryNavigationCards(
-                onSongsClick = { viewModel.setSelectedTab(HomeTabKey.SONGS) },
-                onPlaylistsClick = { viewModel.setSelectedTab(HomeTabKey.PLAYLISTS) },
-                onAlbumsClick = { viewModel.setSelectedTab(HomeTabKey.ALBUMS) },
-                onFoldersClick = { viewModel.setSelectedTab(HomeTabKey.FOLDERS) }
-            )
-        }
-
-        // Rating Banner (conditional, smart visibility based on engagement)
+        // Rating Banner
         if (shouldShowRatingBanner) {
             item {
                 RatingBanner(
@@ -140,14 +171,7 @@ fun HomeTab(
             }
         }
 
-        // OPTIONAL: Listening Stats (below primary content when not private session)
-        if (!sessionState.isActive && listeningStats != null) {
-            item {
-                ListeningStatsCard(stats = listeningStats)
-            }
-        }
-
-        // Additional sections (scrollable below fold)
+        // Last Added Section
         if (songs.isNotEmpty()) {
             item {
                 LastAddedSection(
@@ -167,6 +191,7 @@ fun HomeTab(
             }
         }
 
+        // Rediscover Albums Section
         if (rediscoverAlbums.isNotEmpty()) {
             item {
                 RediscoverAlbumsSection(

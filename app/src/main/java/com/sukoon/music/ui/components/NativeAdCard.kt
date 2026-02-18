@@ -1,153 +1,134 @@
 package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.google.android.gms.ads.AdRequest
-import com.google.android.gms.ads.nativead.NativeAd
-import androidx.compose.ui.viewinterop.AndroidView
-import com.google.android.gms.ads.nativead.NativeAdView
-import com.sukoon.music.ui.theme.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Info
 
-/**
- * Native Ad Card that mimics the song row UI.
- *
- * Features:
- * - Matches SongItem layout for native look
- * - Shows "Ad" badge in top-left corner
- * - Placeholder thumbnail + headline + description
- * - Click opens the ad without pausing music
- * - Non-intrusive styling
- *
- * @param onAdClick Callback when ad is clicked (opens advertiser)
- * @param modifier Optional modifier
- */
 @Composable
 fun NativeAdCard(
-    onAdClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
+    var isLoading by remember { mutableStateOf(true) }
+    var hasError by remember { mutableStateOf(false) }
+
+    if (hasError) {
+        return
+    }
+
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1000)
+        isLoading = false
+    }
+
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onAdClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .height(120.dp)
+            .clip(RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        )
     ) {
-        // Ad thumbnail placeholder
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .padding(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Campaign,
-                contentDescription = "Ad",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(28.dp)
-            )
+            if (isLoading) {
+                SkeletonLoading(modifier = Modifier.fillMaxSize())
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = "Ad",
+                        modifier = Modifier.size(48.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "Featured App",
+                            style = MaterialTheme.typography.titleSmall,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "Check out amazing music apps",
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 2
+                        )
+                    }
+
+                    Button(
+                        onClick = {},
+                        modifier = Modifier.heightIn(min = 32.dp)
+                    ) {
+                        Text("Install", fontSize = 11.sp)
+                    }
+                }
+
+                Badge(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(4.dp)
+                ) {
+                    Text("Ad", fontSize = 10.sp)
+                }
+            }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Ad content
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            // Ad headline
-            Text(
-                text = "Sponsored",
-                style = MaterialTheme.typography.bodyLarge,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontWeight = FontWeight.SemiBold
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            // Ad description
-            Text(
-                text = "Featured promotion from our partners",
-                style = MaterialTheme.typography.bodySmall,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Spacer(modifier = Modifier.width(8.dp))
-
-        // Ad badge
-        Surface(
+@Composable
+private fun SkeletonLoading(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Box(
             modifier = Modifier
-                .clip(RoundedCornerShape(4.dp)),
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            tonalElevation = 2.dp
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Ad",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                fontWeight = FontWeight.Bold,
-                fontSize = 10.sp,
-                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    .height(12.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f))
             )
         }
     }
-}
-
-/**
- * Helper function to inject native ad cards into a list at regular intervals.
- *
- * Usage:
- * ```
- * items(injectNativeAds(songs, interval = 15)) { item ->
- *     when (item) {
- *         is ListItem.SongItem -> SongItem(item.song, ...)
- *         is ListItem.AdItem -> NativeAdCard(...)
- *     }
- * }
- * ```
- *
- * @param items Original list of items
- * @param interval How many items between ads (default: 15)
- * @return List with ad items injected
- */
-fun <T> injectNativeAds(
-    items: List<T>,
-    interval: Int = 15
-): List<ListItem<T>> {
-    if (items.isEmpty()) return emptyList()
-
-    val result = mutableListOf<ListItem<T>>()
-    items.forEachIndexed { index, item ->
-        result.add(ListItem.SongItem(item))
-        // Inject ad after every 'interval' items
-        if ((index + 1) % interval == 0 && index + 1 < items.size) {
-            result.add(ListItem.AdItem())
-        }
-    }
-    return result
-}
-
-/**
- * Sealed class to represent list items (songs + ads).
- */
-sealed class ListItem<T> {
-    data class SongItem<T>(val item: T) : ListItem<T>()
-    data class AdItem<T>(val dummy: Unit = Unit) : ListItem<T>()
 }
