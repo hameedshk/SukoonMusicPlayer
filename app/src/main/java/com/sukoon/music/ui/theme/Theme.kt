@@ -391,3 +391,53 @@ fun Modifier.fadeEllipsis(): Modifier {
         )
     }
 }
+
+// ============================================================================
+// Color Utility Functions for Album-Centric Theming
+// ============================================================================
+
+/**
+ * Desaturate a color by a given amount.
+ * Converts to HSV, reduces saturation, and converts back to Color.
+ *
+ * @param desaturationAmount Desaturation amount (0f = fully saturated, 1f = grayscale)
+ * @return Color with adjusted saturation, preserving hue and value
+ */
+fun Color.desaturateForTheme(desaturationAmount: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(
+        (this.red * 255).toInt(),
+        (this.green * 255).toInt(),
+        (this.blue * 255).toInt(),
+        hsv
+    )
+
+    // Reduce saturation by desaturationAmount (clamp to [0f, 1f])
+    hsv[1] = (hsv[1] * (1f - desaturationAmount.coerceIn(0f, 1f)))
+
+    val desaturatedColor = android.graphics.Color.HSVToColor(hsv)
+    return Color(desaturatedColor)
+}
+
+/**
+ * Cap saturation of a color at a maximum value.
+ * Converts to HSV, caps saturation, and converts back to Color.
+ *
+ * @param maxSaturation Maximum saturation level (1f = 100%, 0.7f = 70%)
+ * @return Color with capped saturation
+ */
+fun Color.capSaturation(maxSaturation: Float): Color {
+    val hsv = FloatArray(3)
+    android.graphics.Color.RGBToHSV(
+        (this.red * 255).toInt(),
+        (this.green * 255).toInt(),
+        (this.blue * 255).toInt(),
+        hsv
+    )
+
+    // Cap saturation at maxSaturation (clamp to [0f, 1f])
+    hsv[1] = hsv[1].coerceAtMost(maxSaturation.coerceIn(0f, 1f))
+
+    val cappedColor = android.graphics.Color.HSVToColor(hsv)
+    return Color(cappedColor)
+}
