@@ -169,6 +169,9 @@ dependencies {
     // DataStore (for preferences)
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // WorkManager (for sleep timer background scheduling)
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
+
     // AdMob
     implementation("com.google.android.gms:play-services-ads:23.5.0")
 

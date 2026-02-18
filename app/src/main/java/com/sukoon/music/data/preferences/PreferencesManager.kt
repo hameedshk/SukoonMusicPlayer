@@ -269,6 +269,16 @@ class PreferencesManager @Inject constructor(
     }
 
     /**
+     * Get sleep timer end time in milliseconds.
+     * @return End time in milliseconds since epoch, or null if no timer is set
+     */
+    suspend fun getSleepTimerTargetTime(): Long? {
+        val preferences = context.dataStore.data.first()
+        return preferences[KEY_SLEEP_TIMER_TARGET_TIME]?.toLongOrNull()
+            ?.takeIf { it > 0 } // Return null if 0 (disabled)
+    }
+
+    /**
      * Update audio quality preset.
      */
     suspend fun setAudioQuality(quality: AudioQuality) {
