@@ -158,4 +158,9 @@
     <string name="settings_developer_desc">Visit our website</string>
     <string name="settings_logout_title">Logout</string>
     <string name="settings_logout_desc">Clear all data and sign out</string>
+
+    <!-- Feedback Screen -->
+    <string name="feedback_error_title">Submission Failed</string>
+    <string name="feedback_error_message">Failed to submit feedback. Please check your internet connection and try again.</string>
+    <string name="feedback_error_retry">Retry</string>
 </resources>

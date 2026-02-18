@@ -3,6 +3,7 @@ package com.sukoon.music.di
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import androidx.room.Room
+import com.google.firebase.firestore.FirebaseFirestore
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
 import com.sukoon.music.data.local.dao.GenreCoverDao
@@ -17,6 +18,7 @@ import com.sukoon.music.data.local.dao.SearchHistoryDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.remote.LyricsApi
 import com.sukoon.music.data.repository.AudioEffectRepositoryImpl
+import com.sukoon.music.data.repository.FeedbackRepositoryImpl
 import com.sukoon.music.data.repository.PlaybackRepositoryImpl
 import com.sukoon.music.data.repository.QueueRepositoryImpl
 import com.sukoon.music.data.repository.SearchHistoryRepositoryImpl
@@ -24,6 +26,7 @@ import com.sukoon.music.data.repository.SongRepositoryImpl
 import com.sukoon.music.data.service.AlbumArtLoader
 import com.sukoon.music.data.source.MediaStoreScanner
 import com.sukoon.music.domain.repository.AudioEffectRepository
+import com.sukoon.music.domain.repository.FeedbackRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.QueueRepository
 import com.sukoon.music.domain.repository.SearchHistoryRepository
@@ -409,6 +412,30 @@ object AppModule {
         listeningStatsDao: ListeningStatsDao
     ): com.sukoon.music.domain.repository.ListeningStatsRepository {
         return com.sukoon.music.data.repository.ListeningStatsRepositoryImpl(listeningStatsDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideFirebaseFirestore(): FirebaseFirestore {
+        return FirebaseFirestore.getInstance().apply {
+            try {
+                firestoreSettings = com.google.firebase.firestore.FirebaseFirestoreSettings.Builder()
+                    .setPersistenceEnabled(true)
+                    .build()
+            } catch (e: Exception) {
+                // Settings already configured, skip
+            }
+        }
+    }
+
+    @Provides
+    @Singleton
+    fun provideFeedbackRepository(
+        firestore: FirebaseFirestore,
+        @ApplicationContext context: Context,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
+    ): FeedbackRepository {
+        return FeedbackRepositoryImpl(firestore, context, preferencesManager)
     }
 }
 

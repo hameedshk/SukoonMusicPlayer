@@ -16,6 +16,7 @@ import com.sukoon.music.domain.model.UserPreferences
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -96,6 +97,9 @@ class PreferencesManager @Inject constructor(
         private val KEY_RATING_BANNER_DISMISSED = booleanPreferencesKey("rating_banner_dismissed")
         private val KEY_HAS_RATED_APP = booleanPreferencesKey("has_rated_app")
         private val KEY_LAST_RATING_PROMPT_TIME = stringPreferencesKey("last_rating_prompt_time_ms")
+
+        // Firebase Feedback
+        private val KEY_ANONYMOUS_USER_ID = stringPreferencesKey("anonymous_user_id")
     }
 
     /**
@@ -458,6 +462,21 @@ class PreferencesManager @Inject constructor(
             modeString?.let { FolderSortMode.valueOf(it) } ?: FolderSortMode.NAME_ASC
         } catch (e: IllegalArgumentException) {
             FolderSortMode.NAME_ASC
+        }
+    }
+
+    /**
+     * Get or create an anonymous user ID for feedback submissions.
+     * Generates a new UUID on first call and persists it.
+     *
+     * @return Anonymous user ID (UUID format)
+     */
+    suspend fun getOrCreateAnonymousUserId(): String {
+        val prefs = context.dataStore.data.first()
+        return prefs[KEY_ANONYMOUS_USER_ID] ?: run {
+            val newId = UUID.randomUUID().toString()
+            context.dataStore.edit { it[KEY_ANONYMOUS_USER_ID] = newId }
+            newId
         }
     }
 

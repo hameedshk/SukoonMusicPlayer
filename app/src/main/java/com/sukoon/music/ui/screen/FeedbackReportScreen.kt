@@ -12,15 +12,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -36,6 +39,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -44,26 +48,69 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sukoon.music.R
+import com.sukoon.music.domain.model.FeedbackCategory
+import com.sukoon.music.domain.model.FeedbackResult
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.accent
 import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import com.sukoon.music.ui.theme.SpacingSmall
+import com.sukoon.music.ui.viewmodel.FeedbackViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FeedbackReportScreen(
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    viewModel: FeedbackViewModel = hiltViewModel()
 ) {
-    val categories = listOf("Lyric", "Ads", "File not found", "File can't play", "Music stops", "App Slow", "Others")
+    val categories = FeedbackCategory.values().map { it.displayName }
     var selectedCategory by rememberSaveable { mutableStateOf(categories.first()) }
     var details by rememberSaveable { mutableStateOf("") }
     var consentGiven by rememberSaveable { mutableStateOf(false) }
+    var showErrorDialog by rememberSaveable { mutableStateOf(false) }
+    var errorMessage by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
     val accentTokens = accent()
+    val submitState by viewModel.submitState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(submitState) {
+        when (submitState) {
+            is FeedbackResult.Success -> {
+                onBackClick()
+                viewModel.resetSubmitState()
+            }
+            is FeedbackResult.Error -> {
+                errorMessage = (submitState as FeedbackResult.Error).message
+                showErrorDialog = true
+            }
+            else -> {}
+        }
+    }
+
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text(stringResource(R.string.feedback_error_title)) },
+            text = { Text(stringResource(R.string.feedback_error_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showErrorDialog = false
+                        viewModel.resetSubmitState()
+                    }
+                ) {
+                    Text(stringResource(R.string.feedback_error_retry))
+                }
+            }
+        )
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -194,10 +241,11 @@ fun FeedbackReportScreen(
 
             Button(
                 onClick = {
-                    Toast.makeText(context, "Thanks! We'll follow up shortly.", Toast.LENGTH_LONG).show()
-                    onBackClick()
+                    val category = FeedbackCategory.values()
+                        .find { it.displayName == selectedCategory }
+                    category?.let { viewModel.submitFeedback(it, details, consentGiven) }
                 },
-                enabled = details.isNotBlank() && consentGiven,
+                enabled = details.isNotBlank() && consentGiven && submitState !is FeedbackResult.Loading,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = accentTokens.primary,
@@ -205,7 +253,15 @@ fun FeedbackReportScreen(
                     contentColor = Color.White
                 )
             ) {
-                Text("Submit")
+                if (submitState is FeedbackResult.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text("Submit")
+                }
             }
         }
     }
