@@ -313,23 +313,21 @@ fun HomeScreen(
                         pageCount = { tabs.size }
                     )
 
-                    // Sync pager state to ViewModel
-                    LaunchedEffect(pagerState.currentPage) {
-                        snapshotFlow { pagerState.currentPage }
-                            .distinctUntilChanged()
-                            .collect { page ->
-                                val newTab = tabs.getOrNull(page)?.key
-                                if (newTab != null && newTab != selectedTab) {
-                                    handleTabSelection(newTab)
-                                }
+                    // Sync pager state to ViewModel (only after scroll settles)
+                    LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
+                        if (!pagerState.isScrollInProgress) {
+                            val newTab = tabs.getOrNull(pagerState.currentPage)?.key
+                            if (newTab != null && newTab != selectedTab) {
+                                handleTabSelection(newTab)
                             }
+                        }
                     }
 
                     // Sync ViewModel state to pager (for pill clicks)
                     LaunchedEffect(selectedTab) {
                         val targetPage = tabs.indexOfFirst { it.key == selectedTab }
                         if (targetPage != -1 && targetPage != pagerState.currentPage) {
-                            pagerState.animateScrollToPage(targetPage)
+                            pagerState.scrollToPage(targetPage)
                         }
                     }
 
@@ -1062,12 +1060,13 @@ private fun SongsContent(
                     when (item) {
                         is ListItem.SongItem<*> -> {
                             val song = item.item as Song
-                            val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
+                            val isCurrentlyPlaying = playbackState.currentSong?.id == song.id
                             val index = songs.indexOf(song)
 
                             SongItemWithMenu(
                                 song = song,
-                                isPlaying = isPlaying,
+                                isCurrentlyPlaying = isCurrentlyPlaying,
+                                isPlayingGlobally = playbackState.isPlaying,
                                 onClick = { onSongClick(song, index) },
                                 onMenuClick = {
                                     showMenu = true

@@ -205,7 +205,7 @@ fun GenreDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             } else {
@@ -220,7 +220,7 @@ fun GenreDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             }
@@ -431,7 +431,7 @@ private fun GenreDetailContent(
             ) {
                 GenreIcon(
                     genreName = genre.name,
-                    modifier = Modifier.size(120.dp)
+                    modifier = Modifier.size(220.dp)
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -548,7 +548,8 @@ private fun GenreDetailContent(
 
                 GenreSongItemRow(
                     song = song,
-                    isCurrentlyPlaying = isCurrentSong && isPlaying,
+                    isCurrentlyPlaying = isCurrentSong,
+                    isPlayingGlobally = isPlaying,
                     isSelectionMode = isSelectionMode,
                     isSelected = selectedSongIds.contains(song.id),
                     menuHandler = menuHandler,
@@ -564,6 +565,7 @@ private fun GenreDetailContent(
 private fun GenreSongItemRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     menuHandler: SongMenuHandler,
@@ -622,7 +624,7 @@ private fun GenreSongItemRow(
                 )
                 if (isCurrentlyPlaying) {
                     Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Text(

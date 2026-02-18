@@ -512,7 +512,8 @@ private fun FoldersContent(
                             is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem -> {
                                 FolderBrowserSongRow(
                                     song = item.song,
-                                    isPlaying = item.song.id == playbackState.currentSong?.id,
+                                    isCurrentlyPlaying = item.song.id == playbackState.currentSong?.id,
+                                    isPlayingGlobally = playbackState.isPlaying,
                                     menuHandler = menuHandler,
                                     onClick = {
                                         val contextSongs = browsingContent.filterIsInstance<com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem>()
@@ -748,7 +749,8 @@ private fun DeleteFolderConfirmationDialog(
 @Composable
 private fun FolderBrowserSongRow(
     song: Song,
-    isPlaying: Boolean,
+    isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit
 ) {
@@ -782,9 +784,9 @@ private fun FolderBrowserSongRow(
                 },
                 error = {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
+                        imageVector = if (isCurrentlyPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
                         contentDescription = null,
-                        tint = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             )
@@ -799,16 +801,16 @@ private fun FolderBrowserSongRow(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                if (isPlaying) {
+                if (isCurrentlyPlaying) {
                     Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(modifier = Modifier.height(4.dp))

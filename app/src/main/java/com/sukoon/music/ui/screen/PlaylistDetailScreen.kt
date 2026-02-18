@@ -109,6 +109,7 @@ fun PlaylistDetailScreen(
                 playlist = playlist,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                playbackState = playbackState,
                 onPlayAll = { viewModel.playPlaylist(playlistId) },
                 onShuffle = { viewModel.shufflePlaylist(playlistId) },
                 onSongClick = { song ->
@@ -152,6 +153,7 @@ private fun PlaylistDetailContent(
     playlist: com.sukoon.music.domain.model.Playlist,
     songs: List<Song>,
     currentSongId: Long?,
+    playbackState: com.sukoon.music.domain.model.PlaybackState,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
@@ -239,6 +241,7 @@ private fun PlaylistDetailContent(
                     song = song,
                     index = index + 1,
                     isPlaying = song.id == currentSongId,
+                    isPlayingGlobally = playbackState.isPlaying,
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onRemoveClick = { onRemoveSong(song) }
@@ -469,6 +472,7 @@ private fun PlaylistSongItem(
     song: Song,
     index: Int,
     isPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onRemoveClick: () -> Unit
@@ -564,7 +568,7 @@ private fun PlaylistSongItem(
                     )
                     if (isPlaying) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                        AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))

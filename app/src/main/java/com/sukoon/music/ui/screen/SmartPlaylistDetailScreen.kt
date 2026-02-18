@@ -125,6 +125,7 @@ fun SmartPlaylistDetailScreen(
             playlistType = playlistType,
             songs = songs,
             currentSongId = playbackState.currentSong?.id,
+            playbackState = playbackState,
             menuHandler = menuHandler,
             onPlayAll = { viewModel.playSmartPlaylist(playlistType) },
             onShuffle = { viewModel.shuffleSmartPlaylist(playlistType) },
@@ -204,6 +205,7 @@ private fun SmartPlaylistDetailContent(
     playlistType: SmartPlaylistType,
     songs: List<Song>,
     currentSongId: Long?,
+    playbackState: com.sukoon.music.domain.model.PlaybackState,
     menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
@@ -239,6 +241,7 @@ private fun SmartPlaylistDetailContent(
                     song = song,
                     index = index + 1,
                     isPlaying = song.id == currentSongId,
+                    isPlayingGlobally = playbackState.isPlaying,
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) },
                     onLikeClick = { onLikeClick(song) }
@@ -349,6 +352,7 @@ private fun SmartPlaylistSongItem(
     song: Song,
     index: Int,
     isPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
@@ -442,7 +446,7 @@ private fun SmartPlaylistSongItem(
                     )
                     if (isPlaying) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                        AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))

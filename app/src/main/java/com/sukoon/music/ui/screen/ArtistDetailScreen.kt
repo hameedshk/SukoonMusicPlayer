@@ -211,7 +211,7 @@ fun ArtistDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             } else {
@@ -223,7 +223,7 @@ fun ArtistDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = MaterialTheme.colorScheme.background
                     )
                 )
             }
@@ -556,7 +556,8 @@ private fun SongsList(
         ) { song ->
             ArtistSongItemRow(
                 song = song,
-                isCurrentlyPlaying = song.id == currentSongId && isPlaying,
+                isCurrentlyPlaying = song.id == currentSongId,
+                isPlayingGlobally = isPlaying,
                 isSelectionMode = isSelectionMode,
                 isSelected = selectedSongIds.contains(song.id),
                 menuHandler = menuHandler,
@@ -571,6 +572,7 @@ private fun SongsList(
 private fun ArtistSongItemRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     menuHandler: SongMenuHandler,
@@ -629,7 +631,7 @@ private fun ArtistSongItemRow(
                 )
                 if (isCurrentlyPlaying) {
                     Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Text(

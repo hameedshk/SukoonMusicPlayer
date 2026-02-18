@@ -284,8 +284,8 @@ Write-Host "📱 Using device: $env:ADB_DEVICE" -ForegroundColor Green
 $start = Get-Date
 $currentHash = Get-WorkingTreeHash
 $end = Get-Date
-$duraion = $end - $start
-Write-Host "working tree hash: $duraion"
+$duration = $end - $start
+Write-Host "working tree hash: $($duration.ToString("hh\:mm\:ss"))"
 
 $start = Get-Date
 if ($forceFullBuild -or $forceReinstall -or $forceClearData) {
@@ -315,7 +315,7 @@ if (Test-Path $STATE_HASH_FILE) {
 $changedFiles = Get-ChangedFilesSinceLastRun
 $end = Get-Date
 $duration = $end - $start
-Write-Host "if loop $duration"
+Write-Host "if loop $($duration.ToString("hh\:mm\:ss"))"
 # ---------- DISPLAY CHANGES ----------
 $start = Get-Date
 if ($changedFiles.Count -gt 0) {
@@ -356,7 +356,7 @@ foreach ($file in $changedFiles) {
 
 $end = Get-Date
 $duration = $end - $start
-Write-Host "for loop $duration"
+Write-Host "for loop $($duration.ToString("hh\:mm\:ss"))"
 # ---------- FORCE FULL BUILD ----------
 # Force Gradle to use selected device
 $env:ANDROID_SERIAL = $device

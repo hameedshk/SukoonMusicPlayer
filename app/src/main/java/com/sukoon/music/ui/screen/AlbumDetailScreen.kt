@@ -229,7 +229,7 @@ fun AlbumDetailScreen(
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                        containerColor = Color.Transparent
                     )
                 )
             } else {
@@ -275,6 +275,7 @@ fun AlbumDetailScreen(
                 album = album!!,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                isPlayingGlobally = playbackState.isPlaying,
                 isSelectionMode = isSelectionMode,
                 selectedSongIds = selectedSongIds,
                 menuHandler = menuHandler,
@@ -369,6 +370,7 @@ private fun AlbumDetailContent(
     album: Album,
     songs: List<Song>,
     currentSongId: Long?,
+    isPlayingGlobally: Boolean,
     isSelectionMode: Boolean,
     selectedSongIds: Set<Long>,
     menuHandler: SongMenuHandler,
@@ -473,6 +475,7 @@ private fun AlbumDetailContent(
                 AlbumSongItemRow(
                     song = song,
                     isCurrentlyPlaying = song.id == currentSongId,
+                    isPlayingGlobally = isPlayingGlobally,
                     isSelectionMode = isSelectionMode,
                     isSelected = selectedSongIds.contains(song.id),
                     menuHandler = menuHandler,
@@ -562,6 +565,7 @@ private fun AlbumHeader(
 private fun AlbumSongItemRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     menuHandler: SongMenuHandler,
@@ -620,7 +624,7 @@ private fun AlbumSongItemRow(
                 )
                 if (isCurrentlyPlaying) {
                     Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Text(

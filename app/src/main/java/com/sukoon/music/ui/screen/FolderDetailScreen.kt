@@ -120,6 +120,7 @@ fun FolderDetailScreen(
             HierarchicalFolderContent(
                 folderItems = folderItems,
                 currentSongId = playbackState.currentSong?.id,
+                isPlayingGlobally = playbackState.isPlaying,
                 menuHandler = menuHandler,
                 onFolderClick = onNavigateToSubfolder,
                 onSongClick = { song ->
@@ -142,6 +143,7 @@ fun FolderDetailScreen(
                 folder = folder!!,
                 songs = songs,
                 currentSongId = playbackState.currentSong?.id,
+                isPlayingGlobally = playbackState.isPlaying,
                 menuHandler = menuHandler,
                 onPlayAll = { viewModel.playFolder(songs) },
                 onShuffle = { viewModel.shuffleFolder(songs) },
@@ -165,6 +167,7 @@ fun FolderDetailScreen(
 private fun HierarchicalFolderContent(
     folderItems: List<FolderItem>,
     currentSongId: Long?,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onFolderClick: (String) -> Unit,
     onSongClick: (Song) -> Unit,
@@ -201,6 +204,7 @@ private fun HierarchicalFolderContent(
                             song = item.song,
                             index = 0, // Not showing index in hierarchical mode
                             isCurrentlyPlaying = item.song.id == currentSongId,
+                            isPlayingGlobally = isPlayingGlobally,
                             menuHandler = menuHandler,
                             onClick = { onSongClick(item.song) }
                         )
@@ -273,6 +277,7 @@ private fun FolderDetailContent(
     folder: Folder,
     songs: List<Song>,
     currentSongId: Long?,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
@@ -307,6 +312,7 @@ private fun FolderDetailContent(
                     song = song,
                     index = index + 1,
                     isCurrentlyPlaying = song.id == currentSongId,
+                    isPlayingGlobally = isPlayingGlobally,
                     menuHandler = menuHandler,
                     onClick = { onSongClick(song) }
                 )
@@ -551,6 +557,7 @@ private fun FolderSongItem(
     song: Song,
     index: Int,
     isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit
 ) {
@@ -605,7 +612,7 @@ private fun FolderSongItem(
                     )
                     if (isCurrentlyPlaying) {
                         Spacer(modifier = Modifier.width(8.dp))
-                        AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                        AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 Spacer(modifier = Modifier.height(2.dp))

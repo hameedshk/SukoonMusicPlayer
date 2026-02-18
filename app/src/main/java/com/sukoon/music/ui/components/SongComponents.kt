@@ -29,6 +29,7 @@ import com.sukoon.music.ui.theme.*
 @Composable
 internal fun AnimatedEqualizer(
     modifier: Modifier = Modifier,
+    isAnimating: Boolean = true,
     tint: Color = MaterialTheme.colorScheme.primary
 ) {
     Row(
@@ -47,10 +48,11 @@ internal fun AnimatedEqualizer(
                 ),
                 label = "bar$index"
             )
+            val displayHeight = if (isAnimating) height else 0.65f
             Box(
                 modifier = Modifier
                     .width(3.dp)
-                    .height((12.dp * height))
+                    .height((12.dp * displayHeight))
                     .background(tint, RoundedCornerShape(2.dp))
             )
         }
@@ -161,7 +163,8 @@ internal fun SongItem(
 @Composable
 internal fun SongItemWithMenu(
     song: Song,
-    isPlaying: Boolean,
+    isCurrentlyPlaying: Boolean,
+    isPlayingGlobally: Boolean,
     onClick: () -> Unit,
     onMenuClick: () -> Unit
 ) {
@@ -210,16 +213,16 @@ internal fun SongItemWithMenu(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    color = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f, fill = false)
                 )
-                if (isPlaying) {
+                if (isCurrentlyPlaying) {
                     Spacer(modifier = Modifier.width(8.dp))
-                    AnimatedEqualizer(tint = MaterialTheme.colorScheme.primary)
+                    AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
             Spacer(modifier = Modifier.height(6.dp))
@@ -733,7 +736,7 @@ fun StandardSongListItem(
                     )
                 }
             )
-            
+
             // Playing overlay
             if (isPlaying) {
                 Box(
