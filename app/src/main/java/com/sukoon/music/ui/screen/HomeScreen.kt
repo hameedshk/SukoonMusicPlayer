@@ -346,7 +346,6 @@ fun HomeScreen(
                                     onNavigateToNowPlaying = onNavigateToNowPlaying,
                                     onNavigateToAlbumDetail = onNavigateToAlbumDetail,
                                     onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
-                                    onNavigateToLikedSongs = onNavigateToLikedSongs,
                                     onSettingsClick = onNavigateToSettings
                                 )
                             }

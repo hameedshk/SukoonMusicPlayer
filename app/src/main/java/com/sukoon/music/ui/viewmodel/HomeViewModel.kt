@@ -1,7 +1,6 @@
 package com.sukoon.music.ui.viewmodel
 
 import android.content.Context
-import android.net.Uri
 import android.util.Log
 import android.app.Activity
 import androidx.lifecycle.ViewModel
@@ -19,9 +18,6 @@ import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.data.analytics.AnalyticsTracker
-import com.sukoon.music.data.preferences.PreferencesManager
-import com.sukoon.music.domain.manager.SleepTimerManager
-import com.sukoon.music.domain.manager.SleepTimerState
 import com.sukoon.music.ui.model.HomeTabKey
 import com.sukoon.music.util.InAppReviewHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -51,10 +47,9 @@ class HomeViewModel @Inject constructor(
     private val listeningStatsRepository: ListeningStatsRepository,
     private val settingsRepository: SettingsRepository,
     val adMobManager: com.sukoon.music.data.ads.AdMobManager,
-    private val preferencesManager: PreferencesManager,
+    private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController,
     private val analyticsTracker: AnalyticsTracker,
-    private val sleepTimerManager: SleepTimerManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -209,41 +204,6 @@ class HomeViewModel @Inject constructor(
     // Listening Stats State
     private val _listeningStats = MutableStateFlow<ListeningStatsSnapshot?>(null)
     val listeningStats: StateFlow<ListeningStatsSnapshot?> = _listeningStats.asStateFlow()
-
-    // Current Album Art URI (derived from current song)
-    val currentAlbumArtUri: StateFlow<Uri?> = playbackState
-        .map { it.currentSong?.albumArtUri }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = null
-        )
-
-    // Sleep Timer State (from manager)
-    val sleepTimerState: StateFlow<SleepTimerState> = sleepTimerManager.timerState
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = SleepTimerState.Inactive
-        )
-
-    // Liked Songs Count (derived from song repository)
-    val likedSongsCount: StateFlow<Int> = songRepository.getAllSongs()
-        .map { songs -> songs.count { it.isLiked } }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0
-        )
-
-    // Username (from preferences)
-    val username: StateFlow<String> = preferencesManager.userPreferencesFlow
-        .map { it.username }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = ""
-        )
 
     // Song Selection State
     private val _selectedSongIds = MutableStateFlow<Set<Long>>(emptySet())
@@ -528,32 +488,23 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Set a sleep timer to pause playback after [minutes].
-     * Integrates with SleepTimerManager for persistent scheduling via WorkManager.
-     *
-     * @param minutes Duration in minutes (must be > 0)
-     * @throws IllegalArgumentException if minutes <= 0
-     */
-    fun setSleepTimer(minutes: Int) {
-        require(minutes > 0) { "Sleep timer duration must be greater than 0" }
-        viewModelScope.launch {
-            sleepTimerManager.startTimer(minutes)
-        }
-    }
+    // Sleep Timer Management (reactive from persistent store)
+    val isSleepTimerActive: StateFlow<Boolean> = settingsRepository.userPreferences
+        .map { it.sleepTimerTargetTimeMs > System.currentTimeMillis() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     /**
-     * Cancel the active sleep timer.
-     *
-     * Cleans up:
-     * - WorkManager scheduled task
-     * - Countdown ticker
-     * - DataStore persistence
-     * - UI state
+     * Set a sleep timer to pause playback after [minutes].
+     * Passing 0 cancels the current timer.
      */
-    fun cancelSleepTimer() {
+    fun setSleepTimer(minutes: Int) {
         viewModelScope.launch {
-            sleepTimerManager.cancelTimer()
+            if (minutes > 0) {
+                val targetTimeMs = System.currentTimeMillis() + (minutes * 60 * 1000L)
+                settingsRepository.setSleepTimerTargetTime(targetTimeMs)
+            } else {
+                settingsRepository.setSleepTimerTargetTime(0L)
+            }
         }
     }
 
