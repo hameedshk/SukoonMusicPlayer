@@ -337,6 +337,9 @@ fun SukoonNavHost(
                 onNavigateToAbout = {
                     navController.navigate(Routes.About.route)
                 },
+                onNavigateToFeedbackReport = {
+                    navController.navigate(Routes.FeedbackReport.route)
+                },
                 onNavigateToRestorePlaylist = {
                     navController.navigate(Routes.RestorePlaylist.route)
                 },
