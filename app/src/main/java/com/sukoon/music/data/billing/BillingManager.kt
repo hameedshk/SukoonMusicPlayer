@@ -25,7 +25,7 @@ class BillingManager @Inject constructor(
     companion object {
         // STATIC TEST → "android.test.purchased"
         // PRODUCTION → "sukoon_premium_lifetime"
-        const val PREMIUM_PRODUCT_ID = "sukoon_premium_lifetime"
+        const val PREMIUM_PRODUCT_ID = "android.test.purchased"
     }
 
     private val appContext = context.applicationContext

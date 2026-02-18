@@ -46,7 +46,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
-import com.sukoon.music.ui.theme.fadeEllipsis
 
 @Composable
 internal fun PillButton(
@@ -312,7 +311,7 @@ internal fun TabPills(
             .fillMaxWidth()
             .padding(vertical = 8.dp)
             .selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(SpacingMedium), // 11dp breathing room
         contentPadding = PaddingValues(horizontal = 16.dp)
     ) {
         items(
@@ -336,23 +335,34 @@ internal fun TabPills(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = SpacingMedium, vertical = SpacingMedium),
+                        .padding(horizontal = 10.dp, vertical = 8.dp), // Tightened: 10dp horiz, 8dp vert
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    horizontalArrangement = Arrangement.spacedBy(SpacingSmall) // 6.5dp icon-text gap
                 ) {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier
+                            .size(13.dp) // Reduced from 16dp: better optical balance vs 14sp text
+                            .offset(x = 1.dp), // Optical shift right for visual centering
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                    )
+                    // Animated weight transition (200ms) for state change smoothness
+                    val animatedFontWeight by animateValueAsState(
+                        targetValue = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        animationSpec = tween<FontWeight>(durationMillis = 200),
+                        label = "tab_weight_transition"
                     )
                     Text(
                         text = tab.label,
                         style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        fontWeight = animatedFontWeight,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.widthIn(max = TabPillMaxWidth) // Cap width to prevent overflow
                     )
                 }
             }
@@ -1229,44 +1239,32 @@ internal fun SettingsGroupRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(clickableModifier)
-                .padding(horizontal = 16.dp, vertical = SpacingMedium),
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Audit Fix #2: Reduce icon from 24dp to 20dp for optical balance
             Icon(
                 imageVector = row.icon,
                 contentDescription = null,
-                modifier = Modifier.size(20.dp),
+                modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(16.dp))
 
-            // Title with fadeEllipsis for long text (Audit Fix #4)
             Text(
                 text = row.title,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 18.sp
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .weight(1f)
-                    .fadeEllipsis(),
-                maxLines = 1
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.weight(1f))
 
-            // Audit Fix #1: Value up to 16sp Regular for 1:1.125 ratio with title
             if (row.value != null && row.valuePlacement == ValuePlacement.Inline) {
                 val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
                 Text(
                     text = row.value,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal
-                    ),
+                    style = MaterialTheme.typography.bodySmall,
                     color = valueColor,
                     maxLines = 1
                 )
@@ -1292,15 +1290,11 @@ internal fun SettingsGroupRow(
             }
         }
 
-        // Value Below placement
         if (row.value != null && row.valuePlacement == ValuePlacement.Below) {
             val valueColor = row.valueColor ?: MaterialTheme.colorScheme.onSurfaceVariant
             Text(
                 text = row.value,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Normal
-                ),
+                style = MaterialTheme.typography.bodySmall,
                 color = valueColor,
                 modifier = Modifier
                     .fillMaxWidth()
