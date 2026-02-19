@@ -15,6 +15,8 @@ fun Song.toMediaItem(): MediaItem {
         .setAlbumTitle(album)
         .setDurationMs(duration)
         .setArtworkUri(albumArtUri?.let { Uri.parse(it) })
+        .setIsPlayable(true)
+        .setIsBrowsable(false)
         .build()
 
     return MediaItem.Builder()
@@ -29,6 +31,8 @@ fun Album.toMediaItem(withUri: Boolean = false): MediaItem {
         .setTitle(title)
         .setArtist(artist)
         .setArtworkUri(albumArtUri?.let { Uri.parse(it) })
+        .setIsBrowsable(true)
+        .setIsPlayable(false)
         .build()
 
     return MediaItem.Builder()
@@ -42,6 +46,8 @@ fun Artist.toMediaItem(): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(name)
         .setArtworkUri(artworkUri?.let { Uri.parse(it) })
+        .setIsBrowsable(true)
+        .setIsPlayable(false)
         .build()
 
     return MediaItem.Builder()
@@ -53,6 +59,8 @@ fun Artist.toMediaItem(): MediaItem {
 fun Playlist.toMediaItem(): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(name)
+        .setIsBrowsable(true)
+        .setIsPlayable(false)
         .build()
 
     return MediaItem.Builder()

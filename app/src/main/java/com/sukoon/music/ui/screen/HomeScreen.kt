@@ -341,14 +341,22 @@ fun HomeScreen(
             }
         },
         bottomBar = {
+            val shouldAddPlaylistMiniGap =
+                selectedTab == HomeTabKey.PLAYLISTS && playbackState.currentSong != null
+            val playlistBannerTopGap = if (selectedTab == HomeTabKey.PLAYLISTS) SpacingSmall else 0.dp
+            val playlistBottomGap = if (shouldAddPlaylistMiniGap) SpacingMedium else 0.dp
             Column {
                 // Banner ad
                 if (adMobManager != null && preferencesManager != null && remoteConfigManager != null) {
                     SimpleBannerAd(
                         adMobManager = adMobManager,
                         preferencesManager = preferencesManager,
-                        remoteConfigManager = remoteConfigManager
+                        remoteConfigManager = remoteConfigManager,
+                        modifier = Modifier.padding(top = playlistBannerTopGap)
                     )
+                    if (playlistBottomGap > 0.dp) {
+                        Spacer(modifier = Modifier.height(playlistBottomGap))
+                    }
                 }
             }
         }
@@ -448,10 +456,11 @@ fun HomeScreen(
                             }
                             HomeTabKey.PLAYLISTS -> {
                                 PlaylistsScreen(
-                                   onNavigateToPlaylist = onNavigateToPlaylistDetail,
+                                    onNavigateToPlaylist = onNavigateToPlaylistDetail,
                                    onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
                                     onNavigateToRestore = onNavigateToRestorePlaylist,
-                                    onBackClick = { }
+                                    onBackClick = { },
+                                    additionalBottomInset = if (playbackState.currentSong != null) SpacingMedium else 0.dp
                                 )
                             }
                             HomeTabKey.FOLDERS -> {

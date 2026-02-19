@@ -48,6 +48,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -86,6 +87,7 @@ fun PlaylistsScreen(
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
     onNavigateToRestore: () -> Unit,
     onBackClick: () -> Unit,
+    additionalBottomInset: Dp = 0.dp,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
@@ -125,7 +127,7 @@ fun PlaylistsScreen(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             top = 0.dp,
-            bottom = MiniPlayerHeight + SpacingSmall,
+            bottom = MiniPlayerHeight + SpacingSmall + additionalBottomInset,
             start = 16.dp,
             end = 16.dp
         ),

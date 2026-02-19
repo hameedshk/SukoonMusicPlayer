@@ -63,6 +63,8 @@ class BrowseTree @Inject constructor(
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle("Queue")
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
                         .build()
                 )
                 .build()
@@ -74,6 +76,8 @@ class BrowseTree @Inject constructor(
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle("Playlists")
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
                         .build()
                 )
                 .build()
@@ -85,6 +89,8 @@ class BrowseTree @Inject constructor(
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle("Albums")
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
                         .build()
                 )
                 .build()
@@ -96,6 +102,8 @@ class BrowseTree @Inject constructor(
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle("Artists")
+                        .setIsBrowsable(true)
+                        .setIsPlayable(false)
                         .build()
                 )
                 .build()
@@ -110,6 +118,8 @@ class BrowseTree @Inject constructor(
                     .setMediaMetadata(
                         MediaMetadata.Builder()
                             .setTitle("Recently Played")
+                            .setIsBrowsable(true)
+                            .setIsPlayable(false)
                             .build()
                     )
                     .build()

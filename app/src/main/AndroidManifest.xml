@@ -16,6 +16,9 @@
     <!-- Legacy permission for Android 12 and below -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
+    <uses-feature
+        android:name="android.software.automotive"
+        android:required="false" />
 
     <application
         android:name=".SukoonApplication"
@@ -42,7 +45,8 @@
         <service
             android:name=".data.service.AndroidAutoMediaBrowserService"
             android:exported="true"
-            android:label="@string/app_name">
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_MEDIA_BROWSER_SERVICE">
             <intent-filter>
                 <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
@@ -63,6 +67,11 @@
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="${admobAppId}" />
+
+        <!-- Android Auto app descriptor -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
 
         <!-- Resolve manifest merger conflict between ads-lite and measurement-api -->
         <property
