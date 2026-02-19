@@ -103,6 +103,9 @@ import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.util.AccentResolver
+import com.sukoon.music.ui.util.candidateAccent
+import com.sukoon.music.ui.util.desaturatedSliderColor
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
@@ -314,10 +317,29 @@ fun NowPlayingScreen(
         viewModel.playbackRepository.refreshPlaybackState()
     }
 
-    // Get accent color from user profile (not dynamic from album art)
+    // Base accent from user profile (used as fallback and for secondary actions)
     val accentTokens = accent()
     val accentColor = accentTokens.primary
     val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
+    val songSeed = playbackState.currentSong?.id?.toInt() ?: 0
+    val extractedAccent = palette.candidateAccent
+    val resolvedAccent = AccentResolver.resolve(
+        extractedAccent = extractedAccent,
+        fallbackSeed = songSeed
+    )
+    val useAlbumAccent = resolvedAccent == extractedAccent
+    val targetControlsAccent = if (useAlbumAccent) extractedAccent else accentColor
+    val targetSliderColor = if (useAlbumAccent) palette.desaturatedSliderColor else accentColor
+    val controlsAccentColor by animateColorAsState(
+        targetValue = targetControlsAccent,
+        animationSpec = tween(durationMillis = 220),
+        label = "now_playing_controls_accent"
+    )
+    val sliderAccentColor by animateColorAsState(
+        targetValue = targetSliderColor,
+        animationSpec = tween(durationMillis = 220),
+        label = "now_playing_slider_accent"
+    )
     val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
 
     Box(
@@ -379,7 +401,8 @@ fun NowPlayingScreen(
                     NowPlayingContent(
                         playbackState = playbackState,
                         accentColor = accentColor,
-                        sliderColor = accentColor,
+                        controlsAccentColor = controlsAccentColor,
+                        sliderColor = sliderAccentColor,
                         albumOverlayAlpha = (0.22f - (palette.dominant.luminance() * 0.16f)).coerceIn(0.06f, 0.18f),
                         onBackClick = onBackClick,
                         onPlayPauseClick = { viewModel.playPause() },
@@ -487,6 +510,7 @@ private fun TopUtilityBar(
 private fun NowPlayingContent(
     playbackState: PlaybackState,
     accentColor: Color,
+    controlsAccentColor: Color = accentColor,
     sliderColor: Color = accentColor,
     albumOverlayAlpha: Float = 0.12f,
     onBackClick: () -> Unit,
@@ -721,7 +745,7 @@ private fun NowPlayingContent(
                         // D. Primary Playback Controls (Shuffle - Previous - Play - Next - Repeat)
                         PlaybackControlsSection(
                             playbackState = playbackState,
-                            accentColor = accentColor,
+                            accentColor = controlsAccentColor,
                             currentPosition = currentPosition,
                             onPreviousClick = onPreviousClick,
                             onPlayPauseClick = onPlayPauseClick,

@@ -29,8 +29,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -95,6 +99,8 @@ class MusicPlaybackService : MediaSessionService() {
 
     // Sleep timer job
     private var sleepTimerJob: Job? = null
+    private var sleepTimerObserverJob: Job? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     companion object {
         private const val NOTIFICATION_ID = 101
@@ -378,34 +384,50 @@ class MusicPlaybackService : MediaSessionService() {
      * This survives app restart because targetTime is persisted in DataStore.
      */
     private fun observeSleepTimer() {
-        scope.launch {
-            preferencesManager.userPreferencesFlow.collect { preferences ->
-                val targetTime = preferences.sleepTimerTargetTimeMs
-                val currentTime = System.currentTimeMillis()
-
-                // Cancel existing job if any
-                sleepTimerJob?.cancel()
-
-                if (targetTime > currentTime) {
-                    val remainingMs = targetTime - currentTime
-                    DevLogger.d("MusicPlaybackService", "Sleep timer scheduled: pausing in ${remainingMs / 1000}s")
-                    
-                    sleepTimerJob = scope.launch {
-                        delay(remainingMs)
-                        withContext(Dispatchers.Main) {
-                            if (player.isPlaying || player.playWhenReady) {
-                                DevLogger.d("MusicPlaybackService", "Sleep timer reached: pausing playback")
-                                player.pause()
-                            }
-                            // Reset target time in preferences to 0 so it doesn't trigger again
-                            preferencesManager.setSleepTimerTargetTime(0L)
-                        }
-                    }
-                } else if (targetTime > 0) {
-                    // Target time is in the past, reset it (cleanup)
-                    DevLogger.d("MusicPlaybackService", "Sleep timer target was in past, resetting")
-                    preferencesManager.setSleepTimerTargetTime(0L)
+        sleepTimerObserverJob?.cancel()
+        sleepTimerObserverJob = serviceScope.launch {
+            preferencesManager.userPreferencesFlow
+                .map { it.sleepTimerTargetTimeMs }
+                .distinctUntilChanged()
+                .collect { targetTime ->
+                    scheduleSleepTimer(targetTime)
                 }
+        }
+    }
+
+    private fun scheduleSleepTimer(targetTime: Long) {
+        sleepTimerJob?.cancel()
+
+        if (targetTime <= 0L) {
+            DevLogger.d("MusicPlaybackService", "Sleep timer cleared")
+            return
+        }
+
+        val currentTime = System.currentTimeMillis()
+        if (targetTime <= currentTime) {
+            DevLogger.d("MusicPlaybackService", "Sleep timer target was in past, resetting")
+            serviceScope.launch {
+                preferencesManager.setSleepTimerTargetTime(0L)
+            }
+            return
+        }
+
+        val remainingMs = targetTime - currentTime
+        DevLogger.d("MusicPlaybackService", "Sleep timer scheduled: pausing in ${remainingMs / 1000}s")
+        sleepTimerJob = serviceScope.launch {
+            delay(remainingMs)
+            try {
+                if (player.isPlaying || player.playWhenReady) {
+                    DevLogger.d("MusicPlaybackService", "Sleep timer reached: pausing playback")
+                    player.pause()
+                } else {
+                    DevLogger.d("MusicPlaybackService", "Sleep timer reached while already paused")
+                }
+            } catch (e: Exception) {
+                DevLogger.e("MusicPlaybackService", "Sleep timer pause failed", e)
+            } finally {
+                // Always clear to avoid stale active state in UI.
+                preferencesManager.setSleepTimerTargetTime(0L)
             }
         }
     }
@@ -698,6 +720,10 @@ class MusicPlaybackService : MediaSessionService() {
         } catch (e: Exception) {
             DevLogger.e("MusicPlaybackService", "Error releasing player/session", e)
         }
+
+        sleepTimerObserverJob?.cancel()
+        sleepTimerJob?.cancel()
+        serviceScope.cancel()
 
         super.onDestroy()
     }
