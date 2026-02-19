@@ -28,8 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -51,6 +51,12 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
+
+private val TopBarRowVerticalPaddingDefault = 8.dp
+private val TopBarRowVerticalPaddingCompact = 6.dp
+private val TopBarContextBottomPadding = 6.dp
+private val TabPillsRowVerticalPaddingDefault = 4.dp
+private val TabPillsRowVerticalPaddingCompact = 4.dp
 
 @Composable
 internal fun PillButton(
@@ -184,13 +190,15 @@ internal fun RedesignedTopBar(
     isCompact: Boolean = false
 ) {
     var showOverflowMenu by remember { mutableStateOf(false) }
+    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val logoResId = if (isDarkTheme) R.drawable.app_icon_cat else R.drawable.app_logo
     val rowVerticalPadding by animateDpAsState(
-        targetValue = if (isCompact) 8.dp else 12.dp,
+        targetValue = if (isCompact) TopBarRowVerticalPaddingCompact else TopBarRowVerticalPaddingDefault,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_vertical_padding"
     )
     val logoSize by animateDpAsState(
-        targetValue = if (isCompact) 46.dp else 52.dp,
+        targetValue = if (isCompact) 46.dp else if (isDarkTheme) 56.dp else 52.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_logo_size"
     )
@@ -204,8 +212,6 @@ internal fun RedesignedTopBar(
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_search_height"
     )
-    // Follow the app's active Material theme, not only the system dark mode flag.
-    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Main header container - uses background color for seamless integration
@@ -262,23 +268,6 @@ internal fun RedesignedTopBar(
                 Box(
                     modifier = Modifier
                         .size(logoContainerSize)
-                        .clip(CircleShape)
-                        .then(
-                            if (isDarkTheme) {
-                                Modifier
-                                    .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 1.0f),
-                                        shape = CircleShape
-                                    )
-                                    .border(
-                                        width = 1.dp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
-                                        shape = CircleShape
-                                    )
-                            } else {
-                                Modifier
-                            }
-                        )
                         .semantics {
                             contentDescription = "Sukoon Music"
                             traversalIndex = 0f
@@ -294,8 +283,9 @@ internal fun RedesignedTopBar(
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
-                        painter = painterResource(id = R.drawable.app_logo),
+                        painter = painterResource(id = logoResId),
                         contentDescription = null,
+                        contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .size(logoSize)
                             .scale(logoScale)
@@ -392,7 +382,7 @@ internal fun RedesignedTopBar(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(start = 68.dp, end = 16.dp, bottom = 8.dp)
+                        .padding(start = 68.dp, end = 16.dp, bottom = TopBarContextBottomPadding)
                 )
             }
         }
@@ -411,7 +401,7 @@ internal fun TabPills(
 ) {
     val lazyListState = rememberLazyListState()
     val rowVerticalPadding by animateDpAsState(
-        targetValue = if (isCompact) 4.dp else 8.dp,
+        targetValue = if (isCompact) TabPillsRowVerticalPaddingCompact else TabPillsRowVerticalPaddingDefault,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "tab_row_vertical_padding"
     )

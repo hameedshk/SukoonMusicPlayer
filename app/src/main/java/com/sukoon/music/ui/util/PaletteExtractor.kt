@@ -11,9 +11,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.palette.graphics.Palette
-import coil.ImageLoader
+import coil.imageLoader
 import coil.request.ImageRequest
 import coil.request.SuccessResult
 import com.sukoon.music.util.DevLogger
@@ -68,16 +69,37 @@ fun rememberAlbumPalette(
         dominant = colorScheme.primary
     )
 
-    var palette by remember(albumArtUri) { mutableStateOf(defaultPalette) }
+    val themeSignature = remember(
+        colorScheme.primary,
+        colorScheme.primaryContainer,
+        colorScheme.secondary,
+        colorScheme.surface,
+        colorScheme.surfaceVariant,
+        colorScheme.surfaceContainer
+    ) {
+        listOf(
+            colorScheme.primary,
+            colorScheme.primaryContainer,
+            colorScheme.secondary,
+            colorScheme.surface,
+            colorScheme.surfaceVariant,
+            colorScheme.surfaceContainer
+        ).joinToString(separator = "_") { it.toArgb().toString() }
+    }
+    val paletteCacheKey = remember(albumArtUri, themeSignature) {
+        albumArtUri?.takeIf { it.isNotBlank() }?.let { "$it|$themeSignature" }
+    }
 
-    LaunchedEffect(albumArtUri) {
-        if (albumArtUri.isNullOrBlank()) {
+    var palette by remember(paletteCacheKey) { mutableStateOf(defaultPalette) }
+
+    LaunchedEffect(paletteCacheKey) {
+        if (paletteCacheKey == null) {
             palette = defaultPalette
             return@LaunchedEffect
         }
 
         // Check cache first
-        val cachedPalette = paletteCache.get(albumArtUri)
+        val cachedPalette = paletteCache.get(paletteCacheKey)
         if (cachedPalette != null) {
             DevLogger.d("PaletteExtractor", "Using cached palette for: $albumArtUri")
             palette = cachedPalette
@@ -90,9 +112,8 @@ fun rememberAlbumPalette(
 
             val bitmap = withContext(Dispatchers.IO) {
                 // Load bitmap from URI using Coil with proper configuration
-                val imageLoader = ImageLoader.Builder(context)
-                    .crossfade(false) // Disable crossfade for faster loading
-                    .build()
+                // Reuse app-level ImageLoader to leverage shared caches and avoid per-call allocations.
+                val imageLoader = context.imageLoader
 
                 val request = ImageRequest.Builder(context)
                     .data(albumArtUri)
@@ -155,7 +176,7 @@ fun rememberAlbumPalette(
                 )
 
                 // Cache the extracted palette for reuse
-                paletteCache.put(albumArtUri, extractedAlbumPalette)
+                paletteCache.put(paletteCacheKey, extractedAlbumPalette)
 
                 palette = extractedAlbumPalette
                 DevLogger.d("PaletteExtractor", "Palette extracted and cached - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")

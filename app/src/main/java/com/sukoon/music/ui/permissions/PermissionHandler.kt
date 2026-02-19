@@ -1,6 +1,9 @@
 package com.sukoon.music.ui.permissions
 
 import android.Manifest
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -10,11 +13,20 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.content.PermissionChecker
-import com.sukoon.music.ui.theme.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 
 /**
  * Permission handler for audio file access.
@@ -23,7 +35,7 @@ import com.sukoon.music.ui.theme.*
  * - Android 13+ (API 33+): READ_MEDIA_AUDIO
  * - Android 12- (API 32-): READ_EXTERNAL_STORAGE
  *
- * Shows rationale dialogs and handles denied states.
+ * Handles first-time request, rationale, permanent denial, and settings return.
  */
 @Composable
 fun rememberAudioPermissionState(
@@ -31,40 +43,73 @@ fun rememberAudioPermissionState(
     onPermissionDenied: () -> Unit = {}
 ): AudioPermissionState {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = remember(context) { context.findActivity() }
+    val latestOnPermissionGranted by rememberUpdatedState(onPermissionGranted)
+    val latestOnPermissionDenied by rememberUpdatedState(onPermissionDenied)
+
     var showRationale by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var permissionRequested by remember { mutableStateOf(false) }
+    var permissionRequested by rememberSaveable { mutableStateOf(false) }
 
-    // Determine which permission to request based on Android version
     val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         Manifest.permission.READ_MEDIA_AUDIO
     } else {
         Manifest.permission.READ_EXTERNAL_STORAGE
     }
 
-    // Check if permission is already granted
-    val isPermissionGranted = remember(permissionRequested) {
-        ContextCompat.checkSelfPermission(
-            context,
-            permission
-        ) == PermissionChecker.PERMISSION_GRANTED
+    var hasPermission by remember(permission) {
+        mutableStateOf(context.hasPermission(permission))
     }
 
-    // Permission launcher
+    fun refreshPermissionState(notifyOnGrant: Boolean) {
+        val wasGranted = hasPermission
+        val isGrantedNow = context.hasPermission(permission)
+        hasPermission = isGrantedNow
+
+        if (notifyOnGrant && isGrantedNow && !wasGranted) {
+            latestOnPermissionGranted()
+        }
+    }
+
+    DisposableEffect(lifecycleOwner, permission) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                refreshPermissionState(notifyOnGrant = true)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val isPermanentlyDenied = !hasPermission &&
+            permissionRequested &&
+            (activity?.let {
+                !ActivityCompat.shouldShowRequestPermissionRationale(it, permission)
+            } ?: false)
+
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         permissionRequested = true
-        if (isGranted) {
-            onPermissionGranted()
+        refreshPermissionState(notifyOnGrant = false)
+
+        if (isGranted || hasPermission) {
+            latestOnPermissionGranted()
         } else {
-            // Permission denied - show settings dialog
-            showSettingsDialog = true
-            onPermissionDenied()
+            val shouldShowRationale = activity?.let {
+                ActivityCompat.shouldShowRequestPermissionRationale(it, permission)
+            } ?: false
+
+            if (!shouldShowRationale && permissionRequested) {
+                showSettingsDialog = true
+            }
+            latestOnPermissionDenied()
         }
     }
 
-    // Rationale dialog
     if (showRationale) {
         PermissionRationaleDialog(
             onDismiss = { showRationale = false },
@@ -75,7 +120,6 @@ fun rememberAudioPermissionState(
         )
     }
 
-    // Settings redirect dialog
     if (showSettingsDialog) {
         PermissionDeniedDialog(
             onDismiss = { showSettingsDialog = false },
@@ -83,21 +127,30 @@ fun rememberAudioPermissionState(
                 showSettingsDialog = false
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.fromParts("package", context.packageName, null)
+                    if (context !is Activity) addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
             }
         )
     }
 
-    return remember(isPermissionGranted) {
+    return remember(hasPermission, isPermanentlyDenied, permission) {
         AudioPermissionState(
-            hasPermission = isPermissionGranted,
+            hasPermission = hasPermission,
             requestPermission = {
-                if (!isPermissionGranted) {
-                    // Show rationale first
-                    showRationale = true
+                if (!hasPermission) {
+                    val shouldShowRationale = activity?.let {
+                        ActivityCompat.shouldShowRequestPermissionRationale(it, permission)
+                    } ?: false
+
+                    when {
+                        isPermanentlyDenied -> showSettingsDialog = true
+                        shouldShowRationale -> showRationale = true
+                        else -> permissionLauncher.launch(permission)
+                    }
                 }
-            }
+            },
+            isPermanentlyDenied = isPermanentlyDenied
         )
     }
 }
@@ -107,7 +160,8 @@ fun rememberAudioPermissionState(
  */
 data class AudioPermissionState(
     val hasPermission: Boolean,
-    val requestPermission: () -> Unit
+    val requestPermission: () -> Unit,
+    val isPermanentlyDenied: Boolean = false
 )
 
 @Composable
@@ -148,7 +202,7 @@ private fun PermissionDeniedDialog(
         text = {
             Text(
                 "Audio file access was denied. To use Sukoon Music, please enable the permission in Settings.\n\n" +
-                        "Settings → Apps → Sukoon Music → Permissions → Files and media"
+                        "Settings > Apps > Sukoon Music > Permissions > Files and media"
             )
         },
         confirmButton = {
@@ -162,4 +216,20 @@ private fun PermissionDeniedDialog(
             }
         }
     )
+}
+
+private fun Context.hasPermission(permission: String): Boolean {
+    return ContextCompat.checkSelfPermission(
+        this,
+        permission
+    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+}
+
+private fun Context.findActivity(): Activity? {
+    var current: Context? = this
+    while (current is ContextWrapper) {
+        if (current is Activity) return current
+        current = current.baseContext
+    }
+    return null
 }

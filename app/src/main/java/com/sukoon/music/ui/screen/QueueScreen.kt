@@ -13,13 +13,20 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +37,9 @@ import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.viewmodel.QueueViewModel
 import org.burnoutcrew.reorderable.*
 import com.sukoon.music.ui.theme.*
+import androidx.compose.ui.platform.LocalDensity
+import kotlin.math.roundToInt
+import kotlin.math.abs
 
 /**
  * Queue Screen - Shows current playback queue with reordering and saved queues.
@@ -49,6 +59,20 @@ fun QueueScreen(
 
     var showSaveQueueDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
+    var collapsibleTopBarHeightPx by remember { mutableIntStateOf(0) }
+    var collapsibleTopBarOffsetPx by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+
+    val consumeTopBarDelta: (Float) -> Float = { deltaY ->
+        if (collapsibleTopBarHeightPx == 0) {
+            0f
+        } else {
+            val previous = collapsibleTopBarOffsetPx
+            val updated = (previous + deltaY).coerceIn(-collapsibleTopBarHeightPx.toFloat(), 0f)
+            collapsibleTopBarOffsetPx = updated
+            updated - previous
+        }
+    }
 
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
@@ -69,79 +93,103 @@ fun QueueScreen(
         }
     }
 
+    val topBarScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (available.y == 0f) return Offset.Zero
+                if (abs(available.y) <= abs(available.x)) return Offset.Zero
+                return Offset(0f, consumeTopBarDelta(available.y))
+            }
+        }
+    }
+
+    val hasScrollableContent = when (selectedTab) {
+        0 -> playbackState.queue.isNotEmpty()
+        else -> savedQueues.isNotEmpty()
+    }
+    LaunchedEffect(selectedTab) {
+        collapsibleTopBarOffsetPx = 0f
+    }
+    LaunchedEffect(selectedTab, playbackState.queue.size, savedQueues.size) {
+        if (!hasScrollableContent) {
+            collapsibleTopBarOffsetPx = 0f
+        }
+    }
+
     Scaffold(
+        modifier = Modifier.nestedScroll(topBarScrollConnection),
         topBar = {
-            TopAppBar(
-                title = { Text("Queue") },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.statusBars)
+            ) {
+                val hasMeasuredTopBar = collapsibleTopBarHeightPx > 0
+                val visibleTopBarHeightDp = with(density) {
+                    (collapsibleTopBarHeightPx.toFloat() + collapsibleTopBarOffsetPx).coerceAtLeast(0f).toDp()
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (!hasMeasuredTopBar) {
+                                Modifier
+                            } else {
+                                Modifier
+                                    .height(visibleTopBarHeightDp)
+                                    .clipToBounds()
+                            }
                         )
-                    }
-                },
-                actions = {
-                    // Save current queue button
-                    if (selectedTab == 0 && playbackState.queue.isNotEmpty()) {
-                        IconButton(onClick = { showSaveQueueDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Save,
-                                contentDescription = "Save queue"
-                            )
-                        }
-                    }
+                ) {
+                    QueueTopAppBar(
+                        selectedTab = selectedTab,
+                        playbackQueueSize = playbackState.queue.size,
+                        onBackClick = onBackClick,
+                        onSaveQueue = { showSaveQueueDialog = true },
+                        onShuffleQueue = { viewModel.shuffleQueue() },
+                        onClearQueue = { viewModel.clearQueue() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, collapsibleTopBarOffsetPx.roundToInt()) }
+                            .onSizeChanged { size ->
+                                val isExpanded = abs(collapsibleTopBarOffsetPx) < 0.5f
+                                val shouldUpdateMeasuredHeight = size.height > 0 && (
+                                    collapsibleTopBarHeightPx == 0 ||
+                                        (isExpanded && collapsibleTopBarHeightPx != size.height)
+                                    )
+                                if (shouldUpdateMeasuredHeight) {
+                                    collapsibleTopBarHeightPx = size.height
+                                    collapsibleTopBarOffsetPx = collapsibleTopBarOffsetPx
+                                        .coerceIn(-size.height.toFloat(), 0f)
+                                }
+                            }
+                    )
+                }
 
-                    // Shuffle queue button
-                    if (selectedTab == 0 && playbackState.queue.size > 1) {
-                        IconButton(onClick = { viewModel.shuffleQueue() }) {
-                            Icon(
-                                imageVector = Icons.Default.Shuffle,
-                                contentDescription = "Shuffle queue"
-                            )
-                        }
-                    }
-
-                    // Clear queue button
-                    if (selectedTab == 0 && playbackState.queue.isNotEmpty()) {
-                        IconButton(onClick = { viewModel.clearQueue() }) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Clear queue"
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
+                TabRow(
+                    selectedTabIndex = selectedTab,
                     containerColor = MaterialTheme.colorScheme.surface
-                )
-            )
+                ) {
+                    Tab(
+                        selected = selectedTab == 0,
+                        onClick = { selectedTab = 0 },
+                        text = { Text("Current Queue (${playbackState.queue.size})") }
+                    )
+                    Tab(
+                        selected = selectedTab == 1,
+                        onClick = { selectedTab = 1 },
+                        text = { Text("Saved Queues (${savedQueues.size})") }
+                    )
+                }
+            }
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Tabs
-            TabRow(
-                selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface
-            ) {
-                Tab(
-                    selected = selectedTab == 0,
-                    onClick = { selectedTab = 0 },
-                    text = { Text("Current Queue (${playbackState.queue.size})") }
-                )
-                Tab(
-                    selected = selectedTab == 1,
-                    onClick = { selectedTab = 1 },
-                    text = { Text("Saved Queues (${savedQueues.size})") }
-                )
-            }
-
-            // Content
             when (selectedTab) {
                 0 -> CurrentQueueContent(
                     queue = playbackState.queue,
@@ -160,18 +208,73 @@ fun QueueScreen(
                 )
             }
         }
-
-        // Save Queue Dialog
-        if (showSaveQueueDialog) {
-            SaveQueueDialog(
-                onDismiss = { showSaveQueueDialog = false },
-                onConfirm = { name ->
-                    viewModel.saveCurrentQueue(name)
-                    showSaveQueueDialog = false
-                }
-            )
-        }
     }
+
+    // Save Queue Dialog
+    if (showSaveQueueDialog) {
+        SaveQueueDialog(
+            onDismiss = { showSaveQueueDialog = false },
+            onConfirm = { name ->
+                viewModel.saveCurrentQueue(name)
+                showSaveQueueDialog = false
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun QueueTopAppBar(
+    selectedTab: Int,
+    playbackQueueSize: Int,
+    onBackClick: () -> Unit,
+    onSaveQueue: () -> Unit,
+    onShuffleQueue: () -> Unit,
+    onClearQueue: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
+        modifier = modifier,
+        windowInsets = WindowInsets(0, 0, 0, 0),
+        title = { Text("Queue") },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+        },
+        actions = {
+            if (selectedTab == 0 && playbackQueueSize > 0) {
+                IconButton(onClick = onSaveQueue) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = "Save queue"
+                    )
+                }
+            }
+            if (selectedTab == 0 && playbackQueueSize > 1) {
+                IconButton(onClick = onShuffleQueue) {
+                    Icon(
+                        imageVector = Icons.Default.Shuffle,
+                        contentDescription = "Shuffle queue"
+                    )
+                }
+            }
+            if (selectedTab == 0 && playbackQueueSize > 0) {
+                IconButton(onClick = onClearQueue) {
+                    Icon(
+                        imageVector = Icons.Default.Clear,
+                        contentDescription = "Clear queue"
+                    )
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    )
 }
 
 @Composable

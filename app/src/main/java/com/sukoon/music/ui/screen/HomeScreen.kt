@@ -38,21 +38,23 @@ import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.animation.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -92,6 +94,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -102,6 +105,8 @@ import com.sukoon.music.data.ads.AdMobManager
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.theme.*
+import kotlin.math.roundToInt
+import kotlin.math.abs
 /**
  * Home Screen - Main entry point of the app.
  */
@@ -223,41 +228,29 @@ fun HomeScreen(
         }
     }
 
-    var isTopBarCompact by rememberSaveable { mutableStateOf(false) }
-    var scrollDeltaAccumulator by remember { mutableFloatStateOf(0f) }
+    var collapsibleTopBarHeightPx by remember { mutableIntStateOf(0) }
+    var collapsibleTopBarOffsetPx by remember { mutableFloatStateOf(0f) }
+    val density = LocalDensity.current
+
+    val consumeTopBarDelta: (Float) -> Float = { deltaY ->
+        if (collapsibleTopBarHeightPx == 0) {
+            0f
+        } else {
+            val previous = collapsibleTopBarOffsetPx
+            val updated = (previous + deltaY).coerceIn(-collapsibleTopBarHeightPx.toFloat(), 0f)
+            collapsibleTopBarOffsetPx = updated
+            updated - previous
+        }
+    }
 
     val topBarScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (source != NestedScrollSource.UserInput) return Offset.Zero
-                val deltaY = available.y
-                if (deltaY == 0f) return Offset.Zero
-
-                // Reset accumulation when scroll direction flips.
-                if ((deltaY > 0f && scrollDeltaAccumulator < 0f) || (deltaY < 0f && scrollDeltaAccumulator > 0f)) {
-                    scrollDeltaAccumulator = 0f
-                }
-                scrollDeltaAccumulator += deltaY
-
-                val toggleThresholdPx = 36f
-                when {
-                    scrollDeltaAccumulator <= -toggleThresholdPx && !isTopBarCompact -> {
-                        isTopBarCompact = true
-                        scrollDeltaAccumulator = 0f
-                    }
-                    scrollDeltaAccumulator >= toggleThresholdPx && isTopBarCompact -> {
-                        isTopBarCompact = false
-                        scrollDeltaAccumulator = 0f
-                    }
-                }
-                return Offset.Zero
+                if (available.y == 0f) return Offset.Zero
+                if (abs(available.y) <= abs(available.x)) return Offset.Zero
+                return Offset(0f, consumeTopBarDelta(available.y))
             }
         }
-    }
-
-    LaunchedEffect(selectedTab) {
-        isTopBarCompact = false
-        scrollDeltaAccumulator = 0f
     }
 
     val topBarContextText = when (scanState) {
@@ -271,6 +264,16 @@ fun HomeScreen(
         }
     }
 
+    LaunchedEffect(selectedTab) {
+        collapsibleTopBarOffsetPx = 0f
+    }
+
+    LaunchedEffect(scanState is ScanState.Scanning, songs.isEmpty()) {
+        if (scanState is ScanState.Scanning || songs.isEmpty()) {
+            collapsibleTopBarOffsetPx = 0f
+        }
+    }
+
     Scaffold(
         modifier = Modifier
             .gradientBackground()
@@ -281,21 +284,54 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
-                    .animateContentSize()
             ) {
-                RedesignedTopBar(
-                    onPremiumClick = { },
-                    onGlobalSearchClick = onNavigateToSearch,
-                    onSettingsClick = onNavigateToSettings,
-                    sessionState = sessionState,
-                    contextText = topBarContextText,
-                    isCompact = isTopBarCompact
-                )
+                val hasMeasuredTopBar = collapsibleTopBarHeightPx > 0
+                val visibleTopBarHeightDp = with(density) {
+                    (collapsibleTopBarHeightPx.toFloat() + collapsibleTopBarOffsetPx).coerceAtLeast(0f).toDp()
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (!hasMeasuredTopBar) {
+                                Modifier
+                            } else {
+                                Modifier
+                                    .height(visibleTopBarHeightDp)
+                                    .clipToBounds()
+                            }
+                        )
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset { IntOffset(0, collapsibleTopBarOffsetPx.roundToInt()) }
+                            .onSizeChanged { size ->
+                                val isExpanded = abs(collapsibleTopBarOffsetPx) < 0.5f
+                                val shouldUpdateMeasuredHeight = size.height > 0 && (
+                                    collapsibleTopBarHeightPx == 0 ||
+                                        (isExpanded && collapsibleTopBarHeightPx != size.height)
+                                    )
+                                if (shouldUpdateMeasuredHeight) {
+                                    collapsibleTopBarHeightPx = size.height
+                                    collapsibleTopBarOffsetPx = collapsibleTopBarOffsetPx
+                                        .coerceIn(-size.height.toFloat(), 0f)
+                                }
+                            }
+                    ) {
+                        RedesignedTopBar(
+                            onPremiumClick = { },
+                            onGlobalSearchClick = onNavigateToSearch,
+                            onSettingsClick = onNavigateToSettings,
+                            sessionState = sessionState,
+                            contextText = topBarContextText
+                        )
+                    }
+                }
                 TabPills(
                     tabs = tabs,
                     selectedTab = selectedTab,
-                    onTabSelected = { handleTabSelection(it) },
-                    isCompact = isTopBarCompact
+                    onTabSelected = { handleTabSelection(it) }
                 )
             }
         },

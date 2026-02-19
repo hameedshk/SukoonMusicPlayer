@@ -163,6 +163,7 @@ fun OnboardingScreen(
                 OnboardingFooter(
                     visible = playEntranceAnimation,
                     hasPermission = permissionState.hasPermission,
+                    isPermanentlyDenied = permissionState.isPermanentlyDenied,
                     isUsernameValid = isUsernameValid,
                     isSaving = isSaving,
                     onStartClick = ::onStartClick
@@ -197,6 +198,7 @@ fun OnboardingScreen(
                 OnboardingFooter(
                     visible = playEntranceAnimation,
                     hasPermission = permissionState.hasPermission,
+                    isPermanentlyDenied = permissionState.isPermanentlyDenied,
                     isUsernameValid = isUsernameValid,
                     isSaving = isSaving,
                     onStartClick = ::onStartClick
@@ -221,29 +223,16 @@ private fun OnboardingHeader(visible: Boolean) {
             modifier = Modifier.fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                shape = RoundedCornerShape(30.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-                tonalElevation = 2.dp,
-                shadowElevation = 8.dp
+            Box(
+                modifier = Modifier.size(186.dp),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(158.dp)
-                        .padding(12.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            shape = RoundedCornerShape(22.dp)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(R.drawable.symbol),
-                        contentDescription = null,
-                        modifier = Modifier.size(108.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                }
+                Image(
+                    painter = painterResource(R.drawable.symbol),
+                    contentDescription = null,
+                    modifier = Modifier.size(132.dp),
+                    contentScale = ContentScale.Fit
+                )
             }
 
             Text(
@@ -332,12 +321,21 @@ private fun PermissionStepCard(
                     )
                 ) {
                     Text(
-                        text = if (permissionState.hasPermission) {
-                            "Access Granted"
-                        } else {
-                            "Grant Access"
+                        text = when {
+                            permissionState.hasPermission -> "Access Granted"
+                            permissionState.isPermanentlyDenied -> "Open Settings"
+                            else -> "Grant Access"
                         },
                         style = MaterialTheme.typography.buttonText
+                    )
+                }
+
+                if (permissionState.isPermanentlyDenied && !permissionState.hasPermission) {
+                    Text(
+                        text = "Permission is blocked for this app. Open Settings and allow music access.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
                     )
                 }
             }
@@ -450,6 +448,7 @@ private fun UsernameStepCard(
 private fun OnboardingFooter(
     visible: Boolean,
     hasPermission: Boolean,
+    isPermanentlyDenied: Boolean = false,
     isUsernameValid: Boolean,
     isSaving: Boolean,
     onStartClick: () -> Unit
@@ -486,7 +485,11 @@ private fun OnboardingFooter(
 
             if (!hasPermission) {
                 Text(
-                    text = "Music access is required to continue.",
+                    text = if (isPermanentlyDenied) {
+                        "Music access is blocked. Use \"Open Settings\" above to continue."
+                    } else {
+                        "Music access is required to continue."
+                    },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,

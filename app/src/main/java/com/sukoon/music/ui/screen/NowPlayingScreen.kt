@@ -219,12 +219,12 @@ private fun spacingForHeight(maxHeight: Dp): NowPlayingSpacingSpec {
 
     return when (bucket) {
         NowPlayingHeightBucket.COMPACT -> NowPlayingSpacingSpec(
-            topContentPadding = 8.dp,
+            topContentPadding = 4.dp,
             albumToMetadataSpacing = 8.dp,
             metadataToControlsSpacing = 6.dp,
             seekToPrimaryControlsSpacing = 8.dp,
-            primaryControlsBottomSpacing = 8.dp,
-            controlsToSecondarySpacing = 6.dp,
+            primaryControlsBottomSpacing = 6.dp,
+            controlsToSecondarySpacing = 4.dp,
             bottomAfterSecondarySpacing = 8.dp,
             albumArtHorizontalPadding = 8.dp,
             metadataHorizontalPadding = 20.dp,
@@ -241,12 +241,12 @@ private fun spacingForHeight(maxHeight: Dp): NowPlayingSpacingSpec {
         )
 
         NowPlayingHeightBucket.REGULAR -> NowPlayingSpacingSpec(
-            topContentPadding = 12.dp,
+            topContentPadding = 8.dp,
             albumToMetadataSpacing = 10.dp,
             metadataToControlsSpacing = 10.dp,
             seekToPrimaryControlsSpacing = 12.dp,
-            primaryControlsBottomSpacing = 12.dp,
-            controlsToSecondarySpacing = 10.dp,
+            primaryControlsBottomSpacing = 8.dp,
+            controlsToSecondarySpacing = 6.dp,
             bottomAfterSecondarySpacing = 12.dp,
             albumArtHorizontalPadding = 10.dp,
             metadataHorizontalPadding = 24.dp,
@@ -263,12 +263,12 @@ private fun spacingForHeight(maxHeight: Dp): NowPlayingSpacingSpec {
         )
 
         NowPlayingHeightBucket.TALL -> NowPlayingSpacingSpec(
-            topContentPadding = 16.dp,
+            topContentPadding = 12.dp,
             albumToMetadataSpacing = 12.dp,
             metadataToControlsSpacing = 14.dp,
             seekToPrimaryControlsSpacing = 14.dp,
-            primaryControlsBottomSpacing = 16.dp,
-            controlsToSecondarySpacing = 12.dp,
+            primaryControlsBottomSpacing = 10.dp,
+            controlsToSecondarySpacing = 8.dp,
             bottomAfterSecondarySpacing = 16.dp,
             albumArtHorizontalPadding = 12.dp,
             metadataHorizontalPadding = 28.dp,
@@ -327,7 +327,9 @@ fun NowPlayingScreen(
             selectNowPlayingAlbumAccent(palette = palette, fallbackAccent = accentColor)
         }
     }
-    val albumAccent = albumAccentCandidate?.let(::normalizeNowPlayingAccent)
+    val albumAccent = albumAccentCandidate?.let { candidate ->
+        toneNowPlayingAccent(candidate = candidate, fallbackAccent = accentColor)
+    }
     val targetControlsAccent = albumAccent ?: accentColor
     val targetSliderColor = albumAccent?.let(::softenAccentForSlider) ?: accentColor
     val controlsAccentColor by animateColorAsState(
@@ -2351,10 +2353,19 @@ private fun normalizeNowPlayingAccent(color: Color): Color {
 
     return Color.hsv(
         hue = hue,
-        saturation = saturation.coerceAtLeast(0.26f),
-        value = value.coerceIn(0.48f, 0.88f),
+        saturation = saturation.coerceIn(0.22f, 0.62f),
+        value = value.coerceIn(0.42f, 0.74f),
         alpha = color.alpha
     )
+}
+
+private fun toneNowPlayingAccent(
+    candidate: Color,
+    fallbackAccent: Color
+): Color {
+    val normalizedCandidate = normalizeNowPlayingAccent(candidate)
+    val harmonized = blendColors(normalizedCandidate, fallbackAccent, 0.22f)
+    return normalizeNowPlayingAccent(harmonized)
 }
 
 private fun softenAccentForSlider(color: Color): Color {
@@ -2380,6 +2391,16 @@ private fun softenAccentForSlider(color: Color): Color {
 
 private fun Color.channelDistance(other: Color): Float {
     return (abs(red - other.red) + abs(green - other.green) + abs(blue - other.blue)) / 3f
+}
+
+private fun blendColors(from: Color, to: Color, ratio: Float): Color {
+    val t = ratio.coerceIn(0f, 1f)
+    return Color(
+        red = from.red + (to.red - from.red) * t,
+        green = from.green + (to.green - from.green) * t,
+        blue = from.blue + (to.blue - from.blue) * t,
+        alpha = from.alpha + (to.alpha - from.alpha) * t
+    )
 }
 
 private fun Color.saturation(): Float {
