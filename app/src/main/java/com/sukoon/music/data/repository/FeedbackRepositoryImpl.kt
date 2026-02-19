@@ -2,8 +2,8 @@ package com.sukoon.music.data.repository
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.google.android.gms.tasks.Task
-import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.sukoon.music.BuildConfig
@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -27,13 +28,16 @@ class FeedbackRepositoryImpl @Inject constructor(
 ) : FeedbackRepository {
 
     private val feedbackCollection = firestore.collection("feedback")
+    private val TAG = "FeedbackRepositoryImpl"
 
     override suspend fun submitFeedback(
         category: FeedbackCategory,
         details: String,
         consentGiven: Boolean
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        try {
+        Log.d(TAG, "Submitting feedback: $category")
+
+        return@withContext try {
             val userId = preferencesManager.getOrCreateAnonymousUserId()
             val feedbackData = mapOf(
                 "userId" to userId,
@@ -46,9 +50,31 @@ class FeedbackRepositoryImpl @Inject constructor(
                 "status" to "NEW",
                 "consentGiven" to consentGiven
             )
-            feedbackCollection.add(feedbackData).awaitTask()
-            Result.success(Unit)
+
+            Log.d(TAG, "Firebase data prepared, calling add()")
+
+            val task = feedbackCollection.add(feedbackData)
+            Log.d(TAG, "Firebase task created, waiting for result...")
+
+            // Use timeout wrapper with explicit error handling
+            val result = withTimeoutOrNull(15000L) {
+                try {
+                    task.awaitTask()
+                } catch (e: Exception) {
+                    Log.e(TAG, "awaitTask threw exception: ${e.message}", e)
+                    throw e
+                }
+            }
+
+            if (result != null) {
+                Log.d(TAG, "Feedback submitted successfully: $result")
+                Result.success(Unit)
+            } else {
+                Log.e(TAG, "Timeout after 15 seconds waiting for Firebase")
+                Result.failure(Exception("Firebase request timed out after 15 seconds"))
+            }
         } catch (e: Exception) {
+            Log.e(TAG, "submitFeedback exception: ${e.javaClass.simpleName}: ${e.message}", e)
             Result.failure(e)
         }
     }

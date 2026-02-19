@@ -3,42 +3,19 @@ package com.sukoon.music.ui.screen
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.RadioButtonUnchecked
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material.icons.filled.Sort
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -51,15 +28,19 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
-import com.sukoon.music.ui.components.PlaceholderAlbumArt
-import com.sukoon.music.ui.theme.SpacingLarge
-import com.sukoon.music.ui.theme.SpacingMedium
-import com.sukoon.music.ui.viewmodel.HomeViewModel
-import com.sukoon.music.util.DevLogger
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.viewmodel.HomeViewModel
+import com.sukoon.music.ui.viewmodel.SongsViewModel
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import com.sukoon.music.data.mediastore.DeleteHelper
 
 /**
- * Songs Screen - Displays all songs in alphabetical order with search functionality.
+ * Songs Screen - Displays all songs with sorting and playback controls.
+ * Owns SongsViewModel lifecycle and coordinates state flow to UI.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -67,68 +48,90 @@ fun SongsScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
-    viewModel: HomeViewModel = hiltViewModel(),
-    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
+    homeViewModel: HomeViewModel = hiltViewModel(),
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
+    songsViewModel: SongsViewModel = hiltViewModel()
 ) {
-    val songs by viewModel.songs.collectAsStateWithLifecycle()
-    val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val songs by songsViewModel.songs.collectAsStateWithLifecycle()
+    val playbackState by songsViewModel.playbackState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
-    val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
-    val isSongSelectionMode by viewModel.isSongSelectionMode.collectAsStateWithLifecycle()
+    val sortMode by songsViewModel.sortMode.collectAsStateWithLifecycle()
+    val sortOrder by songsViewModel.sortOrder.collectAsStateWithLifecycle()
+    val showSortDialog by songsViewModel.showSortDialog.collectAsStateWithLifecycle()
+    val selectedSongId by songsViewModel.selectedSongId.collectAsStateWithLifecycle()
+    val showMenu by songsViewModel.showMenu.collectAsStateWithLifecycle()
+    val songToDelete by songsViewModel.songToDelete.collectAsStateWithLifecycle()
+    val isDeleting by songsViewModel.isDeleting.collectAsStateWithLifecycle()
+    val showInfoForSong by songsViewModel.showInfoForSong.collectAsStateWithLifecycle()
+    val deleteError by songsViewModel.deleteError.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
-    var showInfoForSong by remember { mutableStateOf<Song?>(null) }
-    var sortOrder by remember { mutableStateOf(false) } // false = A-Z, true = Z-A
+    // Handle lifecycle
+    DisposableEffect(Unit) {
+        songsViewModel.setScreenActive(true)
+        onDispose {
+            songsViewModel.setScreenActive(false)
+        }
+    }
+
+    // Delete result launcher
+    val deleteLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
+        if (result.resultCode == android.app.Activity.RESULT_OK) {
+            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+        }
+        songsViewModel.finalizeDeletion()
+    }
+
+    // Show error toast
+    deleteError?.let { error ->
+        LaunchedEffect(error) {
+            Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+            songsViewModel.clearDeleteError()
+        }
+    }
+
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    val scrollState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
 
-    // Share handler
     val shareHandler = rememberShareHandler()
-
-    // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
-        playbackRepository = viewModel.playbackRepository,
+        playbackRepository = homeViewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
         onNavigateToArtist = onNavigateToArtist,
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
         },
-        onShowSongInfo = { song -> showInfoForSong = song },
-        onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
+        onShowSongInfo = { song -> songsViewModel.showSongInfo(song) },
+        onShowDeleteConfirmation = { song -> songsViewModel.showDeleteConfirmation(song) },
+        onToggleLike = { songId, isLiked -> homeViewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
     )
 
-    // Sort songs alphabetically
-    val filteredSongs = remember(songs, sortOrder) {
-        if (sortOrder) {
-            songs.sortedByDescending { it.title.lowercase() }
-        } else {
-            songs.sortedBy { it.title.lowercase() }
+    // Sort songs
+    val sortedSongs = remember(songs, sortMode, sortOrder) {
+        val sorted = when (sortMode) {
+            "Song name" -> songs.sortedBy { it.title.lowercase() }
+            "Artist name" -> songs.sortedBy { it.artist.lowercase() }
+            "Album name" -> songs.sortedBy { it.album.lowercase() }
+            "Folder name" -> songs.sortedBy { it.path.lowercase() }
+            "Time added" -> songs.sortedByDescending { it.dateAdded }
+            "Play count" -> songs.sortedByDescending { it.playCount }
+            "Year" -> songs.sortedByDescending { it.year }
+            "Duration" -> songs.sortedByDescending { it.duration }
+            "Size" -> songs.sortedByDescending { it.size }
+            else -> songs.sortedBy { it.title.lowercase() }
         }
+        if (sortOrder == "Z to A") sorted.reversed() else sorted
     }
 
-    // Get available letters from filtered songs
-    // Order: Symbols first, then Numbers (0-9), then Alphabets (A-Z)
-    val availableLetters = remember(filteredSongs) {
-        filteredSongs
-            .mapNotNull { it.title.firstOrNull()?.uppercaseChar() }
-            .distinct()
-            .sortedWith(compareBy(
-                { char ->
-                    when {
-                        char.isLetter() -> 2 // Letters last
-                        char.isDigit() -> 1  // Numbers second
-                        else -> 0            // Symbols first
-                    }
-                },
-                { it } // Then sort within each category
-            ))
-    }
-
-    val lazyListState = rememberLazyListState()
-
-    if (filteredSongs.isEmpty()) {
-        // Empty state
+    if (sortedSongs.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -151,170 +154,165 @@ fun SongsScreen(
             }
         }
     } else {
-        // Songs List with Alphabetical Index
-        Scaffold(
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            topBar = {
-                if (isSongSelectionMode) {
-                    TopAppBar(
-                        title = {
-                            Text(
-                                text = "${selectedSongIds.size} selected",
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        navigationIcon = {
-                            IconButton(onClick = {
-                                viewModel.toggleSongSelectionMode(false)
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.ArrowBack,
-                                    contentDescription = "Exit selection"
-                                )
-                            }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-                }
-            },
-            bottomBar = {
-                if (isSongSelectionMode && selectedSongIds.isNotEmpty()) {
-                    MultiSelectActionBottomBar(
-                        onPlay = { viewModel.playSelectedSongs() },
-                        onAddToPlaylist = { songToAddToPlaylist = null },
-                        onDelete = { },
-                        onPlayNext = { viewModel.playSelectedSongsNext() },
-                        onAddToQueue = { viewModel.addSelectedSongsToQueue() }
-                    )
-                }
-            }
-        ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
+                state = scrollState,
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    top = if (isSongSelectionMode) paddingValues.calculateTopPadding() else 0.dp,
-                    bottom = (if (isSongSelectionMode) paddingValues.calculateBottomPadding() else 0.dp) + MiniPlayerHeight + SpacingSmall,
-                    end = 24.dp,
-                    start = 0.dp
-                ),
-                state = lazyListState
+                    top = 0.dp,
+                    bottom = MiniPlayerHeight + SpacingSmall
+                )
             ) {
-                // Header: Back button, Title (non-scrolling)
                 stickyHeader(key = "header") {
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Top App Bar
-                        TopAppBar(
-                            title = {
-                                Text(
-                                    text = "Songs",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            },
-                            navigationIcon = {
-                                IconButton(onClick = onBackClick) {
-                                    Icon(
-                                        imageVector = Icons.Default.ArrowBack,
-                                        contentDescription = "Back"
-                                    )
-                                }
-                            },
-                            colors = TopAppBarDefaults.topAppBarColors(
-                                containerColor = MaterialTheme.colorScheme.background
-                            )
+                        Text(
+                            text = "${sortedSongs.size} songs",
+                            style = MaterialTheme.typography.sectionHeader,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-
-                        // Song Count Header with Sort and Selection buttons
-                        if (!isSongSelectionMode) {
-                            SongSortHeader(
-                                songCount = filteredSongs.size,
-                                onSortClick = { sortOrder = !sortOrder },
-                                onSelectionClick = { viewModel.toggleSongSelectionMode(true) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.background)
-                            )
+                        Row(horizontalArrangement = Arrangement.spacedBy(SpacingSmall)) {
+                            IconButton(onClick = { songsViewModel.showSortDialog() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Sort,
+                                    contentDescription = "Sort",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 }
 
-                // Play All and Shuffle buttons
-                if (filteredSongs.isNotEmpty()) {
-                    item {
-                        SongsPlayControlButtons(
-                            onPlayAll = { viewModel.playAll() },
-                            onShuffleAll = { viewModel.shuffleAll() },
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                stickyHeader(key = "chips") {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
+                    ) {
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(CompactButtonShape)
+                                .surfaceLevel2Gradient()
+                                .clickable(onClick = { songsViewModel.shuffleAll() }),
+                            shape = CompactButtonShape,
+                            color = Color.Transparent
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                                Spacer(Modifier.width(SpacingSmall))
+                                Text("Shuffle All", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                            }
+                        }
+                        Surface(
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                                .clip(CompactButtonShape)
+                                .surfaceLevel2Gradient()
+                                .clickable(onClick = { songsViewModel.playAll() }),
+                            shape = CompactButtonShape,
+                            color = Color.Transparent
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                                Spacer(Modifier.width(SpacingSmall))
+                                Text("Play", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                            }
+                        }
                     }
                 }
 
-                // Song items
                 items(
-                    items = filteredSongs,
+                    items = sortedSongs,
                     key = { it.id }
                 ) { song ->
                     val isPlaying = playbackState.currentSong?.id == song.id && playbackState.isPlaying
                     val index = songs.indexOf(song)
-                    val isSelected = song.id in selectedSongIds
 
                     SongListItem(
                         song = song,
                         isPlaying = isPlaying,
-                        isSelected = isSelected,
-                        isSelectionMode = isSongSelectionMode,
                         menuHandler = menuHandler,
-                        onClick = {
-                            if (isSongSelectionMode) {
-                                viewModel.toggleSongSelection(song.id)
-                            } else {
-                                viewModel.playQueue(songs, index)
-                            }
-                        },
-                        onCheckboxClick = {
-                            viewModel.toggleSongSelection(song.id)
-                        },
-                        onLongPress = {
-                            viewModel.toggleSongSelectionMode(true)
-                            viewModel.toggleSongSelection(song.id)
-                        },
-                        onLikeClick = {
-                            viewModel.toggleLike(song.id, song.isLiked)
-                        }
+                        onClick = { songsViewModel.playQueue(songs, index) },
+                        onLikeClick = { homeViewModel.toggleLike(song.id, song.isLiked) },
+                        onMenuClick = { songsViewModel.openMenuForSong(song.id) }
                     )
                 }
             }
-
-            // Alphabetical Index on the Right (overlaid, doesn't scroll)
-            if (availableLetters.isNotEmpty()) {
-                AlphabeticalIndex(
-                    letters = availableLetters,
-                    songs = filteredSongs,
-                    lazyListState = lazyListState,
-                    modifier = Modifier.align(Alignment.CenterEnd)
-                )
-            }
-        }
         }
     }
 
-    // Song info dialog
-    showInfoForSong?.let { song ->
-        SongInfoDialog(
-            song = song,
-            onDismiss = { showInfoForSong = null }
+    // Dialogs
+    if (showSortDialog) {
+        SongSortDialog(
+            currentSortMode = sortMode,
+            currentOrder = sortOrder,
+            onDismiss = { songsViewModel.hideSortDialog() },
+            onConfirm = { newMode, newOrder ->
+                songsViewModel.setSortMode(newMode, newOrder)
+                songsViewModel.hideSortDialog()
+            }
         )
     }
 
-    // Add to playlist dialog
+    if (showMenu && selectedSongId != null) {
+        val freshSong = sortedSongs.find { it.id == selectedSongId }
+        if (freshSong != null) {
+            SongContextMenu(
+                song = freshSong,
+                menuHandler = menuHandler,
+                onDismiss = { songsViewModel.closeMenu() }
+            )
+        }
+    }
+
+    showInfoForSong?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songsViewModel.hideSongInfo() }
+        )
+    }
+
+    songToDelete?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                songsViewModel.confirmDelete(song) { result ->
+                    when (result) {
+                        is DeleteHelper.DeleteResult.RequiresPermission -> {
+                            deleteLauncher.launch(
+                                IntentSenderRequest.Builder(result.intentSender).build()
+                            )
+                        }
+                        is DeleteHelper.DeleteResult.Success -> {
+                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        }
+                        is DeleteHelper.DeleteResult.Error -> {}
+                    }
+                }
+            },
+            onDismiss = { songsViewModel.hideDeleteConfirmation() }
+        )
+    }
+
     if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
         AddToPlaylistDialog(
             playlists = playlists,
@@ -331,45 +329,30 @@ fun SongsScreen(
     }
 }
 
-/**
- * Individual song item in the list.
- */
 @Composable
 private fun SongListItem(
     song: Song,
     isPlaying: Boolean,
-    isSelected: Boolean,
-    isSelectionMode: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
-    onCheckboxClick: () -> Unit,
-    onLongPress: () -> Unit,
-    onLikeClick: () -> Unit
+    onLikeClick: () -> Unit,
+    onMenuClick: () -> Unit
 ) {
-    var showMenu by remember { mutableStateOf(false) }
-
     Surface(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = { onLongPress() }
-                )
-            },
+        modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = 16.dp),
+                .padding(horizontal = SpacingLarge, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
-            // Album Art
             Surface(
-                modifier = Modifier.size(64.dp),
-                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.size(48.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
                 color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 SubcomposeAsyncImage(
@@ -398,213 +381,37 @@ private fun SongListItem(
                 )
             }
 
-            // Song details
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 18.sp,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 16.sp,
                         fontWeight = if (isPlaying) FontWeight.Bold else FontWeight.SemiBold
                     ),
                     color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fadeEllipsis()
+                    overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = song.artist,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 11.5.sp
-                    ),
+                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fadeEllipsis()
+                    overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Duration
-            Text(
-                text = song.durationFormatted(),
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 11.5.sp,
-                    fontFamily = FontFamily.Monospace
-                ),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(end = 8.dp)
-            )
-
-            // Like button or Checkbox
-            if (isSelectionMode) {
+            IconButton(
+                onClick = onMenuClick,
+                modifier = Modifier.size(40.dp)
+            ) {
                 Icon(
-                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                    contentDescription = if (isSelected) "Deselect" else "Select",
-                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable { onCheckboxClick() }
-                        .padding(end = 8.dp)
-                )
-            } else {
-                IconButton(onClick = onLikeClick) {
-                    Icon(
-                        imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                        contentDescription = if (song.isLiked) "Unlike" else "Like",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // More options menu (only when not in selection mode)
-            if (!isSelectionMode) {
-                IconButton(onClick = {
-                    showMenu = true
-                    DevLogger.click("SongMenu", "More options for: ${song.title}", handled = true)
-                }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-
-    if (showMenu) {
-        SongContextMenu(
-            song = song,
-            menuHandler = menuHandler,
-            onDismiss = { showMenu = false }
-        )
-    }
-}
-
-/**
- * Play All and Shuffle buttons for Songs Screen.
- */
-@Composable
-private fun SongsPlayControlButtons(
-    onPlayAll: () -> Unit,
-    onShuffleAll: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Button(
-            onClick = onPlayAll,
-            modifier = Modifier.weight(1f),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Icon(Icons.Default.PlayArrow, "Play All", Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Play All")
-        }
-
-        OutlinedButton(
-            onClick = onShuffleAll,
-            modifier = Modifier.weight(1f)
-        ) {
-            Icon(Icons.Default.Shuffle, "Shuffle", Modifier.size(20.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Shuffle")
-        }
-    }
-}
-
-/**
- * Sort header for Songs Screen showing song count and action buttons.
- */
-@Composable
-private fun SongSortHeader(
-    songCount: Int,
-    onSortClick: () -> Unit,
-    onSelectionClick: () -> Unit = {},
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = "$songCount ${if (songCount == 1) "song" else "songs"}",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Row {
-            IconButton(onClick = onSortClick) {
-                Icon(
-                    imageVector = Icons.Default.Sort,
-                    contentDescription = "Sort",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            IconButton(onClick = onSelectionClick) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = "Select",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        }
-    }
-}
-
-/**
- * Alphabetical index for quick navigation through song list.
- * Displays A-Z letters on the right side for fast scrolling.
- */
-@Composable
-private fun AlphabeticalIndex(
-    letters: List<Char>,
-    songs: List<Song>,
-    lazyListState: LazyListState,
-    modifier: Modifier = Modifier
-) {
-    val coroutineScope = rememberCoroutineScope()
-    var selectedLetter by remember { mutableStateOf<Char?>(null) }
-
-    Column(
-        modifier = modifier
-            .fillMaxHeight()
-            .padding(vertical = 8.dp, horizontal = 0.dp),
-        verticalArrangement = Arrangement.SpaceEvenly,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        letters.forEach { letter ->
-            val isSelected = selectedLetter == letter
-
-            Text(
-                text = letter.toString(),
-                modifier = Modifier
-                    .clickable {
-                        selectedLetter = letter
-                        coroutineScope.launch {
-                            val index = songs.indexOfFirst {
-                                it.title.firstOrNull()?.uppercaseChar() == letter
-                            }
-                            if (index >= 0) {
-                                lazyListState.scrollToItem(index)
-                            }
-                        }
-                    }
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
-                style = MaterialTheme.typography.alphabetLabel.copy(
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 11.sp
-                ),
-                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
         }
     }
 }

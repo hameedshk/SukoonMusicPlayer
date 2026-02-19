@@ -44,7 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.sukoon.music.ui.components.RatingBanner
 
 @Composable
-fun HomeTab(
+fun HomeTabScreen(
     songs: List<Song>,
     recentlyPlayed: List<Song>,
     rediscoverAlbums: List<Album>,

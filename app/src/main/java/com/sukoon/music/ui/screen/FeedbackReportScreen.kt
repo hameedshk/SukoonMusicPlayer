@@ -61,6 +61,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.text.ClickableText
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.layout.wrapContentWidth
 import com.sukoon.music.R
 import com.sukoon.music.domain.model.FeedbackCategory
 import com.sukoon.music.domain.model.FeedbackResult
@@ -149,7 +150,7 @@ fun FeedbackReportScreen(
             )
             FlowRow(
                 modifier = Modifier.wrapContentWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalArrangement = Arrangement.Start,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { chip ->
