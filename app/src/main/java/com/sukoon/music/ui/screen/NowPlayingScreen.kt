@@ -128,7 +128,7 @@ import kotlin.math.abs
  * (compact, medium, expanded height classes).
  */
 // Album Art
-private val NowPlayingAlbumArtRoundedCorners = 16.dp
+private val NowPlayingAlbumArtRoundedCorners = 8.dp
 private val NowPlayingAlbumArtHorizontalPadding = 16.dp
 private val NowPlayingAlbumArtShadow = 12.dp
 
@@ -619,9 +619,9 @@ private fun NowPlayingContent(
                 else -> 0.82f
             }
             val albumArtShadowElevation = when {
-                maxHeight < 700.dp -> 6.dp
-                maxHeight < 840.dp -> 8.dp
-                else -> 10.dp
+                maxHeight < 700.dp -> 2.dp
+                maxHeight < 840.dp -> 3.dp
+                else -> 4.dp
             }
 
             // Content uses adaptive spacing so controls remain balanced on small and tall screens.

@@ -202,11 +202,9 @@ class MusicPlaybackService : MediaSessionService() {
                     // Start foreground if notification should be visible and we're not already foreground
                     // Use isNotificationVisible to respect user's toggle preference
                     if (isNotificationVisible && !isForeground) {
-                        startForeground(notificationId, notification)
-                        isForeground = true
+                        startForegroundSafely(notificationId, notification)
                     } else if (ongoing && !isForeground) {
-                        startForeground(notificationId, notification)
-                        isForeground = true
+                        startForegroundSafely(notificationId, notification)
                     }
                 }
 
@@ -551,6 +549,31 @@ class MusicPlaybackService : MediaSessionService() {
             }
         }
         audioNoisyReceiver = null
+    }
+
+    /**
+     * Starts the service in foreground mode without crashing the app on restricted starts.
+     * On Android 12+, this can throw when the app isn't allowed to start foreground service.
+     */
+    private fun startForegroundSafely(notificationId: Int, notification: Notification): Boolean {
+        return try {
+            startForeground(notificationId, notification)
+            isForeground = true
+            true
+        } catch (e: RuntimeException) {
+            val isForegroundStartNotAllowed =
+                e.javaClass.name == "android.app.ForegroundServiceStartNotAllowedException"
+            if (isForegroundStartNotAllowed || e is IllegalStateException || e is SecurityException) {
+                DevLogger.e(
+                    "MusicPlaybackService",
+                    "Foreground start blocked by system (will keep service alive without crashing)",
+                    e
+                )
+                false
+            } else {
+                throw e
+            }
+        }
     }
 
     /**

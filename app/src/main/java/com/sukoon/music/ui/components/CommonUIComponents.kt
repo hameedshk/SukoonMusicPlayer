@@ -1,7 +1,6 @@
 package com.sukoon.music.ui.components
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +29,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
@@ -204,7 +204,8 @@ internal fun RedesignedTopBar(
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_search_height"
     )
-    val isDarkTheme = isSystemInDarkTheme()
+    // Follow the app's active Material theme, not only the system dark mode flag.
+    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Main header container - uses background color for seamless integration
@@ -266,12 +267,12 @@ internal fun RedesignedTopBar(
                             if (isDarkTheme) {
                                 Modifier
                                     .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 1.0f),
                                         shape = CircleShape
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f),
                                         shape = CircleShape
                                     )
                             } else {
