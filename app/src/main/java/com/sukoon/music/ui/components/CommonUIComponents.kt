@@ -1,6 +1,7 @@
 package com.sukoon.music.ui.components
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -189,12 +190,12 @@ internal fun RedesignedTopBar(
         label = "topbar_vertical_padding"
     )
     val logoSize by animateDpAsState(
-        targetValue = if (isCompact) 44.dp else 50.dp,
+        targetValue = if (isCompact) 46.dp else 52.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_logo_size"
     )
     val logoContainerSize by animateDpAsState(
-        targetValue = if (isCompact) 52.dp else 56.dp,
+        targetValue = if (isCompact) 54.dp else 60.dp,
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_logo_container_size"
     )
@@ -265,12 +266,12 @@ internal fun RedesignedTopBar(
                             if (isDarkTheme) {
                                 Modifier
                                     .background(
-                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.9f),
                                         shape = CircleShape
                                     )
                                     .border(
                                         width = 1.dp,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.26f),
                                         shape = CircleShape
                                     )
                             } else {

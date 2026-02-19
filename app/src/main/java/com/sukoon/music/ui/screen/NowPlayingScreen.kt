@@ -8,14 +8,19 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
@@ -52,9 +57,11 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -68,6 +75,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.widget.Toast
@@ -101,11 +109,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.components.LiquidMeshBackground
-import androidx.compose.animation.Crossfade
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.SleepTimerDialog
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
+import kotlin.math.abs
 
 /**
  * NowPlaying Screen Spacing Constants
@@ -172,6 +180,110 @@ private val NowPlayingToggleButtonIconSize = 22.dp
 private val NowPlayingSongCrossfadeDuration = 800
 private val NowPlayingLikeBounceDuration = 300
 private val NowPlayingScreenEntryDuration = 500
+
+private enum class NowPlayingHeightBucket {
+    COMPACT,
+    REGULAR,
+    TALL
+}
+
+private data class NowPlayingSpacingSpec(
+    val topContentPadding: Dp,
+    val albumToMetadataSpacing: Dp,
+    val metadataToControlsSpacing: Dp,
+    val seekToPrimaryControlsSpacing: Dp,
+    val primaryControlsBottomSpacing: Dp,
+    val controlsToSecondarySpacing: Dp,
+    val bottomAfterSecondarySpacing: Dp,
+    val albumArtHorizontalPadding: Dp,
+    val metadataHorizontalPadding: Dp,
+    val controlsHorizontalPadding: Dp,
+    val secondaryHorizontalPadding: Dp,
+    val secondaryVerticalPadding: Dp,
+    val titleToArtistSpacing: Dp,
+    val artistToAlbumSpacing: Dp,
+    val seekToTimelineSpacing: Dp,
+    val lyricsHeaderVerticalPadding: Dp,
+    val lyricsHeaderToDividerSpacing: Dp,
+    val lyricsContentVerticalPadding: Dp,
+    val lyricsLineSpacing: Dp
+)
+
+private fun spacingForHeight(maxHeight: Dp): NowPlayingSpacingSpec {
+    val bucket = when {
+        maxHeight < 700.dp -> NowPlayingHeightBucket.COMPACT
+        maxHeight < 840.dp -> NowPlayingHeightBucket.REGULAR
+        else -> NowPlayingHeightBucket.TALL
+    }
+
+    return when (bucket) {
+        NowPlayingHeightBucket.COMPACT -> NowPlayingSpacingSpec(
+            topContentPadding = 8.dp,
+            albumToMetadataSpacing = 8.dp,
+            metadataToControlsSpacing = 6.dp,
+            seekToPrimaryControlsSpacing = 8.dp,
+            primaryControlsBottomSpacing = 8.dp,
+            controlsToSecondarySpacing = 6.dp,
+            bottomAfterSecondarySpacing = 8.dp,
+            albumArtHorizontalPadding = 8.dp,
+            metadataHorizontalPadding = 20.dp,
+            controlsHorizontalPadding = 8.dp,
+            secondaryHorizontalPadding = 16.dp,
+            secondaryVerticalPadding = 4.dp,
+            titleToArtistSpacing = 4.dp,
+            artistToAlbumSpacing = 2.dp,
+            seekToTimelineSpacing = 2.dp,
+            lyricsHeaderVerticalPadding = 12.dp,
+            lyricsHeaderToDividerSpacing = 8.dp,
+            lyricsContentVerticalPadding = 40.dp,
+            lyricsLineSpacing = 14.dp
+        )
+
+        NowPlayingHeightBucket.REGULAR -> NowPlayingSpacingSpec(
+            topContentPadding = 12.dp,
+            albumToMetadataSpacing = 10.dp,
+            metadataToControlsSpacing = 10.dp,
+            seekToPrimaryControlsSpacing = 12.dp,
+            primaryControlsBottomSpacing = 12.dp,
+            controlsToSecondarySpacing = 10.dp,
+            bottomAfterSecondarySpacing = 12.dp,
+            albumArtHorizontalPadding = 10.dp,
+            metadataHorizontalPadding = 24.dp,
+            controlsHorizontalPadding = 12.dp,
+            secondaryHorizontalPadding = 20.dp,
+            secondaryVerticalPadding = 6.dp,
+            titleToArtistSpacing = 6.dp,
+            artistToAlbumSpacing = 2.dp,
+            seekToTimelineSpacing = 4.dp,
+            lyricsHeaderVerticalPadding = 16.dp,
+            lyricsHeaderToDividerSpacing = 12.dp,
+            lyricsContentVerticalPadding = 56.dp,
+            lyricsLineSpacing = 18.dp
+        )
+
+        NowPlayingHeightBucket.TALL -> NowPlayingSpacingSpec(
+            topContentPadding = 16.dp,
+            albumToMetadataSpacing = 12.dp,
+            metadataToControlsSpacing = 14.dp,
+            seekToPrimaryControlsSpacing = 14.dp,
+            primaryControlsBottomSpacing = 16.dp,
+            controlsToSecondarySpacing = 12.dp,
+            bottomAfterSecondarySpacing = 16.dp,
+            albumArtHorizontalPadding = 12.dp,
+            metadataHorizontalPadding = 28.dp,
+            controlsHorizontalPadding = 16.dp,
+            secondaryHorizontalPadding = 24.dp,
+            secondaryVerticalPadding = 8.dp,
+            titleToArtistSpacing = 6.dp,
+            artistToAlbumSpacing = 2.dp,
+            seekToTimelineSpacing = 4.dp,
+            lyricsHeaderVerticalPadding = 16.dp,
+            lyricsHeaderToDividerSpacing = 12.dp,
+            lyricsContentVerticalPadding = 64.dp,
+            lyricsLineSpacing = 20.dp
+        )
+    }
+}
 
 /**
  * Now Playing Screen - Full-screen best style music player.
@@ -268,6 +380,7 @@ fun NowPlayingScreen(
                         playbackState = playbackState,
                         accentColor = accentColor,
                         sliderColor = accentColor,
+                        albumOverlayAlpha = (0.22f - (palette.dominant.luminance() * 0.16f)).coerceIn(0.06f, 0.18f),
                         onBackClick = onBackClick,
                         onPlayPauseClick = { viewModel.playPause() },
                         onNextClick = { viewModel.seekToNext() },
@@ -375,6 +488,7 @@ private fun NowPlayingContent(
     playbackState: PlaybackState,
     accentColor: Color,
     sliderColor: Color = accentColor,
+    albumOverlayAlpha: Float = 0.12f,
     onBackClick: () -> Unit,
     onPlayPauseClick: () -> Unit,
     onNextClick: () -> Unit,
@@ -491,17 +605,23 @@ private fun NowPlayingContent(
         val topBarOffset = (statusBarTopInset - 4.dp).coerceAtLeast(0.dp)
 
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-            val topBarHeight = 36.dp
-            val topContentPadding = 12.dp
-            val albumToMetadataSpacing = (maxHeight * 0.02f).coerceIn(NowPlayingAlbumToMetadataMin, 16.dp)
-            val metadataToControlsSpacing = if (maxHeight < 700.dp) 4.dp else 8.dp
-            val seekToPrimaryControlsSpacing = if (maxHeight < 700.dp) NowPlayingSeekToControlsCompact else NowPlayingSeekToControlsRegular
-            val primaryControlsBottomSpacing = if (maxHeight < 700.dp) NowPlayingControlsBottomCompact else NowPlayingControlsBottomRegular
-            val controlsToSecondarySpacing = if (maxHeight < 700.dp) NowPlayingControlsToSecondaryCompact else NowPlayingControlsToSecondaryRegular
+            val spacingSpec = spacingForHeight(maxHeight)
+            val topBarHeight = 44.dp
+            val topContentPadding = spacingSpec.topContentPadding
+            val albumToMetadataSpacing = spacingSpec.albumToMetadataSpacing
+            val metadataToControlsSpacing = spacingSpec.metadataToControlsSpacing
+            val seekToPrimaryControlsSpacing = spacingSpec.seekToPrimaryControlsSpacing
+            val primaryControlsBottomSpacing = spacingSpec.primaryControlsBottomSpacing
+            val controlsToSecondarySpacing = spacingSpec.controlsToSecondarySpacing
             val albumArtWeight = when {
-                maxHeight < 700.dp -> 0.62f
-                maxHeight < 840.dp -> 0.66f
-                else -> 0.70f
+                maxHeight < 700.dp -> 0.70f
+                maxHeight < 840.dp -> 0.76f
+                else -> 0.82f
+            }
+            val albumArtShadowElevation = when {
+                maxHeight < 700.dp -> 6.dp
+                maxHeight < 840.dp -> 8.dp
+                else -> 10.dp
             }
 
             // Content uses adaptive spacing so controls remain balanced on small and tall screens.
@@ -520,17 +640,16 @@ private fun NowPlayingContent(
                     song = song,
                     isPlaying = playbackState.isPlaying,
                     onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
-                    showLyricsModal = showLyricsModal,
-                    lyricsState = lyricsState,
-                    currentPosition = currentPosition,
-                    accentColor = accentColor,
                     onNextClick = onNextClick,
                     onPreviousClick = onPreviousClick,
+                    overlayAlpha = albumOverlayAlpha,
+                    shadowElevation = albumArtShadowElevation,
                     onLikeClick = {
                         playbackState.currentSong?.let { s ->
                             onLikeClick()
                         }
                     },
+                    horizontalPadding = spacingSpec.albumArtHorizontalPadding,
                     modifier = Modifier.weight(albumArtWeight)
                 )
 
@@ -556,7 +675,10 @@ private fun NowPlayingContent(
                         onAlbumClick = {
                             val albumId = song.album.hashCode().toLong()
                             onNavigateToAlbum(albumId)
-                        }
+                        },
+                        horizontalPadding = spacingSpec.metadataHorizontalPadding,
+                        titleToArtistSpacing = spacingSpec.titleToArtistSpacing,
+                        artistToAlbumSpacing = spacingSpec.artistToAlbumSpacing
                     )
                 }
 
@@ -573,7 +695,7 @@ private fun NowPlayingContent(
                     )
                 ) {
                     Column(
-                        modifier = Modifier.padding(vertical = 0.dp, horizontal = 16.dp)
+                        modifier = Modifier.padding(vertical = 0.dp, horizontal = spacingSpec.controlsHorizontalPadding)
                     ) {
                         // Seek Bar
                         SeekBarSection(
@@ -590,7 +712,8 @@ private fun NowPlayingContent(
                             onSeekEnd = {
                                 onSeekTo(seekPosition)
                                 isSeeking = false
-                            }
+                            },
+                            timelineTopSpacing = spacingSpec.seekToTimelineSpacing
                         )
 
                         Spacer(modifier = Modifier.height(seekToPrimaryControlsSpacing))
@@ -611,6 +734,8 @@ private fun NowPlayingContent(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(controlsToSecondarySpacing))
+
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
                     visible = !isImmersiveMode,
@@ -630,8 +755,12 @@ private fun NowPlayingContent(
                         onQueueClick = { showQueueModal = true },
                         onAddToPlaylistClick = { showPlaylistDialog = true },
                         onTimerClick = { showSleepTimerDialog = true },
-                        isTimerActive = isSleepTimerActive
+                        isTimerActive = isSleepTimerActive,
+                        horizontalPadding = spacingSpec.secondaryHorizontalPadding,
+                        verticalPadding = spacingSpec.secondaryVerticalPadding
                     )
+
+                    Spacer(modifier = Modifier.height(spacingSpec.bottomAfterSecondarySpacing))
                 }
         }
         }
@@ -747,29 +876,29 @@ private fun AlbumArtSection(
     song: Song,
     isPlaying: Boolean,
     onAlbumArtClick: () -> Unit,
-    showLyricsModal: Boolean = false,
-    lyricsState: LyricsState = LyricsState.NotFound,
-    currentPosition: Long = 0L,
-    accentColor: Color = MaterialTheme.colorScheme.primary,
     onNextClick: () -> Unit = {},
     onPreviousClick: () -> Unit = {},
+    horizontalPadding: Dp = NowPlayingAlbumArtHorizontalPadding,
+    shadowElevation: Dp = NowPlayingAlbumArtShadow,
+    overlayAlpha: Float = 0.12f,
     modifier: Modifier = Modifier,
     onLikeClick: () -> Unit = {}
 ) {
-    // Track whether album art loaded successfully
-    var hasAlbumArt by remember { mutableStateOf(false) }
     // Track horizontal swipe for next/previous navigation
     var horizontalDragOffset by remember { mutableFloatStateOf(0f) }
+    var transitionDirection by remember { mutableIntStateOf(0) } // 1 = next, -1 = previous
     val swipeThresholdPx = with(LocalDensity.current) { 72.dp.toPx() }
+    val swipeVelocityThreshold = 1200f
     val context = LocalContext.current
+    val albumArtCacheKey = song.albumArtUri?.takeIf { it.isNotBlank() } ?: "song_${song.id}"
     val albumArtRequest = remember(song.id, song.albumArtUri) {
         ImageRequest.Builder(context)
             .data(song.albumArtUri)
-            .crossfade(220)
+            .crossfade(false)
             .allowHardware(true)
             .precision(Precision.EXACT)
-            .memoryCacheKey("now_playing_album_${song.id}")
-            .diskCacheKey(song.albumArtUri?.toString() ?: "song_${song.id}")
+            .memoryCacheKey("now_playing_album_$albumArtCacheKey")
+            .diskCacheKey(albumArtCacheKey)
             .build()
     }
 
@@ -789,68 +918,108 @@ private fun AlbumArtSection(
     )
 
     // Smoothly transition between animated scale and static 1.0 when pausing
+    val isDragging = abs(horizontalDragOffset) > 0.5f
     val animatedScale by animateFloatAsState(
-        targetValue = if (isPlaying) breathScale else 1.0f,
+        targetValue = if (isPlaying && !isDragging) breathScale else 1.0f,
         animationSpec = tween(durationMillis = 1000),
         label = "smooth_breath_transition"
     )
+    val animatedDragOffset by animateFloatAsState(
+        targetValue = horizontalDragOffset,
+        animationSpec = spring(dampingRatio = 0.75f, stiffness = 450f),
+        label = "album_drag_offset"
+    )
+    val dragVisualTranslationX = (animatedDragOffset * 0.22f).coerceIn(-48f, 48f)
+    val dragVisualRotation = (animatedDragOffset / 42f).coerceIn(-3f, 3f)
+
+    LaunchedEffect(song.id) {
+        transitionDirection = 0
+    }
 
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = NowPlayingAlbumArtHorizontalPadding)
+            .padding(horizontal = horizontalPadding)
             .graphicsLayer {
                 scaleX = animatedScale
                 scaleY = animatedScale
             }
     ) {
-        // Crossfade on song change
+        // Album art transition on song change (directional for swipe actions)
         AnimatedContent(
             targetState = song.id,
             transitionSpec = {
-                fadeIn(animationSpec = tween(NowPlayingSongCrossfadeDuration)) togetherWith
-                        fadeOut(animationSpec = tween(NowPlayingSongCrossfadeDuration))
+                when (transitionDirection) {
+                    1 -> {
+                        (slideInHorizontally(
+                            animationSpec = tween(260, easing = FastOutSlowInEasing),
+                            initialOffsetX = { it / 3 }
+                        ) + fadeIn(animationSpec = tween(220))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { -it / 3 }
+                                ) + fadeOut(animationSpec = tween(200)))
+                    }
+                    -1 -> {
+                        (slideInHorizontally(
+                            animationSpec = tween(260, easing = FastOutSlowInEasing),
+                            initialOffsetX = { -it / 3 }
+                        ) + fadeIn(animationSpec = tween(220))) togetherWith
+                                (slideOutHorizontally(
+                                    animationSpec = tween(220, easing = FastOutSlowInEasing),
+                                    targetOffsetX = { it / 3 }
+                                ) + fadeOut(animationSpec = tween(200)))
+                    }
+                    else -> {
+                        fadeIn(animationSpec = tween(NowPlayingSongCrossfadeDuration)) togetherWith
+                                fadeOut(animationSpec = tween(NowPlayingSongCrossfadeDuration))
+                    }
+                }
             },
-            label = "album_art_crossfade"
-        ) { songId ->
+            label = "album_art_transition"
+        ) { _ ->
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .shadow(NowPlayingAlbumArtShadow, RoundedCornerShape(NowPlayingAlbumArtRoundedCorners))
+                    .graphicsLayer {
+                        translationX = dragVisualTranslationX
+                        rotationZ = dragVisualRotation
+                    }
+                    .shadow(shadowElevation, RoundedCornerShape(NowPlayingAlbumArtRoundedCorners))
                     .clip(RoundedCornerShape(NowPlayingAlbumArtRoundedCorners))
-                    .pointerInput(swipeThresholdPx) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                // Swipe left (negative): next track
-                                if (horizontalDragOffset < -swipeThresholdPx) {
+                    .draggable(
+                        orientation = Orientation.Horizontal,
+                        state = rememberDraggableState { delta ->
+                            horizontalDragOffset = (horizontalDragOffset + delta).coerceIn(-320f, 320f)
+                        },
+                        onDragStopped = { velocity ->
+                            val shouldGoNext = horizontalDragOffset < -swipeThresholdPx || velocity < -swipeVelocityThreshold
+                            val shouldGoPrevious = horizontalDragOffset > swipeThresholdPx || velocity > swipeVelocityThreshold
+                            when {
+                                shouldGoNext -> {
+                                    transitionDirection = 1
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onNextClick()
                                 }
-                                // Swipe right (positive): previous track
-                                else if (horizontalDragOffset > swipeThresholdPx) {
+                                shouldGoPrevious -> {
+                                    transitionDirection = -1
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                     onPreviousClick()
                                 }
-                                horizontalDragOffset = 0f
-                            },
-                            onDragCancel = {
-                                horizontalDragOffset = 0f
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                horizontalDragOffset += dragAmount
                             }
-                        )
-                    }
-                    .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { onAlbumArtClick() },
-                            onDoubleTap = {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onLikeClick()
-                            }
-                        )
-                    },
+                            horizontalDragOffset = 0f
+                        }
+                    )
+                    .combinedClickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onAlbumArtClick,
+                        onDoubleClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onLikeClick()
+                        }
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 // Album Art Image with gradient overlay
@@ -860,9 +1029,8 @@ private fun AlbumArtSection(
                         contentDescription = stringResource(R.string.now_playing_album_art, song.title),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
-                        filterQuality = FilterQuality.High,
+                        filterQuality = FilterQuality.Medium,
                         loading = {
-                            hasAlbumArt = false
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -887,7 +1055,6 @@ private fun AlbumArtSection(
                             }
                         },
                         error = {
-                            hasAlbumArt = false
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -905,8 +1072,7 @@ private fun AlbumArtSection(
                                     iconOpacity = 0.8f
                                 )
                             }
-                        },
-                        onSuccess = { hasAlbumArt = true }
+                        }
                     )
 
                     // Subtle gradient overlay for premium look
@@ -917,7 +1083,7 @@ private fun AlbumArtSection(
                                 Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.15f)
+                                        Color.Black.copy(alpha = overlayAlpha)
                                     ),
                                     startY = 0f,
                                     endY = Float.POSITIVE_INFINITY
@@ -943,7 +1109,10 @@ private fun TrackMetadataSection(
     song: Song,
     onLikeClick: () -> Unit,
     onArtistClick: () -> Unit,
-    onAlbumClick: () -> Unit
+    onAlbumClick: () -> Unit,
+    horizontalPadding: Dp = NowPlayingMetadataHorizontalPadding,
+    titleToArtistSpacing: Dp = 6.dp,
+    artistToAlbumSpacing: Dp = 2.dp
 ) {
     val likeStateDescription = if (song.isLiked) stringResource(R.string.now_playing_liked) else stringResource(R.string.now_playing_not_liked)
 
@@ -963,8 +1132,8 @@ private fun TrackMetadataSection(
                 .padding(
                     top = NowPlayingMetadataTopPadding,
                     bottom = NowPlayingMetadataBottomPadding,
-                    start = NowPlayingMetadataHorizontalPadding,
-                    end = NowPlayingMetadataHorizontalPadding
+                    start = horizontalPadding,
+                    end = horizontalPadding
                 ),
             horizontalAlignment = Alignment.Start
         ) {
@@ -999,7 +1168,7 @@ private fun TrackMetadataSection(
                     )
 
                     if (song.artist.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(titleToArtistSpacing))
                         Text(
                             text = song.artist,
                             style = MaterialTheme.typography.bodyMedium.copy(
@@ -1019,7 +1188,7 @@ private fun TrackMetadataSection(
                     }
 
                     if (song.album.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(2.dp))
+                        Spacer(modifier = Modifier.height(artistToAlbumSpacing))
                         Text(
                             text = song.album,
                             style = MaterialTheme.typography.bodySmall.copy(
@@ -1125,7 +1294,8 @@ private fun SeekBarSection(
     seekPosition: Long,
     onSeekStart: () -> Unit,
     onSeekChange: (Long) -> Unit,
-    onSeekEnd: () -> Unit
+    onSeekEnd: () -> Unit,
+    timelineTopSpacing: Dp = 4.dp
 ) {
     // Progress bar: 2dp height, soft neutral inactive track, accent active portion
     // Thumb: 6dp circle, expands to 12dp on drag
@@ -1245,7 +1415,9 @@ private fun SeekBarSection(
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = timelineTopSpacing),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
@@ -1623,14 +1795,16 @@ private fun SecondaryActionsSection(
     onQueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onTimerClick: () -> Unit,
-    isTimerActive: Boolean
+    isTimerActive: Boolean,
+    horizontalPadding: Dp = 20.dp,
+    verticalPadding: Dp = 6.dp
 ) {
     val haptic = LocalHapticFeedback.current
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp, horizontal = 20.dp),
+            .padding(vertical = verticalPadding, horizontal = horizontalPadding),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1769,6 +1943,8 @@ private fun LyricsModalSheet(
     onSeekTo: (Long) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    val spacingSpec = spacingForHeight(screenHeight)
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -1796,7 +1972,7 @@ private fun LyricsModalSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 16.dp),
+                    .padding(horizontal = 24.dp, vertical = spacingSpec.lyricsHeaderVerticalPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
@@ -1824,7 +2000,7 @@ private fun LyricsModalSheet(
             }
 
             // Divider
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+            HorizontalDivider(modifier = Modifier.padding(vertical = spacingSpec.lyricsHeaderToDividerSpacing))
 
             // Lyrics content - fills remaining space
             SpotifyStyleSyncedLyrics(
@@ -1832,6 +2008,8 @@ private fun LyricsModalSheet(
                 currentPosition = currentPosition,
                 accentColor = accentColor,
                 onSeekTo = onSeekTo,
+                lyricsLineSpacing = spacingSpec.lyricsLineSpacing,
+                lyricsContentVerticalPadding = spacingSpec.lyricsContentVerticalPadding,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -1852,6 +2030,8 @@ private fun SpotifyStyleSyncedLyrics(
     currentPosition: Long,
     accentColor: Color,
     onSeekTo: (Long) -> Unit,
+    lyricsLineSpacing: Dp = NowPlayingLyricsLineSpacing,
+    lyricsContentVerticalPadding: Dp = 60.dp,
     modifier: Modifier = Modifier
 ) {
     when (lyricsState) {
@@ -1885,6 +2065,8 @@ private fun SpotifyStyleSyncedLyrics(
                     currentPosition = currentPosition,
                     accentColor = accentColor,
                     onSeekTo = onSeekTo,
+                    lyricsLineSpacing = lyricsLineSpacing,
+                    lyricsContentVerticalPadding = lyricsContentVerticalPadding,
                     modifier = modifier
                 )
             } else if (!lyricsState.lyrics.plainLyrics.isNullOrBlank()) {
@@ -1936,6 +2118,8 @@ private fun SyncedLyricsView(
     currentPosition: Long,
     accentColor: Color,
     onSeekTo: (Long) -> Unit,
+    lyricsLineSpacing: Dp = NowPlayingLyricsLineSpacing,
+    lyricsContentVerticalPadding: Dp = 60.dp,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -1958,8 +2142,8 @@ private fun SyncedLyricsView(
             state = listState,
             modifier = Modifier.fillMaxSize(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(NowPlayingLyricsLineSpacing),
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 60.dp)
+            verticalArrangement = Arrangement.spacedBy(lyricsLineSpacing),
+            contentPadding = PaddingValues(horizontal = 24.dp, vertical = lyricsContentVerticalPadding)
         ) {
             itemsIndexed(
                 items = lines,

@@ -38,6 +38,16 @@
             </intent-filter>
         </service>
 
+        <!-- MediaBrowserService for Android Auto app discovery and control -->
+        <service
+            android:name=".data.service.AndroidAutoMediaBrowserService"
+            android:exported="true"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.media.browse.MediaBrowserService" />
+            </intent-filter>
+        </service>
+
         <!-- FileProvider for sharing audio files -->
         <provider
             android:name="androidx.core.content.FileProvider"
