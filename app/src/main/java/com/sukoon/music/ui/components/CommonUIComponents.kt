@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
+import kotlinx.coroutines.delay
 
 private val TopBarRowVerticalPaddingDefault = 8.dp
 private val TopBarRowVerticalPaddingCompact = 6.dp
@@ -140,9 +141,7 @@ internal fun PrivateSessionIndicatorStrip(
 ) {
     if (!sessionState.isActive) return
 
-    val remainingMs by remember(sessionState.startedAtMs) {
-        derivedStateOf { sessionState.getTimeRemainingMs() }
-    }
+    val remainingMs by rememberSessionRemainingMs(sessionState)
     val remainingMinutes = (remainingMs / 1000 / 60).toInt()
 
     Surface(
@@ -176,6 +175,28 @@ internal fun PrivateSessionIndicatorStrip(
                 color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
             )
         }
+    }
+}
+
+@Composable
+private fun rememberSessionRemainingMs(
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState
+): State<Long> = produceState(
+    initialValue = sessionState.getTimeRemainingMs(),
+    key1 = sessionState.isActive,
+    key2 = sessionState.startedAtMs,
+    key3 = sessionState.expiryTimeMs
+) {
+    if (!sessionState.isActive) {
+        value = 0L
+        return@produceState
+    }
+
+    while (true) {
+        val remaining = sessionState.getTimeRemainingMs()
+        value = remaining
+        if (remaining <= 0L) break
+        delay(1000)
     }
 }
 
@@ -862,9 +883,7 @@ fun PrivateSessionIndicator(
 ) {
     if (!sessionState.isActive) return
 
-    val remainingMs by remember(sessionState.startedAtMs) {
-        derivedStateOf { sessionState.getTimeRemainingMs() }
-    }
+    val remainingMs by rememberSessionRemainingMs(sessionState)
     val remainingMinutes = (remainingMs / 1000 / 60).toInt()
 
     Surface(

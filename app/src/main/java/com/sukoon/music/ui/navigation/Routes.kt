@@ -86,7 +86,9 @@ sealed class Routes(val route: String) {
     /**
      * Settings screen - App preferences and configuration.
      */
-    data object Settings : Routes("settings")
+    data object Settings : Routes("settings?openPremium={openPremium}") {
+        fun createRoute(openPremiumDialog: Boolean = false) = "settings?openPremium=$openPremiumDialog"
+    }
 
     /**
      * Feedback report screen - user can submit issues/suggestions.
@@ -186,5 +188,6 @@ sealed class Routes(val route: String) {
 
     companion object {
         const val ARG_GENRE_ID = "genreId"
+        const val ARG_OPEN_PREMIUM = "openPremium"
     }
 }

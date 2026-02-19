@@ -52,8 +52,7 @@ fun HomeTabScreen(
     viewModel: HomeViewModel,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToAlbumDetail: (Long) -> Unit,
-    onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit,
-    onSettingsClick: () -> Unit = {}
+    onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit
 ) {
     // Collect listening stats from ViewModel
     val listeningStats = viewModel.listeningStats.collectAsStateWithLifecycle().value

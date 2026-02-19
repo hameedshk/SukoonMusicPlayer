@@ -25,8 +25,11 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -52,6 +55,11 @@ class HomeViewModel @Inject constructor(
     private val analyticsTracker: AnalyticsTracker,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    sealed interface ManualScanResult {
+        data class Success(val totalSongs: Int) : ManualScanResult
+        data class Error(val message: String) : ManualScanResult
+    }
 
     companion object {
         private const val TAG = "HomeViewModel"
@@ -178,9 +186,9 @@ class HomeViewModel @Inject constructor(
     // Scan State
     val scanState: StateFlow<ScanState> = songRepository.scanState
 
-    // Track if current scan was user-initiated (for toast visibility)
-    private val _isUserInitiatedScan = MutableStateFlow(false)
-    val isUserInitiatedScan: StateFlow<Boolean> = _isUserInitiatedScan.asStateFlow()
+    // One-shot manual scan result events used by UI for toast notifications.
+    private val _manualScanResults = MutableSharedFlow<ManualScanResult>(extraBufferCapacity = 1)
+    val manualScanResults: SharedFlow<ManualScanResult> = _manualScanResults.asSharedFlow()
 
     // Playback State
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
@@ -219,16 +227,29 @@ class HomeViewModel @Inject constructor(
      */
     fun scanLocalMusic() {
         viewModelScope.launch {
-            _isUserInitiatedScan.value = true
-            songRepository.scanLocalMusic()
-        }
-    }
+            val callSucceeded = try {
+                songRepository.scanLocalMusic()
+            } catch (error: Exception) {
+                _manualScanResults.emit(
+                    ManualScanResult.Error("Scan failed: ${error.message ?: "Unknown error"}")
+                )
+                return@launch
+            }
 
-    /**
-     * Reset the user-initiated scan flag after toast is shown.
-     */
-    fun resetUserInitiatedScanFlag() {
-        _isUserInitiatedScan.value = false
+            when (val state = scanState.value) {
+                is ScanState.Success -> {
+                    _manualScanResults.emit(ManualScanResult.Success(state.totalSongs))
+                }
+                is ScanState.Error -> {
+                    _manualScanResults.emit(ManualScanResult.Error(state.error))
+                }
+                else -> {
+                    if (!callSucceeded) {
+                        _manualScanResults.emit(ManualScanResult.Error("Scan failed"))
+                    }
+                }
+            }
+        }
     }
 
     fun playSong(song: Song) {

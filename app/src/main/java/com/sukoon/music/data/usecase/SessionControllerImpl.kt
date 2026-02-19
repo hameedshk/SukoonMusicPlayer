@@ -94,13 +94,13 @@ class SessionControllerImpl @Inject constructor() : SessionController {
      */
     private fun scheduleAutoExpiry() {
         expiryJob?.cancel()
+        val scheduledStartTime = _sessionState.value.startedAtMs
 
         expiryJob = scope.launch {
             delay(SESSION_EXPIRY_MS)
-            // After delay, check if session is still active and same start time
+            // Auto-expire only if the same session is still active.
             val current = _sessionState.value
-            if (current.isActive && !current.hasExpired()) {
-                // Session expired due to inactivity, deactivate it
+            if (current.isActive && current.startedAtMs == scheduledStartTime) {
                 _sessionState.value = PlaybackSessionState()
             }
         }

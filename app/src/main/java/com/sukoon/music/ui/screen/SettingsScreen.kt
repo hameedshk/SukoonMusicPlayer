@@ -12,6 +12,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,6 +71,7 @@ import dagger.hilt.android.EntryPointAccessors
 @Composable
 fun SettingsScreen(
     onBackClick: () -> Unit,
+    openPremiumDialog: Boolean = false,
     onNavigateToPlaylists: () -> Unit = {},
     onNavigateToSongs: () -> Unit = {},
     onNavigateToEqualizer: () -> Unit = {},
@@ -119,7 +121,7 @@ fun SettingsScreen(
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showMinDurationDialog by remember { mutableStateOf(false) }
     var showRescanDialog by remember { mutableStateOf(false) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by rememberSaveable(openPremiumDialog) { mutableStateOf(openPremiumDialog) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()

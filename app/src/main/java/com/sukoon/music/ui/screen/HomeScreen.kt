@@ -59,7 +59,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.flowOf
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.*
 import com.sukoon.music.ui.components.*
@@ -98,10 +97,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Log
 import android.widget.Toast
 import com.sukoon.music.data.mediastore.DeleteHelper
-import com.sukoon.music.data.premium.PremiumManager
-import com.sukoon.music.data.ads.AdMobManager
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.theme.*
@@ -115,18 +113,12 @@ import kotlin.math.abs
 fun HomeScreen(
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToSearch: () -> Unit = {},
-    onNavigateToLikedSongs: () -> Unit = {},
-    onNavigateToArtists: () -> Unit = {},
     onNavigateToArtistDetail: (Long) -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
-    onNavigateToSongs: () -> Unit = {},
-    onNavigateToSongSelection: () -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
     onNavigateToAlbumSelection: () -> Unit = {},
     onNavigateToArtistSelection: () -> Unit = {},
     onNavigateToGenreSelection: () -> Unit = {},
-    onNavigateToPlaylists: () -> Unit = {},
-    onNavigateToFolders: () -> Unit = {},
-    onNavigateToGenres: () -> Unit = {},
     onNavigateToPlaylistDetail: (Long) -> Unit = {},
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     onNavigateToRestorePlaylist: () -> Unit = {},
@@ -135,46 +127,54 @@ fun HomeScreen(
     onNavigateToGenreDetail: (Long) -> Unit = {},
     username: String = "",
     viewModel: HomeViewModel = hiltViewModel(),
-    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel(),
-    folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel = hiltViewModel()
+    playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
     val songs by viewModel.songs.collectAsStateWithLifecycle()
     val recentlyPlayed by viewModel.recentlyPlayed.collectAsStateWithLifecycle()
     val rediscoverAlbums by viewModel.rediscoverAlbums.collectAsStateWithLifecycle()
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
-    val isUserInitiatedScan by viewModel.isUserInitiatedScan.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
 
     // Get managers from Hilt entry points for use in non-injected contexts
     val appContext = LocalContext.current
+    val tag = "HomeScreen"
 
-    // Get PremiumManager to check if user is premium (for ad injection)
-    val premiumManager = try {
-        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java).premiumManager()
-    } catch (e: Exception) {
-        null
-    }
-    val premiumFlow = premiumManager?.isPremiumUser ?: flowOf(false)
-    val isPremium by premiumFlow.collectAsStateWithLifecycle(false)
-
-    // Get AdMobManager for native ad loading
-    val adMobManager = try {
-        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.AdMobManagerEntryPoint::class.java).adMobManager()
-    } catch (e: Exception) {
-        null
+    // Resolve app-level managers once per context to avoid repeated lookup on recomposition.
+    val adMobManager = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                com.sukoon.music.ui.navigation.AdMobManagerEntryPoint::class.java
+            ).adMobManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve AdMobManager entry point", error)
+            null
+        }
     }
 
-    val preferencesManager = try {
-        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.PreferencesManagerEntryPoint::class.java).preferencesManager()
-    } catch (e: Exception) {
-        null
+    val preferencesManager = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                com.sukoon.music.ui.navigation.PreferencesManagerEntryPoint::class.java
+            ).preferencesManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve PreferencesManager entry point", error)
+            null
+        }
     }
 
-    val remoteConfigManager = try {
-        EntryPointAccessors.fromApplication(appContext, com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint::class.java).remoteConfigManager()
-    } catch (e: Exception) {
-        null
+    val remoteConfigManager = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint::class.java
+            ).remoteConfigManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve RemoteConfigManager entry point", error)
+            null
+        }
     }
 
     // Use provided username or default greeting
@@ -187,15 +187,17 @@ fun HomeScreen(
         viewModel.setSelectedTab(tab)
     }
 
-    val tabs = listOf(
-        HomeTabSpec(HomeTabKey.HOME, "Hi $displayUsername", Icons.Default.Home),
-        HomeTabSpec(HomeTabKey.SONGS, "Songs", Icons.Default.MusicNote),
-        HomeTabSpec(HomeTabKey.PLAYLISTS, "Playlists", Icons.AutoMirrored.Filled.List),
-        HomeTabSpec(HomeTabKey.FOLDERS, "Folders", Icons.Default.Folder),
-        HomeTabSpec(HomeTabKey.ALBUMS, "Albums", Icons.Default.Album),
-        HomeTabSpec(HomeTabKey.ARTISTS, "Artists", Icons.Default.Person),
-        HomeTabSpec(HomeTabKey.GENRES, "Genres", Icons.Default.Star)
-    )
+    val tabs = remember(displayUsername) {
+        listOf(
+            HomeTabSpec(HomeTabKey.HOME, "Hi $displayUsername", Icons.Default.Home),
+            HomeTabSpec(HomeTabKey.SONGS, "Songs", Icons.Default.MusicNote),
+            HomeTabSpec(HomeTabKey.PLAYLISTS, "Playlists", Icons.AutoMirrored.Filled.List),
+            HomeTabSpec(HomeTabKey.FOLDERS, "Folders", Icons.Default.Folder),
+            HomeTabSpec(HomeTabKey.ALBUMS, "Albums", Icons.Default.Album),
+            HomeTabSpec(HomeTabKey.ARTISTS, "Artists", Icons.Default.Person),
+            HomeTabSpec(HomeTabKey.GENRES, "Genres", Icons.Default.Star)
+        )
+    }
 
 
     val permissionState = rememberAudioPermissionState(
@@ -207,23 +209,26 @@ fun HomeScreen(
     // Auto-scan on startup is now handled by HomeViewModel.tryStartupScan()
     // This prevents duplicate scans and respects the scanOnStartup preference + 30-min deduplication
 
-    // Show toast only for user-initiated scans (not startup scans)
-    LaunchedEffect(scanState, isUserInitiatedScan) {
-        if (isUserInitiatedScan) {
-            if (scanState is ScanState.Success) {
-                val totalSongs = (scanState as ScanState.Success).totalSongs
-                Toast.makeText(
-                    appContext,
-                    "Scan completed: $totalSongs songs found",
-                    Toast.LENGTH_LONG
-                ).show()
-                // Reset flag after showing toast
-                viewModel.resetUserInitiatedScanFlag()
-            } else if (scanState is ScanState.Error) {
-                val errorMsg = (scanState as ScanState.Error).error
-                Toast.makeText(appContext, "Scan failed: $errorMsg", Toast.LENGTH_LONG).show()
-                // Reset flag after showing toast
-                viewModel.resetUserInitiatedScanFlag()
+    // Show toast for explicit manual scan result events only.
+    LaunchedEffect(viewModel, appContext) {
+        viewModel.manualScanResults.collect { result ->
+            when (result) {
+                is HomeViewModel.ManualScanResult.Success -> {
+                    val totalSongs = result.totalSongs
+                    Toast.makeText(
+                        appContext,
+                        "Scan completed: $totalSongs songs found",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+                is HomeViewModel.ManualScanResult.Error -> {
+                    val toastMessage = if (result.message.startsWith("Scan failed", ignoreCase = true)) {
+                        result.message
+                    } else {
+                        "Scan failed: ${result.message}"
+                    }
+                    Toast.makeText(appContext, toastMessage, Toast.LENGTH_LONG).show()
+                }
             }
         }
     }
@@ -320,7 +325,7 @@ fun HomeScreen(
                             }
                     ) {
                         RedesignedTopBar(
-                            onPremiumClick = { },
+                            onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
                             sessionState = sessionState,
@@ -408,8 +413,7 @@ fun HomeScreen(
                                     viewModel = viewModel,
                                     onNavigateToNowPlaying = onNavigateToNowPlaying,
                                     onNavigateToAlbumDetail = onNavigateToAlbumDetail,
-                                    onNavigateToSmartPlaylist = onNavigateToSmartPlaylist,
-                                    onSettingsClick = onNavigateToSettings
+                                    onNavigateToSmartPlaylist = onNavigateToSmartPlaylist
                                 )
                             }
                             HomeTabKey.SONGS -> {

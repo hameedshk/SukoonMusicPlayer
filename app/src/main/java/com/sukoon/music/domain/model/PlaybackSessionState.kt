@@ -16,7 +16,7 @@ data class PlaybackSessionState(
     fun hasExpired(): Boolean {
         if (!isActive) return false
         val elapsedMs = System.currentTimeMillis() - startedAtMs
-        return elapsedMs > expiryTimeMs
+        return elapsedMs >= expiryTimeMs
     }
 
     /** Get remaining time before auto-expiry in milliseconds. */

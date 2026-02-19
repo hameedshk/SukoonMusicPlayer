@@ -77,26 +77,14 @@ fun SukoonNavHost(
                 onNavigateToSearch = {
                     navController.navigate(Routes.Search.route)
                 },
-                onNavigateToLikedSongs = {
-                    navController.navigate(Routes.LikedSongs.route)
-                },
                 onNavigateToArtistDetail = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },
                 onNavigateToSettings = {
-                    navController.navigate(Routes.Settings.route)
+                    navController.navigate(Routes.Settings.createRoute())
                 },
-                onNavigateToSongs = {
-                    navController.navigate(Routes.Songs.route)
-                },
-                onNavigateToPlaylists = {
-                    navController.navigate(Routes.Playlists.route)
-                },
-                onNavigateToFolders = {
-                    navController.navigate(Routes.Folders.route)
-                },
-                onNavigateToGenres = {
-                    navController.navigate(Routes.Genres.route)
+                onNavigateToPremium = {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
                 },
                 onNavigateToPlaylistDetail = { playlistId ->
                     navController.navigate(Routes.PlaylistDetail.createRoute(playlistId))
@@ -115,9 +103,6 @@ fun SukoonNavHost(
                 },
                 onNavigateToGenreDetail = { genreId ->
                     navController.navigate(Routes.GenreDetail.createRoute(genreId))
-                },
-                onNavigateToSongSelection = {
-                    navController.navigate(Routes.SongSelection.route)
                 },
                 onNavigateToAlbumSelection = {
                     navController.navigate(Routes.AlbumSelection.route)
@@ -317,11 +302,21 @@ fun SukoonNavHost(
         }
 
         // Settings Screen - App preferences
-        composable(route = Routes.Settings.route) {
+        composable(
+            route = Routes.Settings.route,
+            arguments = listOf(
+                navArgument(Routes.ARG_OPEN_PREMIUM) {
+                    type = NavType.BoolType
+                    defaultValue = false
+                }
+            )
+        ) { backStackEntry ->
+            val openPremiumDialog = backStackEntry.arguments?.getBoolean(Routes.ARG_OPEN_PREMIUM) ?: false
             SettingsScreen(
                 onBackClick = {
                     navController.navigateUp()
                 },
+                openPremiumDialog = openPremiumDialog,
                 onNavigateToPlaylists = {
                     navController.navigate(Routes.Playlists.route)
                 },
