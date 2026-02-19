@@ -1,6 +1,7 @@
 package com.sukoon.music.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,6 +41,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -63,9 +66,9 @@ import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 
 private enum class PlaylistSortMode(val label: String) {
-    RECENT("Recently added"),
-    NAME("Name A-Z"),
-    SONG_COUNT("Song count")
+    RECENT("Recent"),
+    NAME("Name"),
+    SONG_COUNT("Songs")
 }
 
 /**
@@ -126,7 +129,7 @@ fun PlaylistsScreen(
             start = 16.dp,
             end = 16.dp
         ),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
             PlaylistActionsSection(
@@ -153,19 +156,26 @@ fun PlaylistsScreen(
                 )
             }
             item {
-                val heading = if (playlistSearchQuery.isBlank()) {
-                    "My playlists (${visiblePlaylists.size})"
+                val subtitle = if (playlistSearchQuery.isBlank()) {
+                    "${visiblePlaylists.size} playlists"
                 } else {
-                    "My playlists (${visiblePlaylists.size} of ${playlists.size})"
+                    "${visiblePlaylists.size} of ${playlists.size} results"
                 }
-                Text(
-                    text = heading,
-                    style = MaterialTheme.typography.playlistSectionHeader,
-                    modifier = Modifier
-                        .padding(vertical = 8.dp)
-                        .baselineGridPadding(4, 4),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
+                Column(
+                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = "My playlists",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
 
             if (visiblePlaylists.isNotEmpty()) {
@@ -322,8 +332,7 @@ private fun SmartPlaylistsSection(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
             text = "Smart playlists",
-            style = MaterialTheme.typography.playlistSectionHeader,
-            modifier = Modifier.baselineGridPadding(4, 4),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
@@ -360,12 +369,12 @@ private fun SmartPlaylistsSection(
 @Composable
 private fun getSmartPlaylistColor(type: SmartPlaylistType): Color {
     return when (type) {
-        SmartPlaylistType.MY_FAVOURITE -> Color(0xFF4A6FA5)
-        SmartPlaylistType.LAST_ADDED -> Color(0xFF4A9B6A)
-        SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF7E57C2)
-        SmartPlaylistType.MOST_PLAYED -> Color(0xFFE57373)
-        SmartPlaylistType.NEVER_PLAYED -> Color(0xFF90A4AE)
-        SmartPlaylistType.DISCOVER -> Color(0xFFD4E157)
+        SmartPlaylistType.MY_FAVOURITE -> Color(0xFF5E7FA3)
+        SmartPlaylistType.LAST_ADDED -> Color(0xFF5A8A74)
+        SmartPlaylistType.RECENTLY_PLAYED -> Color(0xFF6D7FA1)
+        SmartPlaylistType.MOST_PLAYED -> Color(0xFFB06D6A)
+        SmartPlaylistType.NEVER_PLAYED -> Color(0xFF6E8894)
+        SmartPlaylistType.DISCOVER -> Color(0xFF9AA75E)
     }
 }
 
@@ -384,32 +393,47 @@ private fun SmartPlaylistCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .height(112.dp),
+            .height(112.dp)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .semantics {
+                contentDescription = "${smartPlaylist.title}, ${smartPlaylist.songCount} songs"
+            },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+            containerColor = MaterialTheme.colorScheme.surfaceContainer
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 2.dp,
             pressedElevation = 4.dp
         )
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxSize()
-                .background(accentColor.copy(alpha = 0.14f))
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(accentColor.copy(alpha = 0.7f))
+            )
             Column(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
+                    .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Box(
                     modifier = Modifier
                         .size(30.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.22f)),
+                        .background(accentColor.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -428,12 +452,12 @@ private fun SmartPlaylistCard(
                 )
                 Surface(
                     shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.75f)
+                    color = accentColor.copy(alpha = 0.12f)
                 ) {
                     Text(
                         text = "${smartPlaylist.songCount} songs",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = accentColor,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
@@ -452,39 +476,38 @@ private fun PlaylistActionsSection(
     onImportClick: () -> Unit,
     deletedPlaylistsCount: Int
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             text = "Quick actions",
-            style = MaterialTheme.typography.playlistSectionHeader,
-            modifier = Modifier.baselineGridPadding(4, 4),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground
         )
         Surface(
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
             tonalElevation = 1.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 QuickActionButton(
                     icon = Icons.Default.Add,
                     text = "Create",
                     onClick = onCreateClick,
                     modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    contentColor = MaterialTheme.colorScheme.primary
                 )
                 QuickActionButton(
                     icon = Icons.Default.Upload,
                     text = "Import",
                     onClick = onImportClick,
                     modifier = Modifier.weight(1f),
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+                    containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
+                    contentColor = MaterialTheme.colorScheme.tertiary
                 )
                 QuickActionButton(
                     icon = Icons.Default.Restore,
@@ -492,8 +515,8 @@ private fun PlaylistActionsSection(
                     onClick = onRestoreClick,
                     modifier = Modifier.weight(1f),
                     badgeCount = deletedPlaylistsCount,
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.14f),
+                    contentColor = MaterialTheme.colorScheme.secondary
                 )
             }
         }
@@ -515,10 +538,16 @@ private fun QuickActionButton(
 ) {
     Card(
         onClick = onClick,
-        modifier = modifier.height(78.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier
+            .height(84.dp)
+            .semantics { contentDescription = text },
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = containerColor
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = contentColor.copy(alpha = 0.22f)
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = 0.dp,
@@ -535,16 +564,21 @@ private fun QuickActionButton(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = contentColor
-                )
-                Spacer(modifier = Modifier.height(4.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = contentColor.copy(alpha = 0.14f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        modifier = Modifier.padding(8.dp).size(18.dp),
+                        tint = contentColor
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = text,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                     color = contentColor
                 )
             }
@@ -559,6 +593,7 @@ private fun QuickActionButton(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PlaylistListControls(
     query: String,
@@ -566,55 +601,86 @@ private fun PlaylistListControls(
     sortMode: PlaylistSortMode,
     onSortModeChange: (PlaylistSortMode) -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 1.dp
     ) {
-        OutlinedTextField(
-            value = query,
-            onValueChange = onQueryChange,
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true,
-            placeholder = { Text("Search playlists...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Search playlists"
-                )
-            },
-            trailingIcon = {
-                if (query.isNotBlank()) {
-                    IconButton(onClick = { onQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear search"
-                        )
-                    }
-                }
-            },
-            shape = RoundedCornerShape(14.dp)
-        )
-        Text(
-            text = "Sort by",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(PlaylistSortMode.values().toList()) { mode ->
-                FilterChip(
-                    selected = sortMode == mode,
-                    onClick = { onSortModeChange(mode) },
-                    label = { Text(mode.label) },
-                    shape = RoundedCornerShape(999.dp),
-                    border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
-                        selected = sortMode == mode,
-                        borderColor = MaterialTheme.colorScheme.outlineVariant,
-                        selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                        borderWidth = 1.dp,
-                        selectedBorderWidth = 1.dp
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            OutlinedTextField(
+                value = query,
+                onValueChange = onQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                placeholder = {
+                    Text(
+                        text = "Search playlists...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search playlists"
+                    )
+                },
+                trailingIcon = {
+                    if (query.isNotBlank()) {
+                        IconButton(onClick = { onQueryChange("") }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear search"
+                            )
+                        }
+                    }
+                },
+                shape = RoundedCornerShape(14.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = MaterialTheme.colorScheme.surface,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
+                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            )
+            Text(
+                text = "Sort by",
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                PlaylistSortMode.values().forEach { mode ->
+                    val selected = sortMode == mode
+                    FilterChip(
+                        selected = selected,
+                        onClick = { onSortModeChange(mode) },
+                        label = { Text(mode.label) },
+                        shape = RoundedCornerShape(999.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary,
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = selected,
+                            borderColor = MaterialTheme.colorScheme.outlineVariant,
+                            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                            borderWidth = 1.dp,
+                            selectedBorderWidth = 1.dp
+                        )
+                    )
+                }
             }
         }
     }
@@ -723,12 +789,15 @@ private fun PlaylistCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.86f)
+            .aspectRatio(0.95f)
             .border(
                 width = 1.dp,
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(16.dp)
-            ),
+            )
+            .semantics {
+                contentDescription = "${playlist.name}, ${playlist.songCount} songs"
+            },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow
@@ -843,31 +912,29 @@ private fun PlaylistCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 10.dp)
+                    .padding(horizontal = 12.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = playlist.name,
-                    style = MaterialTheme.typography.playlistCardTitle,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier
                         .fillMaxWidth()
                         .fadeEllipsis()
-                        .baselineGridPadding(0, 2)
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Surface(
                     shape = RoundedCornerShape(999.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
                         text = "${playlist.songCount} songs",
-                        style = MaterialTheme.typography.playlistCardSubtitle,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .padding(horizontal = 8.dp, vertical = 4.dp)
-                            .baselineGridPadding(0, 2)
                     )
                 }
             }
@@ -1375,7 +1442,7 @@ private fun AddSongsToNewPlaylistDialog(
         }
     }
 
-    AlertDialog(
+    BasicAlertDialog(
         onDismissRequest = onDismiss,
         modifier = Modifier
             .fillMaxWidth()

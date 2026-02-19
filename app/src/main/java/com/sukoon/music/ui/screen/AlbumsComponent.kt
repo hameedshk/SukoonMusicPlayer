@@ -36,60 +36,70 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Album
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.components.SelectionBottomBarItem
 import com.sukoon.music.ui.components.SortOption
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.theme.*
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun AlbumRow(
     album: Album,
     isSelected: Boolean,
     isSelectionMode: Boolean,
     onClick: () -> Unit,
-    onLongClick: () -> Unit ,
+    onLongClick: () -> Unit,
     onMoreClick: () -> Unit
 ) {
+    val placeholderSeed = PlaceholderAlbumArt.generateSeed(
+        albumName = album.title,
+        artistName = album.artist,
+        albumId = album.id
+    )
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(4.dp))
+                .size(MiniPlayerAlbumArtSize)
+                .clip(RoundedCornerShape(CompactButtonCornerRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            SubcomposeAsyncImage(
-                model = album.albumArtUri,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            )
+            if (album.albumArtUri != null) {
+                SubcomposeAsyncImage(
+                    model = album.albumArtUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
+                    },
+                    error = {
+                        PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
+                    }
+                )
+            } else {
+                PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
+            }
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(SpacingLarge))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = album.title,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                maxLines = 2,
+                style = MaterialTheme.typography.compactCardTitle,
+                maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(SpacingXSmall))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -97,7 +107,7 @@ internal fun AlbumRow(
             ) {
                 Text(
                     text = album.artist,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.cardSubtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -105,11 +115,9 @@ internal fun AlbumRow(
                 )
                 Text(
                     text = "${album.songCount}",
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
+                    style = MaterialTheme.typography.genreMetadata,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(start = 8.dp)
+                    modifier = Modifier.padding(start = SpacingSmall)
                 )
             }
         }

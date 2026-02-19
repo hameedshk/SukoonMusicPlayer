@@ -163,4 +163,12 @@
     <string name="feedback_error_title">Submission Failed</string>
     <string name="feedback_error_message">Failed to submit feedback. Please check your internet connection and try again.</string>
     <string name="feedback_error_retry">Retry</string>
+
+    <!-- Minimum Required Version Gate -->
+    <string name="min_required_version_title">Update Required</string>
+    <string name="min_required_version_default_message">A new version is required to continue.</string>
+    <string name="min_required_version_codes">Installed version code: %1$d | Required version code: %2$d</string>
+    <string name="min_required_version_update_cta">Update</string>
+    <string name="min_required_version_retry_cta">Retry</string>
+    <string name="min_required_version_retrying_cta">Checking...</string>
 </resources>
