@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -49,9 +50,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.ClickableText
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.R
@@ -122,7 +129,7 @@ fun FeedbackReportScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    containerColor = MaterialTheme.colorScheme.background,
                     titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
@@ -140,30 +147,27 @@ fun FeedbackReportScreen(
                 text = "Select the issue",
                 style = MaterialTheme.typography.titleMedium
             )
-            categories.chunked(3).forEach { row -> 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-                ) {
-                    row.forEachIndexed { index, chip ->
-                        val isSelected = chip == selectedCategory
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedCategory = chip },
-                            label = {
-                                Text(
-                                    text = chip,
-                                    color = if (isSelected) accentTokens.onDark else MaterialTheme.colorScheme.onSurface
-                                )
-                            },
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = if (isSelected) accentTokens.primary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant
+            FlowRow(
+                modifier = Modifier.wrapContentWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                categories.forEach { chip ->
+                    val isSelected = chip == selectedCategory
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = { selectedCategory = chip },
+                        label = {
+                            Text(
+                                text = chip,
+                                color = if (isSelected) accentTokens.onDark else MaterialTheme.colorScheme.onSurface
                             )
+                        },
+					    modifier = Modifier.height(36.dp),   // compact height
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = if (isSelected) accentTokens.primary.copy(alpha = 0.16f) else MaterialTheme.colorScheme.surfaceVariant
                         )
-                        if (index != row.lastIndex) {
-                            Spacer(modifier = Modifier.width(SpacingSmall))
-                        }
-                    }
+                    )
                 }
             }
 
@@ -228,12 +232,43 @@ fun FeedbackReportScreen(
                         checkedColor = accentTokens.primary
                     )
                 )
-                Text(
-                    text = "To continue, Sukoon Music Player will share your personal data with our customer service provider for support. You can review Terms of Service and Privacy Policy.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    lineHeight = 18.sp,
-                    overflow = TextOverflow.Ellipsis
+                val annotatedString = buildAnnotatedString {
+                    append("By continuing, you agree to our ")
+                    pushStringAnnotation(tag = "TERMS", annotation = "")
+                    withStyle(style = SpanStyle(
+                        color = accentTokens.primary,
+                        textDecoration = TextDecoration.Underline
+                    )) {
+                        append("Terms")
+                    }
+                    pop()
+                    append(" and ")
+                    pushStringAnnotation(tag = "PRIVACY", annotation = "")
+                    withStyle(style = SpanStyle(
+                        color = accentTokens.primary,
+                        textDecoration = TextDecoration.Underline
+                    )) {
+                        append("Privacy Policy")
+                    }
+                    pop()
+                    append(".")
+                }
+                ClickableText(
+                    text = annotatedString,
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    onClick = { offset ->
+                        annotatedString.getStringAnnotations(tag = "TERMS", start = offset, end = offset)
+                            .firstOrNull()?.let {
+                                // TODO: Navigate to Terms of Service
+                            }
+                        annotatedString.getStringAnnotations(tag = "PRIVACY", start = offset, end = offset)
+                            .firstOrNull()?.let {
+                                // TODO: Navigate to Privacy Policy
+                            }
+                    },
+                    modifier = Modifier.weight(1f)
                 )
             }
 

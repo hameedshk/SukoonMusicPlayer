@@ -40,9 +40,11 @@ import androidx.media3.common.PlaybackException
 @AndroidEntryPoint
 class MusicPlaybackService : MediaSessionService() {
 
-    // CRITICAL: ExoPlayer is created and owned by this service, NOT injected.
-    // This follows CLAUDE.md requirement: "ExoPlayer lives exclusively inside MediaSessionService"
-    private lateinit var player: ExoPlayer
+    @Inject
+    lateinit var player: ExoPlayer
+
+    @Inject
+    lateinit var mediaSession: MediaSession
 
     @Inject
     lateinit var albumArtLoader: AlbumArtLoader
@@ -53,8 +55,6 @@ class MusicPlaybackService : MediaSessionService() {
     @Inject
     @ApplicationScope
     lateinit var scope: CoroutineScope
-
-    private var mediaSession: MediaSession? = null
     private var notificationManager: PlayerNotificationManager? = null
     private var isForeground = false
 
@@ -108,9 +108,6 @@ class MusicPlaybackService : MediaSessionService() {
         try {
             // Initialize AudioManager for focus change callbacks
             audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-
-            // Create ExoPlayer instance - this MUST happen in the service, not via DI
-            player = ExoPlayer.Builder(this).build()
 
             createNotificationChannel()
             initializePlayer()
@@ -172,7 +169,7 @@ class MusicPlaybackService : MediaSessionService() {
         // Observe crossfade setting
         observeCrossfadeSetting()
 
-        // Create MediaSession with callback for activity intent
+        // Set session activity intent (MediaSession was injected by Hilt)
         val intent = Intent(this, MainActivity::class.java)
         val sessionActivityIntent = PendingIntent.getActivity(
             this,
@@ -181,9 +178,7 @@ class MusicPlaybackService : MediaSessionService() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        mediaSession = MediaSession.Builder(this, player)
-            .setSessionActivity(sessionActivityIntent)
-            .build()
+        mediaSession.setSessionActivity(sessionActivityIntent)
 
         // Create PlayerNotificationManager for media controls
         // The listener is set via the Builder in Media3 1.5.0
@@ -608,8 +603,7 @@ class MusicPlaybackService : MediaSessionService() {
         super.onTaskRemoved(rootIntent)
 
         // Only stop service if player is not playing
-        val player = mediaSession?.player
-        if (player?.playWhenReady == false || player == null) {
+        if (!player.playWhenReady) {
             DevLogger.d("MusicPlaybackService", "Task removed and not playing, stopping service")
             stopSelf()
         } else {
@@ -669,12 +663,13 @@ class MusicPlaybackService : MediaSessionService() {
             isForeground = false
         }
 
-        mediaSession?.run {
+        try {
             player.removeListener(audioFocusListener)
             player.removeListener(crossfadeListener)
             player.release()
-            release()
-            mediaSession = null
+            mediaSession.release()
+        } catch (e: Exception) {
+            DevLogger.e("MusicPlaybackService", "Error releasing player/session", e)
         }
 
         super.onDestroy()

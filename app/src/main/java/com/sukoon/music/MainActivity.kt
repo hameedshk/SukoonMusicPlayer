@@ -230,13 +230,16 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                     analyticsTracker.setUserProperty("is_premium", isPremium.toString())
                 }
 
-                // Check if on Onboarding screen (ads hidden regardless of premium status)
+                // Check if on Onboarding or FeedbackReport screen (ads hidden regardless of premium status)
                 val isOnOnboardingScreen = currentRoute == Routes.Onboarding.route
+                val isOnFeedbackReportScreen = currentRoute == Routes.FeedbackReport.route
+                val shouldHideAds = isOnOnboardingScreen || isOnFeedbackReportScreen
 
                 // Calculate dynamic bottom padding based on playback state
-                // Hide mini player when on NowPlayingScreen
+                // Hide mini player when on NowPlayingScreen or FeedbackReportScreen
                 val isOnNowPlayingScreen = currentRoute == Routes.NowPlaying.route
-                val bottomPadding = if (playbackState.currentSong != null && !isOnNowPlayingScreen) {
+                val shouldShowMiniPlayer = !isOnNowPlayingScreen && !isOnFeedbackReportScreen
+                val bottomPadding = if (playbackState.currentSong != null && shouldShowMiniPlayer) {
                     // MiniPlayer + spacing
                     (MiniPlayerHeight.value + SpacingMedium.value).dp
                 } else {
@@ -260,7 +263,7 @@ androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
                     )
 
                     // MiniPlayer + Ad overlay positioning
-                    val isMiniPlayerVisible = playbackState.currentSong != null && !isOnNowPlayingScreen
+                    val isMiniPlayerVisible = playbackState.currentSong != null && shouldShowMiniPlayer
 
                     // MiniPlayer positioned at bottom
                     if (isMiniPlayerVisible) {

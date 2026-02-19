@@ -28,7 +28,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SukoonMusicPlayer">
 
-        <!-- MediaSessionService for background playback -->
+        <!-- MediaSessionService for background playback and Android Auto -->
         <service
             android:name=".data.service.MusicPlaybackService"
             android:exported="true"
