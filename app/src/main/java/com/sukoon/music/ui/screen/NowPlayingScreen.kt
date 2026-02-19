@@ -103,9 +103,7 @@ import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
-import com.sukoon.music.ui.util.AccentResolver
-import com.sukoon.music.ui.util.candidateAccent
-import com.sukoon.music.ui.util.desaturatedSliderColor
+import com.sukoon.music.ui.util.AlbumPalette
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.delay
@@ -321,15 +319,17 @@ fun NowPlayingScreen(
     val accentTokens = accent()
     val accentColor = accentTokens.primary
     val palette = rememberAlbumPalette(playbackState.currentSong?.albumArtUri)
-    val songSeed = playbackState.currentSong?.id?.toInt() ?: 0
-    val extractedAccent = palette.candidateAccent
-    val resolvedAccent = AccentResolver.resolve(
-        extractedAccent = extractedAccent,
-        fallbackSeed = songSeed
-    )
-    val useAlbumAccent = resolvedAccent == extractedAccent
-    val targetControlsAccent = if (useAlbumAccent) extractedAccent else accentColor
-    val targetSliderColor = if (useAlbumAccent) palette.desaturatedSliderColor else accentColor
+    val hasAlbumArt = !playbackState.currentSong?.albumArtUri.isNullOrBlank()
+    val albumAccentCandidate = remember(palette, accentColor, hasAlbumArt) {
+        if (!hasAlbumArt) {
+            null
+        } else {
+            selectNowPlayingAlbumAccent(palette = palette, fallbackAccent = accentColor)
+        }
+    }
+    val albumAccent = albumAccentCandidate?.let(::normalizeNowPlayingAccent)
+    val targetControlsAccent = albumAccent ?: accentColor
+    val targetSliderColor = albumAccent?.let(::softenAccentForSlider) ?: accentColor
     val controlsAccentColor by animateColorAsState(
         targetValue = targetControlsAccent,
         animationSpec = tween(durationMillis = 220),
@@ -638,9 +638,9 @@ private fun NowPlayingContent(
             val primaryControlsBottomSpacing = spacingSpec.primaryControlsBottomSpacing
             val controlsToSecondarySpacing = spacingSpec.controlsToSecondarySpacing
             val albumArtWeight = when {
-                maxHeight < 700.dp -> 0.70f
-                maxHeight < 840.dp -> 0.76f
-                else -> 0.82f
+                maxHeight < 700.dp -> 0.73f
+                maxHeight < 840.dp -> 0.79f
+                else -> 0.85f
             }
             val albumArtShadowElevation = when {
                 maxHeight < 700.dp -> 2.dp
@@ -844,6 +844,16 @@ private fun NowPlayingContent(
                 } else {
                     Toast.makeText(context, "Timer cancelled", Toast.LENGTH_SHORT).show()
                 }
+            },
+            onEndOfTrackSelected = {
+                val remainingMs = (playbackState.duration - currentPosition).coerceAtLeast(0L)
+                if (remainingMs > 0L) {
+                    viewModel.setSleepTimerTargetTime(System.currentTimeMillis() + remainingMs)
+                    Toast.makeText(context, "Timer set for end of track", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "Track end not available", Toast.LENGTH_SHORT).show()
+                }
+                showSleepTimerDialog = false
             },
             onDismiss = { showSleepTimerDialog = false }
         )
@@ -1626,6 +1636,7 @@ private fun PlaybackControlsSection(
             RepeatMode.ONE -> R.string.now_playing_repeat_one
         }
     )
+    val primaryTransportTint = accentColor.copy(alpha = 0.92f)
 
     Row(
         modifier = Modifier
@@ -1697,7 +1708,7 @@ private fun PlaybackControlsSection(
             Icon(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = previousDesc,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = primaryTransportTint,
                 modifier = Modifier.size(NowPlayingSkipButtonIconSize)
             )
         }
@@ -1725,7 +1736,7 @@ private fun PlaybackControlsSection(
             Icon(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = nextDesc,
-                tint = MaterialTheme.colorScheme.onBackground,
+                tint = primaryTransportTint,
                 modifier = Modifier.size(NowPlayingSkipButtonIconSize)
             )
         }
@@ -2293,6 +2304,89 @@ private fun formatDuration(durationMs: Long): String {
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
     return String.format("%02d:%02d", minutes, seconds)
+}
+
+private fun selectNowPlayingAlbumAccent(
+    palette: AlbumPalette,
+    fallbackAccent: Color
+): Color? {
+    val candidates = listOf(
+        palette.vibrant,
+        palette.vibrantLight,
+        palette.vibrantDark,
+        palette.dominant,
+        palette.muted,
+        palette.mutedLight
+    ).distinct()
+
+    return candidates
+        .map { candidate ->
+            val saturation = candidate.saturation()
+            val luminance = candidate.luminance()
+            val distinctness = candidate.channelDistance(fallbackAccent)
+            val saturationScore = saturation.coerceIn(0.08f, 1f)
+            val luminanceScore = (1f - abs(luminance - 0.58f)).coerceIn(0f, 1f)
+            val score = (saturationScore * 0.52f) +
+                (luminanceScore * 0.28f) +
+                (distinctness * 0.20f)
+
+            candidate to score
+        }
+        .maxByOrNull { it.second }
+        ?.first
+}
+
+private fun normalizeNowPlayingAccent(color: Color): Color {
+    val max = maxOf(color.red, color.green, color.blue)
+    val min = minOf(color.red, color.green, color.blue)
+    val delta = max - min
+    val hue = when {
+        delta == 0f -> 0f
+        max == color.red -> (60f * ((color.green - color.blue) / delta) + 360f) % 360f
+        max == color.green -> (60f * ((color.blue - color.red) / delta) + 120f) % 360f
+        else -> (60f * ((color.red - color.green) / delta) + 240f) % 360f
+    }
+    val saturation = if (max == 0f) 0f else delta / max
+    val value = max
+
+    return Color.hsv(
+        hue = hue,
+        saturation = saturation.coerceAtLeast(0.26f),
+        value = value.coerceIn(0.48f, 0.88f),
+        alpha = color.alpha
+    )
+}
+
+private fun softenAccentForSlider(color: Color): Color {
+    val max = maxOf(color.red, color.green, color.blue)
+    val min = minOf(color.red, color.green, color.blue)
+    val delta = max - min
+    val hue = when {
+        delta == 0f -> 0f
+        max == color.red -> (60f * ((color.green - color.blue) / delta) + 360f) % 360f
+        max == color.green -> (60f * ((color.blue - color.red) / delta) + 120f) % 360f
+        else -> (60f * ((color.red - color.green) / delta) + 240f) % 360f
+    }
+    val saturation = if (max == 0f) 0f else delta / max
+    val value = max
+
+    return Color.hsv(
+        hue = hue,
+        saturation = (saturation * 0.70f).coerceIn(0f, 1f),
+        value = value.coerceAtLeast(0.55f),
+        alpha = color.alpha
+    )
+}
+
+private fun Color.channelDistance(other: Color): Float {
+    return (abs(red - other.red) + abs(green - other.green) + abs(blue - other.blue)) / 3f
+}
+
+private fun Color.saturation(): Float {
+    val max = maxOf(red, green, blue)
+    val min = minOf(red, green, blue)
+    val delta = max - min
+    return if (max == 0f) 0f else delta / max
 }
 
 @Preview(showBackground = true)

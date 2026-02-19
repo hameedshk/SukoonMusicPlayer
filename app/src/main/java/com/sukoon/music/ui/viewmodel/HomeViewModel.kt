@@ -508,6 +508,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun setSleepTimerTargetTime(targetTimeMs: Long) {
+        viewModelScope.launch {
+            settingsRepository.setSleepTimerTargetTime(targetTimeMs)
+        }
+    }
+
     // --- Rating Banner State (Persisted via DataStore) ---
 
     val shouldShowRatingBanner: StateFlow<Boolean> = settingsRepository.shouldShowRatingBannerFlow()
