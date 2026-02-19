@@ -29,6 +29,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -174,8 +178,33 @@ internal fun RedesignedTopBar(
     onGlobalSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoClick: () -> Unit = {},
-    sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState(),
+    contextText: String? = null,
+    isCompact: Boolean = false
 ) {
+    var showOverflowMenu by remember { mutableStateOf(false) }
+    val rowVerticalPadding by animateDpAsState(
+        targetValue = if (isCompact) 8.dp else 12.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "topbar_vertical_padding"
+    )
+    val logoSize by animateDpAsState(
+        targetValue = if (isCompact) 44.dp else 50.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "topbar_logo_size"
+    )
+    val logoContainerSize by animateDpAsState(
+        targetValue = if (isCompact) 52.dp else 56.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "topbar_logo_container_size"
+    )
+    val searchPillHeight by animateDpAsState(
+        targetValue = if (isCompact) 36.dp else 40.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "topbar_search_height"
+    )
+    val isDarkTheme = isSystemInDarkTheme()
+
     Column(modifier = Modifier.fillMaxWidth()) {
         // Main header container - uses background color for seamless integration
         Surface(
@@ -186,7 +215,8 @@ internal fun RedesignedTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                    .padding(horizontal = 16.dp, vertical = rowVerticalPadding)
+                    .semantics { isTraversalGroup = true },
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -227,13 +257,30 @@ internal fun RedesignedTopBar(
 
                 val logoScale = pressScale * clickPulseScale
 
-                Image(
-                    painter = painterResource(id = R.drawable.app_logo),
-                    contentDescription = "Sukoon Music Logo",
+                Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(logoContainerSize)
                         .clip(CircleShape)
-                        .scale(logoScale)
+                        .then(
+                            if (isDarkTheme) {
+                                Modifier
+                                    .background(
+                                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+                                        shape = CircleShape
+                                    )
+                                    .border(
+                                        width = 1.dp,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                                        shape = CircleShape
+                                    )
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .semantics {
+                            contentDescription = "Sukoon Music"
+                            traversalIndex = 0f
+                        }
                         .clickable(
                             interactionSource = logoInteractionSource,
                             indication = null,
@@ -241,46 +288,110 @@ internal fun RedesignedTopBar(
                                 logoAnimTrigger++
                                 onLogoClick()
                             }
-                        )
-                )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(logoSize)
+                            .scale(logoScale)
+                    )
+                }
 
-                // App name - full "Sukoon Music"
-                Text(
-                    text = "Sukoon Music",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.wrapContentWidth()
-                )
-
-                // Spacer to push icons to the right
-                Spacer(modifier = Modifier.weight(1f))
-
-                // Search icon button
-                IconButton(
+                // Primary search action as a visible pill for better discoverability
+                Surface(
                     onClick = onGlobalSearchClick,
-                    modifier = Modifier.size(40.dp)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(searchPillHeight)
+                        .heightIn(min = 48.dp)
+                        .semantics {
+                            traversalIndex = 1f
+                            contentDescription = "Search songs and artists"
+                        },
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    tonalElevation = 0.dp,
+                    shadowElevation = 0.dp
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "Search songs, artists...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
 
-                // Settings icon button
-                IconButton(
-                    onClick = onSettingsClick,
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(24.dp)
-                    )
+                // Keep one utility icon visible and place less-frequent actions in overflow
+                Box {
+                    IconButton(
+                        onClick = { showOverflowMenu = true },
+                        modifier = Modifier
+                            .size(48.dp)
+                            .semantics {
+                                traversalIndex = 2f
+                                contentDescription = "More options"
+                            }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    DropdownMenu(
+                        expanded = showOverflowMenu,
+                        onDismissRequest = { showOverflowMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Settings") },
+                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                            onClick = {
+                                showOverflowMenu = false
+                                onSettingsClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Go Premium") },
+                            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
+                            onClick = {
+                                showOverflowMenu = false
+                                onPremiumClick()
+                            }
+                        )
+                    }
                 }
+            }
+
+            if (!isCompact && !contextText.isNullOrBlank()) {
+                Text(
+                    text = contextText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 68.dp, end = 16.dp, bottom = 8.dp)
+                )
             }
         }
 
@@ -293,9 +404,30 @@ internal fun RedesignedTopBar(
 internal fun TabPills(
     tabs: List<HomeTabSpec>,
     selectedTab: HomeTabKey,
-    onTabSelected: (HomeTabKey) -> Unit
+    onTabSelected: (HomeTabKey) -> Unit,
+    isCompact: Boolean = false
 ) {
     val lazyListState = rememberLazyListState()
+    val rowVerticalPadding by animateDpAsState(
+        targetValue = if (isCompact) 4.dp else 8.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "tab_row_vertical_padding"
+    )
+    val pillHeight by animateDpAsState(
+        targetValue = if (isCompact) 38.dp else TabPillHeight,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "tab_pill_height"
+    )
+    val pillVerticalContentPadding by animateDpAsState(
+        targetValue = if (isCompact) 6.dp else 8.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "tab_pill_vertical_padding"
+    )
+    val pillIconSize by animateDpAsState(
+        targetValue = if (isCompact) 12.dp else 13.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
+        label = "tab_pill_icon_size"
+    )
 
     // Scroll to selected tab when it changes
     LaunchedEffect(selectedTab) {
@@ -309,7 +441,7 @@ internal fun TabPills(
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = rowVerticalPadding)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(SpacingMedium), // 11dp breathing room
         contentPadding = PaddingValues(horizontal = 16.dp)
@@ -322,7 +454,7 @@ internal fun TabPills(
 
             Surface(
                 modifier = Modifier
-                    .height(TabPillHeight)
+                    .height(pillHeight)
                     .selectable(
                         selected = isSelected,
                         onClick = { onTabSelected(tab.key) },
@@ -335,7 +467,7 @@ internal fun TabPills(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 10.dp, vertical = 8.dp), // Tightened: 10dp horiz, 8dp vert
+                        .padding(horizontal = 10.dp, vertical = pillVerticalContentPadding),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(SpacingSmall) // 6.5dp icon-text gap
                 ) {
@@ -343,7 +475,7 @@ internal fun TabPills(
                         imageVector = tab.icon,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(13.dp) // Reduced from 16dp: better optical balance vs 14sp text
+                            .size(pillIconSize)
                             .offset(x = 1.dp), // Optical shift right for visual centering
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)

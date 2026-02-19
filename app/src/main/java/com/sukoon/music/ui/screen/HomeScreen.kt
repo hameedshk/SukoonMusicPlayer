@@ -42,8 +42,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import kotlinx.coroutines.flow.distinctUntilChanged
 import androidx.compose.animation.*
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -219,25 +223,79 @@ fun HomeScreen(
         }
     }
 
+    var isTopBarCompact by rememberSaveable { mutableStateOf(false) }
+    var scrollDeltaAccumulator by remember { mutableFloatStateOf(0f) }
+
+    val topBarScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                val deltaY = available.y
+                if (deltaY == 0f) return Offset.Zero
+
+                // Reset accumulation when scroll direction flips.
+                if ((deltaY > 0f && scrollDeltaAccumulator < 0f) || (deltaY < 0f && scrollDeltaAccumulator > 0f)) {
+                    scrollDeltaAccumulator = 0f
+                }
+                scrollDeltaAccumulator += deltaY
+
+                val toggleThresholdPx = 36f
+                when {
+                    scrollDeltaAccumulator <= -toggleThresholdPx && !isTopBarCompact -> {
+                        isTopBarCompact = true
+                        scrollDeltaAccumulator = 0f
+                    }
+                    scrollDeltaAccumulator >= toggleThresholdPx && isTopBarCompact -> {
+                        isTopBarCompact = false
+                        scrollDeltaAccumulator = 0f
+                    }
+                }
+                return Offset.Zero
+            }
+        }
+    }
+
+    LaunchedEffect(selectedTab) {
+        isTopBarCompact = false
+        scrollDeltaAccumulator = 0f
+    }
+
+    val topBarContextText = when (scanState) {
+        is ScanState.Scanning -> "Scanning ${(scanState as ScanState.Scanning).scannedCount} songs..."
+        else -> {
+            if (sessionState.isActive) {
+                "Private session is active"
+            } else {
+                null
+            }
+        }
+    }
+
     Scaffold(
-        modifier = Modifier.gradientBackground(),
+        modifier = Modifier
+            .gradientBackground()
+            .nestedScroll(topBarScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .windowInsetsPadding(WindowInsets.statusBars)
+                    .animateContentSize()
             ) {
                 RedesignedTopBar(
                     onPremiumClick = { },
                     onGlobalSearchClick = onNavigateToSearch,
                     onSettingsClick = onNavigateToSettings,
-                    sessionState = sessionState
+                    sessionState = sessionState,
+                    contextText = topBarContextText,
+                    isCompact = isTopBarCompact
                 )
                 TabPills(
                     tabs = tabs,
                     selectedTab = selectedTab,
-                    onTabSelected = { handleTabSelection(it) }
+                    onTabSelected = { handleTabSelection(it) },
+                    isCompact = isTopBarCompact
                 )
             }
         },
@@ -770,3 +828,4 @@ private fun HomeScreenPreview() {
         }
     }
 }
+

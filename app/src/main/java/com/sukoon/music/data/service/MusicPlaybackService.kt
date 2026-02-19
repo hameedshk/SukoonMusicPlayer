@@ -111,6 +111,10 @@ class MusicPlaybackService : MediaSessionService() {
 
             createNotificationChannel()
             initializePlayer()
+
+            // Register MediaSession with the service for Android Auto discovery
+            addSession(mediaSession)
+
             registerAudioNoisyReceiver()
             observeResumeOnAudioFocusSetting()
             observeSleepTimer()
