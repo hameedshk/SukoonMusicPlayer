@@ -1,6 +1,5 @@
 package com.sukoon.music.ui.screen
 
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -47,8 +46,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -84,7 +83,6 @@ fun FeedbackReportScreen(
     var consentGiven by rememberSaveable { mutableStateOf(false) }
     var showErrorDialog by rememberSaveable { mutableStateOf(false) }
     var errorMessage by rememberSaveable { mutableStateOf("") }
-    val context = LocalContext.current
     val accentTokens = accent()
     val submitState by viewModel.submitState.collectAsStateWithLifecycle()
 
@@ -205,19 +203,17 @@ fun FeedbackReportScreen(
             Surface(
                 modifier = Modifier
                     .height(80.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .alpha(0.5f),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                onClick = {
-                    Toast.makeText(context, "Upload not supported yet", Toast.LENGTH_SHORT).show()
-                }
+                color = MaterialTheme.colorScheme.surfaceVariant
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Add,
-                        contentDescription = "Add screenshot",
-                        tint = accentTokens.primary
+                        contentDescription = "Add screenshot (coming soon)",
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
             }

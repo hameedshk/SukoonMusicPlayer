@@ -2,7 +2,6 @@ package com.sukoon.music.data.repository
 
 import android.content.Context
 import android.os.Build
-import android.util.Log
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.sukoon.music.BuildConfig
@@ -27,15 +26,12 @@ class FeedbackRepositoryImpl @Inject constructor(
 ) : FeedbackRepository {
 
     private val feedbackCollection = firestore.collection("feedback")
-    private val TAG = "FeedbackRepositoryImpl"
 
     override suspend fun submitFeedback(
         category: FeedbackCategory,
         details: String,
         consentGiven: Boolean
     ): Result<Unit> = withContext(Dispatchers.IO) {
-        Log.d(TAG, "Submitting feedback: $category")
-
         return@withContext try {
             val userId = preferencesManager.getOrCreateAnonymousUserId()
             val feedbackData = mapOf(
@@ -50,44 +46,29 @@ class FeedbackRepositoryImpl @Inject constructor(
                 "consentGiven" to consentGiven
             )
 
-            Log.d(TAG, "Firebase data prepared, calling add()")
-
             val task = feedbackCollection.add(feedbackData)
-            Log.d(TAG, "Firebase task created - isComplete: ${task.isComplete}, isSuccessful: ${task.isSuccessful}, isCanceled: ${task.isCanceled}")
-            Log.d(TAG, "Firestore path: feedback collection")
-            Log.d(TAG, "Waiting for Firebase listeners to fire or timeout...")
 
             // Wrap with timeout — suspendCancellableCoroutine ensures exception handling
             val timeoutResult = withTimeoutOrNull(15000L) {
                 suspendCancellableCoroutine { continuation ->
-                    Log.d(TAG, "Adding Firebase listeners, task state: ${task.isComplete}, isSuccessful: ${task.isSuccessful}")
-
-                    task.addOnSuccessListener { documentRef ->
-                        Log.d(TAG, "✓ Firebase task succeeded: ${documentRef.id}")
+                    task.addOnSuccessListener { _ ->
                         continuation.resume(true)
                     }
                     task.addOnFailureListener { exception ->
-                        Log.e(TAG, "✗ Firebase task failed: ${exception.message}", exception)
                         continuation.resumeWithException(exception)
                     }
                     task.addOnCanceledListener {
-                        Log.e(TAG, "⊘ Firebase task was canceled")
                         continuation.cancel()
                     }
-
-                    Log.d(TAG, "Listeners attached, awaiting task completion or timeout...")
                 }
             }
 
             if (timeoutResult == true) {
-                Log.d(TAG, "Feedback submitted successfully")
                 Result.success(Unit)
             } else {
-                Log.e(TAG, "Timeout after 15 seconds waiting for Firebase")
                 Result.failure(Exception("Firebase request timed out after 15 seconds"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "submitFeedback exception: ${e.javaClass.simpleName}: ${e.message}", e)
             Result.failure(e)
         }
     }
