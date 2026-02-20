@@ -10,33 +10,37 @@ enum class AlbumSourceType {
 
 data class AlbumHeaderModel(
     val title: String,
-    val artist: String,
-    val yearLabel: String,
+    val artist: String?,
+    val yearLabel: String?,
     val songCountLabel: String,
     val sourceType: AlbumSourceType
 ) {
     val metadataLine: String
-        get() = "$artist | $yearLabel | $songCountLabel"
+        get() = listOfNotNull(
+            artist?.takeIf { it.isNotBlank() },
+            yearLabel?.takeIf { it.isNotBlank() },
+            songCountLabel.takeIf { it.isNotBlank() }
+        ).joinToString(" | ")
 }
 
 fun buildAlbumHeaderModel(
     album: Album,
     songCountLabel: String,
     unknownAlbumLabel: String,
-    unknownArtistLabel: String,
-    unknownYearLabel: String
+    unknownArtistLabel: String
 ): AlbumHeaderModel {
     val normalizedTitle = normalizeMetadataValue(album.title, unknownAlbumLabel)
     val normalizedArtist = normalizeMetadataValue(album.artist, unknownArtistLabel)
     val resolvedArtist = if (normalizedArtist.equals(normalizedTitle, ignoreCase = true)) {
-        unknownArtistLabel
+        null
+    } else if (normalizedArtist.equals(unknownArtistLabel, ignoreCase = true)) {
+        null
     } else {
         normalizedArtist
     }
     val yearLabel = album.year
         ?.takeIf { it > 0 }
         ?.toString()
-        ?: unknownYearLabel
 
     return AlbumHeaderModel(
         title = normalizedTitle,

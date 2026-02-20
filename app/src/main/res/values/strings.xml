@@ -469,6 +469,7 @@
     <string name="library_albums_artist_song_count_format">%1$s • %2$s</string>
     <string name="library_albums_empty_message">Scan your library to discover albums from your music collection</string>
     <string name="library_album_detail_no_songs">No songs in this album</string>
+    <string name="library_album_detail_header_title">Album</string>
     <string name="library_album_detail_sort_track_number">Track number</string>
     <string name="library_album_detail_unknown_album">Unknown album</string>
     <string name="library_album_detail_unknown_year">Unknown year</string>

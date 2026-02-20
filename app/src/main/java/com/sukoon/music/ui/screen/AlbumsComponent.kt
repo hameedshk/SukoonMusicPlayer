@@ -39,8 +39,11 @@ import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.components.SelectionBottomBarItem
 import com.sukoon.music.ui.components.SortOption
+import com.sukoon.music.ui.util.albumArtContentDescription
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.theme.*
+
+private val AlbumRowArtSize = 64.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -67,7 +70,7 @@ internal fun AlbumRow(
     ) {
         Box(
             modifier = Modifier
-                .size(MiniPlayerAlbumArtSize)
+                .size(AlbumRowArtSize)
                 .clip(RoundedCornerShape(CompactButtonCornerRadius))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -75,7 +78,10 @@ internal fun AlbumRow(
             if (album.albumArtUri != null) {
                 SubcomposeAsyncImage(
                     model = album.albumArtUri,
-                    contentDescription = null,
+                    contentDescription = albumArtContentDescription(
+                        albumTitle = album.title,
+                        artistName = album.artist
+                    ),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {
@@ -125,7 +131,13 @@ internal fun AlbumRow(
         if (isSelectionMode) {
             Icon(
                 imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                contentDescription = null,
+                contentDescription = androidx.compose.ui.res.stringResource(
+                    if (isSelected) {
+                        com.sukoon.music.R.string.library_screens_b_checked
+                    } else {
+                        com.sukoon.music.R.string.library_screens_b_unchecked
+                    }
+                ),
                 tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )

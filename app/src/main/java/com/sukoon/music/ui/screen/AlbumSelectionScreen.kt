@@ -33,6 +33,7 @@ import com.sukoon.music.domain.model.Album
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.util.albumArtContentDescription
 import com.sukoon.music.ui.viewmodel.AlbumsViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 
@@ -525,27 +526,29 @@ private fun AlbumSelectionItem(
         // Album art
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
+            val placeholderSeed = PlaceholderAlbumArt.generateSeed(
+                albumName = album.title,
+                artistName = album.artist,
+                albumId = album.id
+            )
             SubcomposeAsyncImage(
                 model = album.albumArtUri,
-                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
+                contentDescription = albumArtContentDescription(
+                    albumTitle = album.title,
+                    artistName = album.artist
+                ),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                    PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
                 },
                 error = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = album.title,
-                            artistName = album.artist,
-                            albumId = album.id
-                        )
-                    )
+                    PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
                 }
             )
         }

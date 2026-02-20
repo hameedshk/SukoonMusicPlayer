@@ -106,46 +106,39 @@ fun MiniPlayer(
     userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
     modifier: Modifier = Modifier
 ) {
-    MiniPlayerContent(
-        playbackState = playbackState,
-        onPlayPauseClick = onPlayPauseClick,
-        onNextClick = onNextClick,
-        onClick = onClick,
-        onSeek = onSeek,
-        userPreferences = userPreferences,
-        modifier = modifier
-    )
+    val latestPlaybackState by rememberUpdatedState(playbackState)
+    val latestOnPlayPauseClick by rememberUpdatedState(onPlayPauseClick)
+    val latestOnNextClick by rememberUpdatedState(onNextClick)
+    val latestOnClick by rememberUpdatedState(onClick)
+    val latestOnSeek by rememberUpdatedState(onSeek)
+
+    val memoizedContent = remember(playbackState.currentSong?.id, userPreferences, modifier) {
+        @Composable {
+            MiniPlayerContent(
+                playbackState = latestPlaybackState,
+                onPlayPauseClick = { latestOnPlayPauseClick() },
+                onNextClick = { latestOnNextClick() },
+                onClick = { latestOnClick() },
+                onSeek = { latestOnSeek(it) },
+                userPreferences = userPreferences,
+                modifier = modifier
+            )
+        }
+    }
+
+    memoizedContent()
 }
 
 @Composable
-private fun MiniPlayerContent(
+private fun MiniPlayerProgressBar(
     playbackState: PlaybackState,
-    onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onClick: () -> Unit,
-    onSeek: (Long) -> Unit = {},
-    userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
-    modifier: Modifier = Modifier
+    accentColor: Color,
+    onSeek: (Long) -> Unit
 ) {
-    val song = playbackState.currentSong ?: return
     val playbackStateSnapshot by rememberUpdatedState(playbackState)
 
-    // Use theme's primary color (respects accent profile setting changes in real-time)
-    // This ensures MiniPlayer updates immediately when accent profile changes in settings
-    val accentColor = MaterialTheme.colorScheme.primary
-
-    // Frosted glass styling - theme-aware
-    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
-    val isAmoled = LocalIsAmoled.current
-
-    val borderColor = when {
-        isAmoled -> Color.White.copy(alpha = 0.08f)
-        isDarkTheme -> Color.White.copy(alpha = 0.12f)
-        else -> Color.Black.copy(alpha = 0.08f)
-    }
-
-    // Real-time position tracking
-    var positionOffset by remember(song.id) { mutableLongStateOf(0L) }
+    // Keep ticker state scoped to the progress bar so row content is not recomposed every 100ms.
+    var positionOffset by remember(playbackState.currentSong?.id) { mutableLongStateOf(0L) }
     val currentPosition by remember(playbackState.currentPosition, positionOffset, playbackState.duration) {
         derivedStateOf {
             val rawPosition = playbackState.currentPosition + positionOffset
@@ -190,6 +183,88 @@ private fun MiniPlayerContent(
             // Safely increment offset
             positionOffset = (positionOffset + 100L).coerceAtMost(snapshot.duration - snapshot.currentPosition)
         }
+    }
+
+    val progress = if (playbackState.duration > 0) {
+        (currentPosition.toFloat() / playbackState.duration.toFloat()).coerceIn(0f, 1f)
+    } else {
+        0f
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(4.dp)
+            .pointerInput(playbackState.duration) {
+                detectTapGestures { tapOffset ->
+                    if (playbackState.duration > 0) {
+                        val seekProgress = (tapOffset.x / size.width).coerceIn(0f, 1f)
+                        val seekPosition = (seekProgress * playbackState.duration).toLong()
+
+                        // Validate seek is within bounds before sending
+                        if (seekPosition in 0L..playbackState.duration) {
+                            onSeek(seekPosition)
+                        }
+                    }
+                }
+            }
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+    ) {
+        // Progress fill
+        Box(
+            modifier = Modifier
+                .fillMaxHeight()
+                .fillMaxWidth(progress)
+                .background(accentColor)
+        )
+    }
+}
+
+@Composable
+private fun MiniPlayerContent(
+    playbackState: PlaybackState,
+    onPlayPauseClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onClick: () -> Unit,
+    onSeek: (Long) -> Unit = {},
+    userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
+    modifier: Modifier = Modifier
+) {
+    MiniPlayerContentLayout(
+        playbackState = playbackState,
+        onPlayPauseClick = onPlayPauseClick,
+        onNextClick = onNextClick,
+        onClick = onClick,
+        onSeek = onSeek,
+        userPreferences = userPreferences,
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun MiniPlayerContentLayout(
+    playbackState: PlaybackState,
+    onPlayPauseClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onClick: () -> Unit,
+    onSeek: (Long) -> Unit = {},
+    userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
+    modifier: Modifier = Modifier
+) {
+    val song = playbackState.currentSong ?: return
+
+    // Use theme's primary color (respects accent profile setting changes in real-time)
+    // This ensures MiniPlayer updates immediately when accent profile changes in settings
+    val accentColor = MaterialTheme.colorScheme.primary
+
+    // Frosted glass styling - theme-aware
+    val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
+    val isAmoled = LocalIsAmoled.current
+
+    val borderColor = when {
+        isAmoled -> Color.White.copy(alpha = 0.08f)
+        isDarkTheme -> Color.White.copy(alpha = 0.12f)
+        else -> Color.Black.copy(alpha = 0.08f)
     }
 
     Box(
@@ -339,40 +414,11 @@ private fun MiniPlayerContent(
             }
         }
 
-            // Interactive seekable progress bar - 3.5dp for visibility + tap to seek
-            val progress = if (playbackState.duration > 0) {
-                (currentPosition.toFloat() / playbackState.duration.toFloat()).coerceIn(0f, 1f)
-            } else {
-                0f
-            }
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .pointerInput(playbackState.duration) {
-                        detectTapGestures { tapOffset ->
-                            if (playbackState.duration > 0) {
-                                val seekProgress = (tapOffset.x / size.width).coerceIn(0f, 1f)
-                                val seekPosition = (seekProgress * playbackState.duration).toLong()
-
-                                // Validate seek is within bounds before sending
-                                if (seekPosition in 0L..playbackState.duration) {
-                                    onSeek(seekPosition)
-                                }
-                            }
-                        }
-                    }
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-            ) {
-                // Progress fill
-                Box(
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .fillMaxWidth(progress)
-                        .background(accentColor)
-                )
-            }
+            MiniPlayerProgressBar(
+                playbackState = playbackState,
+                accentColor = accentColor,
+                onSeek = onSeek
+            )
         }
     }
 }

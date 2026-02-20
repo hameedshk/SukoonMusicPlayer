@@ -55,6 +55,7 @@ import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.ContentBottomPadding
 import com.sukoon.music.ui.theme.ContentTopPadding
 import com.sukoon.music.ui.util.AlbumSourceType
+import com.sukoon.music.ui.util.albumArtContentDescription
 import com.sukoon.music.ui.util.buildAlbumHeaderModel
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
@@ -259,18 +260,15 @@ fun AlbumDetailScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { },
+                    title = {
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_album_detail_header_title))
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                 contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                             )
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { /* TODO: Search in album */ }) {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_search))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -511,8 +509,7 @@ private fun AlbumHeader(
         album = album,
         songCountLabel = songCountLabel,
         unknownAlbumLabel = androidx.compose.ui.res.stringResource(R.string.library_album_detail_unknown_album),
-        unknownArtistLabel = androidx.compose.ui.res.stringResource(R.string.now_playing_unknown_artist),
-        unknownYearLabel = androidx.compose.ui.res.stringResource(R.string.library_album_detail_unknown_year)
+        unknownArtistLabel = androidx.compose.ui.res.stringResource(R.string.now_playing_unknown_artist)
     )
 
     val sourceLabel = when (headerModel.sourceType) {
@@ -541,9 +538,21 @@ private fun AlbumHeader(
                 if (album.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
+                        contentDescription = albumArtContentDescription(
+                            albumTitle = album.title,
+                            artistName = album.artist
+                        ),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
+                        loading = {
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = album.title,
+                                    artistName = album.artist,
+                                    albumId = album.id
+                                )
+                            )
+                        },
                         error = {
                             PlaceholderAlbumArt.Placeholder(
                                 seed = PlaceholderAlbumArt.generateSeed(
@@ -936,7 +945,4 @@ private fun AlbumDetailScreenPreview() {
         )
     }
 }
-
-
-
 

@@ -62,6 +62,9 @@ import com.sukoon.music.ui.components.RecentlyPlayedSection
 import kotlinx.coroutines.launch
 import com.sukoon.music.ui.screen.albums.*
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.util.albumArtContentDescription
+
+private val RecentlyPlayedAlbumArtSize = 156.dp
 
 /**
  * Albums Screen - Shows all albums in a grid view.
@@ -350,18 +353,6 @@ fun AlbumsScreen(
                 onAddToPlaylist = {
                     pendingAlbumForPlaylist = album.id
                     selectedAlbumForMenu = null
-                },
-                onEditTags = {
-                    // TODO: Show edit tags dialog
-                    selectedAlbumForMenu = null
-                },
-                onChangeCover = {
-                    // TODO: Show change cover dialog
-                    selectedAlbumForMenu = null
-                },
-                onDelete = {
-                    // TODO: Show delete confirmation
-                    selectedAlbumForMenu = null
                 }
             )
         }
@@ -380,6 +371,12 @@ private fun AlbumCard(
     onShuffleClick: () -> Unit,
     onShowContextMenu: () -> Unit
 ) {
+    val placeholderSeed = PlaceholderAlbumArt.generateSeed(
+        albumName = album.title,
+        artistName = album.artist,
+        albumId = album.id
+    )
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -408,32 +405,23 @@ private fun AlbumCard(
                 if (album.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
+                        contentDescription = albumArtContentDescription(
+                            albumTitle = album.title,
+                            artistName = album.artist
+                        ),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp)
+                            PlaceholderAlbumArt.Placeholder(
+                                seed = placeholderSeed
                             )
                         },
                         error = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = album.title,
-                                    artistName = album.artist,
-                                    albumId = album.id
-                                )
-                            )
+                            PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
                         }
                     )
                 } else {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = album.title,
-                            artistName = album.artist,
-                            albumId = album.id
-                        )
-                    )
+                    PlaceholderAlbumArt.Placeholder(seed = placeholderSeed)
                 }
 
                 // Selection checkbox or context menu button
@@ -609,21 +597,33 @@ private fun RecentlyPlayedAlbumCard(
 ) {
     Column(
         modifier = Modifier
-            .width(140.dp)
+            .width(RecentlyPlayedAlbumArtSize)
             .clickable(onClick = onClick)
     ) {
         Box(
             modifier = Modifier
-                .size(140.dp)
+                .size(RecentlyPlayedAlbumArtSize)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
             SubcomposeAsyncImage(
                 model = album.albumArtUri,
-                contentDescription = null,
+                contentDescription = albumArtContentDescription(
+                    albumTitle = album.title,
+                    artistName = album.artist
+                ),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
+                loading = {
+                    PlaceholderAlbumArt.Placeholder(
+                        seed = PlaceholderAlbumArt.generateSeed(
+                            albumName = album.title,
+                            artistName = album.artist,
+                            albumId = album.id
+                        )
+                    )
+                },
                 error = {
                     PlaceholderAlbumArt.Placeholder(
                         seed = PlaceholderAlbumArt.generateSeed(
@@ -660,10 +660,7 @@ private fun AlbumContextMenuBottomSheet(
     onPlay: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
-    onAddToPlaylist: () -> Unit,
-    onEditTags: () -> Unit,
-    onChangeCover: () -> Unit,
-    onDelete: () -> Unit
+    onAddToPlaylist: () -> Unit
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -683,12 +680,15 @@ private fun AlbumContextMenuBottomSheet(
             ) {
                 // Album Art
                 Card(
-                    modifier = Modifier.size(56.dp),
+                    modifier = Modifier.size(64.dp),
                     shape = MaterialTheme.shapes.small
                 ) {
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
-                        contentDescription = null,
+                        contentDescription = albumArtContentDescription(
+                            albumTitle = album.title,
+                            artistName = album.artist
+                        ),
                         loading = {
                             PlaceholderAlbumArt.Placeholder(
                                 seed = PlaceholderAlbumArt.generateSeed(
@@ -753,21 +753,6 @@ private fun AlbumContextMenuBottomSheet(
                 headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
                 modifier = Modifier.clickable(onClick = onAddToPlaylist)
-            )
-            ListItem(
-                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_edit_tags)) },
-                leadingContent = { Icon(Icons.Default.Edit, null) },
-                modifier = Modifier.clickable(onClick = onEditTags)
-            )
-            ListItem(
-                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_change_cover)) },
-                leadingContent = { Icon(Icons.Default.Image, null) },
-                modifier = Modifier.clickable(onClick = onChangeCover)
-            )
-            ListItem(
-                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device), color = MaterialTheme.colorScheme.error) },
-                leadingContent = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
-                modifier = Modifier.clickable(onClick = onDelete)
             )
         }
     }

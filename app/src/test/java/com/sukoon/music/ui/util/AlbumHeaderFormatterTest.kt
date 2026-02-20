@@ -22,13 +22,13 @@ class AlbumHeaderFormatterTest {
             album = album,
             songCountLabel = "18 songs",
             unknownAlbumLabel = "Unknown album",
-            unknownArtistLabel = "Unknown Artist",
-            unknownYearLabel = "Unknown year"
+            unknownArtistLabel = "Unknown Artist"
         )
 
         assertEquals("18", model.title)
-        assertEquals("Unknown Artist", model.artist)
+        assertEquals(null, model.artist)
         assertEquals("2011", model.yearLabel)
+        assertEquals("2011 | 18 songs", model.metadataLine)
         assertEquals(AlbumSourceType.TAGGED_ALBUM, model.sourceType)
     }
 
@@ -48,13 +48,13 @@ class AlbumHeaderFormatterTest {
             album = album,
             songCountLabel = "3 songs",
             unknownAlbumLabel = "Unknown album",
-            unknownArtistLabel = "Unknown Artist",
-            unknownYearLabel = "Unknown year"
+            unknownArtistLabel = "Unknown Artist"
         )
 
         assertEquals("Unknown album", model.title)
         assertEquals("Artist", model.artist)
-        assertEquals("Unknown year", model.yearLabel)
+        assertEquals(null, model.yearLabel)
+        assertEquals("Artist | 3 songs", model.metadataLine)
         assertEquals(AlbumSourceType.FOLDER_INFERRED, model.sourceType)
     }
 
