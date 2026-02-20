@@ -29,6 +29,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -69,6 +71,9 @@ class PlaybackRepositoryImpl @Inject constructor(
     // Recently Played Tracking
     private var lastLoggedSongId: Long? = null
 
+    // Mutex for thread-safe listener state updates
+    private val listenerMutex = Mutex()
+
     // Listening Stats Tracking - track actual playback duration per song
     private var currentSongId: Long? = null
     private var currentSongStartTimeMs: Long = 0L
@@ -87,12 +92,20 @@ class PlaybackRepositoryImpl @Inject constructor(
                 pausedByAudioFocusLoss = false
                 pausedByNoisyAudio = false
             }
-            updatePlaybackState()
-            savePlaybackStateForRecovery()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                    savePlaybackStateForRecovery()
+                }
+            }
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -129,27 +142,43 @@ class PlaybackRepositoryImpl @Inject constructor(
                 }
             }
 
-            // Update tracking for current song
-            mediaItem?.mediaId?.toLongOrNull()?.let { songId ->
-                currentSongId = songId
-                currentSongArtist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
-                currentSongStartTimeMs = System.currentTimeMillis()
-            }
+            scope.launch {
+                listenerMutex.withLock {
+                    // Update tracking for current song (within mutex to prevent race conditions)
+                    mediaItem?.mediaId?.toLongOrNull()?.let { songId ->
+                        currentSongId = songId
+                        currentSongArtist = mediaItem?.mediaMetadata?.artist?.toString() ?: "Unknown Artist"
+                        currentSongStartTimeMs = System.currentTimeMillis()
+                    }
 
-            updatePlaybackState()
-            savePlaybackStateForRecovery()
+                    updatePlaybackState()
+                    savePlaybackStateForRecovery()
+                }
+            }
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
 
         override fun onShuffleModeEnabledChanged(shuffleEnabled: Boolean) {
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
 
         override fun onPlayerErrorChanged(error: PlaybackException?) {
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -174,12 +203,20 @@ class PlaybackRepositoryImpl @Inject constructor(
                     }
                 }
             }
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
 
         override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-            updatePlaybackState()
-            savePlaybackStateForRecovery()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                    savePlaybackStateForRecovery()
+                }
+            }
         }
 
         override fun onPositionDiscontinuity(
@@ -187,7 +224,11 @@ class PlaybackRepositoryImpl @Inject constructor(
             newPosition: Player.PositionInfo,
             reason: Int
         ) {
-            updatePlaybackState()
+            scope.launch {
+                listenerMutex.withLock {
+                    updatePlaybackState()
+                }
+            }
         }
     }
 
