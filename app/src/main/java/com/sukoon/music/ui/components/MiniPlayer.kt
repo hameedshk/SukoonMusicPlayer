@@ -342,7 +342,11 @@ fun MiniPlayer(
                             if (playbackState.duration > 0) {
                                 val seekProgress = (tapOffset.x / size.width).coerceIn(0f, 1f)
                                 val seekPosition = (seekProgress * playbackState.duration).toLong()
-                                onSeek(seekPosition)
+
+                                // Validate seek is within bounds before sending
+                                if (seekPosition in 0L..playbackState.duration) {
+                                    onSeek(seekPosition)
+                                }
                             }
                         }
                     }
