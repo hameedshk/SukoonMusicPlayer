@@ -300,49 +300,83 @@ class PlaybackRepositoryImpl @Inject constructor(
     /**
      * Restore the last saved queue on app launch.
      * Also restores playback position if available (for process death recovery).
+     * Includes validation to verify song at index matches saved song ID.
      */
     private fun restoreLastQueue() {
         scope.launch {
             try {
-                // First, try to restore saved playback state (for process death recovery)
                 val playbackState = preferencesManager.getPlaybackState()
-
                 val currentQueue = queueRepository.getCurrentQueueWithSongs()
-                if (currentQueue != null && currentQueue.songs.isNotEmpty()) {
-                    // Restore the queue to playback
-                    val mediaItems = currentQueue.songs.map { it.toMediaItem() }
 
-                    // If we have saved playback state, restore to that position
-                    if (playbackState != null) {
-                        val (songId, queueIndex, position) = playbackState
+                if (currentQueue == null || currentQueue.songs.isEmpty()) {
+                    DevLogger.d("PlaybackRepository", "No queue to restore")
+                    return@launch
+                }
 
-                        // Verify the queue index is valid
-                        val validIndex = queueIndex.coerceIn(0, mediaItems.size - 1)
+                val mediaItems = currentQueue.songs.mapNotNull {
+                    try {
+                        it.toMediaItem()
+                    } catch (e: Exception) {
+                        DevLogger.e("PlaybackRepository", "Invalid song URI: ${it.title}", e)
+                        null
+                    }
+                }
 
-                        DevLogger.d("PlaybackRepository", "Restoring playback: song=$songId, index=$validIndex, position=${position}ms")
+                if (mediaItems.isEmpty()) {
+                    DevLogger.e("PlaybackRepository", "Failed to convert any songs to MediaItems")
+                    return@launch
+                }
 
-                        mediaController?.setMediaItems(mediaItems, validIndex, position)
+                // Restore playback position if available
+                if (playbackState != null) {
+                    val (savedSongId, savedIndex, position) = playbackState
 
-                        // Clear the saved state after successful restore
-                        preferencesManager.clearPlaybackState()
+                    // Verify saved index is valid
+                    val validIndex = savedIndex.coerceIn(0, mediaItems.size - 1)
+
+                    // Verify song at index matches saved song ID (prevent mismatch)
+                    val songAtIndex = currentQueue.songs.getOrNull(validIndex)
+                    if (songAtIndex?.id != savedSongId) {
+                        // Song mismatch - find correct position
+                        val correctIndex = currentQueue.songs.indexOfFirst { it.id == savedSongId }
+                        if (correctIndex >= 0) {
+                            DevLogger.d("PlaybackRepository",
+                                "Song mismatch: expected=$savedSongId at index=$savedIndex, found at=$correctIndex")
+                            mediaController?.setMediaItems(mediaItems, correctIndex, position)
+                        } else {
+                            // Saved song no longer in queue, restore to saved index
+                            DevLogger.w("PlaybackRepository",
+                                "Saved song ($savedSongId) not in queue, restoring to index=$validIndex")
+                            mediaController?.setMediaItems(mediaItems, validIndex, position)
+                        }
                     } else {
-                        // No saved position, just restore queue
-                        mediaController?.setMediaItems(mediaItems)
+                        // Match confirmed, restore to saved position
+                        mediaController?.setMediaItems(mediaItems, validIndex, position)
                     }
 
-                    // Restore the source name if available
-                    val userPrefs = preferencesManager.userPreferencesFlow.first()
-                    currentSourceName = userPrefs.lastQueueName
-
-                    // Prepare but don't auto-play (user must explicitly start)
-                    mediaController?.prepare()
-
-                    currentSavedQueueId = currentQueue.queue.id
-                    lastSavedQueue = currentQueue.songs
-                    updatePlaybackState()
+                    preferencesManager.clearPlaybackState()
+                } else {
+                    // No saved position, just restore queue
+                    mediaController?.setMediaItems(mediaItems)
                 }
+
+                // Restore source name
+                val userPrefs = preferencesManager.userPreferencesFlow.first()
+                currentSourceName = userPrefs.lastQueueName
+
+                // Prepare but don't auto-play
+                mediaController?.prepare()
+
+                currentSavedQueueId = currentQueue.queue.id
+                lastSavedQueue = currentQueue.songs
+                updatePlaybackState()
+
+                DevLogger.d("PlaybackRepository", "Queue restored: ${currentQueue.songs.size} songs")
             } catch (e: Exception) {
                 DevLogger.e("PlaybackRepository", "Failed to restore queue", e)
+                _playbackState.update {
+                    it.copy(error = "Failed to restore playback: ${e.message}")
+                }
             }
         }
     }
@@ -632,7 +666,24 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun seekToQueueIndex(index: Int) {
-        mediaController?.seekToDefaultPosition(index)
+        val controller = mediaController ?: return
+
+        // Validate index is in bounds
+        val validIndex = index.coerceIn(0, controller.mediaItemCount - 1)
+
+        if (validIndex != index) {
+            DevLogger.w("PlaybackRepository",
+                "Queue index out of bounds: requested=$index, clamped=$validIndex, max=${controller.mediaItemCount - 1}")
+        }
+
+        try {
+            controller.seekToDefaultPosition(validIndex)
+        } catch (e: Exception) {
+            _playbackState.update {
+                it.copy(error = "Failed to seek to index $validIndex: ${e.message}")
+            }
+            DevLogger.e("PlaybackRepository", "Error seeking to queue index", e)
+        }
     }
 
     // Playback Configuration
@@ -665,6 +716,26 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     override fun refreshPlaybackState() {
         updatePlaybackState()
+    }
+
+    override suspend fun savePlaybackState() {
+        val controller = mediaController ?: return
+
+        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        val currentIndex = controller.currentMediaItemIndex
+        val currentPosition = controller.currentPosition.coerceAtLeast(0L)
+
+        try {
+            preferencesManager.savePlaybackStateExtended(
+                songId = currentSongId,
+                queueIndex = currentIndex,
+                positionMs = currentPosition,
+                queueName = currentSourceName
+            )
+            DevLogger.d("PlaybackRepository", "Playback state saved: song=$currentSongId, pos=${currentPosition}ms")
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Failed to save playback state", e)
+        }
     }
 
     // Mapper Extensions
