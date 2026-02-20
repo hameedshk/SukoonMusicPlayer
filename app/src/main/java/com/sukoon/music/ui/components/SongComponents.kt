@@ -30,6 +30,8 @@ import com.sukoon.music.ui.animation.rememberPlaybackMotionClock
 import com.sukoon.music.ui.theme.*
 import kotlin.math.sin
 
+private const val EQUALIZER_PLAYBACK_MOTION_SPEED = 3.0f
+
 @Composable
 internal fun AnimatedEqualizer(
     modifier: Modifier = Modifier,
@@ -378,7 +380,10 @@ internal fun AnimatedEqualizer(
             intensity = if (isAnimating) 1f else 0f
         )
     }
-    val fallbackPhase by rememberPlaybackMotionClock(fallbackMotion)
+    val fallbackPhase by rememberPlaybackMotionClock(
+        motion = fallbackMotion,
+        speed = EQUALIZER_PLAYBACK_MOTION_SPEED
+    )
     AnimatedEqualizer(
         modifier = modifier,
         motion = fallbackMotion,
@@ -746,7 +751,8 @@ fun DeleteConfirmationDialog(
 @Composable
 fun StandardSongListItem(
     song: Song,
-    isPlaying: Boolean,
+    isCurrentSong: Boolean,
+    isPlaybackActive: Boolean,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
     onClick: () -> Unit,
@@ -795,30 +801,29 @@ fun StandardSongListItem(
                 }
             )
 
-            // Playing overlay
-            if (isPlaying) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    AnimatedEqualizer(tint = Color.White)
-                }
-            }
         }
 
         Spacer(modifier = Modifier.width(16.dp))
 
         // Song Info
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (isCurrentSong) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    AnimatedEqualizer(
+                        isAnimating = isPlaybackActive,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),

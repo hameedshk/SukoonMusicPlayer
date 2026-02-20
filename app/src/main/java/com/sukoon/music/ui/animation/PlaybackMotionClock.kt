@@ -28,7 +28,8 @@ internal fun advancePhase(
 
 @Composable
 fun rememberPlaybackMotionClock(
-    motion: MotionDirective
+    motion: MotionDirective,
+    speed: Float = DEFAULT_PLAYBACK_MOTION_SPEED
 ): State<Float> {
     return produceState(initialValue = 0f, motion.state, motion.songId, motion.intensity) {
         if (motion.state == MotionPlayState.REST) {
@@ -50,7 +51,8 @@ fun rememberPlaybackMotionClock(
                     phase = phase,
                     deltaSeconds = dt,
                     motionState = motion.state,
-                    intensity = motion.intensity
+                    intensity = motion.intensity,
+                    speed = speed
                 )
                 value = phase
             }

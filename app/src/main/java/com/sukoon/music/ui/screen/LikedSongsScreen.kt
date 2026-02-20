@@ -140,6 +140,7 @@ fun LikedSongsScreen(
                 onAlbumFilterClick = { showAlbumMenu = true },
                 onClearFilters = { viewModel.clearFilters() },
                 currentSongId = playbackState.currentSong?.id,
+                isPlayingGlobally = playbackState.isPlaying,
                 modifier = Modifier.padding(paddingValues)
             )
 
@@ -218,6 +219,7 @@ private fun LikedSongsContent(
     onAlbumFilterClick: () -> Unit,
     onClearFilters: () -> Unit,
     currentSongId: Long?,
+    isPlayingGlobally: Boolean,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -278,10 +280,12 @@ private fun LikedSongsContent(
             key = { it.id }
         ) { song ->
             var showMenu by remember { mutableStateOf(false) }
-            
+            val isCurrentSong = currentSongId == song.id
+
             StandardSongListItem(
                 song = song,
-                isPlaying = currentSongId == song.id,
+                isCurrentSong = isCurrentSong,
+                isPlaybackActive = isCurrentSong && isPlayingGlobally,
                 isSelectionMode = false,
                 isSelected = false,
                 onClick = { onSongClick(song) },

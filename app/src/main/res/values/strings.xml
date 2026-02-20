@@ -337,8 +337,12 @@
     <string name="feedback_select_issue">Select the issue</string>
     <string name="feedback_details_required">Details *</string>
     <string name="feedback_details_counter">%1$d/500</string>
-    <string name="feedback_attachments_optional">Screenshots or videos (Optional)</string>
-    <string name="feedback_add_screenshot_coming_soon">Add screenshot (coming soon)</string>
+    <string name="feedback_attachments_optional">Screenshot (Optional)</string>
+    <string name="feedback_add_screenshot">Add screenshot</string>
+    <string name="feedback_replace_screenshot">Replace</string>
+    <string name="feedback_remove_screenshot">Remove</string>
+    <string name="feedback_attachment_hint">Attach a screenshot to help us diagnose the issue faster.</string>
+    <string name="feedback_attachment_selected">Attached screenshot</string>
     <string name="feedback_consent_text">By continuing, you agree to our %1$s and %2$s.</string>
 
     <!-- Folder Detail Screen -->

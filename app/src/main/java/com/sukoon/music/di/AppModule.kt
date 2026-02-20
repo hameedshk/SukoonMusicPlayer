@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import androidx.room.Room
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
 import com.sukoon.music.data.local.dao.GenreCoverDao
@@ -430,12 +431,19 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideFirebaseStorage(): FirebaseStorage {
+        return FirebaseStorage.getInstance()
+    }
+
+    @Provides
+    @Singleton
     fun provideFeedbackRepository(
         firestore: FirebaseFirestore,
+        storage: FirebaseStorage,
         @ApplicationContext context: Context,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
     ): FeedbackRepository {
-        return FeedbackRepositoryImpl(firestore, context, preferencesManager)
+        return FeedbackRepositoryImpl(firestore, storage, context, preferencesManager)
     }
 }
 

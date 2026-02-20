@@ -39,6 +39,7 @@ import com.sukoon.music.ui.theme.*
 fun QueueModalSheet(
     queue: List<Song>,
     currentIndex: Int,
+    isPlayingGlobally: Boolean,
     accentColor: Color,
     onDismiss: () -> Unit,
     onSongClick: (Int) -> Unit,
@@ -93,6 +94,7 @@ fun QueueModalSheet(
                 QueueModalContent(
                     queue = queue,
                     currentIndex = currentIndex,
+                    isPlayingGlobally = isPlayingGlobally,
                     accentColor = accentColor,
                     onSongClick = onSongClick,
                     onRemoveClick = onRemoveClick
@@ -152,6 +154,7 @@ private fun QueueModalHeader(
 private fun QueueModalContent(
     queue: List<Song>,
     currentIndex: Int,
+    isPlayingGlobally: Boolean,
     accentColor: Color,
     onSongClick: (Int) -> Unit,
     onRemoveClick: (Int) -> Unit
@@ -169,6 +172,7 @@ private fun QueueModalContent(
                 QueueModalSongItem(
                     song = queue[currentIndex],
                     isCurrentSong = true,
+                    isPlayingGlobally = isPlayingGlobally,
                     accentColor = accentColor,
                     showDuration = true,
                     onSongClick = { onSongClick(currentIndex) },
@@ -202,6 +206,7 @@ private fun QueueModalContent(
                 QueueModalSongItem(
                     song = song,
                     isCurrentSong = false,
+                    isPlayingGlobally = isPlayingGlobally,
                     accentColor = accentColor,
                     showDuration = true,
                     onSongClick = { onSongClick(absoluteIndex) },
@@ -234,6 +239,7 @@ private fun QueueModalContent(
                 QueueModalSongItem(
                     song = song,
                     isCurrentSong = false,
+                    isPlayingGlobally = isPlayingGlobally,
                     accentColor = accentColor,
                     showDuration = true,
                     onSongClick = { onSongClick(index) },
@@ -271,6 +277,7 @@ private fun SectionHeader(text: String) {
 private fun QueueModalSongItem(
     song: Song,
     isCurrentSong: Boolean,
+    isPlayingGlobally: Boolean,
     accentColor: Color,
     showDuration: Boolean,
     onSongClick: () -> Unit,
@@ -383,12 +390,9 @@ private fun QueueModalSongItem(
 
             // Currently Playing Indicator or Remove Button
             if (isCurrentSong) {
-                // Playing indicator
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = stringResource(R.string.queue_modal_currently_playing_content_description),
-                    tint = accentColor,
-                    modifier = Modifier.size(24.dp)
+                AnimatedEqualizer(
+                    isAnimating = isPlayingGlobally,
+                    tint = accentColor
                 )
             } else if (onRemoveClick != null) {
                 // Remove button for non-current tracks

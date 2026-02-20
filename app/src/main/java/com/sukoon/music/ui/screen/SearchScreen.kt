@@ -186,6 +186,8 @@ fun SearchScreen(
                             SearchResultsContent(
                                 songs = searchResults,
                                 searchQuery = searchQuery,
+                                currentSongId = playbackState.currentSong?.id,
+                                isPlayingGlobally = playbackState.isPlaying,
                                 menuHandler = menuHandler,
                                 onSongClick = { song ->
                                     if (playbackState.currentSong?.id != song.id) {
@@ -447,6 +449,8 @@ private fun getSortModeLabel(mode: SortMode): String {
 private fun SearchResultsContent(
     songs: List<Song>,
     searchQuery: String,
+    currentSongId: Long?,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onSongClick: (Song) -> Unit,
     onLikeClick: (Song) -> Unit,
@@ -475,9 +479,12 @@ private fun SearchResultsContent(
             items = songs,
             key = { it.id }
         ) { song ->
+            val isCurrentSong = song.id == currentSongId
             SearchResultItem(
                 song = song,
                 searchQuery = searchQuery,
+                isCurrentSong = isCurrentSong,
+                isPlaybackActive = isCurrentSong && isPlayingGlobally,
                 menuHandler = menuHandler,
                 onClick = { onSongClick(song) },
                 onLikeClick = { onLikeClick(song) }
@@ -490,6 +497,8 @@ private fun SearchResultsContent(
 private fun SearchResultItem(
     song: Song,
     searchQuery: String,
+    isCurrentSong: Boolean,
+    isPlaybackActive: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
     onLikeClick: () -> Unit
@@ -541,12 +550,23 @@ private fun SearchResultItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                HighlightedText(
-                    text = song.title,
-                    query = searchQuery,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                        HighlightedText(
+                            text = song.title,
+                            query = searchQuery,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    if (isCurrentSong) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnimatedEqualizer(
+                            isAnimating = isPlaybackActive,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                      HighlightedText(

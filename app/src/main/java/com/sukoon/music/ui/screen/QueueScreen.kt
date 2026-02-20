@@ -211,6 +211,7 @@ fun QueueScreen(
                 0 -> CurrentQueueContent(
                     queue = playbackState.queue,
                     currentIndex = playbackState.currentQueueIndex,
+                    isPlayingGlobally = playbackState.isPlaying,
                     menuHandler = menuHandler,
                     onSongClick = { index -> viewModel.playQueueItem(index) },
                     onRemoveSong = { index -> viewModel.removeFromQueue(index) },
@@ -298,6 +299,7 @@ private fun QueueTopAppBar(
 fun CurrentQueueContent(
     queue: List<Song>,
     currentIndex: Int,
+    isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
     onSongClick: (Int) -> Unit,
     onRemoveSong: (Int) -> Unit,
@@ -351,6 +353,7 @@ fun CurrentQueueContent(
                         song = song,
                         index = index,
                         isCurrentSong = index == currentIndex,
+                        isPlayingGlobally = isPlayingGlobally,
                         isDragging = isDragging,
                         menuHandler = menuHandler,
                         onClick = { onSongClick(index) },
@@ -370,6 +373,7 @@ fun QueueSongItem(
     song: Song,
     index: Int,
     isCurrentSong: Boolean,
+    isPlayingGlobally: Boolean,
     isDragging: Boolean,
     menuHandler: SongMenuHandler,
     onClick: () -> Unit,
@@ -459,18 +463,28 @@ fun QueueSongItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = if (isCurrentSong) {
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = song.title,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Normal,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isCurrentSong) {
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        },
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (isCurrentSong) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        AnimatedEqualizer(
+                            isAnimating = isPlayingGlobally,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
                     }
-                )
+                }
                 Text(
                     text = song.artist,
                     style = MaterialTheme.typography.bodyMedium,

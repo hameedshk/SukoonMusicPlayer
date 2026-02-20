@@ -819,6 +819,7 @@ private fun NowPlayingContent(
         QueueModalSheet(
             queue = playbackState.queue,
             currentIndex = playbackState.currentQueueIndex,
+            isPlayingGlobally = playbackState.isPlaying,
             accentColor = accentColor,
             onDismiss = { showQueueModal = false },
             onSongClick = { index -> viewModel.jumpToQueueIndex(index) },

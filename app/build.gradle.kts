@@ -181,6 +181,7 @@ dependencies {
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
+    implementation("com.google.firebase:firebase-storage-ktx")
 
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")
