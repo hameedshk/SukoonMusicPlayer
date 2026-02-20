@@ -130,24 +130,54 @@ fun MiniPlayer(
     }
 
 
-    // Real-time position tracking - optimized with derivedStateOf
-    // Only updates offset, not full recomposition of MiniPlayer
+    // Real-time position tracking - uses external snapshot to avoid closure capture
     var positionOffset by remember { mutableLongStateOf(0L) }
+    var lastPlaybackStateSnapshot by remember {
+        mutableStateOf(playbackState.copy())
+    }
+
     val currentPosition by remember {
         derivedStateOf { playbackState.currentPosition + positionOffset }
     }
 
-    // Position ticker - 100ms for smooth real-time feedback
- LaunchedEffect(playbackState.isPlaying, playbackState.currentSong?.id, playbackState.isLoading, playbackState.error) {
-      positionOffset = 0L
-      if (playbackState.isPlaying && !playbackState.isLoading && playbackState.error == null) {
-          while (isActive && playbackState.isPlaying && !playbackState.isLoading && playbackState.error == null &&
-                 (playbackState.currentPosition + positionOffset) < playbackState.duration) {
-              delay(100)
-              positionOffset += 100
-          }
-      }
-  }
+    // Position ticker - updates every 100ms only when playing
+    LaunchedEffect(playbackState.isPlaying, playbackState.currentSong?.id) {
+        // Always reset offset when song changes
+        positionOffset = 0L
+        lastPlaybackStateSnapshot = playbackState.copy()
+
+        // Only tick if actively playing
+        if (!playbackState.isPlaying) return@LaunchedEffect
+
+        while (isActive) {
+            delay(100)
+
+            // Snapshot current state to avoid closure stale reads
+            val snapshot = playbackState.copy()
+
+            // Exit if state no longer supports ticking
+            if (!snapshot.isPlaying || snapshot.isLoading || snapshot.error != null) {
+                positionOffset = 0L
+                return@LaunchedEffect
+            }
+
+            // Exit if reached or exceeded duration
+            if (snapshot.duration <= 0L) {
+                positionOffset = 0L
+                return@LaunchedEffect
+            }
+
+            val nextPosition = snapshot.currentPosition + positionOffset + 100
+            if (nextPosition >= snapshot.duration) {
+                positionOffset = 0L // Will be reset by next song transition
+                return@LaunchedEffect
+            }
+
+            // Safely increment offset
+            positionOffset = (positionOffset + 100).coerceAtMost(snapshot.duration - snapshot.currentPosition)
+            lastPlaybackStateSnapshot = snapshot
+        }
+    }
 
     Box(
         modifier = modifier
