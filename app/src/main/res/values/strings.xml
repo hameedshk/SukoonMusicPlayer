@@ -470,6 +470,11 @@
     <string name="library_albums_empty_message">Scan your library to discover albums from your music collection</string>
     <string name="library_album_detail_no_songs">No songs in this album</string>
     <string name="library_album_detail_sort_track_number">Track number</string>
+    <string name="library_album_detail_unknown_album">Unknown album</string>
+    <string name="library_album_detail_unknown_year">Unknown year</string>
+    <string name="library_album_detail_source_album">Album tags</string>
+    <string name="library_album_detail_source_folder">Folder inferred</string>
+    <string name="library_album_detail_source_artist">Artist scope</string>
 
     <!-- Artists -->
     <string name="library_artists_empty_title">No artists found</string>

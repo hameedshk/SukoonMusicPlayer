@@ -48,12 +48,8 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.ui.theme.MiniPlayerAlbumArtSize
 import com.sukoon.music.ui.theme.MiniPlayerHeight
 import com.sukoon.music.ui.theme.MiniPlayerShape
-import com.sukoon.music.ui.theme.SpacingLarge
 import com.sukoon.music.ui.theme.SpacingMedium
 import androidx.compose.ui.graphics.Color
-import com.sukoon.music.ui.util.candidateAccent
-import com.sukoon.music.ui.util.AccentResolver
-import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.theme.*
 import androidx.compose.foundation.border
 import com.sukoon.music.ui.theme.LocalIsAmoled
@@ -110,10 +106,29 @@ fun MiniPlayer(
     userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
     modifier: Modifier = Modifier
 ) {
-    if (playbackState.currentSong == null) return
+    MiniPlayerContent(
+        playbackState = playbackState,
+        onPlayPauseClick = onPlayPauseClick,
+        onNextClick = onNextClick,
+        onClick = onClick,
+        onSeek = onSeek,
+        userPreferences = userPreferences,
+        modifier = modifier
+    )
+}
 
-    val palette = rememberAlbumPalette(playbackState.currentSong.albumArtUri)
-    val song = playbackState.currentSong!!
+@Composable
+private fun MiniPlayerContent(
+    playbackState: PlaybackState,
+    onPlayPauseClick: () -> Unit,
+    onNextClick: () -> Unit,
+    onClick: () -> Unit,
+    onSeek: (Long) -> Unit = {},
+    userPreferences: com.sukoon.music.domain.model.UserPreferences = com.sukoon.music.domain.model.UserPreferences(),
+    modifier: Modifier = Modifier
+) {
+    val song = playbackState.currentSong ?: return
+    val playbackStateSnapshot by rememberUpdatedState(playbackState)
 
     // Use theme's primary color (respects accent profile setting changes in real-time)
     // This ensures MiniPlayer updates immediately when accent profile changes in settings
@@ -129,31 +144,30 @@ fun MiniPlayer(
         else -> Color.Black.copy(alpha = 0.08f)
     }
 
-
-    // Real-time position tracking - uses external snapshot to avoid closure capture
-    var positionOffset by remember { mutableLongStateOf(0L) }
-    var lastPlaybackStateSnapshot by remember {
-        mutableStateOf(playbackState.copy())
-    }
-
-    val currentPosition by remember {
-        derivedStateOf { playbackState.currentPosition + positionOffset }
+    // Real-time position tracking
+    var positionOffset by remember(song.id) { mutableLongStateOf(0L) }
+    val currentPosition by remember(playbackState.currentPosition, positionOffset, playbackState.duration) {
+        derivedStateOf {
+            val rawPosition = playbackState.currentPosition + positionOffset
+            if (playbackState.duration > 0L) {
+                rawPosition.coerceIn(0L, playbackState.duration)
+            } else {
+                rawPosition.coerceAtLeast(0L)
+            }
+        }
     }
 
     // Position ticker - updates every 100ms only when playing
     LaunchedEffect(playbackState.isPlaying, playbackState.currentSong?.id) {
         // Always reset offset when song changes
         positionOffset = 0L
-        lastPlaybackStateSnapshot = playbackState.copy()
-
-        // Only tick if actively playing
-        if (!playbackState.isPlaying) return@LaunchedEffect
+        if (!playbackStateSnapshot.isPlaying) return@LaunchedEffect
 
         while (isActive) {
             delay(100)
 
-            // Snapshot current state to avoid closure stale reads
-            val snapshot = playbackState.copy()
+            // Snapshot current state to avoid stale closure reads
+            val snapshot = playbackStateSnapshot
 
             // Exit if state no longer supports ticking
             if (!snapshot.isPlaying || snapshot.isLoading || snapshot.error != null) {
@@ -174,8 +188,7 @@ fun MiniPlayer(
             }
 
             // Safely increment offset
-            positionOffset = (positionOffset + 100).coerceAtMost(snapshot.duration - snapshot.currentPosition)
-            lastPlaybackStateSnapshot = snapshot
+            positionOffset = (positionOffset + 100L).coerceAtMost(snapshot.duration - snapshot.currentPosition)
         }
     }
 
@@ -210,7 +223,7 @@ fun MiniPlayer(
             // Album Art with crossfade and loading shimmer
             SubcomposeAsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
-                    .data(playbackState.currentSong.albumArtUri)
+                    .data(song.albumArtUri)
                     .crossfade(300)
                     .build(),
                 contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
@@ -248,14 +261,14 @@ fun MiniPlayer(
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = playbackState.currentSong.title,
+                    text = song.title,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = playbackState.currentSong.artist,
+                    text = song.artist,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,

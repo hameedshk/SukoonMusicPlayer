@@ -149,6 +149,12 @@ interface PlaybackRepository {
      */
     fun refreshPlaybackState()
 
+    /**
+     * Save current playback state to preferences for recovery after app close.
+     * Called when app goes to background or is destroyed.
+     */
+    suspend fun savePlaybackState()
+
     // Lifecycle
 
     /**

@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -23,10 +24,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
@@ -280,6 +284,32 @@ class MainActivity : ComponentActivity() {
                 val homeViewModel: HomeViewModel = hiltViewModel()
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
                 val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
+
+                // Save playback state when app goes to background
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val lifecycle = lifecycleOwner.lifecycle
+                    val observer = LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_PAUSE -> {
+                                homeViewModel.playbackRepository.refreshPlaybackState()
+                                retryScope.launch {
+                                    homeViewModel.playbackRepository.savePlaybackState()
+                                }
+                            }
+                            Lifecycle.Event.ON_DESTROY -> {
+                                retryScope.launch {
+                                    homeViewModel.playbackRepository.savePlaybackState()
+                                }
+                            }
+                            else -> {}
+                        }
+                    }
+                    lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycle.removeObserver(observer)
+                    }
+                }
 
                 LaunchedEffect(Unit) {
                     // Force reconnect on app start (re-attach listener if service restarted)

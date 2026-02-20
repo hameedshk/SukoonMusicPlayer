@@ -228,8 +228,18 @@ class MusicPlaybackService : MediaSessionService() {
                     notification: Notification,
                     ongoing: Boolean
                 ) {
-                    // Start foreground if notification should be visible and we're not already foreground
-                    // Use isNotificationVisible to respect user's toggle preference
+                    // Trigger repository to sync latest state
+                    scope.launch {
+                        try {
+                            val repo = com.sukoon.music.di.HiltHolder.getPlaybackRepository()
+                            repo?.refreshPlaybackState()
+                            DevLogger.d("MusicPlaybackService", "Playback state refreshed from notification")
+                        } catch (e: Exception) {
+                            DevLogger.e("MusicPlaybackService", "Failed to refresh playback state", e)
+                        }
+                    }
+
+                    // Start foreground if notification should be visible
                     if (isNotificationVisible && !isForeground) {
                         startForegroundSafely(notificationId, notification)
                     } else if (ongoing && !isForeground) {
@@ -245,9 +255,18 @@ class MusicPlaybackService : MediaSessionService() {
                         stopForeground(STOP_FOREGROUND_REMOVE)
                         isForeground = false
                     }
-                    // Only stop service if user dismissed; programmatic hide keeps service alive
+                    // Save playback state before stopping
                     if (dismissedByUser) {
-                        stopSelf()
+                        scope.launch {
+                            try {
+                                val repo = com.sukoon.music.di.HiltHolder.getPlaybackRepository()
+                                repo?.savePlaybackState()
+                                DevLogger.d("MusicPlaybackService", "Playback state saved before notification dismissal")
+                            } catch (e: Exception) {
+                                DevLogger.e("MusicPlaybackService", "Failed to save playback state", e)
+                            }
+                            stopSelf()
+                        }
                     }
                 }
             })

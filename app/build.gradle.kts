@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.gradle.api.tasks.compile.JavaCompile
 
 plugins {
     alias(libs.plugins.android.application)
@@ -123,6 +124,12 @@ packaging {
         compose = true
         buildConfig = true  // Enable BuildConfig generation for API keys
     }
+}
+
+// KSP (KSP2) may keep intermediate by-round Java outputs under generated/ksp/**/java/byRounds.
+// Exclude those intermediates from javac inputs to avoid duplicate generated classes.
+tasks.withType<JavaCompile>().configureEach {
+    exclude("**/byRounds/**")
 }
 
 dependencies {

@@ -430,7 +430,18 @@ class PlaybackRepositoryImpl @Inject constructor(
         // Extract queue from MediaController
         val queue = mutableListOf<Song>()
         for (i in 0 until controller.mediaItemCount) {
-            controller.getMediaItemAt(i).toSong()?.let { queue.add(it) }
+            try {
+                controller.getMediaItemAt(i).toSong()?.let { queue.add(it) }
+            } catch (e: Exception) {
+                DevLogger.e("PlaybackRepository", "Failed to convert queue item at index $i", e)
+            }
+        }
+
+        if (queue.size != controller.mediaItemCount) {
+            DevLogger.w(
+                "PlaybackRepository",
+                "Queue conversion incomplete: converted=${queue.size}, total=${controller.mediaItemCount}"
+            )
         }
 
         // Auto-save queue if it has changed
@@ -667,6 +678,10 @@ class PlaybackRepositoryImpl @Inject constructor(
 
     override suspend fun seekToQueueIndex(index: Int) {
         val controller = mediaController ?: return
+        if (controller.mediaItemCount <= 0) {
+            DevLogger.w("PlaybackRepository", "seekToQueueIndex ignored because queue is empty")
+            return
+        }
 
         // Validate index is in bounds
         val validIndex = index.coerceIn(0, controller.mediaItemCount - 1)

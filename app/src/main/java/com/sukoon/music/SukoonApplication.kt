@@ -3,6 +3,7 @@ package com.sukoon.music
 import android.app.Application
 import com.sukoon.music.data.ads.AdMobManager
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.di.HiltHolder
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.util.AppLocaleManager
 import dagger.hilt.android.HiltAndroidApp
@@ -27,6 +28,9 @@ class SukoonApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
+        // Initialize HiltHolder for non-DI service access
+        HiltHolder.init(this)
+
         // Apply persisted per-app language early in process startup.
         val savedLanguageTag = runBlocking {
             preferencesManager.getAppLanguageTag()
@@ -40,6 +44,14 @@ class SukoonApplication : Application() {
         // This ensures the controller is ready before any UI is displayed
         CoroutineScope(Dispatchers.Main).launch {
             playbackRepository.connect()
+        }
+    }
+
+    fun getPlaybackRepositoryOrNull(): PlaybackRepository? {
+        return if (this::playbackRepository.isInitialized) {
+            playbackRepository
+        } else {
+            null
         }
     }
 }
