@@ -23,4 +23,31 @@ data class FeedbackDocument(
     val consentGiven: Boolean = false,
     val hasAttachment: Boolean = false,
     val snapshot: FeedbackSnapshot? = null
-)
+) {
+    fun toFirestoreMap(timestampValue: Any): Map<String, Any?> {
+        val snapshotMap = snapshot?.let {
+            mapOf(
+                "path" to it.path,
+                "downloadUrl" to it.downloadUrl,
+                "fileName" to it.fileName,
+                "mimeType" to it.mimeType,
+                "sizeBytes" to it.sizeBytes
+            )
+        }
+
+        return mapOf(
+            "userId" to userId,
+            "category" to category,
+            "details" to details,
+            "appVersion" to appVersion,
+            "androidVersion" to androidVersion,
+            "deviceModel" to deviceModel,
+            "timestamp" to timestampValue,
+            "status" to status,
+            "consentGiven" to consentGiven,
+            "hasAttachment" to hasAttachment,
+            // Explicitly present for all documents; null when no screenshot attached.
+            "snapshot" to snapshotMap
+        )
+    }
+}

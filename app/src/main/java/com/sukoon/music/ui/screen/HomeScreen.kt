@@ -340,8 +340,7 @@ fun HomeScreen(
                             onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
-                            sessionState = sessionState,
-                            contextText = topBarContextText
+                            sessionState = sessionState
                         )
                     }
                 }

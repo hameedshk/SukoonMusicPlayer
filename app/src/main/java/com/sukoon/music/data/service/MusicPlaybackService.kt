@@ -91,6 +91,8 @@ class MusicPlaybackService : MediaSessionService() {
     private var lastAndroidAutoControllerSeenAtMs: Long = 0L
     private var lastExternalControllerSeenAtMs: Long = 0L
     private var lastForcedRecoveryAtMs: Long = 0L
+    private var lastPostRecoveryRetryAtMs: Long = 0L
+    private var lastTransientRecoveryAtMs: Long = 0L
     private var lastServiceStartAtMs: Long = 0L
     private var audioManager: AudioManager? = null
 
@@ -122,6 +124,11 @@ class MusicPlaybackService : MediaSessionService() {
         private const val FOCUS_RECOVERY_DELAY_MS = 500L
         private const val FORCED_RECOVERY_COOLDOWN_MS = 10_000L
         private const val SERVICE_START_RECOVERY_WINDOW_MS = 20_000L
+        private const val POST_RECOVERY_RETRY_WINDOW_MS = 3_000L
+        private const val POST_RECOVERY_RETRY_COOLDOWN_MS = 8_000L
+        private const val POST_RECOVERY_RETRY_DELAY_MS = 700L
+        private const val TRANSIENT_RECOVERY_DELAY_MS = 650L
+        private const val TRANSIENT_RECOVERY_COOLDOWN_MS = 6_000L
     }
 
     override fun onCreate() {
@@ -544,7 +551,28 @@ class MusicPlaybackService : MediaSessionService() {
                             "PLAYER_FOCUS_PAUSE: reason=${resolvedPauseReason.name}, focusState=$currentAudioFocusState, wasPlayingBeforePause=$wasPlayingBeforePause, androidAutoRecent=${isAndroidAutoRecentlyActive()}"
                         )
 
-                        if (resolvedPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                        if (resolvedPauseReason == PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT &&
+                            wasPlayingBeforePause &&
+                            shouldRecoverAfterTransientFocusLoss()
+                        ) {
+                            lastTransientRecoveryAtMs = System.currentTimeMillis()
+                            serviceScope.launch {
+                                delay(TRANSIENT_RECOVERY_DELAY_MS)
+                                if (!player.isPlaying &&
+                                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT &&
+                                    shouldRecoverAfterTransientFocusLoss(ignoreCooldown = true)
+                                ) {
+                                    val focusRequested = requestAudioFocusForPlayback()
+                                    DevLogger.d(
+                                        "MusicPlaybackService",
+                                        "TRANSIENT_FOCUS_RECOVERY_PLAY: focusRequested=$focusRequested"
+                                    )
+                                    player.play()
+                                    currentPauseReason = PauseReason.NONE
+                                    wasPlayingBeforeFocusLoss = false
+                                }
+                            }
+                        } else if (resolvedPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
                             wasPlayingBeforePause &&
                             shouldRecoverAfterPermanentFocusLoss()
                         ) {
@@ -559,6 +587,29 @@ class MusicPlaybackService : MediaSessionService() {
                                     DevLogger.d(
                                         "MusicPlaybackService",
                                         "FORCED_ANDROID_AUTO_RECOVERY_PLAY: focusRequested=$focusRequested"
+                                    )
+                                    player.play()
+                                    currentPauseReason = PauseReason.NONE
+                                    wasPlayingBeforeFocusLoss = false
+                                }
+                            }
+                        } else if (resolvedPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                            wasPlayingBeforePause &&
+                            isWithinPostRecoveryRetryWindow() &&
+                            shouldRecoverAfterPermanentFocusLoss(ignoreCooldown = true) &&
+                            canRunPostRecoveryRetry()
+                        ) {
+                            lastPostRecoveryRetryAtMs = System.currentTimeMillis()
+                            serviceScope.launch {
+                                delay(POST_RECOVERY_RETRY_DELAY_MS)
+                                if (!player.isPlaying &&
+                                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                                    shouldRecoverAfterPermanentFocusLoss(ignoreCooldown = true)
+                                ) {
+                                    val focusRequested = requestAudioFocusForPlayback()
+                                    DevLogger.d(
+                                        "MusicPlaybackService",
+                                        "POST_RECOVERY_FOCUS_RETRY_PLAY: focusRequested=$focusRequested"
                                     )
                                     player.play()
                                     currentPauseReason = PauseReason.NONE
@@ -823,9 +874,9 @@ class MusicPlaybackService : MediaSessionService() {
         return System.currentTimeMillis() - lastServiceStartAtMs <= SERVICE_START_RECOVERY_WINDOW_MS
     }
 
-    private fun shouldRecoverAfterPermanentFocusLoss(): Boolean {
+    private fun shouldRecoverAfterPermanentFocusLoss(ignoreCooldown: Boolean = false): Boolean {
         val now = System.currentTimeMillis()
-        if (now - lastForcedRecoveryAtMs < FORCED_RECOVERY_COOLDOWN_MS) {
+        if (!ignoreCooldown && now - lastForcedRecoveryAtMs < FORCED_RECOVERY_COOLDOWN_MS) {
             DevLogger.d("MusicPlaybackService", "Skip forced recovery: cooldown active")
             return false
         }
@@ -854,6 +905,43 @@ class MusicPlaybackService : MediaSessionService() {
             DevLogger.d("MusicPlaybackService", "Forced recovery using service-start handoff signal")
         }
         return true
+    }
+
+    private fun shouldRecoverAfterTransientFocusLoss(ignoreCooldown: Boolean = false): Boolean {
+        val now = System.currentTimeMillis()
+        if (!ignoreCooldown && now - lastTransientRecoveryAtMs < TRANSIENT_RECOVERY_COOLDOWN_MS) {
+            DevLogger.d("MusicPlaybackService", "Skip transient recovery: cooldown active")
+            return false
+        }
+
+        val hasControllerSignal = isAndroidAutoRecentlyActive() || isExternalControllerRecentlyActive()
+        val hasServiceSignal = isRecentServiceStartActivity()
+
+        val manager = audioManager ?: return true
+        val mode = manager.mode
+        if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION) {
+            DevLogger.d("MusicPlaybackService", "Skip transient recovery: in-call mode")
+            return false
+        }
+        if (manager.isMusicActive && !player.isPlaying && !hasControllerSignal && !hasServiceSignal) {
+            DevLogger.d("MusicPlaybackService", "Skip transient recovery: another app is active")
+            return false
+        }
+        if (currentPauseReason == PauseReason.USER_PAUSE || currentPauseReason == PauseReason.AUDIO_BECOMING_NOISY) {
+            DevLogger.d("MusicPlaybackService", "Skip transient recovery: pause reason=${currentPauseReason.name}")
+            return false
+        }
+        return true
+    }
+
+    private fun isWithinPostRecoveryRetryWindow(): Boolean {
+        if (lastForcedRecoveryAtMs <= 0L) return false
+        return System.currentTimeMillis() - lastForcedRecoveryAtMs <= POST_RECOVERY_RETRY_WINDOW_MS
+    }
+
+    private fun canRunPostRecoveryRetry(): Boolean {
+        if (lastPostRecoveryRetryAtMs <= 0L) return true
+        return System.currentTimeMillis() - lastPostRecoveryRetryAtMs > POST_RECOVERY_RETRY_COOLDOWN_MS
     }
 
     private fun requestAudioFocusForPlayback(): Boolean {

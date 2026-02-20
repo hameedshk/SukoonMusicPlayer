@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import com.google.android.gms.tasks.Task
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
@@ -67,9 +68,12 @@ class FeedbackRepositoryImpl @Inject constructor(
                 hasAttachment = snapshot != null,
                 snapshot = snapshot
             )
+            val feedbackPayload = feedbackData.toFirestoreMap(
+                timestampValue = FieldValue.serverTimestamp()
+            )
 
             val writeResult = withTimeoutOrNull(FIRESTORE_TIMEOUT_MS) {
-                awaitTask(feedbackCollection.add(feedbackData))
+                awaitTask(feedbackCollection.add(feedbackPayload))
             }
             if (writeResult == null) {
                 Result.failure(Exception("Feedback submission timed out. Please try again."))

@@ -28,17 +28,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.traversalIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import android.util.Log
 import coil.compose.SubcomposeAsyncImage
@@ -52,13 +46,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.semantics.Role
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.ui.theme.*
-import kotlinx.coroutines.delay
-
-private val TopBarRowVerticalPaddingDefault = 8.dp
-private val TopBarRowVerticalPaddingCompact = 6.dp
-private val TopBarContextBottomPadding = 6.dp
-private val TabPillsRowVerticalPaddingDefault = 4.dp
-private val TabPillsRowVerticalPaddingCompact = 4.dp
 
 @Composable
 internal fun PillButton(
@@ -142,7 +129,9 @@ internal fun PrivateSessionIndicatorStrip(
 ) {
     if (!sessionState.isActive) return
 
-    val remainingMs by rememberSessionRemainingMs(sessionState)
+    val remainingMs by remember(sessionState.startedAtMs) {
+        derivedStateOf { sessionState.getTimeRemainingMs() }
+    }
     val remainingMinutes = (remainingMs / 1000 / 60).toInt()
 
     Surface(
@@ -159,45 +148,23 @@ internal fun PrivateSessionIndicatorStrip(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = stringResource(R.string.common_ui_private_session_active),
+                contentDescription = "Private Session Active",
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = stringResource(R.string.common_ui_private_session),
+                text = "Private Session",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = stringResource(R.string.common_ui_private_session_minutes_remaining, remainingMinutes),
+                text = "$remainingMinutes min",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
             )
         }
-    }
-}
-
-@Composable
-private fun rememberSessionRemainingMs(
-    sessionState: com.sukoon.music.domain.model.PlaybackSessionState
-): State<Long> = produceState(
-    initialValue = sessionState.getTimeRemainingMs(),
-    key1 = sessionState.isActive,
-    key2 = sessionState.startedAtMs,
-    key3 = sessionState.expiryTimeMs
-) {
-    if (!sessionState.isActive) {
-        value = 0L
-        return@produceState
-    }
-
-    while (true) {
-        val remaining = sessionState.getTimeRemainingMs()
-        value = remaining
-        if (remaining <= 0L) break
-        delay(1000)
     }
 }
 
@@ -207,37 +174,8 @@ internal fun RedesignedTopBar(
     onGlobalSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoClick: () -> Unit = {},
-    sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState(),
-    contextText: String? = null,
-    isCompact: Boolean = false
+    sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
-    var showOverflowMenu by remember { mutableStateOf(false) }
-    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
-    val logoResId = if (isDarkTheme) R.drawable.app_icon_cat else R.drawable.app_logo
-    val rowVerticalPadding by animateDpAsState(
-        targetValue = if (isCompact) TopBarRowVerticalPaddingCompact else TopBarRowVerticalPaddingDefault,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "topbar_vertical_padding"
-    )
-    val logoSize by animateDpAsState(
-        targetValue = if (isCompact) 46.dp else if (isDarkTheme) 56.dp else 52.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "topbar_logo_size"
-    )
-    val logoContainerSize by animateDpAsState(
-        targetValue = if (isCompact) 54.dp else 60.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "topbar_logo_container_size"
-    )
-    val searchPillHeight by animateDpAsState(
-        targetValue = if (isCompact) 36.dp else 40.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "topbar_search_height"
-    )
-    val logoContentDescription = stringResource(R.string.common_ui_logo_content_description)
-    val searchContentDescription = stringResource(R.string.common_ui_search_content_description)
-    val moreOptionsContentDescription = stringResource(R.string.common_ui_more_options_content_description)
-
     Column(modifier = Modifier.fillMaxWidth()) {
         // Main header container - uses background color for seamless integration
         Surface(
@@ -248,8 +186,7 @@ internal fun RedesignedTopBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = rowVerticalPadding)
-                    .semantics { isTraversalGroup = true },
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -290,13 +227,13 @@ internal fun RedesignedTopBar(
 
                 val logoScale = pressScale * clickPulseScale
 
-                Box(
+                Image(
+                    painter = painterResource(id = R.drawable.app_logo),
+                    contentDescription = "Sukoon Music Logo",
                     modifier = Modifier
-                        .size(logoContainerSize)
-                        .semantics {
-                            contentDescription = logoContentDescription
-                            traversalIndex = 0f
-                        }
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .scale(logoScale)
                         .clickable(
                             interactionSource = logoInteractionSource,
                             indication = null,
@@ -304,111 +241,46 @@ internal fun RedesignedTopBar(
                                 logoAnimTrigger++
                                 onLogoClick()
                             }
-                        ),
-                    contentAlignment = Alignment.Center
+                        )
+                )
+
+                // App name - full "Sukoon Music"
+                Text(
+                    text = "Sukoon Music",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.wrapContentWidth()
+                )
+
+                // Spacer to push icons to the right
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Search icon button
+                IconButton(
+                    onClick = onGlobalSearchClick,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Image(
-                        painter = painterResource(id = logoResId),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .size(logoSize)
-                            .scale(logoScale)
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
-                // Primary search action as a visible pill for better discoverability
-                Surface(
-                    onClick = onGlobalSearchClick,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(searchPillHeight)
-                        .heightIn(min = 48.dp)
-                        .semantics {
-                            traversalIndex = 1f
-                            contentDescription = searchContentDescription
-                        },
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    tonalElevation = 0.dp,
-                    shadowElevation = 0.dp
+                // Settings icon button
+                IconButton(
+                    onClick = onSettingsClick,
+                    modifier = Modifier.size(40.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.common_ui_search_placeholder),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-
-                // Keep one utility icon visible and place less-frequent actions in overflow
-                Box {
-                    IconButton(
-                        onClick = { showOverflowMenu = true },
-                        modifier = Modifier
-                            .size(48.dp)
-                            .semantics {
-                                traversalIndex = 2f
-                                contentDescription = moreOptionsContentDescription
-                            }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showOverflowMenu,
-                        onDismissRequest = { showOverflowMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_settings)) },
-                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                            onClick = {
-                                showOverflowMenu = false
-                                onSettingsClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_go_premium)) },
-                            leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
-                            onClick = {
-                                showOverflowMenu = false
-                                onPremiumClick()
-                            }
-                        )
-                    }
-                }
-            }
-
-            if (!isCompact && !contextText.isNullOrBlank()) {
-                Text(
-                    text = contextText,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 68.dp, end = 16.dp, bottom = TopBarContextBottomPadding)
-                )
             }
         }
 
@@ -421,30 +293,9 @@ internal fun RedesignedTopBar(
 internal fun TabPills(
     tabs: List<HomeTabSpec>,
     selectedTab: HomeTabKey,
-    onTabSelected: (HomeTabKey) -> Unit,
-    isCompact: Boolean = false
+    onTabSelected: (HomeTabKey) -> Unit
 ) {
     val lazyListState = rememberLazyListState()
-    val rowVerticalPadding by animateDpAsState(
-        targetValue = if (isCompact) TabPillsRowVerticalPaddingCompact else TabPillsRowVerticalPaddingDefault,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "tab_row_vertical_padding"
-    )
-    val pillHeight by animateDpAsState(
-        targetValue = if (isCompact) 38.dp else TabPillHeight,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "tab_pill_height"
-    )
-    val pillVerticalContentPadding by animateDpAsState(
-        targetValue = if (isCompact) 6.dp else 8.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "tab_pill_vertical_padding"
-    )
-    val pillIconSize by animateDpAsState(
-        targetValue = if (isCompact) 12.dp else 13.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
-        label = "tab_pill_icon_size"
-    )
 
     // Scroll to selected tab when it changes
     LaunchedEffect(selectedTab) {
@@ -458,7 +309,7 @@ internal fun TabPills(
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = rowVerticalPadding)
+            .padding(vertical = 8.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(SpacingMedium), // 11dp breathing room
         contentPadding = PaddingValues(horizontal = 16.dp)
@@ -471,7 +322,7 @@ internal fun TabPills(
 
             Surface(
                 modifier = Modifier
-                    .height(pillHeight)
+                    .height(TabPillHeight)
                     .selectable(
                         selected = isSelected,
                         onClick = { onTabSelected(tab.key) },
@@ -484,7 +335,7 @@ internal fun TabPills(
             ) {
                 Row(
                     modifier = Modifier
-                        .padding(horizontal = 10.dp, vertical = pillVerticalContentPadding),
+                        .padding(horizontal = 10.dp, vertical = 8.dp), // Tightened: 10dp horiz, 8dp vert
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(SpacingSmall) // 6.5dp icon-text gap
                 ) {
@@ -492,7 +343,7 @@ internal fun TabPills(
                         imageVector = tab.icon,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(pillIconSize)
+                            .size(13.dp) // Reduced from 16dp: better optical balance vs 14sp text
                             .offset(x = 1.dp), // Optical shift right for visual centering
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
@@ -544,14 +395,14 @@ internal fun WidgetBanner(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = stringResource(R.string.common_ui_add_widgets_banner_text),
+                    text = "Add widgets to your home screen",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = stringResource(R.string.common_ui_go_content_description),
+                contentDescription = "Go",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -577,13 +428,13 @@ internal fun ActionButtonGrid(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             ActionButton(
-                text = stringResource(R.string.common_ui_action_shuffle),
+                text = "Shuffle",
                 icon = Icons.Default.Shuffle,
                 onClick = onShuffleAllClick,
                 modifier = Modifier.weight(1f)
             )
             ActionButton(
-                text = stringResource(R.string.common_ui_action_play),
+                text = "Play",
                 icon = Icons.Default.PlayArrow,
                 onClick = onPlayAllClick,
                 modifier = Modifier.weight(1f)
@@ -594,13 +445,13 @@ internal fun ActionButtonGrid(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             ActionButton(
-                text = stringResource(R.string.common_ui_action_scan_music),
+                text = "Scan music",
                 icon = Icons.Default.Refresh,
                 onClick = onScanClick,
                 modifier = Modifier.weight(1f)
             )
             ActionButton(
-                text = stringResource(R.string.common_ui_action_settings),
+                text = "Settings",
                 icon = Icons.Default.Settings,
                 onClick = onSettingsClick,
                 modifier = Modifier.weight(1f)
@@ -681,7 +532,7 @@ internal fun AlphabetScroller(
     onCharClick: (Char) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val alphabet = stringResource(R.string.common_ui_alphabet_index).toList()
+    val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".toList()
     Column(
         modifier = modifier.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -775,23 +626,23 @@ fun MultiSelectActionBottomBar(
         ) {
             SelectionBottomBarItem(
                 icon = Icons.Default.PlayArrow,
-                label = stringResource(R.string.common_ui_action_play),
+                label = "Play",
                 onClick = onPlay
             )
             SelectionBottomBarItem(
                 icon = Icons.Default.PlaylistAdd,
-                label = stringResource(R.string.common_ui_add_to_playlist),
+                label = "Add to playlist",
                 onClick = onAddToPlaylist
             )
             SelectionBottomBarItem(
                 icon = Icons.Default.Delete,
-                label = stringResource(R.string.common_ui_delete),
+                label = "Delete",
                 onClick = onDelete
             )
             Box {
                 SelectionBottomBarItem(
                     icon = Icons.Default.MoreVert,
-                    label = stringResource(R.string.common_ui_more),
+                    label = "More",
                     onClick = { showMoreMenu = true }
                 )
                 DropdownMenu(
@@ -800,7 +651,7 @@ fun MultiSelectActionBottomBar(
                     modifier = Modifier.width(180.dp)
                 ) {
                     DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
+                        text = { Text("Play next") },
                         leadingIcon = { Icon(Icons.Default.SkipNext, null) },
                         onClick = {
                             onPlayNext()
@@ -808,7 +659,7 @@ fun MultiSelectActionBottomBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
+                        text = { Text("Add to queue") },
                         leadingIcon = { Icon(Icons.Default.QueueMusic, null) },
                         onClick = {
                             onAddToQueue()
@@ -867,11 +718,7 @@ fun AnimatedFavoriteIcon(
 
     Icon(
         imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-        contentDescription = if (isLiked) {
-            stringResource(R.string.common_ui_unlike)
-        } else {
-            stringResource(R.string.common_ui_like)
-        },
+        contentDescription = if (isLiked) "Unlike" else "Like",
         tint = tint,
         modifier = modifier
             .size(size)
@@ -891,7 +738,9 @@ fun PrivateSessionIndicator(
 ) {
     if (!sessionState.isActive) return
 
-    val remainingMs by rememberSessionRemainingMs(sessionState)
+    val remainingMs by remember(sessionState.startedAtMs) {
+        derivedStateOf { sessionState.getTimeRemainingMs() }
+    }
     val remainingMinutes = (remainingMs / 1000 / 60).toInt()
 
     Surface(
@@ -911,19 +760,19 @@ fun PrivateSessionIndicator(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = stringResource(R.string.common_ui_private_session_active),
+                contentDescription = "Private Session Active",
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.common_ui_private_session_active),
+                    text = "Private Session Active",
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = stringResource(R.string.common_ui_private_session_no_history_expires, remainingMinutes),
+                    text = "No listening history recorded • Expires in $remainingMinutes min",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                 )
@@ -1013,11 +862,7 @@ fun ContinueListeningCard(
                 // Album artwork (full background)
                 SubcomposeAsyncImage(
                     model = song.albumArtUri,
-                    contentDescription = stringResource(
-                        R.string.common_ui_album_art_description,
-                        song.title,
-                        song.artist
-                    ),
+                    contentDescription = "Album art for ${song.title} by ${song.artist}",
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
@@ -1065,11 +910,7 @@ fun ContinueListeningCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = stringResource(
-                                R.string.common_ui_play_song_description,
-                                song.title,
-                                song.artist
-                            ),
+                            contentDescription = "Play ${song.title} by ${song.artist}",
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -1115,7 +956,7 @@ fun RecentlyPlayedScrollSection(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = stringResource(R.string.common_ui_recently_played),
+            text = "Recently played",
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold
             ),
@@ -1159,11 +1000,7 @@ fun RecentlyPlayedScrollSection(
                 ) {
                     SubcomposeAsyncImage(
                         model = song.albumArtUri,
-                        contentDescription = stringResource(
-                            R.string.common_ui_play_song_description,
-                            song.title,
-                            song.artist
-                        ),
+                        contentDescription = "Play ${song.title} by ${song.artist}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -1227,7 +1064,7 @@ fun LibraryNavigationCards(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = stringResource(R.string.common_ui_your_library),
+            text = "Your library",
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold
             ),
@@ -1245,13 +1082,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_songs),
+                    title = "Songs",
                     icon = Icons.Default.MusicNote,
                     onClick = onSongsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_playlists),
+                    title = "Playlists",
                     icon = Icons.AutoMirrored.Filled.List,
                     onClick = onPlaylistsClick,
                     modifier = Modifier.weight(1f)
@@ -1263,13 +1100,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_albums),
+                    title = "Albums",
                     icon = Icons.Default.Album,
                     onClick = onAlbumsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_folders),
+                    title = "Folders",
                     icon = Icons.Default.Folder,
                     onClick = onFoldersClick,
                     modifier = Modifier.weight(1f)
@@ -1326,7 +1163,7 @@ private fun LibraryCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = stringResource(R.string.common_ui_navigate_to, title),
+                contentDescription = "Navigate to $title",
                 modifier = Modifier.size(24.dp),
                 tint = accent().primary
             )
@@ -1481,4 +1318,3 @@ fun RedesignedTopBarPreview() {
         )
     }
 }
-
