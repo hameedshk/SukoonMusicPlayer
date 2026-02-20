@@ -59,7 +59,11 @@ fun GenreContextMenu(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = genre.formattedSongCount(),
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.common_song_count,
+                            genre.songCount,
+                            genre.songCount
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -69,7 +73,7 @@ fun GenreContextMenu(
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             
             ListItem(
-                headlineContent = { Text("Play") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
                 leadingContent = { Icon(Icons.Default.PlayArrow, null) },
                 modifier = Modifier.clickable {
                     onPlay()
@@ -77,7 +81,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Play next") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                 leadingContent = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
                 modifier = Modifier.clickable {
                     onPlayNext()
@@ -85,7 +89,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Add to queue") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                 leadingContent = { Icon(Icons.Default.AddToQueue, null) },
                 modifier = Modifier.clickable {
                     onAddToQueue()
@@ -93,7 +97,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Add to playlist") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
                 modifier = Modifier.clickable {
                     onAddToPlaylist()
@@ -101,7 +105,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Edit tags") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_edit_tags)) },
                 leadingContent = { Icon(Icons.Default.Edit, null) },
                 modifier = Modifier.clickable {
                     onEditTags()
@@ -109,7 +113,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Change cover") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_change_cover)) },
                 leadingContent = { Icon(Icons.Default.Image, null) },
                 modifier = Modifier.clickable {
                     onChangeCover()
@@ -117,7 +121,7 @@ fun GenreContextMenu(
                 }
             )
             ListItem(
-                headlineContent = { Text("Delete from device", color = MaterialTheme.colorScheme.error) },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device), color = MaterialTheme.colorScheme.error) },
                 leadingContent = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
                 modifier = Modifier.clickable {
                     onDelete()
@@ -127,3 +131,4 @@ fun GenreContextMenu(
         }
     }
 }
+

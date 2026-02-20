@@ -37,9 +37,14 @@ fun shareSong(context: Context, song: Song) {
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
-        context.startActivity(Intent.createChooser(intent, "Share ${song.title}"))
+        context.startActivity(
+            Intent.createChooser(
+                intent,
+                context.getString(com.sukoon.music.R.string.share_song_chooser_title_single, song.title)
+            )
+        )
     } catch (e: Exception) {
-        Toast.makeText(context, "Unable to share file", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_unable_to_share_file), Toast.LENGTH_SHORT).show()
     }
 }
 
@@ -50,7 +55,7 @@ fun shareSong(context: Context, song: Song) {
  */
 fun shareMultipleSongs(context: Context, songs: List<Song>) {
     if (songs.isEmpty()) {
-        Toast.makeText(context, "No songs to share", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_no_songs_to_share), Toast.LENGTH_SHORT).show()
         return
     }
 
@@ -67,13 +72,14 @@ fun shareMultipleSongs(context: Context, songs: List<Song>) {
         }
 
         val shareTitle = if (songs.size == 1) {
-            "Share ${songs[0].title}"
+            context.getString(com.sukoon.music.R.string.share_song_chooser_title_single, songs[0].title)
         } else {
-            "Share ${songs.size} songs"
+            context.getString(com.sukoon.music.R.string.share_song_chooser_title_multiple, songs.size)
         }
 
         context.startActivity(Intent.createChooser(intent, shareTitle))
     } catch (e: Exception) {
-        Toast.makeText(context, "Unable to share files: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_unable_to_share_files, e.message), Toast.LENGTH_SHORT).show()
     }
 }
+

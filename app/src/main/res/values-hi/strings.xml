@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">सुकून संगीत प्लेयर</string>
+    <string name="about_app_description">एक ऑफ़लाइन-केवल स्थानीय संगीत प्लेयर उच्च-निष्ठा यूआई और पृष्ठभूमि प्लेबैक के साथ।</string>
+    <string name="rate_us">हमें रेट करें</string>
+    <string name="rate_us_description">Google Play पर अपनी प्रतिक्रिया साझा करें</string>
+    <string name="send_feedback">प्रतिक्रिया भेजें</string>
+    <string name="send_feedback_description">समस्याओं की रिपोर्ट करें या सुविधाओं का सुझाव दें</string>
+    <string name="rating_banner_title">सुकून का आनंद ले रहे हैं?</string>
+    <string name="rating_banner_subtitle">Google Play पर हमें रेट करें</string>
+    <string name="share_app">सुकून संगीत प्लेयर साझा करें</string>
+    <string name="share_app_description">दोस्तों और परिवार के साथ साझा करें</string>
+    <string name="privacy_policy">गोपनीयता नीति</string>
+    <string name="terms_of_service">सेवा की शर्तें</string>
+    <string name="open_source_licenses">ओपन सोर्स लाइसेंस</string>
+
+    <!-- NowPlaying Screen -->
+    <string name="now_playing_collapse">प्लेयर संक्षिप्त करें</string>
+    <string name="now_playing_more_options">अधिक विकल्प</string>
+    <string name="now_playing_album_art">%1$s के लिए एल्बम कला</string>
+    <string name="now_playing_play">चलाएं</string>
+    <string name="now_playing_pause">रोकें</string>
+    <string name="now_playing_previous">पिछला ट्रैक</string>
+    <string name="now_playing_next">अगला ट्रैक</string>
+    <string name="now_playing_shuffle">शफल करें</string>
+    <string name="now_playing_shuffle_on">शफल चालू है</string>
+    <string name="now_playing_shuffle_off">शफल बंद है</string>
+    <string name="now_playing_repeat">दोहराएं</string>
+    <string name="now_playing_repeat_off">दोहराना बंद करें</string>
+    <string name="now_playing_repeat_all">सभी को दोहराएं</string>
+    <string name="now_playing_repeat_one">एक को दोहराएं</string>
+    <string name="now_playing_like">पसंद करें</string>
+    <string name="now_playing_unlike">पसंद न करें</string>
+    <string name="now_playing_liked">पसंद किया गया</string>
+    <string name="now_playing_not_liked">पसंद नहीं किया गया</string>
+    <string name="now_playing_lyrics">गीत</string>
+    <string name="now_playing_share">साझा करें</string>
+    <string name="now_playing_queue">कतार</string>
+    <string name="now_playing_close_lyrics">गीत बंद करें</string>
+    <string name="now_playing_no_song">कोई गीत चल नहीं रहा है</string>
+    <string name="now_playing_select_song">चलाना शुरू करने के लिए अपनी लाइब्रेरी से एक गीत चुनें</string>
+    <string name="now_playing_unknown_song">अज्ञात गीत</string>
+    <string name="now_playing_loading_lyrics">गीत लोड हो रहे हैं…</string>
+    <string name="now_playing_no_lyrics">कोई गीत उपलब्ध नहीं हैं</string>
+    <string name="now_playing_lyrics_error">गीत लोड करने में विफल</string>
+    <string name="up_next">अगला</string>
+
+    <!-- Settings Screen - Premium Banner -->
+    <string name="settings_premium_banner_title">प्रीमियम अनलॉक करें</string>
+    <string name="settings_premium_banner_subtitle">विज्ञापन हटाएं - आजीवन - ₹399</string>
+    <string name="settings_premium_banner_dismiss">प्रीमियम बैनर बंद करें</string>
+
+    <!-- Settings Screen - Section Headers -->
+    <string name="settings_section_privacy">गोपनीयता</string>
+    <string name="settings_section_appearance">उपस्थिति</string>
+    <string name="settings_section_playback">प्लेबैक</string>
+    <string name="settings_section_quality">गुणवत्ता सेटिंग्स</string>
+    <string name="settings_section_playback_features">प्लेबैक विशेषताएं</string>
+    <string name="settings_section_equalizer">इक्वलाइज़र</string>
+    <string name="settings_section_scan_settings">स्कैन सेटिंग्स</string>
+    <string name="settings_section_folders">फोल्डर प्रबंधन</string>
+    <string name="settings_section_permissions">अनुमतियां</string>
+    <string name="settings_section_storage_usage">भंडारण उपयोग</string>
+    <string name="settings_section_cache">कैश प्रबंधन</string>
+    <string name="settings_section_database">डेटाबेस</string>
+    <string name="settings_section_app_info">ऐप्लिकेशन की जानकारी</string>
+    <string name="settings_section_legal">कानूनी</string>
+    <string name="settings_section_developer">डेवलपर</string>
+    <string name="settings_section_advanced">उन्नत</string>
+
+    <!-- Settings Screen - General Tab -->
+    <string name="settings_private_session_title">निजी सत्र</string>
+    <string name="settings_private_session_desc">अपने सुनने का इतिहास सहेजें नहीं</string>
+    <string name="settings_theme_title">थीम</string>
+    <string name="settings_theme_light">हल्का</string>
+    <string name="settings_theme_dark">गहरा</string>
+    <string name="settings_theme_amoled">एमओलेड</string>
+    <string name="settings_accent_title">उच्चारण रंग</string>
+    <string name="settings_notification_controls_title">सूचना नियंत्रण दिखाएं</string>
+    <string name="settings_notification_controls_desc">सूचना में प्लेबैक नियंत्रण प्रदर्शित करें</string>
+
+    <!-- Settings Screen - Audio Tab -->
+    <string name="settings_audio_quality_title">ऑडियो गुणवत्ता</string>
+    <string name="settings_audio_buffer_title">ऑडियो बफर</string>
+    <string name="settings_gapless_title">निर्बाध प्लेबैक</string>
+    <string name="settings_gapless_desc">ट्रैक्स के बीच निर्बाध संक्रमण</string>
+    <string name="settings_crossfade_title">क्रॉसफेड अवधि</string>
+    <string name="settings_normalization_title">ऑडियो सामान्यीकरण</string>
+    <string name="settings_normalization_desc">ट्रैक्स में मात्रा को सामान्य करें</string>
+    <string name="settings_equalizer_title">इक्वलाइज़र</string>
+    <string name="settings_equalizer_desc">5-बैंड ईQ बास बूस्ट के साथ</string>
+
+    <!-- Settings Screen - Library Tab -->
+    <string name="settings_audio_permission_title">ऑडियो अनुमति</string>
+    <string name="settings_permission_granted">अनुमति दी गई</string>
+    <string name="settings_permission_denied">अनुमति नहीं दी गई - अनुदान देने के लिए टैप करें</string>
+    <string name="settings_scan_on_startup_title">स्टार्टअप पर स्कैन करें</string>
+    <string name="settings_scan_on_startup_desc">नए संगीत के लिए स्वचालित रूप से स्कैन करें</string>
+    <string name="settings_min_duration_title">न्यूनतम ऑडियो अवधि</string>
+    <string name="settings_show_all_audio_title">सभी ऑडियो फाइलें दिखाएं</string>
+    <string name="settings_show_all_audio_desc">छुपी फाइलें और संक्षिप्त क्लिप दिखाएं</string>
+
+    <!-- Common -->
+    <string name="common_back">वापस जाएं</string>
+    <string name="common_cancel">रद्द करें</string>
+    <string name="common_apply">लागू करें</string>
+    <string name="common_close">बंद करें</string>
+    <string name="common_settings">सेटिंग्स</string>
+    <string name="common_delete">हटाएं</string>
+    <string name="common_restore_purchase">खरीद को पुनर्स्थापित करें</string>
+</resources>

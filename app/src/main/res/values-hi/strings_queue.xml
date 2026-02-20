@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="queue_screen_tab_current_queue_with_count">वर्तमान कतार (%1$d)</string>
+    <string name="queue_screen_tab_saved_queues_with_count">सहेजी गई कतारें (%1$d)</string>
+    <string name="queue_screen_back_content_description">वापस जाएं</string>
+    <string name="queue_screen_save_queue_content_description">कतार सहेजें</string>
+    <string name="queue_screen_shuffle_queue_content_description">कतार शफल करें</string>
+    <string name="queue_screen_clear_queue_content_description">कतार साफ़ करें</string>
+    <string name="queue_screen_empty_title">कतार खाली है</string>
+    <string name="queue_screen_empty_subtitle">कुछ संगीत चलाना शुरू करें!</string>
+    <string name="queue_screen_more_options_content_description">अधिक विकल्प</string>
+    <string name="queue_screen_remove_from_queue_content_description">कतार से हटाएं</string>
+    <string name="queue_screen_drag_to_reorder_content_description">पुनः क्रमबद्ध करने के लिए खींचें</string>
+    <string name="queue_screen_saved_empty_title">कोई सहेजी गई कतार नहीं</string>
+    <string name="queue_screen_saved_empty_subtitle">बाद में एक्सेस करने के लिए अपनी वर्तमान कतार सहेजें</string>
+    <string name="queue_screen_saved_queue_metadata">%1$s \u2022 %2$s</string>
+    <string name="queue_screen_current_queue_badge">वर्तमान कतार</string>
+    <string name="queue_screen_delete_queue_content_description">कतार हटाएं</string>
+    <string name="queue_screen_delete_queue_confirmation">क्या आप &quot;%1$s&quot; को हटाना सुनिश्चित हैं? यह कार्रवाई अपरिवर्तनीय है।</string>
+    <string name="queue_screen_save_queue_prompt">इस कतार के लिए एक नाम दर्ज करें:</string>
+    <string name="queue_vm_saved_as">कतार &quot;%1$s&quot; के रूप में सहेजी गई</string>
+    <string name="queue_vm_failed_save">कतार सहेजने में विफल: %1$s</string>
+    <string name="queue_vm_saved_queue_fallback_name">सहेजी गई कतार</string>
+    <string name="queue_vm_queue_name_prefix">कतार: %1$s</string>
+    <string name="queue_vm_loaded">कतार लोड की गई</string>
+    <string name="queue_vm_failed_load">कतार लोड करने में विफल: %1$s</string>
+    <string name="queue_vm_deleted">कतार हटाई गई</string>
+    <string name="queue_vm_failed_delete">कतार हटाने में विफल: %1$s</string>
+    <string name="queue_vm_failed_remove_song">गीत हटाने में विफल: %1$s</string>
+    <string name="queue_vm_failed_reorder">कतार को पुनः क्रमबद्ध करने में विफल: %1$s</string>
+    <string name="queue_vm_failed_play_song">गीत चलाने में विफल: %1$s</string>
+    <string name="queue_vm_cleared">कतार साफ़ की गई</string>
+    <string name="queue_vm_failed_clear">कतार साफ़ करने में विफल: %1$s</string>
+    <string name="queue_vm_shuffled">कतार शफल की गई</string>
+    <string name="queue_vm_failed_shuffle">कतार शफल करने में विफल: %1$s</string>
+    <string name="queue_vm_unknown_error">अज्ञात त्रुटि</string>
+
+    <string name="queue_modal_close_queue_content_description">कतार बंद करें</string>
+    <string name="queue_modal_now_playing_section_title">अभी चल रहा है</string>
+    <string name="queue_modal_up_next_section_title_with_count">आगे (%1$d)</string>
+    <string name="queue_modal_previously_played_section_title_with_count">पहले चलाया गया (%1$d)</string>
+    <string name="queue_modal_song_metadata_separator"> \u2022 </string>
+    <string name="queue_modal_currently_playing_content_description">वर्तमान में चल रहा है</string>
+    <string name="queue_modal_remove_from_queue_content_description">कतार से हटाएं</string>
+    <string name="queue_modal_empty_title">कतार खाली है</string>
+    <string name="queue_modal_empty_subtitle">चलाना शुरू करने के लिए गीत जोड़ें</string>
+
+    <plurals name="queue_screen_song_count">
+        <item quantity="one">%d गीत</item>
+        <item quantity="other">%d गीत</item>
+    </plurals>
+
+    <plurals name="queue_modal_song_count">
+        <item quantity="one">%d गीत</item>
+        <item quantity="other">%d गीत</item>
+    </plurals>
+</resources>

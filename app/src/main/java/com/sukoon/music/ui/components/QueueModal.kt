@@ -13,10 +13,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.theme.*
 
@@ -114,7 +117,7 @@ private fun QueueModalHeader(
     ) {
         Column {
             Text(
-                text = "Queue",
+                text = stringResource(R.string.label_queue),
                 style = MaterialTheme.typography.headlineSmall.copy(
                     fontWeight = FontWeight.Bold
                 ),
@@ -122,7 +125,11 @@ private fun QueueModalHeader(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "$queueSize ${if (queueSize == 1) "song" else "songs"}",
+                text = pluralStringResource(
+                    R.plurals.queue_modal_song_count,
+                    queueSize,
+                    queueSize
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
@@ -131,7 +138,7 @@ private fun QueueModalHeader(
         IconButton(onClick = onDismiss) {
             Icon(
                 imageVector = Icons.Default.Close,
-                contentDescription = "Close queue",
+                contentDescription = stringResource(R.string.queue_modal_close_queue_content_description),
                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )
         }
@@ -156,7 +163,7 @@ private fun QueueModalContent(
         // Section 1: Now Playing (if there's a current track)
         if (currentIndex >= 0 && currentIndex < queue.size) {
             item {
-                SectionHeader(text = "Now Playing")
+                SectionHeader(text = stringResource(R.string.queue_modal_now_playing_section_title))
             }
             item {
                 QueueModalSongItem(
@@ -180,7 +187,12 @@ private fun QueueModalContent(
         if (upNextItems.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(text = "Up Next (${upNextItems.size})")
+                SectionHeader(
+                    text = stringResource(
+                        R.string.queue_modal_up_next_section_title_with_count,
+                        upNextItems.size
+                    )
+                )
             }
             itemsIndexed(
                 items = upNextItems,
@@ -208,7 +220,12 @@ private fun QueueModalContent(
         if (previousItems.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(text = "Previously Played (${previousItems.size})")
+                SectionHeader(
+                    text = stringResource(
+                        R.string.queue_modal_previously_played_section_title_with_count,
+                        previousItems.size
+                    )
+                )
             }
             itemsIndexed(
                 items = previousItems,
@@ -293,7 +310,7 @@ private fun QueueModalSongItem(
                 ) {
                     SubcomposeAsyncImage(
                         model = song.albumArtUri,
-                        contentDescription = "Album art for ${song.title}",
+                        contentDescription = stringResource(R.string.common_album_art_for_song, song.title),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -349,7 +366,7 @@ private fun QueueModalSongItem(
                     )
                     if (showDuration && !isCurrentSong) {
                         Text(
-                            text = " • ",
+                            text = stringResource(R.string.queue_modal_song_metadata_separator),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
                         )
@@ -369,7 +386,7 @@ private fun QueueModalSongItem(
                 // Playing indicator
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Currently playing",
+                    contentDescription = stringResource(R.string.queue_modal_currently_playing_content_description),
                     tint = accentColor,
                     modifier = Modifier.size(24.dp)
                 )
@@ -381,7 +398,7 @@ private fun QueueModalSongItem(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove from queue",
+                        contentDescription = stringResource(R.string.queue_modal_remove_from_queue_content_description),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.size(20.dp)
                     )
@@ -409,7 +426,7 @@ private fun EmptyQueueState() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Queue is empty",
+            text = stringResource(R.string.queue_modal_empty_title),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.SemiBold
             ),
@@ -417,7 +434,7 @@ private fun EmptyQueueState() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Add songs to start playing",
+            text = stringResource(R.string.queue_modal_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
@@ -433,3 +450,4 @@ private fun formatDuration(durationMs: Long): String {
     val seconds = totalSeconds % 60
     return String.format("%02d:%02d", minutes, seconds)
 }
+

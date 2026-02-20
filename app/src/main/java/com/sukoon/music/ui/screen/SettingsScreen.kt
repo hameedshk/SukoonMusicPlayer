@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,7 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -39,6 +41,7 @@ import androidx.compose.foundation.verticalScroll
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.AccentProfile
+import com.sukoon.music.R
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.components.GradientAlertDialog
@@ -56,6 +59,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.ui.theme.*
 import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
+import com.sukoon.music.util.AppLocaleManager
 import dagger.hilt.android.EntryPointAccessors
 
 /**
@@ -91,6 +95,7 @@ fun SettingsScreen(
     val scanState by viewModel.scanState.collectAsStateWithLifecycle()
     val premiumBannerDismissed by viewModel.premiumBannerDismissed.collectAsStateWithLifecycle()
     val billingState by viewModel.billingState.collectAsStateWithLifecycle()
+    val appLanguageTag by viewModel.appLanguageTag.collectAsStateWithLifecycle()
     val isPremium by remember {
         if (premiumManager != null) {
             premiumManager.isPremiumUser
@@ -121,6 +126,7 @@ fun SettingsScreen(
     var showClearHistoryDialog by remember { mutableStateOf(false) }
     var showMinDurationDialog by remember { mutableStateOf(false) }
     var showRescanDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     var showPremiumDialog by rememberSaveable(openPremiumDialog) { mutableStateOf(openPremiumDialog) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -135,12 +141,12 @@ fun SettingsScreen(
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             TopAppBar(
-                title = { Text("Settings") },
+                title = { Text(stringResource(R.string.common_settings)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = stringResource(R.string.common_back)
                         )
                     }
                 },
@@ -196,26 +202,30 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.Palette,
-                            title = "Theme",
-                            value = getThemeDescription(userPreferences.theme),
+                            title = stringResource(R.string.settings_screen_theme_title),
+                            value = getThemeDescription(context, userPreferences.theme),
                             onClick = { showThemeDialog = true }
                         ),                     
                         SettingsRowModel(
                             icon = Icons.Default.ColorLens,
-                            title = "Accent Color",
+                            title = stringResource(R.string.settings_screen_accent_color_title),
                             value = userPreferences.accentProfile.label,
                             onClick = { showAccentDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Timer,
-                            title = "Sleep timer",
-                            value = getSleepTimerLabel(userPreferences.sleepTimerTargetTimeMs),
-                            onClick = { showComingSoonToast(context, "Sleep timer coming soon") }
+                            title = stringResource(R.string.settings_screen_sleep_timer_title),
+                            value = getSleepTimerLabel(context, userPreferences.sleepTimerTargetTimeMs),
+                            onClick = { showComingSoonToast(context, context.getString(R.string.settings_screen_sleep_timer_coming_soon)) }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.WorkspacePremium,
-                            title = "Remove ads",
-                            value = if (isPremium) "Premium active" else "48% OFF",
+                            title = stringResource(R.string.settings_screen_remove_ads_title),
+                            value = if (isPremium) {
+                                stringResource(R.string.settings_screen_premium_active)
+                            } else {
+                                stringResource(R.string.settings_screen_discount_48_off)
+                            },
                             valueColor = accentTokens.active,
                             onClick = {
                                 analyticsTracker?.logEvent(
@@ -251,14 +261,14 @@ fun SettingsScreen(
                         // ),
                         SettingsRowModel(
                             icon = Icons.Default.Notifications,
-                            title = "Notification settings",
-                            onClick = { showComingSoonToast(context, "Notification settings coming soon") }
+                            title = stringResource(R.string.settings_screen_notification_settings_title),
+                            onClick = { showComingSoonToast(context, context.getString(R.string.settings_screen_notification_settings_coming_soon)) }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Language,
-                            title = "Language",
-                            value = "English",
-                            onClick = { showComingSoonToast(context, "Language support coming soon") }
+                            title = stringResource(R.string.settings_screen_language_title),
+                            value = getLanguageDescription(context, appLanguageTag),
+                            onClick = { showLanguageDialog = true }
                         )
                     )
                 )
@@ -269,8 +279,8 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.Email,
-                            title = "Feedback",
-                            value = "Share your feedback on Google Play",
+                            title = stringResource(R.string.settings_screen_feedback_title),
+                            value = stringResource(R.string.settings_screen_feedback_google_play),
                             valuePlacement = ValuePlacement.Below,
                             valueColor = accentTokens.active,
                             onClick = {
@@ -280,7 +290,7 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Info,
-                            title = "About",
+                            title = stringResource(R.string.settings_screen_about_title),
                             onClick = onNavigateToAbout
                         )
                     )
@@ -292,7 +302,7 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.VisibilityOff,
-                            title = "Private Session",
+                            title = stringResource(R.string.settings_screen_private_session_title),
                             // value = "Dont save your listening history",
                             valuePlacement = ValuePlacement.Below,
                             onClick = { viewModel.togglePrivateSession() },
@@ -305,8 +315,8 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Notifications,
-                            title = "Show Notification Controls",
-                            value = "Display playback controls in notification",
+                            title = stringResource(R.string.settings_screen_show_notification_controls_title),
+                            value = stringResource(R.string.settings_screen_show_notification_controls_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) },
                             trailingContent = {
@@ -325,20 +335,20 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.HighQuality,
-                            title = "Audio Quality",
-                            value = getAudioQualityDescription(userPreferences.audioQuality),
+                            title = stringResource(R.string.label_audio_quality),
+                            value = getAudioQualityDescription(context, userPreferences.audioQuality),
                             onClick = { showAudioQualityDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Storage,
-                            title = "Audio Buffer",
-                            value = "${userPreferences.audioBufferMs}ms",
+                            title = stringResource(R.string.settings_screen_audio_buffer_title),
+                            value = stringResource(R.string.settings_screen_duration_ms_value, userPreferences.audioBufferMs),
                             onClick = { showBufferDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Speed,
-                            title = "Gapless Playback",
-                            value = "Seamless transitions between tracks",
+                            title = stringResource(R.string.settings_screen_gapless_playback_title),
+                            value = stringResource(R.string.settings_screen_gapless_playback_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = { viewModel.toggleGaplessPlayback() },
                             trailingContent = {
@@ -350,14 +360,14 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.AutoAwesome,
-                            title = "Crossfade Duration",
-                            value = getCrossfadeLabel(userPreferences.crossfadeDurationMs),
+                            title = stringResource(R.string.label_crossfade_duration),
+                            value = getCrossfadeLabel(context, userPreferences.crossfadeDurationMs),
                             onClick = { showCrossfadeDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Settings,
-                            title = "Audio Normalization",
-                            value = "Normalize volume across tracks",
+                            title = stringResource(R.string.settings_screen_audio_normalization_title),
+                            value = stringResource(R.string.settings_screen_audio_normalization_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = { viewModel.toggleAudioNormalization() },
                             trailingContent = {
@@ -369,8 +379,8 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Equalizer,
-                            title = "Equalizer",
-                            value = "5-band EQ with bass boost",
+                            title = stringResource(R.string.settings_screen_equalizer_title),
+                            value = stringResource(R.string.settings_screen_equalizer_description),
                             onClick = onNavigateToEqualizer
                         )
                     )
@@ -382,8 +392,8 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.PermMedia,
-                            title = "Audio Permission",
-                            value = "Granted",
+                            title = stringResource(R.string.settings_screen_audio_permission_title),
+                            value = stringResource(R.string.settings_screen_permission_granted),
                             onClick = {
                                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                     permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
@@ -392,8 +402,8 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Search,
-                            title = "Scan on Startup",
-                            value = "Automatically scan for new music",
+                            title = stringResource(R.string.settings_screen_scan_on_startup_title),
+                            value = stringResource(R.string.settings_screen_scan_on_startup_description),
                             onClick = { viewModel.toggleScanOnStartup() },
                             trailingContent = {
                                 Switch(
@@ -404,14 +414,14 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Timer,
-                            title = "Minimum Audio Duration",
-                            value = "${userPreferences.minimumAudioDuration}s",
+                            title = stringResource(R.string.label_minimum_audio_duration),
+                            value = stringResource(R.string.settings_screen_duration_seconds_value, userPreferences.minimumAudioDuration),
                             onClick = { showMinDurationDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.AudioFile,
-                            title = "Show All Audio Files",
-                            value = "Show hidden files and short clips",
+                            title = stringResource(R.string.settings_screen_show_all_audio_files_title),
+                            value = stringResource(R.string.settings_screen_show_all_audio_files_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = { viewModel.toggleShowAllAudioFiles() },
                             trailingContent = {
@@ -423,14 +433,14 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.FolderOff,
-                            title = "Excluded Folders",
-                            value = " folders to exclude from scan",
+                            title = stringResource(R.string.settings_screen_excluded_folders_title),
+                            value = stringResource(R.string.settings_screen_excluded_folders_value),
                             onClick = onNavigateToExcludedFolders
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Refresh,
-                            title = "Rescan Library",
-                            value = " Search for new music files",
+                            title = stringResource(R.string.settings_screen_rescan_library_title),
+                            value = stringResource(R.string.settings_screen_rescan_library_description),
                             onClick = {
                                 viewModel.resetScanState()
                                 showRescanDialog = true
@@ -446,13 +456,13 @@ fun SettingsScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.Info,
-                            title = "Version",
+                            title = stringResource(R.string.settings_screen_version_title),
                             value = viewModel.getAppVersion()
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Star,
-                            title = "Rate Us",
-                            value = "Share your feedback on Google Play",
+                            title = stringResource(R.string.settings_screen_rate_us_title),
+                            value = stringResource(R.string.settings_screen_feedback_google_play),
                             onClick = {
                                 analyticsTracker?.logEvent("rate_us_item_tap", mapOf("source" to "settings"))
                                 val activity = context as? ComponentActivity
@@ -488,10 +498,38 @@ fun SettingsScreen(
             )
         }
 
+        if (showLanguageDialog) {
+            LanguageSelectionDialog(
+                currentLanguageTag = appLanguageTag,
+                onDismiss = { showLanguageDialog = false },
+                onLanguageSelect = { languageTag ->
+                    val selectedTag = AppLocaleManager.normalizeLanguageTag(languageTag)
+                    val currentTag = AppLocaleManager.normalizeLanguageTag(appLanguageTag)
+                    if (selectedTag != currentTag) {
+                        val appliedTag = if (selectedTag == AppLocaleManager.LANGUAGE_SYSTEM) {
+                            null
+                        } else {
+                            selectedTag
+                        }
+                        // CRITICAL: Save preference, await completion, THEN apply and recreate
+                        coroutineScope.launch {
+                            viewModel.setAppLanguageTagAndWait(languageTag)  // Suspends until saved
+                            AppLocaleManager.applyLanguage(context, appliedTag)
+                            (context as? Activity)?.recreate()
+                        }
+                    } else {
+                        // Still save if selection didn't change
+                        viewModel.setAppLanguageTag(languageTag)
+                    }
+                    showLanguageDialog = false
+                }
+            )
+        }
+
         if (showClearCacheDialog) {
             ConfirmationDialog(
-                title = "Clear Cache?",
-                message = "This will delete cached album art. Your music files will not be affected.",
+                title = stringResource(R.string.settings_screen_clear_cache_title),
+                message = stringResource(R.string.settings_screen_clear_cache_message),
                 icon = Icons.Default.Warning,
                 onDismiss = { showClearCacheDialog = false },
                 onConfirm = {
@@ -503,8 +541,8 @@ fun SettingsScreen(
 
         if (showClearDatabaseDialog) {
             ConfirmationDialog(
-                title = "Clear Database?",
-                message = "This will delete all song metadata, playlists, and lyrics. Your music files will NOT be deleted. You can rescan later.",
+                title = stringResource(R.string.settings_screen_clear_database_title),
+                message = stringResource(R.string.settings_screen_clear_database_message),
                 icon = Icons.Default.Warning,
                 isDestructive = true,
                 onDismiss = { showClearDatabaseDialog = false },
@@ -517,8 +555,8 @@ fun SettingsScreen(
 
         if (showClearHistoryDialog) {
             ConfirmationDialog(
-                title = "Clear Recently Played?",
-                message = "This will remove your recently played history.",
+                title = stringResource(R.string.settings_screen_clear_recently_played_title),
+                message = stringResource(R.string.settings_screen_clear_recently_played_message),
                 icon = Icons.Default.History,
                 onDismiss = { showClearHistoryDialog = false },
                 onConfirm = {
@@ -586,7 +624,7 @@ fun SettingsScreen(
                         if (finalState is com.sukoon.music.domain.model.ScanState.Success) {
                             Toast.makeText(
                                 context,
-                                "✓ Loaded ${finalState.totalSongs} songs",
+                                context.getString(R.string.settings_screen_loaded_songs_toast, finalState.totalSongs),
                                 Toast.LENGTH_LONG
                             ).show()
                         }
@@ -598,7 +636,7 @@ fun SettingsScreen(
         if (showPremiumDialog) {
             PremiumDialog(
                 billingState = billingState,
-                priceText = "$4.99 USD",
+                priceText = stringResource(R.string.settings_screen_premium_price_text),
                 onDismiss = {
                     showPremiumDialog = false
                     viewModel.resetBillingState()
@@ -646,10 +684,10 @@ private fun MinimumDurationDialog(
 
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Minimum Audio Duration") },
+        title = { Text(stringResource(R.string.label_minimum_audio_duration)) },
         text = {
             Column {
-                Text("Exclude files shorter than: $duration seconds")
+                Text(stringResource(R.string.settings_screen_exclude_files_shorter_than_value, duration))
                 Spacer(modifier = Modifier.height(16.dp))
                 Slider(
                     value = duration.toFloat(),
@@ -658,7 +696,7 @@ private fun MinimumDurationDialog(
                     steps = 11
                 )
                 Text(
-                    text = "Useful for hiding ringtones, notification sounds, and short voice notes.",
+                    text = stringResource(R.string.settings_screen_minimum_duration_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -666,12 +704,12 @@ private fun MinimumDurationDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(duration) }) {
-                Text("Apply")
+                Text(stringResource(R.string.common_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -825,15 +863,95 @@ private fun showComingSoonToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 
-private fun getSleepTimerLabel(targetMs: Long): String =
+private fun getSleepTimerLabel(context: Context, targetMs: Long): String =
     if (targetMs <= System.currentTimeMillis()) {
-        "Off"
+        context.getString(R.string.settings_screen_state_off)
     } else {
-        "On"
+        context.getString(R.string.settings_screen_state_on)
     }
 
-private fun getCrossfadeLabel(durationMs: Int): String =
-    if (durationMs <= 0) "Off" else "${durationMs}ms"
+private fun getCrossfadeLabel(context: Context, durationMs: Int): String =
+    if (durationMs <= 0) {
+        context.getString(R.string.settings_screen_state_off)
+    } else {
+        context.getString(R.string.settings_screen_duration_ms_value, durationMs)
+    }
+
+private fun getLanguageDescription(context: Context, languageTag: String?): String {
+    return when (AppLocaleManager.normalizeLanguageTag(languageTag)) {
+        AppLocaleManager.LANGUAGE_SYSTEM -> context.getString(R.string.settings_screen_language_system_default)
+        "en" -> context.getString(R.string.settings_screen_language_english)
+        "hi-IN" -> context.getString(R.string.settings_screen_language_hindi)
+        "pt-BR" -> context.getString(R.string.settings_screen_language_portuguese_brazil)
+        else -> context.getString(R.string.settings_screen_language_system_default)
+    }
+}
+
+@Composable
+private fun LanguageSelectionDialog(
+    currentLanguageTag: String?,
+    onDismiss: () -> Unit,
+    onLanguageSelect: (String?) -> Unit
+) {
+    val selectedTag = AppLocaleManager.normalizeLanguageTag(currentLanguageTag)
+    GradientAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_screen_language_select_title)) },
+        text = {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onLanguageSelect(null) }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedTag == AppLocaleManager.LANGUAGE_SYSTEM,
+                        onClick = { onLanguageSelect(null) }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.settings_screen_language_system_default))
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onLanguageSelect("en") }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedTag == "en",
+                        onClick = { onLanguageSelect("en") }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.settings_screen_language_english))
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onLanguageSelect("hi-IN") }
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedTag == "hi-IN",
+                        onClick = { onLanguageSelect("hi-IN") }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.settings_screen_language_hindi))
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_close))
+            }
+        }
+    )
+}
 
 @Composable
 private fun ThemeSelectionDialog(
@@ -843,7 +961,7 @@ private fun ThemeSelectionDialog(
 ) {
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose Theme") },
+        title = { Text(stringResource(R.string.label_choose_theme)) },
         text = {
             Column {
                 AppTheme.entries.forEach { theme ->
@@ -861,15 +979,15 @@ private fun ThemeSelectionDialog(
                         Column {
                             Text(
                                 text = when (theme) {
-                                    AppTheme.LIGHT -> "Light"
-                                    AppTheme.DARK -> "Dark"
-                                    AppTheme.AMOLED -> "AMOLED Black"
-                                    AppTheme.SYSTEM -> "System Default"
+                                    AppTheme.LIGHT -> stringResource(R.string.settings_screen_theme_light_short)
+                                    AppTheme.DARK -> stringResource(R.string.settings_screen_theme_dark_short)
+                                    AppTheme.AMOLED -> stringResource(R.string.settings_screen_theme_amoled_black)
+                                    AppTheme.SYSTEM -> stringResource(R.string.settings_screen_theme_system_default)
                                 }
                             )
                             if (theme == AppTheme.AMOLED) {
                                 Text(
-                                    text = "True black for OLED battery savings",
+                                    text = stringResource(R.string.settings_screen_theme_amoled_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -881,7 +999,7 @@ private fun ThemeSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.common_close))
             }
         }
     )
@@ -927,12 +1045,18 @@ private fun ConfirmationDialog(
                     ButtonDefaults.textButtonColors()
                 }
             ) {
-                Text(if (isDestructive) "Delete" else "Confirm")
+                Text(
+                    if (isDestructive) {
+                        stringResource(R.string.common_delete)
+                    } else {
+                        stringResource(R.string.settings_screen_confirm)
+                    }
+                )
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -946,7 +1070,7 @@ private fun AudioQualityDialog(
 ) {
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Audio Quality") },
+        title = { Text(stringResource(R.string.label_audio_quality)) },
         text = {
             Column {
                 AudioQuality.entries.forEach { quality ->
@@ -964,19 +1088,19 @@ private fun AudioQualityDialog(
                         Column {
                             Text(
                                 text = when (quality) {
-                                    AudioQuality.LOW -> "Low"
-                                    AudioQuality.MEDIUM -> "Medium"
-                                    AudioQuality.HIGH -> "High"
-                                    AudioQuality.LOSSLESS -> "Lossless"
+                                    AudioQuality.LOW -> stringResource(R.string.settings_screen_audio_quality_low)
+                                    AudioQuality.MEDIUM -> stringResource(R.string.settings_screen_audio_quality_medium)
+                                    AudioQuality.HIGH -> stringResource(R.string.settings_screen_audio_quality_high)
+                                    AudioQuality.LOSSLESS -> stringResource(R.string.settings_screen_audio_quality_lossless)
                                 },
                                 style = MaterialTheme.typography.bodyLarge
                             )
                             Text(
                                 text = when (quality) {
-                                    AudioQuality.LOW -> "128 kbps equivalent"
-                                    AudioQuality.MEDIUM -> "192 kbps equivalent"
-                                    AudioQuality.HIGH -> "320 kbps equivalent"
-                                    AudioQuality.LOSSLESS -> "Original quality"
+                                    AudioQuality.LOW -> stringResource(R.string.settings_screen_audio_quality_low_description)
+                                    AudioQuality.MEDIUM -> stringResource(R.string.settings_screen_audio_quality_medium_description)
+                                    AudioQuality.HIGH -> stringResource(R.string.settings_screen_audio_quality_high_description)
+                                    AudioQuality.LOSSLESS -> stringResource(R.string.settings_screen_audio_quality_lossless_description)
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -988,7 +1112,7 @@ private fun AudioQualityDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.common_close))
             }
         }
     )
@@ -1004,10 +1128,16 @@ private fun CrossfadeDialog(
 
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Crossfade Duration") },
+        title = { Text(stringResource(R.string.label_crossfade_duration)) },
         text = {
             Column {
-                Text("Duration: ${duration}ms${if (duration == 0) " (Disabled)" else ""}")
+                Text(
+                    if (duration == 0) {
+                        stringResource(R.string.settings_screen_crossfade_duration_disabled_value, duration)
+                    } else {
+                        stringResource(R.string.settings_screen_crossfade_duration_value, duration)
+                    }
+                )
                 Spacer(Modifier.height(16.dp))
                 Slider(
                     value = duration.toFloat(),
@@ -1016,7 +1146,7 @@ private fun CrossfadeDialog(
                     steps = 19
                 )
                 Text(
-                    text = "Smoothly fade between tracks (0-10 seconds)",
+                    text = stringResource(R.string.settings_screen_crossfade_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -1024,12 +1154,12 @@ private fun CrossfadeDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(duration) }) {
-                Text("Apply")
+                Text(stringResource(R.string.common_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -1045,10 +1175,10 @@ private fun BufferDialog(
 
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Audio Buffer Size") },
+        title = { Text(stringResource(R.string.label_audio_buffer_size)) },
         text = {
             Column {
-                Text("Buffer: ${buffer}ms")
+                Text(stringResource(R.string.settings_screen_audio_buffer_value, buffer))
                 Spacer(Modifier.height(16.dp))
                 Slider(
                     value = buffer.toFloat(),
@@ -1057,7 +1187,7 @@ private fun BufferDialog(
                     steps = 18
                 )
                 Text(
-                    text = "Higher values = more stable playback, higher latency",
+                    text = stringResource(R.string.settings_screen_audio_buffer_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -1065,29 +1195,29 @@ private fun BufferDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(buffer) }) {
-                Text("Apply")
+                Text(stringResource(R.string.common_apply))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
 }
 
-private fun getThemeDescription(theme: AppTheme): String = when (theme) {
-    AppTheme.LIGHT -> "Light Mode"
-    AppTheme.DARK -> "Dark Mode"
-    AppTheme.AMOLED -> "AMOLED"
-    AppTheme.SYSTEM -> "System Default"
+private fun getThemeDescription(context: Context, theme: AppTheme): String = when (theme) {
+    AppTheme.LIGHT -> context.getString(R.string.settings_screen_theme_light_mode)
+    AppTheme.DARK -> context.getString(R.string.settings_screen_theme_dark_mode)
+    AppTheme.AMOLED -> context.getString(R.string.settings_screen_theme_amoled)
+    AppTheme.SYSTEM -> context.getString(R.string.settings_screen_theme_system_default)
 }
 
-private fun getAudioQualityDescription(quality: AudioQuality): String = when (quality) {
-    AudioQuality.LOW -> "Low (128 kbps)"
-    AudioQuality.MEDIUM -> "Medium (192 kbps)"
-    AudioQuality.HIGH -> "High (320 kbps)"
-    AudioQuality.LOSSLESS -> "Lossless (Original)"
+private fun getAudioQualityDescription(context: Context, quality: AudioQuality): String = when (quality) {
+    AudioQuality.LOW -> context.getString(R.string.settings_screen_audio_quality_low_value)
+    AudioQuality.MEDIUM -> context.getString(R.string.settings_screen_audio_quality_medium_value)
+    AudioQuality.HIGH -> context.getString(R.string.settings_screen_audio_quality_high_value)
+    AudioQuality.LOSSLESS -> context.getString(R.string.settings_screen_audio_quality_lossless_value)
 }
 
 @Composable
@@ -1098,7 +1228,7 @@ private fun AccentSelectionDialog(
 ) {
     GradientAlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Choose Accent Color") },
+        title = { Text(stringResource(R.string.label_choose_accent_color)) },
         text = {
             Column {
                 AccentProfile.ALL.forEach { profile ->
@@ -1161,7 +1291,7 @@ private fun AccentSelectionDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(stringResource(R.string.common_close))
             }
         }
     )
@@ -1181,7 +1311,7 @@ private fun RescanDialog(
                 onDismiss(scanState)
             }
         },
-        title = { Text("Rescan Library?") },
+        title = { Text(stringResource(R.string.label_rescan_library_question)) },
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -1190,7 +1320,7 @@ private fun RescanDialog(
                 when {
                     isScanning -> {
                         // Scanning in progress
-                        Text("Scanning your device for music files...")
+                        Text(stringResource(R.string.settings_screen_scanning_device_message))
                         Spacer(modifier = Modifier.height(16.dp))
                         when (scanState) {
                             is com.sukoon.music.domain.model.ScanState.Scanning -> {
@@ -1199,7 +1329,7 @@ private fun RescanDialog(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Found ${scanState.scannedCount} file(s)",
+                                    text = stringResource(R.string.settings_screen_found_files_count, scanState.scannedCount),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (!scanState.message.isNullOrEmpty()) {
@@ -1226,13 +1356,13 @@ private fun RescanDialog(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "✓ Found ${scanState.totalSongs} songs",
+                            text = stringResource(R.string.settings_screen_found_songs_count, scanState.totalSongs),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Your library has been updated successfully",
+                            text = stringResource(R.string.settings_screen_library_updated_successfully),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -1247,7 +1377,7 @@ private fun RescanDialog(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "✗ Scan Failed",
+                            text = stringResource(R.string.settings_screen_scan_failed_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -1260,7 +1390,7 @@ private fun RescanDialog(
                     }
                     else -> {
                         // Initial state - pre-scan
-                        Text("This will scan your device for new music files. It may take a moment.")
+                        Text(stringResource(R.string.settings_screen_rescan_initial_message))
                     }
                 }
             }
@@ -1287,10 +1417,10 @@ private fun RescanDialog(
             ) {
                 Text(
                     when {
-                        isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning -> "Scanning..."
-                        scanState is com.sukoon.music.domain.model.ScanState.Success -> "Done"
-                        scanState is com.sukoon.music.domain.model.ScanState.Error -> "Done"
-                        else -> "Start Scan"
+                        isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning -> stringResource(R.string.settings_screen_scanning_button)
+                        scanState is com.sukoon.music.domain.model.ScanState.Success -> stringResource(R.string.settings_screen_done_button)
+                        scanState is com.sukoon.music.domain.model.ScanState.Error -> stringResource(R.string.settings_screen_done_button)
+                        else -> stringResource(R.string.settings_screen_start_scan_button)
                     }
                 )
             }
@@ -1298,7 +1428,7 @@ private fun RescanDialog(
         dismissButton = {
             if (!isScanning) {
                 TextButton(onClick = { onDismiss(scanState) }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         }
@@ -1324,7 +1454,7 @@ fun PremiumDialog(
             ) {
                 Icon(
                     imageVector = Icons.Default.WorkspacePremium,
-                    contentDescription = "Premium",
+                    contentDescription = stringResource(R.string.settings_screen_premium_content_description),
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(46.dp)
                 )
@@ -1332,13 +1462,13 @@ fun PremiumDialog(
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Go Premium",
+                    text = stringResource(R.string.settings_screen_go_premium_title),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
 
                 Text(
-                    text = "Enjoy pure, uninterrupted music",
+                    text = stringResource(R.string.settings_screen_go_premium_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
@@ -1355,11 +1485,11 @@ fun PremiumDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                PremiumBenefit("Ad-free listening")
-                PremiumBenefit("No interruptions during playback")
-                PremiumBenefit("Cleaner, faster experience")
-                PremiumBenefit("Works fully offline")
-                PremiumBenefit("Support Sukoon development")
+                PremiumBenefit(stringResource(R.string.settings_screen_premium_benefit_ad_free_listening))
+                PremiumBenefit(stringResource(R.string.settings_screen_premium_benefit_no_interruptions))
+                PremiumBenefit(stringResource(R.string.settings_screen_premium_benefit_cleaner_faster))
+                PremiumBenefit(stringResource(R.string.settings_screen_premium_benefit_works_offline))
+                PremiumBenefit(stringResource(R.string.settings_screen_premium_benefit_support_development))
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -1382,7 +1512,7 @@ fun PremiumDialog(
                         )
 
                         Text(
-                            text = "Lifetime access • One-time purchase",
+                            text = stringResource(R.string.settings_screen_lifetime_access_one_time_purchase),
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
@@ -1394,11 +1524,11 @@ fun PremiumDialog(
                     onClick = onRestore,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 ) {
-                    Text("Restore Purchase")
+                    Text(stringResource(R.string.common_restore_purchase))
                 }
 
                 Text(
-                    text = "No subscription • No recurring charges • Secured by Google Play",
+                    text = stringResource(R.string.settings_screen_no_subscription_no_recurring_charges),
                     style = MaterialTheme.typography.labelSmall,
                     modifier = Modifier.align(Alignment.CenterHorizontally),
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -1415,7 +1545,7 @@ fun PremiumDialog(
                     .height(48.dp)
             ) {
                 Text(
-                    text = "Unlock Premium",
+                    text = stringResource(R.string.settings_screen_unlock_premium),
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -1423,7 +1553,7 @@ fun PremiumDialog(
 
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Maybe Later")
+                Text(stringResource(R.string.label_maybe_later))
             }
         }
     )

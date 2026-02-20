@@ -178,7 +178,7 @@ fun HomeScreen(
     }
 
     // Use provided username or default greeting
-    val displayUsername = username.ifBlank { "there" }
+    val displayUsername = username.ifBlank { appContext.getString(com.sukoon.music.R.string.home_default_username) }
 
     // Use ViewModel's tab state (persisted to DataStore, survives app restart)
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
@@ -187,15 +187,19 @@ fun HomeScreen(
         viewModel.setSelectedTab(tab)
     }
 
-    val tabs = remember(displayUsername) {
+    val tabs = remember(displayUsername, appContext) {
         listOf(
-            HomeTabSpec(HomeTabKey.HOME, "Hi $displayUsername", Icons.Default.Home),
-            HomeTabSpec(HomeTabKey.SONGS, "Songs", Icons.Default.MusicNote),
-            HomeTabSpec(HomeTabKey.PLAYLISTS, "Playlists", Icons.AutoMirrored.Filled.List),
-            HomeTabSpec(HomeTabKey.FOLDERS, "Folders", Icons.Default.Folder),
-            HomeTabSpec(HomeTabKey.ALBUMS, "Albums", Icons.Default.Album),
-            HomeTabSpec(HomeTabKey.ARTISTS, "Artists", Icons.Default.Person),
-            HomeTabSpec(HomeTabKey.GENRES, "Genres", Icons.Default.Star)
+            HomeTabSpec(
+                HomeTabKey.HOME,
+                appContext.getString(com.sukoon.music.R.string.home_tab_greeting, displayUsername),
+                Icons.Default.Home
+            ),
+            HomeTabSpec(HomeTabKey.SONGS, appContext.getString(com.sukoon.music.R.string.home_tab_songs), Icons.Default.MusicNote),
+            HomeTabSpec(HomeTabKey.PLAYLISTS, appContext.getString(com.sukoon.music.R.string.home_tab_playlists), Icons.AutoMirrored.Filled.List),
+            HomeTabSpec(HomeTabKey.FOLDERS, appContext.getString(com.sukoon.music.R.string.home_tab_folders), Icons.Default.Folder),
+            HomeTabSpec(HomeTabKey.ALBUMS, appContext.getString(com.sukoon.music.R.string.home_tab_albums), Icons.Default.Album),
+            HomeTabSpec(HomeTabKey.ARTISTS, appContext.getString(com.sukoon.music.R.string.home_tab_artists), Icons.Default.Person),
+            HomeTabSpec(HomeTabKey.GENRES, appContext.getString(com.sukoon.music.R.string.home_tab_genres), Icons.Default.Star)
         )
     }
 
@@ -217,15 +221,20 @@ fun HomeScreen(
                     val totalSongs = result.totalSongs
                     Toast.makeText(
                         appContext,
-                        "Scan completed: $totalSongs songs found",
+                        appContext.resources.getQuantityString(
+                            com.sukoon.music.R.plurals.home_scan_completed_songs,
+                            totalSongs,
+                            totalSongs
+                        ),
                         Toast.LENGTH_LONG
                     ).show()
                 }
                 is HomeViewModel.ManualScanResult.Error -> {
-                    val toastMessage = if (result.message.startsWith("Scan failed", ignoreCase = true)) {
+                    val scanFailedPrefix = appContext.getString(com.sukoon.music.R.string.home_scan_failed_title)
+                    val toastMessage = if (result.message.startsWith(scanFailedPrefix, ignoreCase = true)) {
                         result.message
                     } else {
-                        "Scan failed: ${result.message}"
+                        appContext.getString(com.sukoon.music.R.string.home_scan_failed_with_reason, result.message)
                     }
                     Toast.makeText(appContext, toastMessage, Toast.LENGTH_LONG).show()
                 }
@@ -259,10 +268,13 @@ fun HomeScreen(
     }
 
     val topBarContextText = when (scanState) {
-        is ScanState.Scanning -> "Scanning ${(scanState as ScanState.Scanning).scannedCount} songs..."
+        is ScanState.Scanning -> appContext.getString(
+            com.sukoon.music.R.string.home_topbar_scanning_context,
+            (scanState as ScanState.Scanning).scannedCount
+        )
         else -> {
             if (sessionState.isActive) {
-                "Private session is active"
+                appContext.getString(com.sukoon.music.R.string.home_topbar_private_session_active)
             } else {
                 null
             }
@@ -499,14 +511,18 @@ private fun ScanProgressView(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Scanning for music...",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_scan_progress_title),
             style = MaterialTheme.typography.titleLarge
         )
 
         Spacer(modifier = Modifier.height(SpacingSmall))
 
         Text(
-            text = "Found ${scanState.scannedCount} songs",
+            text = androidx.compose.ui.res.pluralStringResource(
+                com.sukoon.music.R.plurals.home_scan_progress_found_count,
+                scanState.scannedCount,
+                scanState.scannedCount
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -554,10 +570,14 @@ private fun EmptyState(
 
         Text(
             text = when {
-                !hasPermission -> "Permission Required"
-                scanState is ScanState.Error -> "Scan failed"
-                scanState is ScanState.Success -> if (scanState.totalSongs == 0) "No music found" else "No songs"
-                else -> "No music found"
+                !hasPermission -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.permission_required_title)
+                scanState is ScanState.Error -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_scan_failed_title)
+                scanState is ScanState.Success -> if (scanState.totalSongs == 0) {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_no_music_found_title)
+                } else {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_no_songs_title)
+                }
+                else -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_no_music_found_title)
             },
             style = MaterialTheme.typography.titleLarge
         )
@@ -566,10 +586,14 @@ private fun EmptyState(
 
         Text(
             text = when {
-                !hasPermission -> "Grant permission to access your music library and discover local songs"
+                !hasPermission -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_permission_message)
                 scanState is ScanState.Error -> scanState.error
-                scanState is ScanState.Success -> if (scanState.totalSongs == 0) "Tap the button below to scan for local music" else "Tap scan to refresh"
-                else -> "Tap the button below to scan for local music"
+                scanState is ScanState.Success -> if (scanState.totalSongs == 0) {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_scan_prompt)
+                } else {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_tap_scan_refresh)
+                }
+                else -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_empty_scan_prompt)
             },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -590,7 +614,13 @@ private fun EmptyState(
                 modifier = Modifier.size(24.dp)
             )
             Spacer(modifier = Modifier.width(SpacingSmall))
-            Text(text = if (hasPermission) "Scan for Music" else "Grant Permission")
+            Text(
+                text = if (hasPermission) {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_scan_for_music)
+                } else {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.permission_required_action_grant)
+                }
+            )
         }
     }
 }
@@ -613,7 +643,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == null,
                 onClick = { onFilterChange(null) },
-                label = { Text("All") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_all)) },
                 modifier = if (selectedFilter != null) {
                     Modifier
                         .clip(CompactButtonShape)
@@ -631,7 +661,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == true,
                 onClick = { onFilterChange(true) },
-                label = { Text("Smart Playlists") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_smart_playlists)) },
                 leadingIcon = if (selectedFilter == true) {
                     { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
                 } else null,
@@ -652,7 +682,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == false,
                 onClick = { onFilterChange(false) },
-                label = { Text("My Playlists") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_my_playlists)) },
                 leadingIcon = if (selectedFilter == false) {
                     { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
                 } else null,
@@ -704,7 +734,11 @@ private fun SmartPlaylistCard(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${smartPlaylist.songCount} songs",
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.common_song_count,
+                            smartPlaylist.songCount,
+                            smartPlaylist.songCount
+                        ),
                         style = MaterialTheme.typography.cardSubtitle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -757,7 +791,7 @@ private fun PlaylistCard(
                 if (playlist.coverImageUri != null) {
                     SubcomposeAsyncImage(
                         model = playlist.coverImageUri,
-                        contentDescription = "Playlist cover",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_cd_playlist_cover),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         error = { DefaultPlaylistCover() }
@@ -774,7 +808,7 @@ private fun PlaylistCard(
                     IconButton(onClick = { showMenu = true }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_options),
                             tint = MaterialTheme.colorScheme.onBackground
                         )
                     }
@@ -784,7 +818,7 @@ private fun PlaylistCard(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete)) },
                             onClick = {
                                 onDeleteClick()
                                 showMenu = false
@@ -809,7 +843,7 @@ private fun PlaylistCard(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "${playlist.songCount} songs",
+                    text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, playlist.songCount, playlist.songCount),
                     style = MaterialTheme.typography.cardSubtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -854,7 +888,7 @@ private fun EmptyAlbumsState() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "No albums found",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.albums_empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -877,4 +911,7 @@ private fun HomeScreenPreview() {
         }
     }
 }
+
+
+
 

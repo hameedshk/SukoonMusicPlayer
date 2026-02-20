@@ -41,7 +41,7 @@ fun AddToPlaylistBottomSheet(
         ) {
             // Title
             Text(
-                text = "Add to playlist",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
@@ -81,7 +81,7 @@ fun AddToPlaylistBottomSheet(
                         }
                     }
                     Text(
-                        text = "Create new playlist",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_create_new),
                         style = MaterialTheme.typography.bodyLarge,
                         fontWeight = FontWeight.Medium
                     )
@@ -101,7 +101,7 @@ fun AddToPlaylistBottomSheet(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No playlists available",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlists_screen_empty_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -151,7 +151,11 @@ fun AddToPlaylistBottomSheet(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = "${playlist.songCount} ${if (playlist.songCount == 1) "song" else "songs"}",
+                                        text = androidx.compose.ui.res.pluralStringResource(
+                                            com.sukoon.music.R.plurals.common_song_count,
+                                            playlist.songCount,
+                                            playlist.songCount
+                                        ),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -164,3 +168,4 @@ fun AddToPlaylistBottomSheet(
         }
     }
 }
+

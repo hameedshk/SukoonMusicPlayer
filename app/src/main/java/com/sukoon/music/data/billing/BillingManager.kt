@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.util.Log
 import com.android.billingclient.api.*
+import com.sukoon.music.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.analytics.AnalyticsTracker
@@ -110,8 +111,8 @@ class BillingManager @Inject constructor(
                         cont.resume(
                             UiProduct(
                                 id = PREMIUM_PRODUCT_ID,
-                                title = "Premium (Test)",
-                                description = "Static purchase test",
+                                title = appContext.getString(R.string.billing_product_title_test),
+                                description = appContext.getString(R.string.billing_product_desc_test),
                                 price = ""
                             )
                         )
@@ -146,14 +147,18 @@ class BillingManager @Inject constructor(
             _billingState.value = BillingState.Loading
             scope.launch {
                 delay(1000) // Simulate API delay
-                _billingState.value = BillingState.Success("Test purchase complete")
+                _billingState.value = BillingState.Success(
+                    appContext.getString(R.string.billing_message_test_purchase_complete)
+                )
                 grantPremium()
             }
             return
         }
 
         if (details == null) {
-            _billingState.value = BillingState.Error("Product not loaded")
+            _billingState.value = BillingState.Error(
+                appContext.getString(R.string.billing_message_product_not_loaded)
+            )
             return
         }
 
@@ -189,7 +194,9 @@ class BillingManager @Inject constructor(
             }
 
             else -> {
-                _billingState.value = BillingState.Error(result.debugMessage ?: "Billing error")
+                _billingState.value = BillingState.Error(
+                    result.debugMessage ?: appContext.getString(R.string.billing_message_error_fallback)
+                )
             }
         }
     }
@@ -210,7 +217,9 @@ class BillingManager @Inject constructor(
             if (result.responseCode == BillingClient.BillingResponseCode.OK) {
                 grantPremium()
             } else {
-                _billingState.value = BillingState.Error("Acknowledge failed")
+                _billingState.value = BillingState.Error(
+                    appContext.getString(R.string.billing_message_acknowledge_failed)
+                )
             }
         }
     }
@@ -253,7 +262,9 @@ class BillingManager @Inject constructor(
         scope.launch {
             preferencesManager.setIsPremiumUser(true)
         }
-        _billingState.value = BillingState.Success("Premium activated")
+        _billingState.value = BillingState.Success(
+            appContext.getString(R.string.billing_message_premium_activated)
+        )
         analyticsTracker?.logEvent("premium_unlocked", emptyMap())
     }
 

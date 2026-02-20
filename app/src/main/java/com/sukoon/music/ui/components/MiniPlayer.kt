@@ -183,7 +183,7 @@ fun MiniPlayer(
                     .data(playbackState.currentSong.albumArtUri)
                     .crossfade(300)
                     .build(),
-                contentDescription = "Album Art",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                 modifier = Modifier
                     .size(MiniPlayerAlbumArtSize)
                     .clip(RoundedCornerShape(8.dp)),
@@ -272,7 +272,11 @@ fun MiniPlayer(
                 ) { isPlaying ->
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Pause" else "Play",
+                        contentDescription = if (isPlaying) {
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_pause)
+                        } else {
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)
+                        },
                         tint = accentColor,
                         modifier = Modifier.size(28.dp)
                     )
@@ -286,7 +290,7 @@ fun MiniPlayer(
             ) {
                 Icon(
                     imageVector = Icons.Default.SkipNext,
-                    contentDescription = "Next",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_next),
                     tint = accentColor
                 )
             }
@@ -325,3 +329,4 @@ fun MiniPlayer(
         }
     }
 }
+

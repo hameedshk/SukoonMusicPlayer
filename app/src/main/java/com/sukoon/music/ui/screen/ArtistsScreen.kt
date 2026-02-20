@@ -122,10 +122,10 @@ fun ArtistsScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_artist_deleted_successfully), Toast.LENGTH_SHORT).show()
             artistsPendingDeletion = false
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         artistsPendingDeletion = false
     }
@@ -196,7 +196,7 @@ fun ArtistsScreen(
                     playlistViewModel.addSongToPlaylist(playlistId, song.id)
                 }
                 showPlaylistDialog = false
-                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_added_to_playlist), Toast.LENGTH_SHORT).show()
                 viewModel.toggleSelectionMode(false)
             },
             artistsPendingDeletion = artistsPendingDeletion,
@@ -209,11 +209,11 @@ fun ArtistsScreen(
                             )
                         }
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_artist_deleted_successfully), Toast.LENGTH_SHORT).show()
                             artistsPendingDeletion = false
                         }
                         is DeleteHelper.DeleteResult.Error -> {
-                            Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, deleteResult.message), Toast.LENGTH_SHORT).show()
                             artistsPendingDeletion = false
                         }
                     }
@@ -277,7 +277,7 @@ private fun ArtistsContent(
                 item {
                     Column {
                         Text(
-                            text = "Recently played",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_recently_played),
                             style = MaterialTheme.typography.sectionHeader,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                         )
@@ -371,7 +371,7 @@ private fun ArtistsContent(
                 artistSongsForPlaylist.forEach { song ->
                     playlistViewModel.addSongToPlaylist(playlistId, song.id)
                 }
-                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_added_to_playlist), Toast.LENGTH_SHORT).show()
                 onPlaylistSelected(playlistId)
                 onPlaylistDialogDismiss()
             },
@@ -391,10 +391,10 @@ private fun ArtistsContent(
                 )
             },
             title = {
-                Text("Delete ${selectedArtistIds.size} artist(s)?")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_selected_artists_title, selectedArtistIds.size))
             },
             text = {
-                Text("All songs by these artists will be permanently deleted from your device. This cannot be undone.")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_artist_songs_message))
             },
             confirmButton = {
                 TextButton(
@@ -403,12 +403,12 @@ private fun ArtistsContent(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { onDeleteDismissed() }) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                 }
             }
         )
@@ -543,7 +543,19 @@ private fun ArtistListItem(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${artist.albumCount} ${if (artist.albumCount == 1) "album" else "albums"} · ${artist.songCount} ${if (artist.songCount == 1) "song" else "songs"}",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.library_artists_item_stats_format,
+                    artist.albumCount,
+                    androidx.compose.ui.res.stringResource(
+                        if (artist.albumCount == 1) com.sukoon.music.R.string.library_artists_word_album_singular
+                        else com.sukoon.music.R.string.library_artists_word_album_plural
+                    ),
+                    artist.songCount,
+                    androidx.compose.ui.res.stringResource(
+                        if (artist.songCount == 1) com.sukoon.music.R.string.library_artists_word_song_singular
+                        else com.sukoon.music.R.string.library_artists_word_song_plural
+                    )
+                ),
                 style = MaterialTheme.typography.listItemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -565,7 +577,7 @@ private fun ArtistListItem(
             IconButton(onClick = { onMenuClick() }, modifier = Modifier.size(40.dp)) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     modifier = Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -589,16 +601,31 @@ private fun ArtistSortHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "$artistCount ${if (artistCount == 1) "artist" else "artists"}",
+            text = androidx.compose.ui.res.stringResource(
+                com.sukoon.music.R.string.library_artists_header_count_format,
+                artistCount,
+                androidx.compose.ui.res.stringResource(
+                    if (artistCount == 1) com.sukoon.music.R.string.library_artists_word_artist_singular
+                    else com.sukoon.music.R.string.library_artists_word_artist_plural
+                )
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
             IconButton(onClick = onSortClick, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.Sort, contentDescription = "Sort", modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Default.Sort,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort),
+                    modifier = Modifier.size(20.dp)
+                )
             }
             IconButton(onClick = onSelectionClick, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select", modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -614,31 +641,31 @@ private fun ArtistSortDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK", color = MaterialTheme.colorScheme.primary) }
+            TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok), color = MaterialTheme.colorScheme.primary) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL") }
+            TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel)) }
         },
-        title = { Text("Sort by") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by)) },
         text = {
             Column {
                 SortOption(
-                    text = "Artist name",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_sort_artist_name),
                     isSelected = currentSortMode == ArtistSortMode.ARTIST_NAME,
                     onClick = { onSortModeChange(ArtistSortMode.ARTIST_NAME) }
                 )
                 SortOption(
-                    text = "Number of albums",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_sort_number_of_albums),
                     isSelected = currentSortMode == ArtistSortMode.ALBUM_COUNT,
                     onClick = { onSortModeChange(ArtistSortMode.ALBUM_COUNT) }
                 )
                 SortOption(
-                    text = "Number of songs",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_sort_number_of_songs),
                     isSelected = currentSortMode == ArtistSortMode.SONG_COUNT,
                     onClick = { onSortModeChange(ArtistSortMode.SONG_COUNT) }
                 )
                 SortOption(
-                    text = "Random",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_random),
                     isSelected = currentSortMode == ArtistSortMode.RANDOM,
                     onClick = { onSortModeChange(ArtistSortMode.RANDOM) }
                 )
@@ -646,12 +673,12 @@ private fun ArtistSortDialog(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 SortOption(
-                    text = "From A to Z",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_a_to_z),
                     isSelected = isAscending,
                     onClick = { onOrderChange(true) }
                 )
                 SortOption(
-                    text = "From Z to A",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_z_to_a),
                     isSelected = !isAscending,
                     onClick = { onOrderChange(false) }
                 )
@@ -682,13 +709,13 @@ fun EmptyArtistsContentState() {
         )
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "No artists found",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "Scan your library to discover artists",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_empty_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -760,7 +787,11 @@ private fun ArtistContextMenuBottomSheet(
                         style = MaterialTheme.typography.cardTitle
                     )
                     Text(
-                        text = "${artist.albumCount} albums · ${artist.songCount} songs",
+                        text = androidx.compose.ui.res.stringResource(
+                            com.sukoon.music.R.string.library_artists_context_stats_format,
+                            artist.albumCount,
+                            artist.songCount
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -771,27 +802,27 @@ private fun ArtistContextMenuBottomSheet(
 
             // Menu items
             ListItem(
-                headlineContent = { Text("Play") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
                 leadingContent = { Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onPlay)
             )
             ListItem(
-                headlineContent = { Text("Shuffle") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle)) },
                 leadingContent = { Icon(Icons.Default.Shuffle, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onShuffle)
             )
             ListItem(
-                headlineContent = { Text("Play next") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                 leadingContent = { Icon(Icons.Default.SkipNext, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onPlayNext)
             )
             ListItem(
-                headlineContent = { Text("Add to queue") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onAddToQueue)
             )
             ListItem(
-                headlineContent = { Text("Add to playlist") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                 leadingContent = { Icon(Icons.Default.Add, null, modifier = Modifier.size(20.dp)) },
                 modifier = Modifier.clickable(onClick = onAddToPlaylist)
             )
@@ -806,10 +837,17 @@ fun ArtistSelectionTopBar(
     onBackClick: () -> Unit
 ) {
     TopAppBar(
-        title = { Text("$selectedCount selected") },
+        title = {
+            Text(
+                androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.label_selected_count,
+                    selectedCount
+                )
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -830,10 +868,26 @@ internal fun ArtistSelectionBottomBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            SelectionBottomBarItem(icon = Icons.Default.PlayArrow, label = "Play", onClick = onPlay)
-            SelectionBottomBarItem(icon = Icons.Default.PlaylistAdd, label = "Add to play", onClick = onAddToPlaylist)
-            SelectionBottomBarItem(icon = Icons.Default.Delete, label = "Delete", onClick = onDelete)
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlayArrow,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
+                onClick = onPlay
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlaylistAdd,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_artists_selection_add_to_play),
+                onClick = onAddToPlaylist
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.Delete,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete),
+                onClick = onDelete
+            )
             /*SelectionBottomBarItem(icon = Icons.Default.MoreVert, label = "More", onClick = onMore)*/
         }
     }
 }
+
+
+
+

@@ -13,10 +13,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.R
 import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.domain.model.LyricLine
 import com.sukoon.music.domain.model.LyricsState
@@ -86,7 +88,7 @@ fun LyricsModalSheet(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Lyrics",
+                        text = stringResource(R.string.lyrics_modal_title),
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -94,7 +96,7 @@ fun LyricsModalSheet(
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${song.title} • ${song.artist}",
+                        text = stringResource(R.string.lyrics_modal_song_metadata, song.title, song.artist),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         maxLines = 1,
@@ -105,7 +107,7 @@ fun LyricsModalSheet(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Close lyrics",
+                        contentDescription = stringResource(R.string.lyrics_modal_close_content_description),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
                 }
@@ -210,13 +212,13 @@ private fun LyricsLoadingState(accentColor: Color) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Loading lyrics...",
+            text = stringResource(R.string.lyrics_modal_loading_title),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Searching offline and online sources",
+            text = stringResource(R.string.lyrics_modal_loading_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             textAlign = TextAlign.Center
@@ -242,7 +244,7 @@ private fun LyricsErrorState(message: String) {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Failed to load lyrics",
+            text = stringResource(R.string.lyrics_modal_error_title),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.SemiBold
             ),
@@ -277,7 +279,7 @@ private fun LyricsNotFoundState() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "No lyrics available",
+            text = stringResource(R.string.lyrics_modal_not_found_title),
             style = MaterialTheme.typography.titleLarge.copy(
                 fontWeight = FontWeight.SemiBold
             ),
@@ -285,13 +287,13 @@ private fun LyricsNotFoundState() {
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Lyrics not found for this track",
+            text = stringResource(R.string.lyrics_modal_not_found_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Try checking offline .lrc files or embedded tags",
+            text = stringResource(R.string.lyrics_modal_not_found_hint),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f),
             textAlign = TextAlign.Center,
@@ -323,12 +325,16 @@ private fun SyncOffsetControls(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Sync Adjustment",
+                    text = stringResource(R.string.lyrics_modal_sync_adjustment),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                 )
                 Text(
-                    text = "${if (currentOffset >= 0) "+" else ""}${currentOffset}ms",
+                    text = stringResource(
+                        R.string.lyrics_modal_sync_offset_value,
+                        if (currentOffset >= 0) "+" else "",
+                        currentOffset
+                    ),
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium
                     ),
@@ -358,7 +364,7 @@ private fun SyncOffsetControls(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Too Fast",
+                        text = stringResource(R.string.lyrics_modal_too_fast),
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -398,7 +404,7 @@ private fun SyncOffsetControls(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Too Slow",
+                        text = stringResource(R.string.lyrics_modal_too_slow),
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -429,7 +435,7 @@ private fun UnsyncedLyricsIndicator() {
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Unsynced lyrics - Manual scroll enabled",
+                text = stringResource(R.string.lyrics_modal_unsynced_indicator),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
             )

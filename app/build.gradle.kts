@@ -32,7 +32,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         // Supported locales (limits APK size by excluding unused translations from dependencies)
-        resourceConfigurations += listOf("en", "hi")
+        resourceConfigurations += listOf("en", "hi", "pt-rBR")
 
         // Gemini AI Configuration (for metadata correction)
         buildConfigField(
@@ -128,6 +128,7 @@ packaging {
 dependencies {
     // Core Android
     implementation(libs.androidx.core.ktx)
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
 

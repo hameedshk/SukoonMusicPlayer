@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_header_title">सुकून संगीत</string>
+    <string name="onboarding_header_subtitle">ऑफ़लाइन संगीत प्लेयर</string>
+    <string name="onboarding_header_description">निजी ऑफ़लाइन संगीत, आपके डिवाइस पर।</string>
+    <string name="onboarding_header_tags">ऑफ़लाइन | निजी | डिवाइस पर</string>
+
+    <string name="onboarding_permission_title">संगीत एक्सेस अनुमति दें</string>
+    <string name="onboarding_badge_required">आवश्यक</string>
+    <string name="onboarding_permission_description">सुकून को इस डिवाइस पर संगीत गीतों को स्कैन और चलाने के लिए अनुमति की आवश्यकता है।</string>
+    <string name="onboarding_permission_button_granted">एक्सेस दिया गया</string>
+    <string name="onboarding_permission_button_open_settings">सेटिंग्स खोलें</string>
+    <string name="onboarding_permission_button_grant">एक्सेस दें</string>
+    <string name="onboarding_permission_blocked_help">इस ऐप के लिए अनुमति अवरुद्ध है। सेटिंग्स खोलें और संगीत एक्सेस की अनुमति दें।</string>
+
+    <string name="onboarding_username_title">अपना नाम जोड़ें</string>
+    <string name="onboarding_badge_optional">वैकल्पिक</string>
+    <string name="onboarding_username_description">अभिवादन और प्लेलिस्ट के लिए उपयोग किया जाता है। यदि आप छोड़ना चाहते हैं तो इसे खाली छोड़ दें।</string>
+    <string name="onboarding_username_placeholder">आपका नाम</string>
+    <string name="onboarding_username_error_letters_only">केवल वर्णमाला की अनुमति है</string>
+    <string name="onboarding_username_display_name">प्रदर्शन नाम: %1$s</string>
+    <string name="onboarding_username_storage_notice">केवल इस डिवाइस पर संग्रहीत</string>
+
+    <string name="onboarding_footer_starting">शुरुआत हो रही है...</string>
+    <string name="onboarding_footer_start_listening">सुनना शुरू करें</string>
+    <string name="onboarding_footer_permission_blocked">संगीत एक्सेस अवरुद्ध है। जारी रखने के लिए ऊपर "सेटिंग्स खोलें" का उपयोग करें।</string>
+    <string name="onboarding_footer_permission_required">जारी रखने के लिए संगीत एक्सेस आवश्यक है।</string>
+
+    <plurals name="onboarding_username_min_chars_required">
+        <item quantity="one">न्यूनतम %d वर्ण आवश्यक है</item>
+        <item quantity="other">न्यूनतम %d वर्ण आवश्यक हैं</item>
+    </plurals>
+    <plurals name="onboarding_username_max_chars_allowed">
+        <item quantity="one">अधिकतम %d वर्ण की अनुमति है</item>
+        <item quantity="other">अधिकतम %d वर्ण की अनुमति है</item>
+    </plurals>
+</resources>

@@ -19,6 +19,7 @@ import javax.inject.Inject
 import com.sukoon.music.ui.theme.*
 import com.sukoon.music.data.billing.BillingState
 import com.sukoon.music.data.premium.PremiumManager
+import com.sukoon.music.util.AppLocaleManager
 
 /**
  * ViewModel for the Settings Screen.
@@ -110,6 +111,13 @@ class SettingsViewModel @Inject constructor(
             initialValue = UserPreferences()
         )
 
+    val appLanguageTag: StateFlow<String?> = settingsRepository.appLanguageTagFlow()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = null
+        )
+
     // --- Private Session State ---
 
     val sessionState: StateFlow<com.sukoon.music.domain.model.PlaybackSessionState> =
@@ -188,6 +196,39 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setTheme(theme)
         }
+    }
+
+    /**
+     * Update app language and apply it immediately.
+     * Pass null/system to follow device language.
+     * This is async and does not wait for completion.
+     */
+    fun setAppLanguageTag(languageTag: String?) {
+        viewModelScope.launch {
+            val normalizedTag = AppLocaleManager.normalizeLanguageTag(languageTag)
+            val persistedTag = if (normalizedTag == AppLocaleManager.LANGUAGE_SYSTEM) {
+                null
+            } else {
+                normalizedTag
+            }
+            settingsRepository.setAppLanguageTag(persistedTag)
+        }
+    }
+
+    /**
+     * Update app language and wait for persistence to complete.
+     * Pass null/system to follow device language.
+     * This suspend function ensures the save is fully persisted before returning.
+     * CRITICAL: Use this when you need to ensure the change is saved (e.g., before Activity.recreate()).
+     */
+    suspend fun setAppLanguageTagAndWait(languageTag: String?) {
+        val normalizedTag = AppLocaleManager.normalizeLanguageTag(languageTag)
+        val persistedTag = if (normalizedTag == AppLocaleManager.LANGUAGE_SYSTEM) {
+            null
+        } else {
+            normalizedTag
+        }
+        settingsRepository.setAppLanguageTag(persistedTag)
     }
 
     /**

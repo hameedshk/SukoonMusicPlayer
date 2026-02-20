@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Equalizer -->
+    <string name="equalizer_cd_save_preset">प्रीसेट सहेजें</string>
+    <string name="equalizer_master_title">मास्टर इक्वलाइज़र</string>
+    <string name="equalizer_status_active">सक्रिय</string>
+    <string name="equalizer_status_disabled">अक्षम</string>
+    <string name="equalizer_section_preset">प्रीसेट</string>
+    <string name="equalizer_preset_custom">कस्टम</string>
+    <string name="equalizer_section_five_band">5-बैंड इक्वलाइज़र</string>
+    <string name="equalizer_band_60hz">60 Hz</string>
+    <string name="equalizer_band_230hz">230 Hz</string>
+    <string name="equalizer_band_910hz">910 Hz</string>
+    <string name="equalizer_band_3_6khz">3.6 kHz</string>
+    <string name="equalizer_band_14khz">14 kHz</string>
+    <string name="equalizer_section_bass_boost">बास बूस्ट</string>
+    <string name="equalizer_section_virtualizer">वर्चुअलाइज़र</string>
+    <string name="equalizer_band_db_value">%1$d dB</string>
+    <string name="equalizer_save_custom_preset_title">कस्टम प्रीसेट सहेजें</string>
+
+    <!-- Folders -->
+    <string name="folders_cd_go_to_parent_folder">पैरेंट फोल्डर पर जाएं</string>
+    <string name="folders_cd_folder_options">फोल्डर विकल्प</string>
+    <string name="folders_cd_folder_cover">फोल्डर कवर</string>
+    <string name="folders_delete_confirmation_warning">यह कार्रवाई अपरिवर्तनीय है।</string>
+    <string name="folders_empty_hidden_title">कोई छुपा हुआ फोल्डर नहीं</string>
+    <string name="folders_empty_hidden_message">छुपे हुए फोल्डर यहां दिखाई देंगे।</string>
+    <string name="folders_empty_visible_title">कोई फोल्डर नहीं मिला</string>
+    <string name="folders_empty_visible_message">फोल्डर खोजने के लिए अपनी लाइब्रेरी को स्कैन करें।</string>
+    <string name="folders_sort_name_asc">नाम (A-Z)</string>
+    <string name="folders_sort_name_desc">नाम (Z-A)</string>
+    <string name="folders_sort_track_count">ट्रैक गणना</string>
+    <string name="folders_sort_recently_modified">हाल ही में संशोधित</string>
+    <string name="folders_sort_duration">अवधि</string>
+
+    <!-- Library screens B -->
+    <string name="library_screens_b_like">पसंद करें</string>
+    <string name="library_screens_b_unlike">पसंद न करें</string>
+    <string name="library_screens_b_info">जानकारी</string>
+    <string name="library_screens_b_share">साझा करें</string>
+    <string name="library_screens_b_set_as_ringtone">रिंगटोन के रूप में सेट करें</string>
+    <string name="library_screens_b_change_cover">कवर बदलें</string>
+    <string name="library_screens_b_edit_tags">टैग संपादित करें</string>
+    <string name="library_screens_b_go_to_album">एल्बम पर जाएं</string>
+    <string name="library_screens_b_edit_audio">ऑडियो संपादित करें</string>
+    <string name="library_screens_b_update_lyrics">गीत अपडेट करें</string>
+    <string name="library_screens_b_sort_mode_song_name">गीत नाम</string>
+    <string name="library_screens_b_sort_mode_artist_name">कलाकार नाम</string>
+    <string name="library_screens_b_sort_mode_album_name">एल्बम नाम</string>
+    <string name="library_screens_b_sort_mode_folder_name">फोल्डर नाम</string>
+    <string name="library_screens_b_sort_mode_time_added">जोड़ा गया समय</string>
+    <string name="library_screens_b_sort_mode_play_count">प्ले गणना</string>
+    <string name="library_screens_b_sort_mode_year">वर्ष</string>
+    <string name="library_screens_b_sort_mode_duration">अवधि</string>
+    <string name="library_screens_b_sort_mode_size">आकार</string>
+    <string name="library_screens_b_sort_order_from_a_to_z">A से Z</string>
+    <string name="library_screens_b_sort_order_from_z_to_a">Z से A</string>
+    <string name="library_screens_b_last_added">अंतिम जोड़ा गया</string>
+    <string name="library_screens_b_see_all">सभी देखें</string>
+    <string name="library_screens_b_delete_song_message">यह गीत &quot;%1$s&quot; आपके डिवाइस से स्थायी रूप से हटा दिया जाएगा। यह पूर्ववत नहीं किया जा सकता।</string>
+    <string name="library_screens_b_artist_title">कलाकार</string>
+    <string name="library_screens_b_no_songs_found">कोई गीत नहीं मिला</string>
+    <string name="library_screens_b_artist_artwork">कलाकार कला</string>
+    <string name="library_screens_b_artist_stats">%1$d एल्बम &#8226; %2$d गीत</string>
+    <string name="library_screens_b_album_cover">एल्बम कवर</string>
+    <string name="library_screens_b_song_count_always_plural">%1$d गीत</string>
+
+    <!-- Liked songs -->
+    <string name="liked_songs_cd_sort">पसंद किए गए गीतों को क्रमबद्ध करें</string>
+    <string name="liked_songs_filter_artist_title">कलाकार द्वारा फ़िल्टर करें</string>
+    <string name="liked_songs_filter_album_title">एल्बम द्वारा फ़िल्टर करें</string>
+    <string name="liked_songs_filter_chip_artist">कलाकार</string>
+    <string name="liked_songs_filter_chip_album">एल्बम</string>
+    <string name="liked_songs_filter_chip_clear">साफ़ करें</string>
+    <string name="liked_songs_clear_filter">फ़िल्टर साफ़ करें</string>
+    <string name="liked_songs_sort_title_asc">शीर्षक (A-Z)</string>
+    <string name="liked_songs_sort_artist_asc">कलाकार (A-Z)</string>
+    <string name="liked_songs_sort_album_asc">एल्बम (A-Z)</string>
+    <string name="liked_songs_sort_recently_added">हाल ही में जोड़ा गया</string>
+    <string name="liked_songs_empty_title">कोई पसंद किए गए गीत नहीं</string>
+    <string name="liked_songs_empty_message">आपके द्वारा पसंद किए गए गीत यहां दिखाई देंगे।</string>
+    <string name="liked_songs_no_filter_results_title">कोई परिणाम नहीं</string>
+    <string name="liked_songs_no_filter_results_message">अपने फ़िल्टर बदलने का प्रयास करें।</string>
+
+    <!-- Restore playlist -->
+    <string name="restore_playlist_cd_clear_all_trash">सभी ट्रैश साफ़ करें</string>
+    <string name="restore_playlist_clear_all_button">सभी साफ़ करें</string>
+    <string name="restore_playlist_deleted_on_date">%1$s को हटाया गया</string>
+    <string name="restore_playlist_empty_trash_title">ट्रैश खाली है</string>
+    <string name="restore_playlist_empty_trash_message">हटाई गई प्लेलिस्ट यहां दिखाई देंगी।</string>
+    <string name="restore_playlist_permanent_delete_confirmation">&quot;%1$s&quot; को स्थायी रूप से हटाएं? यह पूर्ववत नहीं किया जा सकता।</string>
+    <string name="restore_playlist_result_success">&quot;%1$s&quot; को सफलतापूर्वक पुनर्स्थापित किया गया</string>
+    <string name="restore_playlist_result_failed">&quot;%1$s&quot; को पुनर्स्थापित करने में विफल</string>
+    <string name="restore_playlist_result_permanently_deleted">&quot;%1$s&quot; को स्थायी रूप से हटा दिया गया</string>
+    <string name="restore_playlist_result_trash_cleared">ट्रैश साफ़ किया गया</string>
+
+    <!-- Missing plurals -->
+    <plurals name="folders_delete_confirmation_message">
+        <item quantity="one">यह इस फोल्डर से %1$d गीत को हटाएगा।</item>
+        <item quantity="other">यह इस फोल्डर से %1$d गीतों को हटाएगा।</item>
+    </plurals>
+
+    <plurals name="folders_subfolder_song_count">
+        <item quantity="one">%1$d गीत</item>
+        <item quantity="other">%1$d गीत</item>
+    </plurals>
+
+    <plurals name="liked_songs_count">
+        <item quantity="one">%1$d पसंद किया गया गीत</item>
+        <item quantity="other">%1$d पसंद किए गए गीत</item>
+    </plurals>
+
+    <plurals name="restore_playlist_clear_trash_confirmation">
+        <item quantity="one">यह %1$d हटाई गई प्लेलिस्ट को स्थायी रूप से हटा देगा। जारी रखें?</item>
+        <item quantity="other">यह %1$d हटाई गई प्लेलिस्ट को स्थायी रूप से हटा देगा। जारी रखें?</item>
+    </plurals>
+
+    <plurals name="restore_playlist_deleted_count">
+        <item quantity="one">%1$d हटाई गई प्लेलिस्ट</item>
+        <item quantity="other">%1$d हटाई गई प्लेलिस्ट</item>
+    </plurals>
+</resources>

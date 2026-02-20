@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import android.util.Log
 import coil.compose.SubcomposeAsyncImage
@@ -158,19 +159,19 @@ internal fun PrivateSessionIndicatorStrip(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Private Session Active",
+                contentDescription = stringResource(R.string.common_ui_private_session_active),
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = "Private Session",
+                text = stringResource(R.string.common_ui_private_session),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = "$remainingMinutes min",
+                text = stringResource(R.string.common_ui_private_session_minutes_remaining, remainingMinutes),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
             )
@@ -233,6 +234,9 @@ internal fun RedesignedTopBar(
         animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMedium),
         label = "topbar_search_height"
     )
+    val logoContentDescription = stringResource(R.string.common_ui_logo_content_description)
+    val searchContentDescription = stringResource(R.string.common_ui_search_content_description)
+    val moreOptionsContentDescription = stringResource(R.string.common_ui_more_options_content_description)
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Main header container - uses background color for seamless integration
@@ -290,7 +294,7 @@ internal fun RedesignedTopBar(
                     modifier = Modifier
                         .size(logoContainerSize)
                         .semantics {
-                            contentDescription = "Sukoon Music"
+                            contentDescription = logoContentDescription
                             traversalIndex = 0f
                         }
                         .clickable(
@@ -322,7 +326,7 @@ internal fun RedesignedTopBar(
                         .heightIn(min = 48.dp)
                         .semantics {
                             traversalIndex = 1f
-                            contentDescription = "Search songs and artists"
+                            contentDescription = searchContentDescription
                         },
                     shape = RoundedCornerShape(20.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -343,7 +347,7 @@ internal fun RedesignedTopBar(
                             modifier = Modifier.size(18.dp)
                         )
                         Text(
-                            text = "Search songs, artists...",
+                            text = stringResource(R.string.common_ui_search_placeholder),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
                             maxLines = 1,
@@ -360,7 +364,7 @@ internal fun RedesignedTopBar(
                             .size(48.dp)
                             .semantics {
                                 traversalIndex = 2f
-                                contentDescription = "More options"
+                                contentDescription = moreOptionsContentDescription
                             }
                     ) {
                         Icon(
@@ -375,7 +379,7 @@ internal fun RedesignedTopBar(
                         onDismissRequest = { showOverflowMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Settings") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_settings)) },
                             leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
                             onClick = {
                                 showOverflowMenu = false
@@ -383,7 +387,7 @@ internal fun RedesignedTopBar(
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Go Premium") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_go_premium)) },
                             leadingIcon = { Icon(Icons.Default.Star, contentDescription = null) },
                             onClick = {
                                 showOverflowMenu = false
@@ -540,14 +544,14 @@ internal fun WidgetBanner(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Add widgets to your home screen",
+                    text = stringResource(R.string.common_ui_add_widgets_banner_text),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "Go",
+                contentDescription = stringResource(R.string.common_ui_go_content_description),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -573,13 +577,13 @@ internal fun ActionButtonGrid(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             ActionButton(
-                text = "Shuffle",
+                text = stringResource(R.string.common_ui_action_shuffle),
                 icon = Icons.Default.Shuffle,
                 onClick = onShuffleAllClick,
                 modifier = Modifier.weight(1f)
             )
             ActionButton(
-                text = "Play",
+                text = stringResource(R.string.common_ui_action_play),
                 icon = Icons.Default.PlayArrow,
                 onClick = onPlayAllClick,
                 modifier = Modifier.weight(1f)
@@ -590,13 +594,13 @@ internal fun ActionButtonGrid(
             horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             ActionButton(
-                text = "Scan music",
+                text = stringResource(R.string.common_ui_action_scan_music),
                 icon = Icons.Default.Refresh,
                 onClick = onScanClick,
                 modifier = Modifier.weight(1f)
             )
             ActionButton(
-                text = "Settings",
+                text = stringResource(R.string.common_ui_action_settings),
                 icon = Icons.Default.Settings,
                 onClick = onSettingsClick,
                 modifier = Modifier.weight(1f)
@@ -677,7 +681,7 @@ internal fun AlphabetScroller(
     onCharClick: (Char) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ#".toList()
+    val alphabet = stringResource(R.string.common_ui_alphabet_index).toList()
     Column(
         modifier = modifier.background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.1f), CircleShape),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -771,23 +775,23 @@ fun MultiSelectActionBottomBar(
         ) {
             SelectionBottomBarItem(
                 icon = Icons.Default.PlayArrow,
-                label = "Play",
+                label = stringResource(R.string.common_ui_action_play),
                 onClick = onPlay
             )
             SelectionBottomBarItem(
                 icon = Icons.Default.PlaylistAdd,
-                label = "Add to playlist",
+                label = stringResource(R.string.common_ui_add_to_playlist),
                 onClick = onAddToPlaylist
             )
             SelectionBottomBarItem(
                 icon = Icons.Default.Delete,
-                label = "Delete",
+                label = stringResource(R.string.common_ui_delete),
                 onClick = onDelete
             )
             Box {
                 SelectionBottomBarItem(
                     icon = Icons.Default.MoreVert,
-                    label = "More",
+                    label = stringResource(R.string.common_ui_more),
                     onClick = { showMoreMenu = true }
                 )
                 DropdownMenu(
@@ -796,7 +800,7 @@ fun MultiSelectActionBottomBar(
                     modifier = Modifier.width(180.dp)
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Play next") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                         leadingIcon = { Icon(Icons.Default.SkipNext, null) },
                         onClick = {
                             onPlayNext()
@@ -804,7 +808,7 @@ fun MultiSelectActionBottomBar(
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to queue") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                         leadingIcon = { Icon(Icons.Default.QueueMusic, null) },
                         onClick = {
                             onAddToQueue()
@@ -863,7 +867,11 @@ fun AnimatedFavoriteIcon(
 
     Icon(
         imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-        contentDescription = if (isLiked) "Unlike" else "Like",
+        contentDescription = if (isLiked) {
+            stringResource(R.string.common_ui_unlike)
+        } else {
+            stringResource(R.string.common_ui_like)
+        },
         tint = tint,
         modifier = modifier
             .size(size)
@@ -903,19 +911,19 @@ fun PrivateSessionIndicator(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = "Private Session Active",
+                contentDescription = stringResource(R.string.common_ui_private_session_active),
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Private Session Active",
+                    text = stringResource(R.string.common_ui_private_session_active),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = "No listening history recorded • Expires in $remainingMinutes min",
+                    text = stringResource(R.string.common_ui_private_session_no_history_expires, remainingMinutes),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                 )
@@ -1005,7 +1013,11 @@ fun ContinueListeningCard(
                 // Album artwork (full background)
                 SubcomposeAsyncImage(
                     model = song.albumArtUri,
-                    contentDescription = "Album art for ${song.title} by ${song.artist}",
+                    contentDescription = stringResource(
+                        R.string.common_ui_album_art_description,
+                        song.title,
+                        song.artist
+                    ),
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
@@ -1053,7 +1065,11 @@ fun ContinueListeningCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Play ${song.title} by ${song.artist}",
+                            contentDescription = stringResource(
+                                R.string.common_ui_play_song_description,
+                                song.title,
+                                song.artist
+                            ),
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -1099,7 +1115,7 @@ fun RecentlyPlayedScrollSection(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = "Recently played",
+            text = stringResource(R.string.common_ui_recently_played),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold
             ),
@@ -1143,7 +1159,11 @@ fun RecentlyPlayedScrollSection(
                 ) {
                     SubcomposeAsyncImage(
                         model = song.albumArtUri,
-                        contentDescription = "Play ${song.title} by ${song.artist}",
+                        contentDescription = stringResource(
+                            R.string.common_ui_play_song_description,
+                            song.title,
+                            song.artist
+                        ),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -1207,7 +1227,7 @@ fun LibraryNavigationCards(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = "Your library",
+            text = stringResource(R.string.common_ui_your_library),
             style = MaterialTheme.typography.titleMedium.copy(
                 fontWeight = FontWeight.Bold
             ),
@@ -1225,13 +1245,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = "Songs",
+                    title = stringResource(R.string.common_ui_library_songs),
                     icon = Icons.Default.MusicNote,
                     onClick = onSongsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = "Playlists",
+                    title = stringResource(R.string.common_ui_library_playlists),
                     icon = Icons.AutoMirrored.Filled.List,
                     onClick = onPlaylistsClick,
                     modifier = Modifier.weight(1f)
@@ -1243,13 +1263,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = "Albums",
+                    title = stringResource(R.string.common_ui_library_albums),
                     icon = Icons.Default.Album,
                     onClick = onAlbumsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = "Folders",
+                    title = stringResource(R.string.common_ui_library_folders),
                     icon = Icons.Default.Folder,
                     onClick = onFoldersClick,
                     modifier = Modifier.weight(1f)
@@ -1306,7 +1326,7 @@ private fun LibraryCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = "Navigate to $title",
+                contentDescription = stringResource(R.string.common_ui_navigate_to, title),
                 modifier = Modifier.size(24.dp),
                 tint = accent().primary
             )
@@ -1461,3 +1481,4 @@ fun RedesignedTopBarPreview() {
         )
     }
 }
+

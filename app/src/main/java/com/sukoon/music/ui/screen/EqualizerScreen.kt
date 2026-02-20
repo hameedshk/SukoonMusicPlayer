@@ -48,10 +48,13 @@ fun EqualizerScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Equalizer") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_equalizer)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
+                        )
                     }
                 },
                 actions = {
@@ -60,7 +63,10 @@ fun EqualizerScreen(
                         onClick = { viewModel.showSavePresetDialog() },
                         enabled = settings.isEnabled
                     ) {
-                        Icon(Icons.Default.Save, "Save preset")
+                        Icon(
+                            Icons.Default.Save,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_cd_save_preset)
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -97,11 +103,15 @@ fun EqualizerScreen(
                 ) {
                     Column {
                         Text(
-                            text = "Equalizer",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_master_title),
                             style = MaterialTheme.typography.cardTitle
                         )
                         Text(
-                            text = if (settings.isEnabled) "Active" else "Disabled",
+                            text = if (settings.isEnabled) {
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_status_active)
+                            } else {
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_status_disabled)
+                            },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -119,7 +129,7 @@ fun EqualizerScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "Preset",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_section_preset),
                         style = MaterialTheme.typography.sectionHeader
                     )
                     Spacer(modifier = Modifier.height(8.dp))
@@ -131,7 +141,10 @@ fun EqualizerScreen(
                             enabled = settings.isEnabled
                         ) {
                             val currentPreset = presets.find { it.id == settings.currentPresetId }
-                            Text(currentPreset?.name ?: "Custom")
+                            Text(
+                                currentPreset?.name
+                                    ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_preset_custom)
+                            )
                             Spacer(modifier = Modifier.weight(1f))
                             Icon(Icons.Default.ArrowDropDown, null)
                         }
@@ -174,12 +187,18 @@ fun EqualizerScreen(
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        text = "5-Band Equalizer",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_section_five_band),
                         style = MaterialTheme.typography.sectionHeader
                     )
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    val bandLabels = listOf("60Hz", "230Hz", "910Hz", "3.6kHz", "14kHz")
+                    val bandLabels = listOf(
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_band_60hz),
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_band_230hz),
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_band_910hz),
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_band_3_6khz),
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_band_14khz)
+                    )
                     settings.bandLevels.forEachIndexed { index, level ->
                         EqualizerBandSlider(
                             label = bandLabels.getOrElse(index) { "${index + 1}" },
@@ -204,7 +223,7 @@ fun EqualizerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Bass Boost",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_section_bass_boost),
                             style = MaterialTheme.typography.sectionHeader
                         )
                         Text(
@@ -233,7 +252,7 @@ fun EqualizerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(
-                            text = "Virtualizer",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_section_virtualizer),
                             style = MaterialTheme.typography.sectionHeader
                         )
                         Text(
@@ -262,7 +281,7 @@ fun EqualizerScreen(
             ) {
                 Icon(Icons.Default.Refresh, null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Reset to Flat")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_reset_to_flat))
             }
         }
 
@@ -294,7 +313,10 @@ private fun EqualizerBandSlider(
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = "${value / 100}dB",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.equalizer_band_db_value,
+                    value / 100
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.primary
             )
@@ -318,12 +340,12 @@ private fun SavePresetDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Save Custom Preset") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.equalizer_save_custom_preset_title)) },
         text = {
             OutlinedTextField(
                 value = presetName,
                 onValueChange = { presetName = it },
-                label = { Text("Preset Name") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_preset_name)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -337,12 +359,12 @@ private fun SavePresetDialog(
                 },
                 enabled = presetName.isNotBlank()
             ) {
-                Text("Save")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         }
     )
@@ -355,3 +377,4 @@ private fun EqualizerScreenPreview() {
         EqualizerScreen(onBackClick = {})
     }
 }
+

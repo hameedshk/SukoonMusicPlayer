@@ -45,6 +45,7 @@ class PreferencesManager @Inject constructor(
         // Appearance
         private val KEY_THEME = stringPreferencesKey("app_theme")
         private val KEY_ACCENT_PROFILE = stringPreferencesKey("accent_profile")
+        private val KEY_APP_LANGUAGE_TAG = stringPreferencesKey("app_language_tag")
 
         // Library
         private val KEY_SCAN_ON_STARTUP = booleanPreferencesKey("scan_on_startup")
@@ -179,6 +180,49 @@ class PreferencesManager @Inject constructor(
         context.dataStore.edit { preferences ->
             preferences[KEY_ACCENT_PROFILE] = profile.id
         }
+    }
+
+    /**
+     * Observe app language tag.
+     * Returns null when system language should be used.
+     */
+    fun appLanguageTagFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_APP_LANGUAGE_TAG]
+        }
+    }
+
+    /**
+     * Set app language tag.
+     * Pass null or "system" to follow the device language.
+     * Waits for the preference to be persisted before returning.
+     */
+    suspend fun setAppLanguageTag(languageTag: String?) {
+        context.dataStore.edit { preferences ->
+            if (languageTag.isNullOrBlank() || languageTag == "system") {
+                preferences.remove(KEY_APP_LANGUAGE_TAG)
+            } else {
+                preferences[KEY_APP_LANGUAGE_TAG] = languageTag
+            }
+        }
+        // Wait for persistence to complete before returning
+        context.dataStore.data.first { preferences ->
+            val saved = preferences[KEY_APP_LANGUAGE_TAG]
+            if (languageTag.isNullOrBlank() || languageTag == "system") {
+                saved == null
+            } else {
+                saved == languageTag
+            }
+        }
+    }
+
+    /**
+     * Get app language tag once.
+     * Returns null when system language should be used.
+     */
+    suspend fun getAppLanguageTag(): String? {
+        val preferences = context.dataStore.data.first()
+        return preferences[KEY_APP_LANGUAGE_TAG]
     }
 
     /**

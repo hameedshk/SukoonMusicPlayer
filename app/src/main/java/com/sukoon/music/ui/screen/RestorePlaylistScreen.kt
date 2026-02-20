@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.domain.model.DeletedPlaylist
@@ -43,19 +44,21 @@ fun RestorePlaylistScreen(
 ) {
     val deletedPlaylists by viewModel.deletedPlaylists.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     var showClearTrashDialog by remember { mutableStateOf(false) }
     var restoreResult by remember { mutableStateOf<String?>(null) }
+    var isRestoreResultSuccess by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Restore Playlist") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_restore_playlist_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -64,7 +67,7 @@ fun RestorePlaylistScreen(
                         IconButton(onClick = { showClearTrashDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.DeleteForever,
-                                contentDescription = "Clear All Trash"
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.restore_playlist_cd_clear_all_trash)
                             )
                         }
                     }
@@ -92,7 +95,11 @@ fun RestorePlaylistScreen(
                 // Header info
                 item {
                     Text(
-                        text = "${deletedPlaylists.size} deleted playlist${if (deletedPlaylists.size > 1) "s" else ""}",
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.restore_playlist_deleted_count,
+                            deletedPlaylists.size,
+                            deletedPlaylists.size
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 8.dp)
@@ -104,7 +111,7 @@ fun RestorePlaylistScreen(
                     item {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (restoreResult!!.startsWith("Successfully"))
+                                containerColor = if (isRestoreResultSuccess)
                                     MaterialTheme.colorScheme.primaryContainer
                                 else
                                     MaterialTheme.colorScheme.errorContainer
@@ -115,7 +122,7 @@ fun RestorePlaylistScreen(
                                 text = restoreResult!!,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(16.dp),
-                                color = if (restoreResult!!.startsWith("Successfully"))
+                                color = if (isRestoreResultSuccess)
                                     MaterialTheme.colorScheme.onPrimaryContainer
                                 else
                                     MaterialTheme.colorScheme.onErrorContainer
@@ -134,16 +141,27 @@ fun RestorePlaylistScreen(
                         onRestore = {
                             scope.launch {
                                 val success = viewModel.restorePlaylist(deletedPlaylist.id)
+                                isRestoreResultSuccess = success
                                 restoreResult = if (success) {
-                                    "Successfully restored \"${deletedPlaylist.name}\""
+                                    context.getString(
+                                        com.sukoon.music.R.string.restore_playlist_result_success,
+                                        deletedPlaylist.name
+                                    )
                                 } else {
-                                    "Failed to restore \"${deletedPlaylist.name}\". Some songs may not be in your library."
+                                    context.getString(
+                                        com.sukoon.music.R.string.restore_playlist_result_failed,
+                                        deletedPlaylist.name
+                                    )
                                 }
                             }
                         },
                         onPermanentlyDelete = {
                             viewModel.permanentlyDeletePlaylist(deletedPlaylist.id)
-                            restoreResult = "Permanently deleted \"${deletedPlaylist.name}\""
+                            isRestoreResultSuccess = false
+                            restoreResult = context.getString(
+                                com.sukoon.music.R.string.restore_playlist_result_permanently_deleted,
+                                deletedPlaylist.name
+                            )
                         }
                     )
                 }
@@ -154,27 +172,34 @@ fun RestorePlaylistScreen(
         if (showClearTrashDialog) {
             AlertDialog(
                 onDismissRequest = { showClearTrashDialog = false },
-                title = { Text("Clear All Trash?") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_clear_all_trash_title)) },
                 text = {
-                    Text("This will permanently delete all ${deletedPlaylists.size} deleted playlists. This action cannot be undone.")
+                    Text(
+                        androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.restore_playlist_clear_trash_confirmation,
+                            deletedPlaylists.size,
+                            deletedPlaylists.size
+                        )
+                    )
                 },
                 confirmButton = {
                     TextButton(
                         onClick = {
                             viewModel.clearTrash()
                             showClearTrashDialog = false
-                            restoreResult = "Trash cleared"
+                            isRestoreResultSuccess = false
+                            restoreResult = context.getString(com.sukoon.music.R.string.restore_playlist_result_trash_cleared)
                         },
                         colors = ButtonDefaults.textButtonColors(
                             contentColor = MaterialTheme.colorScheme.error
                         )
                     ) {
-                        Text("Clear All")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.restore_playlist_clear_all_button))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { showClearTrashDialog = false }) {
-                        Text("Cancel")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                     }
                 }
             )
@@ -221,7 +246,10 @@ private fun DeletedPlaylistCard(
 
             // Deletion date
             Text(
-                text = "Deleted ${formatDate(deletedPlaylist.deletedAt)}",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.restore_playlist_deleted_on_date,
+                    formatDate(deletedPlaylist.deletedAt)
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -245,7 +273,7 @@ private fun DeletedPlaylistCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Delete Forever")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_forever))
                 }
 
                 Button(onClick = onRestore) {
@@ -255,7 +283,7 @@ private fun DeletedPlaylistCard(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Restore")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_restore))
                 }
             }
         }
@@ -265,9 +293,14 @@ private fun DeletedPlaylistCard(
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteDialog = false },
-            title = { Text("Delete Forever?") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_forever_title)) },
             text = {
-                Text("Permanently delete \"${deletedPlaylist.name}\"? This action cannot be undone.")
+                Text(
+                    androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.restore_playlist_permanent_delete_confirmation,
+                        deletedPlaylist.name
+                    )
+                )
             },
             confirmButton = {
                 TextButton(
@@ -279,12 +312,12 @@ private fun DeletedPlaylistCard(
                         contentColor = MaterialTheme.colorScheme.error
                     )
                 ) {
-                    Text("Delete Forever")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_forever))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                 }
             }
         )
@@ -306,13 +339,13 @@ private fun EmptyTrashState(modifier: Modifier = Modifier) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Trash is empty",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.restore_playlist_empty_trash_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Deleted playlists will appear here",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.restore_playlist_empty_trash_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -324,3 +357,5 @@ private fun formatDate(timestamp: Long): String {
     val sdf = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
     return sdf.format(Date(timestamp))
 }
+
+

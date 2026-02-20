@@ -105,9 +105,9 @@ fun FoldersScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
     }
@@ -230,11 +230,11 @@ fun FoldersScreen(
                         )
                     }
                     is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                         songToDelete = null
                     }
                     is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                         songToDelete = null
                     }
                 }
@@ -302,16 +302,20 @@ private fun EmptyFoldersState(
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = if (isHiddenView) "No hidden folders" else "No folders found",
+                text = if (isHiddenView) {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_empty_hidden_title)
+                } else {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_empty_visible_title)
+                },
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = if (isHiddenView)
-                    "Folders you hide will appear here"
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_empty_hidden_message)
                 else
-                    "Scan your media library to see your music folders",
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_empty_visible_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )
@@ -334,10 +338,16 @@ private fun DeleteConfirmationDialog(
                 tint = MaterialTheme.colorScheme.error
             )
         },
-        title = { Text("Delete folder?") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_folder_title)) },
         text = {
             Column {
-                Text("This will permanently delete ${folder.songCount} songs from your device:")
+                Text(
+                    androidx.compose.ui.res.pluralStringResource(
+                        com.sukoon.music.R.plurals.folders_delete_confirmation_message,
+                        folder.songCount,
+                        folder.songCount
+                    )
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = folder.path,
@@ -347,7 +357,7 @@ private fun DeleteConfirmationDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "This action cannot be undone.",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_delete_confirmation_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -360,23 +370,24 @@ private fun DeleteConfirmationDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         }
     )
 }
 
+@Composable
 fun FolderSortMode.toDisplayName(): String = when (this) {
-    FolderSortMode.NAME_ASC -> "Name (A-Z)"
-    FolderSortMode.NAME_DESC -> "Name (Z-A)"
-    FolderSortMode.TRACK_COUNT -> "Most Songs"
-    FolderSortMode.RECENTLY_MODIFIED -> "Recently Added"
-    FolderSortMode.DURATION -> "Total Duration"
+    FolderSortMode.NAME_ASC -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_sort_name_asc)
+    FolderSortMode.NAME_DESC -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_sort_name_desc)
+    FolderSortMode.TRACK_COUNT -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_sort_track_count)
+    FolderSortMode.RECENTLY_MODIFIED -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_sort_recently_modified)
+    FolderSortMode.DURATION -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_sort_duration)
 }
 
 @Preview(showBackground = true)
@@ -433,7 +444,7 @@ private fun FoldersContent(
                     IconButton(onClick = { folderViewModel.navigateUp() }) {
                         Icon(
                             imageVector = Icons.Default.ArrowUpward,
-                            contentDescription = "Go to parent folder",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_go_to_parent_folder),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -453,7 +464,7 @@ private fun FoldersContent(
                         IconButton(onClick = { folderMenuExpanded = true }) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Folder options",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_folder_options),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -463,7 +474,7 @@ private fun FoldersContent(
                             onDismissRequest = { folderMenuExpanded = false }
                         ) {
                             DropdownMenuItem(
-                                text = { Text("Play folder") },
+                                text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_play_folder)) },
                                 onClick = {
                                     folderMenuExpanded = false
                                     folderViewModel.playFolder(path)
@@ -471,7 +482,7 @@ private fun FoldersContent(
                             )
 
                             DropdownMenuItem(
-                                text = { Text("Shuffle") },
+                                text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle)) },
                                 onClick = {
                                     folderMenuExpanded = false
                                     folderViewModel.playFolder(path)
@@ -603,7 +614,7 @@ private fun FolderBrowserSubFolderRow(
             if (subFolder.albumArtUri != null) {
                 SubcomposeAsyncImage(
                     model = subFolder.albumArtUri,
-                    contentDescription = "Folder cover",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_folder_cover),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {
@@ -647,7 +658,11 @@ private fun FolderBrowserSubFolderRow(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${subFolder.songCount} songs",
+                text = androidx.compose.ui.res.pluralStringResource(
+                    com.sukoon.music.R.plurals.folders_subfolder_song_count,
+                    subFolder.songCount,
+                    subFolder.songCount
+                ),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -663,7 +678,7 @@ private fun FolderBrowserSubFolderRow(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "Folder options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_folder_options),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -673,7 +688,7 @@ private fun FolderBrowserSubFolderRow(
                 onDismissRequest = { menuExpanded = false }
             ) {
                 DropdownMenuItem(
-                    text = { Text("Open") },
+                    text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_open)) },
                     onClick = {
                         menuExpanded = false
                         onClick()
@@ -682,7 +697,7 @@ private fun FolderBrowserSubFolderRow(
                 )
 
                 DropdownMenuItem(
-                    text = { Text("Play folder") },
+                    text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_play_folder)) },
                     onClick = {
                         menuExpanded = false
                         onPlay()
@@ -709,10 +724,16 @@ private fun DeleteFolderConfirmationDialog(
                 tint = MaterialTheme.colorScheme.error
             )
         },
-        title = { Text("Delete folder?") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_folder_title)) },
         text = {
             Column {
-                Text("This will permanently delete ${folder.songCount} songs from your device:")
+                Text(
+                    androidx.compose.ui.res.pluralStringResource(
+                        com.sukoon.music.R.plurals.folders_delete_confirmation_message,
+                        folder.songCount,
+                        folder.songCount
+                    )
+                )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = folder.path,
@@ -722,7 +743,7 @@ private fun DeleteFolderConfirmationDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "This action cannot be undone.",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_delete_confirmation_warning),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -735,12 +756,12 @@ private fun DeleteFolderConfirmationDialog(
                     contentColor = MaterialTheme.colorScheme.error
                 )
             ) {
-                Text("Delete")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         }
     )
@@ -772,7 +793,7 @@ private fun FolderBrowserSongRow(
         ) {
             SubcomposeAsyncImage(
                 model = song.albumArtUri,
-                contentDescription = "Album art for ${song.title}",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art_for_song, song.title),
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Crop,
                 loading = {
@@ -815,7 +836,7 @@ private fun FolderBrowserSongRow(
             }
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${song.artist} • ${song.album}",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -828,7 +849,7 @@ private fun FolderBrowserSongRow(
         IconButton(onClick = { showMenu = true }) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "More options",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -842,3 +863,7 @@ private fun FolderBrowserSongRow(
         )
     }
 }
+
+
+
+

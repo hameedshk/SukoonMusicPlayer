@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Equalizer -->
+    <string name="equalizer_cd_save_preset">Save preset</string>
+    <string name="equalizer_master_title">Master Equalizer</string>
+    <string name="equalizer_status_active">Active</string>
+    <string name="equalizer_status_disabled">Disabled</string>
+    <string name="equalizer_section_preset">Preset</string>
+    <string name="equalizer_preset_custom">Custom</string>
+    <string name="equalizer_section_five_band">5-Band Equalizer</string>
+    <string name="equalizer_band_60hz">60 Hz</string>
+    <string name="equalizer_band_230hz">230 Hz</string>
+    <string name="equalizer_band_910hz">910 Hz</string>
+    <string name="equalizer_band_3_6khz">3.6 kHz</string>
+    <string name="equalizer_band_14khz">14 kHz</string>
+    <string name="equalizer_section_bass_boost">Bass Boost</string>
+    <string name="equalizer_section_virtualizer">Virtualizer</string>
+    <string name="equalizer_band_db_value">%1$d dB</string>
+    <string name="equalizer_save_custom_preset_title">Save Custom Preset</string>
+
+    <!-- Folders -->
+    <string name="folders_cd_go_to_parent_folder">Go to parent folder</string>
+    <string name="folders_cd_folder_options">Folder options</string>
+    <string name="folders_cd_folder_cover">Folder cover</string>
+    <string name="folders_delete_confirmation_warning">This action cannot be undone.</string>
+    <string name="folders_empty_hidden_title">No hidden folders</string>
+    <string name="folders_empty_hidden_message">Hidden folders will appear here.</string>
+    <string name="folders_empty_visible_title">No folders found</string>
+    <string name="folders_empty_visible_message">Scan your library to discover folders.</string>
+    <string name="folders_sort_name_asc">Name (A-Z)</string>
+    <string name="folders_sort_name_desc">Name (Z-A)</string>
+    <string name="folders_sort_track_count">Track count</string>
+    <string name="folders_sort_recently_modified">Recently modified</string>
+    <string name="folders_sort_duration">Duration</string>
+
+    <!-- Library screens B -->
+    <string name="library_screens_b_like">Like</string>
+    <string name="library_screens_b_unlike">Unlike</string>
+    <string name="library_screens_b_info">Info</string>
+    <string name="library_screens_b_share">Share</string>
+    <string name="library_screens_b_set_as_ringtone">Set as ringtone</string>
+    <string name="library_screens_b_change_cover">Change cover</string>
+    <string name="library_screens_b_edit_tags">Edit tags</string>
+    <string name="library_screens_b_go_to_album">Go to album</string>
+    <string name="library_screens_b_edit_audio">Edit audio</string>
+    <string name="library_screens_b_update_lyrics">Update lyrics</string>
+    <string name="library_screens_b_sort_mode_song_name">Song name</string>
+    <string name="library_screens_b_sort_mode_artist_name">Artist name</string>
+    <string name="library_screens_b_sort_mode_album_name">Album name</string>
+    <string name="library_screens_b_sort_mode_folder_name">Folder name</string>
+    <string name="library_screens_b_sort_mode_time_added">Time added</string>
+    <string name="library_screens_b_sort_mode_play_count">Play count</string>
+    <string name="library_screens_b_sort_mode_year">Year</string>
+    <string name="library_screens_b_sort_mode_duration">Duration</string>
+    <string name="library_screens_b_sort_mode_size">Size</string>
+    <string name="library_screens_b_sort_order_from_a_to_z">A to Z</string>
+    <string name="library_screens_b_sort_order_from_z_to_a">Z to A</string>
+    <string name="library_screens_b_last_added">Last added</string>
+    <string name="library_screens_b_see_all">See all</string>
+    <string name="library_screens_b_delete_song_message">This song &quot;%1$s&quot; will be permanently deleted from your device. This cannot be undone.</string>
+    <string name="library_screens_b_artist_title">Artist</string>
+    <string name="library_screens_b_no_songs_found">No songs found</string>
+    <string name="library_screens_b_artist_artwork">Artist artwork</string>
+    <string name="library_screens_b_artist_stats">%1$d albums &#8226; %2$d songs</string>
+    <string name="library_screens_b_album_cover">Album cover</string>
+    <string name="library_screens_b_song_count_always_plural">%1$d songs</string>
+
+    <!-- Liked songs -->
+    <string name="liked_songs_cd_sort">Sort liked songs</string>
+    <string name="liked_songs_filter_artist_title">Filter by artist</string>
+    <string name="liked_songs_filter_album_title">Filter by album</string>
+    <string name="liked_songs_filter_chip_artist">Artist</string>
+    <string name="liked_songs_filter_chip_album">Album</string>
+    <string name="liked_songs_filter_chip_clear">Clear</string>
+    <string name="liked_songs_clear_filter">Clear filters</string>
+    <string name="liked_songs_sort_title_asc">Title (A-Z)</string>
+    <string name="liked_songs_sort_artist_asc">Artist (A-Z)</string>
+    <string name="liked_songs_sort_album_asc">Album (A-Z)</string>
+    <string name="liked_songs_sort_recently_added">Recently added</string>
+    <string name="liked_songs_empty_title">No liked songs</string>
+    <string name="liked_songs_empty_message">Songs you like will appear here.</string>
+    <string name="liked_songs_no_filter_results_title">No results</string>
+    <string name="liked_songs_no_filter_results_message">Try changing your filters.</string>
+
+    <!-- Restore playlist -->
+    <string name="restore_playlist_cd_clear_all_trash">Clear all trash</string>
+    <string name="restore_playlist_clear_all_button">Clear all</string>
+    <string name="restore_playlist_deleted_on_date">Deleted on %1$s</string>
+    <string name="restore_playlist_empty_trash_title">Trash is empty</string>
+    <string name="restore_playlist_empty_trash_message">Deleted playlists will appear here.</string>
+    <string name="restore_playlist_permanent_delete_confirmation">Permanently delete &quot;%1$s&quot;? This cannot be undone.</string>
+    <string name="restore_playlist_result_success">&quot;%1$s&quot; restored successfully</string>
+    <string name="restore_playlist_result_failed">Failed to restore &quot;%1$s&quot;</string>
+    <string name="restore_playlist_result_permanently_deleted">&quot;%1$s&quot; was permanently deleted</string>
+    <string name="restore_playlist_result_trash_cleared">Trash cleared</string>
+
+    <!-- Missing plurals -->
+    <plurals name="folders_delete_confirmation_message">
+        <item quantity="one">This will delete %1$d song from this folder.</item>
+        <item quantity="other">This will delete %1$d songs from this folder.</item>
+    </plurals>
+
+    <plurals name="folders_subfolder_song_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+
+    <plurals name="liked_songs_count">
+        <item quantity="one">%1$d liked song</item>
+        <item quantity="other">%1$d liked songs</item>
+    </plurals>
+
+    <plurals name="restore_playlist_clear_trash_confirmation">
+        <item quantity="one">This will permanently remove %1$d deleted playlist. Continue?</item>
+        <item quantity="other">This will permanently remove %1$d deleted playlists. Continue?</item>
+    </plurals>
+
+    <plurals name="restore_playlist_deleted_count">
+        <item quantity="one">%1$d deleted playlist</item>
+        <item quantity="other">%1$d deleted playlists</item>
+    </plurals>
+</resources>

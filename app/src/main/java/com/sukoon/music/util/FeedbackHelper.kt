@@ -41,12 +41,17 @@ object FeedbackHelper {
         val intent = Intent(Intent.ACTION_SENDTO).apply {
             data = Uri.parse("mailto:") // Only email apps handle this
             putExtra(Intent.EXTRA_EMAIL, arrayOf(SUPPORT_EMAIL))
-            putExtra(Intent.EXTRA_SUBJECT, "Sukoon Music Player Feedback")
+            putExtra(Intent.EXTRA_SUBJECT, context.getString(com.sukoon.music.R.string.feedback_email_subject))
             putExtra(Intent.EXTRA_TEXT, deviceInfo)
         }
 
         if (intent.resolveActivity(context.packageManager) != null) {
-            context.startActivity(Intent.createChooser(intent, "Send Feedback"))
+            context.startActivity(
+                Intent.createChooser(
+                    intent,
+                    context.getString(com.sukoon.music.R.string.feedback_chooser_title)
+                )
+            )
         } else {
             // Fallback: Copy email to clipboard
             copyEmailToClipboard(context)
@@ -60,12 +65,15 @@ object FeedbackHelper {
      */
     private fun copyEmailToClipboard(context: Context) {
         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        val clip = ClipData.newPlainText("Support Email", SUPPORT_EMAIL)
+        val clip = ClipData.newPlainText(
+            context.getString(com.sukoon.music.R.string.feedback_clipboard_label),
+            SUPPORT_EMAIL
+        )
         clipboard.setPrimaryClip(clip)
 
         Toast.makeText(
             context,
-            "Support email copied to clipboard: $SUPPORT_EMAIL",
+            context.getString(com.sukoon.music.R.string.feedback_email_copied_toast, SUPPORT_EMAIL),
             Toast.LENGTH_LONG
         ).show()
     }

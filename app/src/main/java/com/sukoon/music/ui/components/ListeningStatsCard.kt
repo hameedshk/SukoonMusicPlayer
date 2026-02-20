@@ -73,7 +73,7 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Your Week",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.listening_stats_title),
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -95,7 +95,7 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
                 // Stat 1: Total Listening Time (emphasized)
                 EnhancedStatLine(
                     icon = Icons.Default.MusicNote,
-                    label = "Total Listening",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.listening_stats_total_listening_label),
                     value = formatListeningTime(stats.totalListeningTimeMinutes),
                     isHighlighted = true
                 )
@@ -103,8 +103,11 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
                 // Stat 2: Peak Time of Day
                 EnhancedStatLine(
                     icon = Icons.Default.History,
-                    label = "Mostly",
-                    value = "${stats.peakTimeOfDay} 🎧",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.listening_stats_mostly_label),
+                    value = androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.listening_stats_peak_time_value,
+                        stats.peakTimeOfDay
+                    ),
                     isHighlighted = false
                 )
 
@@ -112,7 +115,7 @@ fun ListeningStatsCard(stats: ListeningStatsSnapshot?) {
                 if (!stats.topArtist.isNullOrBlank()) {
                     EnhancedStatLine(
                         icon = Icons.Default.Favorite,
-                        label = "Top Artist",
+                        label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.listening_stats_top_artist_label),
                         value = stats.topArtist,
                         isHighlighted = false
                     )
@@ -197,14 +200,26 @@ private fun EnhancedStatLine(
  * Format listening time in minutes to a human-readable string.
  * Examples: "32 minutes", "2.5 hours", "1.2 hours"
  */
+@Composable
 private fun formatListeningTime(minutes: Long): String {
     return when {
-        minutes < 60 -> "$minutes minutes listened"
+        minutes < 60 -> androidx.compose.ui.res.pluralStringResource(
+            com.sukoon.music.R.plurals.listening_stats_minutes_listened,
+            minutes.toInt(),
+            minutes
+        )
         else -> {
             val hours = minutes / 60.0
             when {
-                hours < 10 -> "%.1f hours listened".format(hours)
-                else -> "${hours.toInt()} hours listened"
+                hours < 10 -> androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.listening_stats_hours_listened_decimal,
+                    hours
+                )
+                else -> androidx.compose.ui.res.pluralStringResource(
+                    com.sukoon.music.R.plurals.listening_stats_hours_listened_whole,
+                    hours.toInt(),
+                    hours.toInt()
+                )
             }
         }
     }

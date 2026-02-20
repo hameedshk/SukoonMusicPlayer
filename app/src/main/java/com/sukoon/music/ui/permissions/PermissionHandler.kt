@@ -21,12 +21,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.sukoon.music.R
 
 /**
  * Permission handler for audio file access.
@@ -171,21 +173,20 @@ private fun PermissionRationaleDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Permission Required") },
+        title = { Text(stringResource(R.string.permission_required_title)) },
         text = {
             Text(
-                "Sukoon Music needs access to your audio files to scan and play your local music library. " +
-                        "Without this permission, the app cannot discover or play songs stored on your device."
+                stringResource(R.string.permission_rationale_message)
             )
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Grant Permission")
+                Text(stringResource(R.string.permission_required_action_grant))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Not Now")
+                Text(stringResource(R.string.permission_required_action_not_now))
             }
         }
     )
@@ -198,21 +199,20 @@ private fun PermissionDeniedDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Permission Denied") },
+        title = { Text(stringResource(R.string.permission_denied_title)) },
         text = {
             Text(
-                "Audio file access was denied. To use Sukoon Music, please enable the permission in Settings.\n\n" +
-                        "Settings > Apps > Sukoon Music > Permissions > Files and media"
+                stringResource(R.string.permission_denied_message)
             )
         },
         confirmButton = {
             TextButton(onClick = onOpenSettings) {
-                Text("Open Settings")
+                Text(stringResource(R.string.permission_denied_action_open_settings))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )

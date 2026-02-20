@@ -139,10 +139,10 @@ class MusicPlaybackService : MediaSessionService() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "Music Playback",
+                getString(R.string.notification_channel_music_playback_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Controls for music playback"
+                description = getString(R.string.notification_channel_music_playback_description)
                 setShowBadge(false)
             }
 
@@ -605,7 +605,7 @@ class MusicPlaybackService : MediaSessionService() {
     private fun createDescriptionAdapter(): PlayerNotificationManager.MediaDescriptionAdapter {
         return object : PlayerNotificationManager.MediaDescriptionAdapter {
             override fun getCurrentContentTitle(player: Player): CharSequence {
-                return player.currentMediaItem?.mediaMetadata?.title ?: "Unknown"
+                return player.currentMediaItem?.mediaMetadata?.title ?: getString(R.string.now_playing_unknown_song)
             }
 
             override fun createCurrentContentIntent(player: Player): PendingIntent? {

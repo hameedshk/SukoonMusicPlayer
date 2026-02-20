@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="onboarding_header_title">Sukoon Music</string>
+    <string name="onboarding_header_subtitle">Offline Music Player</string>
+    <string name="onboarding_header_description">Private offline music, on your device.</string>
+    <string name="onboarding_header_tags">Offline | Private | On-device</string>
+
+    <string name="onboarding_permission_title">Allow Music Access</string>
+    <string name="onboarding_badge_required">Required</string>
+    <string name="onboarding_permission_description">Sukoon needs permission to scan and play songs stored on this device.</string>
+    <string name="onboarding_permission_button_granted">Access Granted</string>
+    <string name="onboarding_permission_button_open_settings">Open Settings</string>
+    <string name="onboarding_permission_button_grant">Grant Access</string>
+    <string name="onboarding_permission_blocked_help">Permission is blocked for this app. Open Settings and allow music access.</string>
+
+    <string name="onboarding_username_title">Add Your Name</string>
+    <string name="onboarding_badge_optional">Optional</string>
+    <string name="onboarding_username_description">Used for greetings and playlists. Leave it empty if you want to skip.</string>
+    <string name="onboarding_username_placeholder">Your name</string>
+    <string name="onboarding_username_error_letters_only">Only alphabets allowed</string>
+    <string name="onboarding_username_display_name">Display name: %1$s</string>
+    <string name="onboarding_username_storage_notice">Stored only on this device</string>
+
+    <string name="onboarding_footer_starting">Starting...</string>
+    <string name="onboarding_footer_start_listening">Start Listening</string>
+    <string name="onboarding_footer_permission_blocked">Music access is blocked. Use "Open Settings" above to continue.</string>
+    <string name="onboarding_footer_permission_required">Music access is required to continue.</string>
+
+    <plurals name="onboarding_username_min_chars_required">
+        <item quantity="one">Minimum %d character required</item>
+        <item quantity="other">Minimum %d characters required</item>
+    </plurals>
+    <plurals name="onboarding_username_max_chars_allowed">
+        <item quantity="one">Maximum %d character allowed</item>
+        <item quantity="other">Maximum %d characters allowed</item>
+    </plurals>
+</resources>

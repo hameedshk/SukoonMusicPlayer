@@ -48,7 +48,7 @@ fun FolderAlbumArtCollage(
                 // Empty state: Folder icon
                 Icon(
                     imageVector = Icons.Default.Folder,
-                    contentDescription = "Folder",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_icon_content_description),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(size * 0.6f)
                 )
@@ -57,7 +57,7 @@ fun FolderAlbumArtCollage(
                 // Single image: Full size
                 SubcomposeAsyncImage(
                     model = albumArtUris[0],
-                    contentDescription = "Folder album art",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_album_art_content_description),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {

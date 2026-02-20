@@ -183,6 +183,24 @@ interface SettingsRepository {
      * Set that user has rated the app.
      */
     suspend fun setHasRatedApp(rated: Boolean)
+
+    /**
+     * Observe selected app language tag.
+     * Null means follow system language.
+     */
+    fun appLanguageTagFlow(): Flow<String?>
+
+    /**
+     * Set app language tag.
+     * Pass null to follow system language.
+     */
+    suspend fun setAppLanguageTag(languageTag: String?)
+
+    /**
+     * Get current app language tag once.
+     * Null means follow system language.
+     */
+    suspend fun getAppLanguageTag(): String?
 }
 
 /**

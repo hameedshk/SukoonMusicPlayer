@@ -135,7 +135,7 @@ fun SimpleNativeAd(
                         ) {
                             AsyncImage(
                                 model = drawable,
-                                contentDescription = "Ad icon",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.ad_icon_content_description),
                                 modifier = Modifier.fillMaxWidth(),
                                 contentScale = ContentScale.Fit
                             )
@@ -168,7 +168,7 @@ fun SimpleNativeAd(
                         // For now, we'll use a placeholder
                         AsyncImage(
                             model = ad.images?.firstOrNull()?.uri,
-                            contentDescription = "Ad media",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.ad_media_content_description),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .size(200.dp),
@@ -190,7 +190,10 @@ fun SimpleNativeAd(
                 // Advertiser (if available)
                 ad.advertiser?.let { advertiser ->
                     Text(
-                        text = "Ad: $advertiser",
+                        text = androidx.compose.ui.res.stringResource(
+                            com.sukoon.music.R.string.ad_advertiser_format,
+                            advertiser
+                        ),
                         modifier = Modifier
                             .padding(top = 4.dp)
                             .align(Alignment.End),

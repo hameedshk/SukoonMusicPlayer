@@ -42,6 +42,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.platform.LocalContext
 import com.sukoon.music.ui.components.RatingBanner
+import androidx.compose.ui.res.stringResource
+import com.sukoon.music.R
 
 @Composable
 fun HomeTabScreen(
@@ -80,7 +82,7 @@ fun HomeTabScreen(
             item {
                 // Section header
                 Text(
-                    text = "Continue listening",
+                    text = stringResource(R.string.home_continue_listening),
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground,
                     modifier = Modifier.padding(horizontal = SpacingLarge, vertical = SpacingSmall)

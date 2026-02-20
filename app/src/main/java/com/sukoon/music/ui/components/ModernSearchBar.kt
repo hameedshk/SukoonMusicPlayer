@@ -25,8 +25,11 @@ fun ModernSearchBar(
     onBackClick: () -> Unit,
     onSearchAction: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholderText: String = "Search songs, artists..."
+    placeholderText: String? = null
 ) {
+    val resolvedPlaceholderText =
+        placeholderText ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ui_search_placeholder)
+
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -44,7 +47,7 @@ fun ModernSearchBar(
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back),
                     tint = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -71,7 +74,7 @@ fun ModernSearchBar(
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
                             Text(
-                                text = placeholderText,
+                                text = resolvedPlaceholderText,
                                 style = MaterialTheme.typography.bodyLarge,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -86,7 +89,7 @@ fun ModernSearchBar(
                 IconButton(onClick = onClearClick) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Clear search",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_clear_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -101,3 +104,4 @@ fun ModernSearchBar(
         }
     }
 }
+

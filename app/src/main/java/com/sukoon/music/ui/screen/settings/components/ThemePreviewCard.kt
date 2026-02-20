@@ -116,7 +116,7 @@ private fun ThemePreviewItem(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Aa",
+                text = stringResource(R.string.settings_theme_preview_sample),
                 color = textColor,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.bodySmall

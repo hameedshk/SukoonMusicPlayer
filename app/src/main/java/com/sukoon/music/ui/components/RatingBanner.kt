@@ -68,13 +68,13 @@ fun RatingBanner(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Enjoying Sukoon?",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rating_banner_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = "Rate us on Google Play",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rating_banner_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.9f)
                     )
@@ -82,7 +82,7 @@ fun RatingBanner(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Dismiss",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_dismiss),
                         tint = Color.White
                     )
                 }

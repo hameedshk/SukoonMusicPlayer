@@ -74,14 +74,14 @@ fun RediscoverAlbumsSection(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "You Loved This Before",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rediscover_albums_title),
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "See all",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_see_all),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -204,7 +204,7 @@ fun RediscoverAlbumCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .padding(8.dp)

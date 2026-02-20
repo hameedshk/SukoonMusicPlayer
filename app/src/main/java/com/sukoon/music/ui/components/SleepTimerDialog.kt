@@ -35,13 +35,18 @@ fun SleepTimerDialog(
     var showCustomMinutesDialog by remember { mutableStateOf(false) }
     var customMinutesInput by remember { mutableStateOf("") }
     var customMinutesError by remember { mutableStateOf<String?>(null) }
+    val customMinutesRangeError = androidx.compose.ui.res.stringResource(
+        com.sukoon.music.R.string.sleep_timer_custom_minutes_error,
+        1,
+        360
+    )
 
     val options = listOf(
-        TimerOption("Off", 0, Icons.Default.TimerOff),
-        TimerOption("5 minutes", 5, Icons.Default.Timer),
-        TimerOption("10 minutes", 10, Icons.Default.Timer),
-        TimerOption("End of track", END_OF_TRACK, Icons.Default.Timer),
-        TimerOption("Custom", null, Icons.Default.Edit)
+        TimerOption(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.sleep_timer_option_off), 0, Icons.Default.TimerOff),
+        TimerOption(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.sleep_timer_option_5_minutes), 5, Icons.Default.Timer),
+        TimerOption(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.sleep_timer_option_10_minutes), 10, Icons.Default.Timer),
+        TimerOption(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.sleep_timer_option_end_of_track), END_OF_TRACK, Icons.Default.Timer),
+        TimerOption(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.sleep_timer_option_custom), null, Icons.Default.Edit)
     )
 
     AlertDialog(
@@ -52,7 +57,7 @@ fun SleepTimerDialog(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                Text("Sleep Timer")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_sleep_timer_title))
             }
         },
         text = {
@@ -105,7 +110,7 @@ fun SleepTimerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         },
         modifier = modifier
@@ -117,7 +122,7 @@ fun SleepTimerDialog(
                 showCustomMinutesDialog = false
                 customMinutesError = null
             },
-            title = { Text("Custom timer") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_custom_timer_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
@@ -126,7 +131,7 @@ fun SleepTimerDialog(
                             customMinutesInput = value.filter { it.isDigit() }
                             customMinutesError = null
                         },
-                        label = { Text("Minutes") },
+                        label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_minutes)) },
                         singleLine = true,
                         isError = customMinutesError != null,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
@@ -146,12 +151,12 @@ fun SleepTimerDialog(
                 TextButton(onClick = {
                     val minutes = customMinutesInput.toIntOrNull()
                     if (minutes == null || minutes <= 0 || minutes > 360) {
-                        customMinutesError = "Enter 1 to 360 minutes"
+                        customMinutesError = customMinutesRangeError
                         return@TextButton
                     }
                     onTimerSelected(minutes)
                 }) {
-                    Text("Set")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_set))
                 }
             },
             dismissButton = {
@@ -159,7 +164,7 @@ fun SleepTimerDialog(
                     showCustomMinutesDialog = false
                     customMinutesError = null
                 }) {
-                    Text("Back")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back))
                 }
             }
         )
@@ -173,3 +178,4 @@ private data class TimerOption(
 )
 
 private const val END_OF_TRACK = -1
+

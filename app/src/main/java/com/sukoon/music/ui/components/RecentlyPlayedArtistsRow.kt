@@ -39,7 +39,7 @@ fun RecentlyPlayedArtistsRow(
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
-            text = "Recently Played",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_recently_played),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)

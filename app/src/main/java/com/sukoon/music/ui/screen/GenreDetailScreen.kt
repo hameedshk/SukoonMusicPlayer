@@ -79,7 +79,7 @@ fun GenreDetailScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
             viewModel.loadGenre(genreId)
         }
         songPendingDeletion = null
@@ -90,11 +90,11 @@ fun GenreDetailScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_deleted_successfully), Toast.LENGTH_SHORT).show()
             viewModel.loadGenre(genreId)
             songsPendingDeletion = false
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
             songsPendingDeletion = false
         }
     }
@@ -132,7 +132,7 @@ fun GenreDetailScreen(
                     playlistViewModel.addSongToPlaylist(playlistId, song.id)
                 }
                 showPlaylistDialogForSelection = false
-                Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_added_to_playlist), Toast.LENGTH_SHORT).show()
                 viewModel.toggleSelectionMode(false)
             },
             onDismiss = { showPlaylistDialogForSelection = false }
@@ -151,10 +151,10 @@ fun GenreDetailScreen(
                 )
             },
             title = {
-                Text("Delete ${selectedSongIds.size} song(s)?")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_selected_songs_title, selectedSongIds.size))
             },
             text = {
-                Text("These songs will be permanently deleted from your device. This cannot be undone.")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_songs_message))
             },
             confirmButton = {
                 TextButton(
@@ -167,12 +167,12 @@ fun GenreDetailScreen(
                                     )
                                 }
                                 is DeleteHelper.DeleteResult.Success -> {
-                                    Toast.makeText(context, "Songs deleted successfully", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_deleted_successfully), Toast.LENGTH_SHORT).show()
                                     viewModel.loadGenre(genreId)
                                     songsPendingDeletion = false
                                 }
                                 is DeleteHelper.DeleteResult.Error -> {
-                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, deleteResult.message), Toast.LENGTH_SHORT).show()
                                     songsPendingDeletion = false
                                 }
                             }
@@ -180,12 +180,12 @@ fun GenreDetailScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { songsPendingDeletion = false }) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                 }
             }
         )
@@ -195,12 +195,12 @@ fun GenreDetailScreen(
         topBar = {
             if (isSelectionMode) {
                 TopAppBar(
-                    title = { Text("${selectedSongIds.size} selected") },
+                    title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_selected_count, selectedSongIds.size)) },
                     navigationIcon = {
                         IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Exit selection"
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_exit_selection)
                             )
                         }
                     },
@@ -210,12 +210,17 @@ fun GenreDetailScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Text(genre?.name ?: "Genre") },
+                    title = {
+                        Text(
+                            genre?.name
+                                ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_genre_title)
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back"
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                             )
                         }
                     },
@@ -261,17 +266,17 @@ fun GenreDetailScreen(
                             tint = MaterialTheme.colorScheme.error
                         )
                         Text(
-                            text = "Genre not found",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_genre_not_found_title),
                             style = MaterialTheme.typography.emptyStateTitle
                         )
                         Text(
-                            text = "This genre could not be loaded. It may have been deleted or does not exist.",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_genre_not_found_message),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
                         Button(onClick = onBackClick) {
-                            Text("Go Back")
+                            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_go_back))
                         }
                     }
                 }
@@ -340,12 +345,12 @@ fun GenreDetailScreen(
                                 )
                             }
                             is DeleteHelper.DeleteResult.Success -> {
-                                Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                                 viewModel.loadGenre(genreId)
                                 songPendingDeletion = null
                             }
                             is DeleteHelper.DeleteResult.Error -> {
-                                Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                                 songPendingDeletion = null
                             }
                         }
@@ -447,7 +452,11 @@ private fun GenreDetailContent(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = genre.formattedSongCount(),
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.common_song_count,
+                            genre.songCount,
+                            genre.songCount
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -457,7 +466,11 @@ private fun GenreDetailContent(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = if (albumCount == 1) "1 album" else "$albumCount albums",
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.library_screens_b_album_count,
+                            albumCount,
+                            albumCount
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -480,7 +493,7 @@ private fun GenreDetailContent(
                     ) {
                         Icon(Icons.Default.Shuffle, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Shuffle")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle))
                     }
 
                     Button(
@@ -490,7 +503,7 @@ private fun GenreDetailContent(
                     ) {
                         Icon(Icons.Default.PlayArrow, contentDescription = null)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Play All")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all))
                     }
                 }
             }
@@ -507,16 +520,26 @@ private fun GenreDetailContent(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "${sortedSongs.size} song${if (sortedSongs.size != 1) "s" else ""}",
+                        text = androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.library_screens_b_song_count,
+                            sortedSongs.size,
+                            sortedSongs.size
+                        ),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Row {
                         IconButton(onClick = onSortClick) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort")
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort)
+                            )
                         }
                         IconButton(onClick = onSelectionModeClick) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = "Select songs")
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_select_songs)
+                            )
                         }
                     }
                 }
@@ -533,7 +556,7 @@ private fun GenreDetailContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No songs in this genre",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_no_songs_in_genre),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                     )
@@ -585,7 +608,11 @@ private fun GenreSongItemRow(
         if (isSelectionMode) {
             Icon(
                 imageVector = if (isSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
-                contentDescription = if (isSelected) "Checked" else "Unchecked",
+                contentDescription = if (isSelected) {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_checked)
+                } else {
+                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_unchecked)
+                },
                 modifier = Modifier
                     .size(24.dp)
                     .clickable { onClick() },
@@ -628,7 +655,7 @@ private fun GenreSongItemRow(
                 }
             }
             Text(
-                text = "${song.artist} • ${song.album}",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
                 style = MaterialTheme.typography.listItemSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
@@ -641,7 +668,7 @@ private fun GenreSongItemRow(
             IconButton(onClick = { showMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -665,7 +692,7 @@ private fun GenreSongSortDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Sort by") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by)) },
         text = {
             Column {
                 com.sukoon.music.ui.viewmodel.GenreSongSortMode.values().forEach { mode ->
@@ -679,10 +706,10 @@ private fun GenreSongSortDialog(
                     ) {
                         Text(
                             text = when (mode) {
-                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE -> "Title (A-Z)"
-                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ARTIST -> "Artist (A-Z)"
-                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ALBUM -> "Album (A-Z)"
-                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.DURATION -> "Duration"
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.TITLE -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_option_title_az)
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ARTIST -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_option_artist_az)
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.ALBUM -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_option_album_az)
+                                com.sukoon.music.ui.viewmodel.GenreSongSortMode.DURATION -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_option_duration)
                             }
                         )
                         if (mode == currentMode) {
@@ -699,8 +726,12 @@ private fun GenreSongSortDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_close))
             }
         }
     )
 }
+
+
+
+

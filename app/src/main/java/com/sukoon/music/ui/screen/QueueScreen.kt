@@ -24,6 +24,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
@@ -31,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.Queue
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
@@ -173,12 +176,26 @@ fun QueueScreen(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("Current Queue (${playbackState.queue.size})") }
+                        text = {
+                            Text(
+                                stringResource(
+                                    R.string.queue_screen_tab_current_queue_with_count,
+                                    playbackState.queue.size
+                                )
+                            )
+                        }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("Saved Queues (${savedQueues.size})") }
+                        text = {
+                            Text(
+                                stringResource(
+                                    R.string.queue_screen_tab_saved_queues_with_count,
+                                    savedQueues.size
+                                )
+                            )
+                        }
                     )
                 }
             }
@@ -236,12 +253,12 @@ private fun QueueTopAppBar(
     TopAppBar(
         modifier = modifier,
         windowInsets = WindowInsets(0, 0, 0, 0),
-        title = { Text("Queue") },
+        title = { Text(stringResource(R.string.label_queue)) },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back"
+                    contentDescription = stringResource(R.string.queue_screen_back_content_description)
                 )
             }
         },
@@ -250,7 +267,7 @@ private fun QueueTopAppBar(
                 IconButton(onClick = onSaveQueue) {
                     Icon(
                         imageVector = Icons.Default.Save,
-                        contentDescription = "Save queue"
+                        contentDescription = stringResource(R.string.queue_screen_save_queue_content_description)
                     )
                 }
             }
@@ -258,7 +275,7 @@ private fun QueueTopAppBar(
                 IconButton(onClick = onShuffleQueue) {
                     Icon(
                         imageVector = Icons.Default.Shuffle,
-                        contentDescription = "Shuffle queue"
+                        contentDescription = stringResource(R.string.queue_screen_shuffle_queue_content_description)
                     )
                 }
             }
@@ -266,7 +283,7 @@ private fun QueueTopAppBar(
                 IconButton(onClick = onClearQueue) {
                     Icon(
                         imageVector = Icons.Default.Clear,
-                        contentDescription = "Clear queue"
+                        contentDescription = stringResource(R.string.queue_screen_clear_queue_content_description)
                     )
                 }
             }
@@ -305,12 +322,12 @@ fun CurrentQueueContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Queue is empty",
+                    text = stringResource(R.string.queue_screen_empty_title),
                     style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Start playing some music!",
+                    text = stringResource(R.string.queue_screen_empty_subtitle),
                     style = MaterialTheme.typography.emptyStateDescription,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -486,7 +503,7 @@ fun QueueSongItem(
             IconButton(onClick = { showMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = stringResource(R.string.queue_screen_more_options_content_description),
                     tint = if (isCurrentSong) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
@@ -499,7 +516,7 @@ fun QueueSongItem(
             IconButton(onClick = onRemove) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Remove from queue",
+                    contentDescription = stringResource(R.string.queue_screen_remove_from_queue_content_description),
                     tint = if (isCurrentSong) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
@@ -511,7 +528,7 @@ fun QueueSongItem(
             // Drag handle
             Icon(
                 imageVector = Icons.Default.DragHandle,
-                contentDescription = "Drag to reorder",
+                contentDescription = stringResource(R.string.queue_screen_drag_to_reorder_content_description),
                 tint = if (isCurrentSong) {
                     MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f)
                 } else {
@@ -555,12 +572,12 @@ fun SavedQueuesContent(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No saved queues",
+                    text = stringResource(R.string.queue_screen_saved_empty_title),
                     style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "Save your current queue to access it later",
+                    text = stringResource(R.string.queue_screen_saved_empty_subtitle),
                     style = MaterialTheme.typography.emptyStateDescription,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 )
@@ -591,6 +608,11 @@ fun SavedQueueItem(
     modifier: Modifier = Modifier
 ) {
     var showDeleteConfirmation by remember { mutableStateOf(false) }
+    val songCountText = pluralStringResource(
+        R.plurals.queue_screen_song_count,
+        queue.songCount,
+        queue.songCount
+    )
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -640,7 +662,11 @@ fun SavedQueueItem(
                     }
                 )
                 Text(
-                    text = "${queue.songCount} songs • ${queue.durationFormatted()}",
+                    text = stringResource(
+                        R.string.queue_screen_saved_queue_metadata,
+                        songCountText,
+                        queue.durationFormatted()
+                    ),
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (queue.isCurrent) {
                         MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
@@ -650,7 +676,7 @@ fun SavedQueueItem(
                 )
                 if (queue.isCurrent) {
                     Text(
-                        text = "Current Queue",
+                        text = stringResource(R.string.queue_screen_current_queue_badge),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.6f)
                     )
@@ -663,7 +689,7 @@ fun SavedQueueItem(
             IconButton(onClick = { showDeleteConfirmation = true }) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete queue",
+                    contentDescription = stringResource(R.string.queue_screen_delete_queue_content_description),
                     tint = if (queue.isCurrent) {
                         MaterialTheme.colorScheme.onPrimaryContainer
                     } else {
@@ -678,8 +704,15 @@ fun SavedQueueItem(
     if (showDeleteConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmation = false },
-            title = { Text("Delete Queue?") },
-            text = { Text("Are you sure you want to delete \"${queue.name}\"? This action cannot be undone.") },
+            title = { Text(stringResource(R.string.dialog_delete_queue_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.queue_screen_delete_queue_confirmation,
+                        queue.name
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -687,12 +720,12 @@ fun SavedQueueItem(
                         showDeleteConfirmation = false
                     }
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirmation = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.common_cancel))
                 }
             }
         )
@@ -709,15 +742,15 @@ fun SaveQueueDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Save Queue") },
+        title = { Text(stringResource(R.string.dialog_save_queue_title)) },
         text = {
             Column {
-                Text("Enter a name for this queue:")
+                Text(stringResource(R.string.queue_screen_save_queue_prompt))
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedTextField(
                     value = queueName,
                     onValueChange = { queueName = it },
-                    label = { Text("Queue Name") },
+                    label = { Text(stringResource(R.string.dialog_queue_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -732,13 +765,15 @@ fun SaveQueueDialog(
                 },
                 enabled = queueName.isNotBlank()
             ) {
-                Text("Save")
+                Text(stringResource(R.string.common_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
 }
+
+

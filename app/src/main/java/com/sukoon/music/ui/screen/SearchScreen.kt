@@ -81,9 +81,9 @@ fun SearchScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
         isDeleting = false
@@ -220,12 +220,12 @@ fun SearchScreen(
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Error -> {
-                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
@@ -262,12 +262,12 @@ private fun SearchHistorySection(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Recent searches",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_recent_searches),
                 style = MaterialTheme.typography.sectionHeader,
                 color = MaterialTheme.colorScheme.onBackground
             )
             TextButton(onClick = onClearAllClick) {
-                Text("Clear all")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_clear_all))
             }
         }
 
@@ -318,7 +318,7 @@ private fun SearchHistoryChip(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Remove",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_remove),
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -360,7 +360,7 @@ private fun FilterAndSortSection(
                         contentDescription = null,
                         modifier = Modifier.size(16.dp)
                     )
-                    Text("Liked only")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_liked_only))
                 }
             },
             modifier = Modifier.clip(RoundedCornerShape(8.dp)),
@@ -433,12 +433,13 @@ private fun SortModeMenu(
     }
 }
 
+@Composable
 private fun getSortModeLabel(mode: SortMode): String {
     return when (mode) {
-        SortMode.RELEVANCE -> "Relevance"
-        SortMode.TITLE -> "Title (A-Z)"
-        SortMode.ARTIST -> "Artist (A-Z)"
-        SortMode.DATE_ADDED -> "Date Added"
+        SortMode.RELEVANCE -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_sort_relevance)
+        SortMode.TITLE -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_sort_title_asc)
+        SortMode.ARTIST -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_sort_artist_asc)
+        SortMode.DATE_ADDED -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_sort_date_added)
     }
 }
 
@@ -458,7 +459,11 @@ private fun SearchResultsContent(
         // Results header
         item {
             Text(
-                text = "${songs.size} result${if (songs.size != 1) "s" else ""}",
+                text = androidx.compose.ui.res.pluralStringResource(
+                    com.sukoon.music.R.plurals.common_result_count,
+                    songs.size,
+                    songs.size
+                ),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 8.dp)
@@ -514,7 +519,7 @@ private fun SearchResultItem(
                 if (song.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = song.albumArtUri,
-                        contentDescription = "Album art",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         error = {
@@ -551,7 +556,7 @@ private fun SearchResultItem(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = " • ",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_result_separator),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -579,7 +584,7 @@ private fun SearchResultItem(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "More options",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -625,14 +630,14 @@ private fun InitialSearchState(
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "Search your library",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_initial_title),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Find your favorite songs, artists,\nand albums in seconds",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_initial_message),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -660,7 +665,7 @@ private fun InitialSearchStateWithHistory(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Rediscover",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_history_state_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
         )
@@ -695,14 +700,14 @@ private fun NoResultsState(
         }
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "No results found",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_no_results_title),
             style = MaterialTheme.typography.headlineSmall,
              fontWeight = FontWeight.Bold,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "We couldn't find anything matching",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_no_results_message),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -714,7 +719,7 @@ private fun NoResultsState(
             modifier = Modifier.padding(top = 8.dp)
         ) {
             Text(
-                text = "\"$query\"",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_query_with_quotes, query),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -731,3 +736,8 @@ private fun SearchScreenPreview() {
         SearchScreen(onBackClick = {})
     }
 }
+
+
+
+
+

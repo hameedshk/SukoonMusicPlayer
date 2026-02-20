@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="queue_screen_tab_current_queue_with_count">Current Queue (%1$d)</string>
+    <string name="queue_screen_tab_saved_queues_with_count">Saved Queues (%1$d)</string>
+    <string name="queue_screen_back_content_description">Back</string>
+    <string name="queue_screen_save_queue_content_description">Save queue</string>
+    <string name="queue_screen_shuffle_queue_content_description">Shuffle queue</string>
+    <string name="queue_screen_clear_queue_content_description">Clear queue</string>
+    <string name="queue_screen_empty_title">Queue is empty</string>
+    <string name="queue_screen_empty_subtitle">Start playing some music!</string>
+    <string name="queue_screen_more_options_content_description">More options</string>
+    <string name="queue_screen_remove_from_queue_content_description">Remove from queue</string>
+    <string name="queue_screen_drag_to_reorder_content_description">Drag to reorder</string>
+    <string name="queue_screen_saved_empty_title">No saved queues</string>
+    <string name="queue_screen_saved_empty_subtitle">Save your current queue to access it later</string>
+    <string name="queue_screen_saved_queue_metadata">%1$s \u2022 %2$s</string>
+    <string name="queue_screen_current_queue_badge">Current Queue</string>
+    <string name="queue_screen_delete_queue_content_description">Delete queue</string>
+    <string name="queue_screen_delete_queue_confirmation">Are you sure you want to delete &quot;%1$s&quot;? This action cannot be undone.</string>
+    <string name="queue_screen_save_queue_prompt">Enter a name for this queue:</string>
+    <string name="queue_vm_saved_as">Queue saved as &quot;%1$s&quot;</string>
+    <string name="queue_vm_failed_save">Failed to save queue: %1$s</string>
+    <string name="queue_vm_saved_queue_fallback_name">Saved Queue</string>
+    <string name="queue_vm_queue_name_prefix">Queue: %1$s</string>
+    <string name="queue_vm_loaded">Queue loaded</string>
+    <string name="queue_vm_failed_load">Failed to load queue: %1$s</string>
+    <string name="queue_vm_deleted">Queue deleted</string>
+    <string name="queue_vm_failed_delete">Failed to delete queue: %1$s</string>
+    <string name="queue_vm_failed_remove_song">Failed to remove song: %1$s</string>
+    <string name="queue_vm_failed_reorder">Failed to reorder queue: %1$s</string>
+    <string name="queue_vm_failed_play_song">Failed to play song: %1$s</string>
+    <string name="queue_vm_cleared">Queue cleared</string>
+    <string name="queue_vm_failed_clear">Failed to clear queue: %1$s</string>
+    <string name="queue_vm_shuffled">Queue shuffled</string>
+    <string name="queue_vm_failed_shuffle">Failed to shuffle queue: %1$s</string>
+    <string name="queue_vm_unknown_error">Unknown error</string>
+
+    <string name="queue_modal_close_queue_content_description">Close queue</string>
+    <string name="queue_modal_now_playing_section_title">Now Playing</string>
+    <string name="queue_modal_up_next_section_title_with_count">Up Next (%1$d)</string>
+    <string name="queue_modal_previously_played_section_title_with_count">Previously Played (%1$d)</string>
+    <string name="queue_modal_song_metadata_separator"> \u2022 </string>
+    <string name="queue_modal_currently_playing_content_description">Currently playing</string>
+    <string name="queue_modal_remove_from_queue_content_description">Remove from queue</string>
+    <string name="queue_modal_empty_title">Queue is empty</string>
+    <string name="queue_modal_empty_subtitle">Add songs to start playing</string>
+
+    <plurals name="queue_screen_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+
+    <plurals name="queue_modal_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+</resources>

@@ -21,11 +21,11 @@ fun EditGenreTagsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Genre") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.edit_genre_dialog_title)) },
         text = {
             Column {
                 Text(
-                    text = "Rename genre (updates all songs with this genre)",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.edit_genre_dialog_message),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -36,10 +36,10 @@ fun EditGenreTagsDialog(
                         genreName = it
                         showError = false
                     },
-                    label = { Text("Genre name") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.edit_genre_dialog_genre_name_label)) },
                     isError = showError,
                     supportingText = if (showError) {
-                        { Text("Genre name cannot be empty") }
+                        { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.edit_genre_dialog_genre_name_error)) }
                     } else null,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -56,13 +56,14 @@ fun EditGenreTagsDialog(
                     }
                 }
             ) {
-                Text("Save")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         }
     )
 }
+

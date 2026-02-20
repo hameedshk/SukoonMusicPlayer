@@ -21,11 +21,11 @@ import androidx.core.net.toUri
 import android.net.Uri
 import com.sukoon.music.ui.theme.*
 
-enum class AudioQuality(val displayName: String) {
-    LOW("Low"),
-    NORMAL("Normal"),
-    HIGH("High"),
-    VERY_HIGH("Very High")
+enum class AudioQuality {
+    LOW,
+    NORMAL,
+    HIGH,
+    VERY_HIGH
 }
 
 data class TechnicalInfo(
@@ -104,7 +104,7 @@ fun SongInfoDialog(
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
-                    text = "Song information",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_title),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp)
@@ -114,52 +114,109 @@ fun SongInfoDialog(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     contentPadding = PaddingValues(horizontal = 24.dp, vertical = 8.dp)
                 ) {
-                    item { InfoField(Icons.Default.Title, "Title", song.title) }
+                    item {
+                        InfoField(
+                            Icons.Default.Title,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_title),
+                            song.title
+                        )
+                    }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     item {
                         val format = getFormatFromPath(song.path)
-                        InfoField(Icons.Default.AudioFile, "Format", format)
+                        InfoField(
+                            Icons.Default.AudioFile,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_format),
+                            format.ifEmpty {
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_unknown)
+                            }
+                        )
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField(Icons.Default.Storage, "Size", formatFileSize(song.size)) }
+                    item {
+                        InfoField(
+                            Icons.Default.Storage,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_size),
+                            formatFileSize(song.size)
+                        )
+                    }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField(Icons.Default.Timer, "Duration", song.durationFormatted()) }
+                    item {
+                        InfoField(
+                            Icons.Default.Timer,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_duration),
+                            song.durationFormatted()
+                        )
+                    }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     // --- TECHNICAL DETAILS (Using technicalInfo) ---
                     item {technicalInfo.bitrateKbps?.let {
-                        InfoField(Icons.Default.SettingsSuggest, "Bitrate", "$it kbps")
+                        InfoField(
+                            Icons.Default.SettingsSuggest,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_bitrate),
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_value_bitrate_kbps, it)
+                        )
                     }}
                     
                     item {
                         technicalInfo.samplingRateHz?.let {
                             Spacer(modifier = Modifier.height(16.dp))
-                            InfoField(Icons.Default.Speed, "Sampling rate", "$it Hz")
+                            InfoField(
+                                Icons.Default.Speed,
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_sampling_rate),
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_value_sampling_rate_hz, it)
+                            )
                         }
                     }
 
                     item {
                         technicalInfo.channels?.let {
                             Spacer(modifier = Modifier.height(16.dp))
-                            InfoField(Icons.Default.Speaker, "Channels", if (it == 1) "Mono" else "Stereo")
+                            InfoField(
+                                Icons.Default.Speaker,
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_channels),
+                                androidx.compose.ui.res.stringResource(
+                                    if (it == 1) com.sukoon.music.R.string.song_info_channel_mono
+                                    else com.sukoon.music.R.string.song_info_channel_stereo
+                                )
+                            )
                         }
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     // --- REMAINING METADATA ---
-                    item { InfoField(Icons.Default.Person, "Artist", song.artist.ifEmpty { "<unknown>" }) }
+                    item {
+                        InfoField(
+                            Icons.Default.Person,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_artist),
+                            song.artist.ifEmpty {
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_unknown)
+                            }
+                        )
+                    }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
                     item {
                         val fileName = song.path.substringAfterLast("/")
-                        InfoField(Icons.Default.Description, "File name", fileName)
+                        InfoField(
+                            Icons.Default.Description,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_file_name),
+                            fileName
+                        )
                     }
                     item { Spacer(modifier = Modifier.height(16.dp)) }
 
-                    item { InfoField(Icons.Default.Folder, "Location", song.path) }
+                    item {
+                        InfoField(
+                            Icons.Default.Folder,
+                            androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_label_location),
+                            song.path
+                        )
+                    }
                     item { Spacer(modifier = Modifier.height(24.dp)) }
                 }
 
@@ -170,7 +227,7 @@ fun SongInfoDialog(
                         .padding(horizontal = 24.dp, vertical = 16.dp),
                     shape = RoundedCornerShape(50)
                 ) {
-                    Text("OK")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok))
                 }
             }
         }
@@ -206,13 +263,20 @@ private fun InfoField(icon: ImageVector, label: String, value: String) {
     }
 }
 
+@Composable
 private fun formatFileSize(bytes: Long): String {
-    if (bytes <= 0) return "<unknown>"
+    if (bytes <= 0) {
+        return androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_info_unknown)
+    }
     val mb = bytes / (1024.0 * 1024.0)
-    return String.format("%.2f MB", mb)
+    return androidx.compose.ui.res.stringResource(
+        com.sukoon.music.R.string.song_info_file_size_mb,
+        mb
+    )
 }
 
 private fun getFormatFromPath(path: String): String {
     val extension = path.substringAfterLast(".", "")
-    return extension.uppercase().ifEmpty { "<unknown>" }
+    return extension.uppercase()
 }
+

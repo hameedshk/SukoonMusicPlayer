@@ -280,7 +280,7 @@ fun NowPlayingAdOverlay(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Dismiss ad",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_dismiss_ad),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }

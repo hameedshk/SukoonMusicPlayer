@@ -57,7 +57,7 @@ fun NativeAdCard(
         ) {
             Icon(
                 imageVector = Icons.Default.Campaign,
-                contentDescription = "Ad",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.ad_badge_label),
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(28.dp)
             )
@@ -71,7 +71,7 @@ fun NativeAdCard(
         ) {
             // Ad headline
             Text(
-                text = "Sponsored",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.native_ad_sponsored_label),
                 style = MaterialTheme.typography.bodyLarge,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -81,7 +81,7 @@ fun NativeAdCard(
             Spacer(modifier = Modifier.height(4.dp))
             // Ad description
             Text(
-                text = "Featured promotion from our partners",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.native_ad_featured_promotion),
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -99,7 +99,7 @@ fun NativeAdCard(
             tonalElevation = 2.dp
         ) {
             Text(
-                text = "Ad",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.ad_badge_label),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer,
                 fontWeight = FontWeight.Bold,

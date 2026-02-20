@@ -130,7 +130,11 @@ fun GenreRow(
                     )
                 }
                 Text(
-                    text = genre.formattedSongCount(),
+                    text = androidx.compose.ui.res.pluralStringResource(
+                        com.sukoon.music.R.plurals.common_song_count,
+                        genre.songCount,
+                        genre.songCount
+                    ),
                     style = MaterialTheme.typography.genreMetadata,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
@@ -154,7 +158,7 @@ fun GenreRow(
                 IconButton(onClick = { onMoreClick(genre) }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Options",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_options),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -162,4 +166,5 @@ fun GenreRow(
         }
     }
 }
+
 

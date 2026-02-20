@@ -41,6 +41,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import kotlinx.coroutines.launch
@@ -56,6 +59,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Playlist
 import com.sukoon.music.ui.components.getSmartPlaylistIcon
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
@@ -66,10 +70,10 @@ import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 
-private enum class PlaylistSortMode(val label: String) {
-    RECENT("Recent"),
-    NAME("Name"),
-    SONG_COUNT("Songs")
+private enum class PlaylistSortMode(val labelResId: Int) {
+    RECENT(R.string.playlists_screen_sort_recent),
+    NAME(R.string.playlists_screen_sort_name),
+    SONG_COUNT(R.string.playlists_screen_sort_songs)
 }
 
 /**
@@ -98,6 +102,7 @@ fun PlaylistsScreen(
     var showCreateDialog by remember { mutableStateOf(false) }
     var showImportDialog by remember { mutableStateOf(false) }
     var importResult by remember { mutableStateOf<String?>(null) }
+    var importSuccess by remember { mutableStateOf<Boolean?>(null) }
     var playlistToDelete by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
     var playlistToRename by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
     var createDialogInitialName by remember { mutableStateOf("") }
@@ -107,6 +112,7 @@ fun PlaylistsScreen(
     var playlistSortMode by remember { mutableStateOf(PlaylistSortMode.RECENT) }
 
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
     val visiblePlaylists = remember(playlists, playlistSearchQuery, playlistSortMode) {
         val filtered = playlists.filter { playlist ->
             if (playlistSearchQuery.isBlank()) {
@@ -143,6 +149,7 @@ fun PlaylistsScreen(
                 onImportClick = {
                     showImportDialog = true
                     importResult = null
+                    importSuccess = null
                 },
                 deletedPlaylistsCount = deletedPlaylistsCount
             )
@@ -159,16 +166,24 @@ fun PlaylistsScreen(
             }
             item {
                 val subtitle = if (playlistSearchQuery.isBlank()) {
-                    "${visiblePlaylists.size} playlists"
+                    pluralStringResource(
+                        id = R.plurals.playlists_screen_playlist_count,
+                        count = visiblePlaylists.size,
+                        visiblePlaylists.size
+                    )
                 } else {
-                    "${visiblePlaylists.size} of ${playlists.size} results"
+                    stringResource(
+                        R.string.playlists_screen_visible_of_total_results,
+                        visiblePlaylists.size,
+                        playlists.size
+                    )
                 }
                 Column(
                     modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        text = "My playlists",
+                        text = stringResource(R.string.playlists_screen_my_playlists_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -283,18 +298,25 @@ fun PlaylistsScreen(
                 onDismiss = {
                     showImportDialog = false
                     importResult = null
+                    importSuccess = null
                 },
                 onImport = { json ->
                     scope.launch {
                         val count = viewModel.importPlaylists(json)
                         importResult = if (count > 0) {
-                            "Successfully imported $count playlist${if (count > 1) "s" else ""}"
+                            context.resources.getQuantityString(
+                                R.plurals.playlists_screen_import_success,
+                                count,
+                                count
+                            )
                         } else {
-                            "Failed to import playlists. Check JSON format."
+                            context.getString(R.string.playlists_screen_import_failed)
                         }
+                        importSuccess = count > 0
                     }
                 },
-                importResult = importResult
+                importResult = importResult,
+                importSuccess = importSuccess
             )
         }
 
@@ -333,12 +355,12 @@ private fun SmartPlaylistsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            text = "Smart playlists",
+            text = stringResource(R.string.playlists_screen_smart_playlists_title),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground
         )
         Text(
-            text = "Playlists generated from your listening activity",
+            text = stringResource(R.string.playlists_screen_smart_playlists_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -390,6 +412,16 @@ private fun SmartPlaylistCard(
     onClick: () -> Unit
 ) {
     val accentColor = getSmartPlaylistColor(smartPlaylist.type)
+    val smartPlaylistSongCountText = pluralStringResource(
+        id = R.plurals.playlists_screen_song_count,
+        count = smartPlaylist.songCount,
+        smartPlaylist.songCount
+    )
+    val smartPlaylistContentDescription = stringResource(
+        R.string.playlists_screen_playlist_content_description,
+        smartPlaylist.title,
+        smartPlaylistSongCountText
+    )
 
     Card(
         onClick = onClick,
@@ -402,7 +434,7 @@ private fun SmartPlaylistCard(
                 shape = RoundedCornerShape(14.dp)
             )
             .semantics {
-                contentDescription = "${smartPlaylist.title}, ${smartPlaylist.songCount} songs"
+                contentDescription = smartPlaylistContentDescription
             },
         shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
@@ -457,7 +489,7 @@ private fun SmartPlaylistCard(
                     color = accentColor.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = "${smartPlaylist.songCount} songs",
+                        text = smartPlaylistSongCountText,
                         style = MaterialTheme.typography.labelSmall,
                         color = accentColor,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -480,7 +512,7 @@ private fun PlaylistActionsSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            text = "Quick actions",
+            text = stringResource(R.string.playlists_screen_quick_actions_title),
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -497,7 +529,7 @@ private fun PlaylistActionsSection(
             ) {
                 QuickActionButton(
                     icon = Icons.Default.Add,
-                    text = "Create",
+                    text = stringResource(R.string.common_create),
                     onClick = onCreateClick,
                     modifier = Modifier.weight(1f),
                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
@@ -505,7 +537,7 @@ private fun PlaylistActionsSection(
                 )
                 QuickActionButton(
                     icon = Icons.Default.Upload,
-                    text = "Import",
+                    text = stringResource(R.string.common_import),
                     onClick = onImportClick,
                     modifier = Modifier.weight(1f),
                     containerColor = MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f),
@@ -513,7 +545,7 @@ private fun PlaylistActionsSection(
                 )
                 QuickActionButton(
                     icon = Icons.Default.Restore,
-                    text = "Restore",
+                    text = stringResource(R.string.playlists_screen_restore_action),
                     onClick = onRestoreClick,
                     modifier = Modifier.weight(1f),
                     badgeCount = deletedPlaylistsCount,
@@ -621,14 +653,14 @@ private fun PlaylistListControls(
                 singleLine = true,
                 placeholder = {
                     Text(
-                        text = "Search playlists...",
+                        text = stringResource(R.string.playlists_screen_search_placeholder),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = "Search playlists"
+                        contentDescription = stringResource(R.string.playlists_screen_search_content_description)
                     )
                 },
                 trailingIcon = {
@@ -636,7 +668,7 @@ private fun PlaylistListControls(
                         IconButton(onClick = { onQueryChange("") }) {
                             Icon(
                                 imageVector = Icons.Default.Close,
-                                contentDescription = "Clear search"
+                                contentDescription = stringResource(R.string.playlists_screen_clear_search_content_description)
                             )
                         }
                     }
@@ -652,7 +684,7 @@ private fun PlaylistListControls(
                 )
             )
             Text(
-                text = "Sort by",
+                text = stringResource(R.string.playlists_screen_sort_by_label),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -665,7 +697,7 @@ private fun PlaylistListControls(
                     FilterChip(
                         selected = selected,
                         onClick = { onSortModeChange(mode) },
-                        label = { Text(mode.label) },
+                        label = { Text(stringResource(mode.labelResId)) },
                         shape = RoundedCornerShape(999.dp),
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
@@ -707,13 +739,13 @@ private fun EmptyFilteredPlaylistsState(
         )
         Spacer(modifier = Modifier.height(10.dp))
         Text(
-            text = "No playlists match \"$query\"",
+            text = stringResource(R.string.playlists_screen_no_matches_title, query),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onSurface
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Try another search or change sorting.",
+            text = stringResource(R.string.playlists_screen_no_matches_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -727,7 +759,7 @@ private fun EmptyFilteredPlaylistsState(
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
-                Text("Create \"$query\"")
+                Text(stringResource(R.string.playlists_screen_create_query, query))
             }
         }
     }
@@ -786,6 +818,16 @@ private fun PlaylistCard(
     onRenameClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val playlistSongCountText = pluralStringResource(
+        id = R.plurals.playlists_screen_song_count,
+        count = playlist.songCount,
+        playlist.songCount
+    )
+    val playlistContentDescription = stringResource(
+        R.string.playlists_screen_playlist_content_description,
+        playlist.name,
+        playlistSongCountText
+    )
 
     Card(
         onClick = onClick,
@@ -798,7 +840,7 @@ private fun PlaylistCard(
                 shape = RoundedCornerShape(16.dp)
             )
             .semantics {
-                contentDescription = "${playlist.name}, ${playlist.songCount} songs"
+                contentDescription = playlistContentDescription
             },
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
@@ -822,7 +864,7 @@ private fun PlaylistCard(
                 if (playlist.coverImageUri != null) {
                     SubcomposeAsyncImage(
                         model = playlist.coverImageUri,
-                        contentDescription = "Playlist cover",
+                        contentDescription = stringResource(R.string.playlists_screen_playlist_cover_content_description),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -850,7 +892,7 @@ private fun PlaylistCard(
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
-                        contentDescription = "Play playlist",
+                        contentDescription = stringResource(R.string.playlists_screen_play_playlist_content_description),
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -869,7 +911,7 @@ private fun PlaylistCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Options",
+                            contentDescription = stringResource(R.string.playlists_screen_options_content_description),
                             tint = Color.White
                         )
                     }
@@ -879,28 +921,28 @@ private fun PlaylistCard(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Play") },
+                            text = { Text(stringResource(R.string.common_play)) },
                             onClick = {
                                 onPlayClick()
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Play next") },
+                            text = { Text(stringResource(R.string.common_play_next)) },
                             onClick = {
                                 onPlayNextClick()
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Rename") },
+                            text = { Text(stringResource(R.string.common_rename)) },
                             onClick = {
                                 onRenameClick()
                                 showMenu = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.common_delete)) },
                             onClick = {
                                 onDeleteClick()
                                 showMenu = false
@@ -932,7 +974,7 @@ private fun PlaylistCard(
                     color = MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = "${playlist.songCount} songs",
+                        text = playlistSongCountText,
                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
@@ -999,7 +1041,7 @@ private fun EmptyPlaylistsState(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "No playlists yet",
+            text = stringResource(R.string.playlists_screen_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface
         )
@@ -1007,7 +1049,7 @@ private fun EmptyPlaylistsState(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tap the button below to create one",
+            text = stringResource(R.string.playlists_screen_empty_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
@@ -1025,7 +1067,7 @@ private fun EmptyPlaylistsState(
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Create playlist")
+            Text(stringResource(R.string.label_create_playlist))
         }
     }
 }
@@ -1041,13 +1083,13 @@ fun CreatePlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Create Playlist") },
+        title = { Text(stringResource(R.string.playlists_screen_create_playlist_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(stringResource(R.string.common_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1055,7 +1097,7 @@ fun CreatePlaylistDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(stringResource(R.string.common_description_optional)) },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -1070,12 +1112,12 @@ fun CreatePlaylistDialog(
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text("Create")
+                Text(stringResource(R.string.common_create))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -1094,12 +1136,12 @@ fun RenamePlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Rename Playlist") },
+        title = { Text(stringResource(R.string.playlists_screen_rename_playlist_title)) },
         text = {
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
-                label = { Text("Playlist Name") },
+                label = { Text(stringResource(R.string.playlists_screen_playlist_name_label)) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -1113,12 +1155,12 @@ fun RenamePlaylistDialog(
                 },
                 enabled = name.isNotBlank() && name != currentName
             ) {
-                Text("Rename")
+                Text(stringResource(R.string.common_rename))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -1135,18 +1177,18 @@ fun DeletePlaylistConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Delete Playlist?") },
+        title = { Text(stringResource(R.string.dialog_delete_playlist_title)) },
         text = {
-            Text("Are you sure you want to delete \"$playlistName\"? This will move it to trash where you can restore it later.")
+            Text(stringResource(R.string.playlists_screen_delete_playlist_message, playlistName))
         },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text("Delete")
+                Text(stringResource(R.string.common_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -1159,39 +1201,40 @@ fun DeletePlaylistConfirmationDialog(
 fun ImportPlaylistDialog(
     onDismiss: () -> Unit,
     onImport: (String) -> Unit,
-    importResult: String?
+    importResult: String?,
+    importSuccess: Boolean?
 ) {
     var json by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Import Playlist") },
+        title = { Text(stringResource(R.string.dialog_import_playlist_title)) },
         text = {
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "Paste playlist JSON data below:",
+                    text = stringResource(R.string.playlists_screen_import_paste_json_hint),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 OutlinedTextField(
                     value = json,
                     onValueChange = { json = it },
-                    label = { Text("JSON Data") },
+                    label = { Text(stringResource(R.string.dialog_json_data_label)) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp),
                     maxLines = 10,
                     placeholder = {
-                        Text("{\"version\":1,\"playlists\":[...]}")
+                        Text(stringResource(R.string.playlists_screen_import_json_placeholder))
                     }
                 )
                 if (importResult != null) {
                     Text(
                         text = importResult,
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (importResult.startsWith("Successfully"))
+                        color = if (importSuccess == true)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.error
@@ -1208,12 +1251,12 @@ fun ImportPlaylistDialog(
                 },
                 enabled = json.isNotBlank()
             ) {
-                Text("Import")
+                Text(stringResource(R.string.common_import))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.common_cancel))
             }
         }
     )
@@ -1235,7 +1278,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == null,
                 onClick = { onFilterChange(null) },
-                label = { Text("All") },
+                label = { Text(stringResource(R.string.label_all)) },
                 modifier = if (selectedFilter != null) {
                     Modifier
                         .clip(RoundedCornerShape(8.dp))
@@ -1253,7 +1296,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == true,
                 onClick = { onFilterChange(true) },
-                label = { Text("Smart Playlists") },
+                label = { Text(stringResource(R.string.label_smart_playlists)) },
                 leadingIcon = if (selectedFilter == true) {
                     { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
                 } else null,
@@ -1274,7 +1317,7 @@ private fun PlaylistFilterChips(
             FilterChip(
                 selected = selectedFilter == false,
                 onClick = { onFilterChange(false) },
-                label = { Text("My Playlists") },
+                label = { Text(stringResource(R.string.label_my_playlists)) },
                 leadingIcon = if (selectedFilter == false) {
                     { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
                 } else null,
@@ -1329,7 +1372,7 @@ private fun PlaylistMiniPlayer(
                 if (playbackState.currentSong?.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = playbackState.currentSong.albumArtUri,
-                        contentDescription = "Album Art",
+                        contentDescription = stringResource(R.string.playlists_screen_album_art_content_description),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -1363,7 +1406,7 @@ private fun PlaylistMiniPlayer(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = playbackState.currentSong?.title ?: "No song playing",
+                    text = playbackState.currentSong?.title ?: stringResource(R.string.playlists_screen_no_song_playing),
                     style = MaterialTheme.typography.listItemTitle,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -1386,7 +1429,7 @@ private fun PlaylistMiniPlayer(
                 IconButton(onClick = onPreviousClick) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = "Previous",
+                        contentDescription = stringResource(R.string.playlists_screen_previous_content_description),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -1402,7 +1445,11 @@ private fun PlaylistMiniPlayer(
                 ) {
                     Icon(
                         imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                        contentDescription = if (playbackState.isPlaying) {
+                            stringResource(R.string.playlists_screen_pause_content_description)
+                        } else {
+                            stringResource(R.string.playlists_screen_play_content_description)
+                        },
                         tint = MaterialTheme.colorScheme.onPrimary
                     )
                 }
@@ -1410,7 +1457,7 @@ private fun PlaylistMiniPlayer(
                 IconButton(onClick = onNextClick) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
-                        contentDescription = "Next",
+                        contentDescription = stringResource(R.string.playlists_screen_next_content_description),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -1466,7 +1513,7 @@ private fun AddSongsToNewPlaylistDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Add Songs to Playlist",
+                        text = stringResource(R.string.playlists_screen_add_songs_title),
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f),
                         maxLines = 1,
@@ -1474,7 +1521,11 @@ private fun AddSongsToNewPlaylistDialog(
                     )
                     if (selectedSongs.isNotEmpty()) {
                         Text(
-                            text = "${selectedSongs.size} selected",
+                            text = pluralStringResource(
+                                id = R.plurals.playlists_screen_selected_count,
+                                count = selectedSongs.size,
+                                selectedSongs.size
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                             textAlign = TextAlign.End
@@ -1489,11 +1540,11 @@ private fun AddSongsToNewPlaylistDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    placeholder = { Text("Search songs...") },
+                    placeholder = { Text(stringResource(R.string.dialog_search_songs_placeholder)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
+                            contentDescription = stringResource(R.string.playlists_screen_search_content_description)
                         )
                     },
                     singleLine = true
@@ -1511,9 +1562,9 @@ private fun AddSongsToNewPlaylistDialog(
                     ) {
                         Text(
                             text = if (searchQuery.isBlank()) {
-                                "No songs available"
+                                stringResource(R.string.playlists_screen_no_songs_available)
                             } else {
-                                "No songs found"
+                                stringResource(R.string.playlists_screen_no_songs_found)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -1577,7 +1628,7 @@ private fun AddSongsToNewPlaylistDialog(
                                             if (song.albumArtUri != null) {
                                                 SubcomposeAsyncImage(
                                                     model = song.albumArtUri,
-                                                    contentDescription = "Album art",
+                                                    contentDescription = stringResource(R.string.playlists_screen_album_art_content_description),
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop,
                                                     loading = {
@@ -1653,7 +1704,7 @@ private fun AddSongsToNewPlaylistDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Skip")
+                        Text(stringResource(R.string.common_skip))
                     }
 
                     Button(
@@ -1666,9 +1717,9 @@ private fun AddSongsToNewPlaylistDialog(
                     ) {
                         Text(
                             if (selectedSongs.isEmpty()) {
-                                "Add"
+                                stringResource(R.string.playlists_screen_add_button)
                             } else {
-                                "Add (${selectedSongs.size})"
+                                stringResource(R.string.playlists_screen_add_button_with_count, selectedSongs.size)
                             }
                         )
                     }
@@ -1710,5 +1761,6 @@ private fun PlaylistCardPreview() {
         )
     }
 }
+
 
 

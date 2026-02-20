@@ -94,7 +94,13 @@ fun FolderDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(folderPath?.substringAfterLast("/") ?: folder?.name ?: "Folder") },
+                title = {
+                    Text(
+                        folderPath?.substringAfterLast("/")
+                            ?: folder?.name
+                            ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_detail_default_title)
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (folderPath != null) {
@@ -105,7 +111,7 @@ fun FolderDetailScreen(
                     }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -255,7 +261,7 @@ private fun FolderItemRow(
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${folder.songCount} songs",
+                    text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, folder.songCount, folder.songCount),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1
@@ -265,7 +271,7 @@ private fun FolderItemRow(
             // Navigate arrow
             Icon(
                 imageVector = Icons.Default.ChevronRight,
-                contentDescription = "Open folder",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_detail_cd_open_folder),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -385,7 +391,7 @@ private fun FolderHeader(
                         if (folder.albumArtUri != null) {
                             SubcomposeAsyncImage(
                                 model = folder.albumArtUri,
-                                contentDescription = "Folder cover",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_detail_cd_folder_cover),
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = ContentScale.Crop,
                                 loading = {
@@ -468,7 +474,7 @@ private fun FolderHeader(
                             modifier = Modifier.size(14.dp)
                         )
                         Text(
-                            text = "${folder.songCount} songs",
+                            text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, folder.songCount, folder.songCount),
                             style = MaterialTheme.typography.labelSmall,
                             color = vibrantColor,
                             fontWeight = FontWeight.SemiBold
@@ -527,7 +533,10 @@ private fun FolderHeader(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Play All", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all),
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 // Shuffle Button - Outlined with vibrant stroke
@@ -542,7 +551,7 @@ private fun FolderHeader(
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Shuffle", fontWeight = FontWeight.SemiBold)
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle), fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -637,7 +646,7 @@ private fun FolderSongItem(
             IconButton(onClick = { showMenu = true }) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
@@ -666,13 +675,13 @@ private fun EmptyFolderState() {
         ) {
             Icon(
                 imageVector = Icons.Default.MusicNote,
-                contentDescription = "No songs",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_detail_cd_no_songs),
                 modifier = Modifier.size(48.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "No songs in this folder",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folder_detail_empty_title),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -687,3 +696,6 @@ private fun EmptyFolderStatePreview() {
         EmptyFolderState()
     }
 }
+
+
+

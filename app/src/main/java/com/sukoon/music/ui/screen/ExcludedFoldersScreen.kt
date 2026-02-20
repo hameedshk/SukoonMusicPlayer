@@ -43,12 +43,12 @@ fun ExcludedFoldersScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Excluded Folders") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_excluded_folders)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -72,7 +72,7 @@ fun ExcludedFoldersScreen(
                 ) {
                     item {
                         Text(
-                            text = "Songs in these folders are hidden from your library.",
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.excluded_folders_hidden_info),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp)
@@ -100,9 +100,14 @@ fun ExcludedFoldersScreen(
                         tint = MaterialTheme.colorScheme.primary
                     )
                 },
-                title = { Text("Restore Folder?") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_restore_folder_question)) },
                 text = {
-                    Text("Do you want to show songs from \"${item.name}\" in your library again?")
+                    Text(
+                        androidx.compose.ui.res.stringResource(
+                            com.sukoon.music.R.string.excluded_folders_restore_confirm_message,
+                            item.name
+                        )
+                    )
                 },
                 confirmButton = {
                     TextButton(
@@ -111,12 +116,12 @@ fun ExcludedFoldersScreen(
                             folderToRemove = null
                         }
                     ) {
-                        Text("Restore")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_restore))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { folderToRemove = null }) {
-                        Text("Cancel")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                     }
                 }
             )
@@ -151,7 +156,7 @@ private fun ExcludedFolderListItem(
             IconButton(onClick = onRemoveClick) {
                 Icon(
                     imageVector = Icons.Default.Delete,
-                    contentDescription = "Remove exclusion",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.excluded_folders_cd_remove_exclusion),
                     tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                 )
             }
@@ -187,13 +192,13 @@ private fun EmptyExcludedState() {
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "No excluded folders",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.excluded_folders_empty_title),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Folders you hide from your library will appear here.",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.excluded_folders_empty_message),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -201,3 +206,5 @@ private fun EmptyExcludedState() {
         }
     }
 }
+
+

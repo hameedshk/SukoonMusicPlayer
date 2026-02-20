@@ -79,9 +79,9 @@ fun SongsScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songsViewModel.finalizeDeletion()
     }
@@ -89,7 +89,7 @@ fun SongsScreen(
     // Show error toast
     deleteError?.let { error ->
         LaunchedEffect(error) {
-            Toast.makeText(context, "Error: $error", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, error), Toast.LENGTH_SHORT).show()
             songsViewModel.clearDeleteError()
         }
     }
@@ -147,7 +147,7 @@ fun SongsScreen(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
-                    text = "No songs found",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_no_songs_found),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -173,7 +173,11 @@ fun SongsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "${sortedSongs.size} songs",
+                            text = androidx.compose.ui.res.pluralStringResource(
+                                com.sukoon.music.R.plurals.common_song_count,
+                                sortedSongs.size,
+                                sortedSongs.size
+                            ),
                             style = MaterialTheme.typography.sectionHeader,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -181,7 +185,7 @@ fun SongsScreen(
                             IconButton(onClick = { songsViewModel.showSortDialog() }) {
                                 Icon(
                                     imageVector = Icons.Default.Sort,
-                                    contentDescription = "Sort",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.songs_cd_sort),
                                     tint = MaterialTheme.colorScheme.onSurface
                                 )
                             }
@@ -214,7 +218,11 @@ fun SongsScreen(
                             ) {
                                 Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 Spacer(Modifier.width(SpacingSmall))
-                                Text("Shuffle All", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                                Text(
+                                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle_all),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
+                                )
                             }
                         }
                         Surface(
@@ -234,7 +242,7 @@ fun SongsScreen(
                             ) {
                                 Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                                 Spacer(Modifier.width(SpacingSmall))
-                                Text("Play", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
+                                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
                             }
                         }
                     }
@@ -303,7 +311,7 @@ fun SongsScreen(
                             )
                         }
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                         }
                         is DeleteHelper.DeleteResult.Error -> {}
                     }
@@ -357,7 +365,7 @@ private fun SongListItem(
             ) {
                 SubcomposeAsyncImage(
                     model = song.albumArtUri,
-                    contentDescription = "Album art for ${song.title}",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art_for_song, song.title),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {
@@ -407,7 +415,7 @@ private fun SongListItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)
                 )
@@ -415,3 +423,7 @@ private fun SongListItem(
         }
     }
 }
+
+
+
+

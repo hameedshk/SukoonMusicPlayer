@@ -9,9 +9,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.R
 import com.sukoon.music.data.billing.BillingState
 
 @Composable
@@ -28,10 +30,10 @@ fun PremiumDialog(
                 onDismissRequest = onDismiss,
                 confirmButton = {
                     TextButton(onClick = onDismiss) {
-                        Text("Continue")
+                        Text(stringResource(R.string.common_continue))
                     }
                 },
-                title = { Text("Premium Activated!") },
+                title = { Text(stringResource(R.string.label_premium_activated)) },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -42,12 +44,12 @@ fun PremiumDialog(
                         )
                         Spacer(Modifier.height(16.dp))
                         Text(
-                            text = "Thank you for supporting Sukoon Music Player!",
+                            text = stringResource(R.string.settings_premium_thank_you_desc),
                             textAlign = TextAlign.Center
                         )
                         Spacer(Modifier.height(8.dp))
                         Text(
-                            text = "Ads have been removed.",
+                            text = stringResource(R.string.premium_ads_removed),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -61,10 +63,10 @@ fun PremiumDialog(
                 onDismissRequest = onDismiss,
                 confirmButton = {
                     TextButton(onClick = onDismiss) {
-                        Text("OK")
+                        Text(stringResource(R.string.common_ok))
                     }
                 },
-                title = { Text("Purchase Failed") },
+                title = { Text(stringResource(R.string.label_purchase_failed)) },
                 text = {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(
@@ -87,7 +89,7 @@ fun PremiumDialog(
             AlertDialog(
                 onDismissRequest = { },
                 confirmButton = { },
-                title = { Text("Processing Purchase...") },
+                title = { Text(stringResource(R.string.label_processing_purchase)) },
                 text = {
                     Box(
                         modifier = Modifier.fillMaxWidth(),
@@ -104,7 +106,7 @@ fun PremiumDialog(
                 onDismissRequest = onDismiss,
                 confirmButton = {
                     Button(onClick = onPurchase) {
-                        Text("Get Premium")
+                        Text(stringResource(R.string.label_get_premium))
                     }
                 },
                 dismissButton = {
@@ -112,18 +114,18 @@ fun PremiumDialog(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         TextButton(onClick = onRestore) {
-                            Text("Restore")
+                            Text(stringResource(R.string.common_restore))
                         }
                         TextButton(onClick = onDismiss) {
-                            Text("Cancel")
+                            Text(stringResource(R.string.common_cancel))
                         }
                     }
                 },
-                title = { Text("Sukoon Premium") },
+                title = { Text(stringResource(R.string.label_sukoon_premium)) },
                 text = {
                     Column(Modifier.fillMaxWidth()) {
-                        PremiumFeatureItem("Ad-Free Experience", Icons.Default.Block)
-                        PremiumFeatureItem("Support Development", Icons.Default.Favorite)
+                        PremiumFeatureItem(stringResource(R.string.settings_premium_feature_1), Icons.Default.Block)
+                        PremiumFeatureItem(stringResource(R.string.settings_premium_feature_4), Icons.Default.Favorite)
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = priceText,
@@ -132,7 +134,7 @@ fun PremiumDialog(
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
                         Text(
-                            text = "One-time payment • Lifetime access",
+                            text = stringResource(R.string.premium_one_time_payment_lifetime),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.align(Alignment.CenterHorizontally)

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="common_ui_private_session_active">Private Session Active</string>
+    <string name="common_ui_private_session">Private Session</string>
+    <string name="common_ui_private_session_minutes_remaining">%1$d min</string>
+
+    <string name="common_ui_logo_content_description">Sukoon Music</string>
+    <string name="common_ui_search_content_description">Search songs and artists</string>
+    <string name="common_ui_search_placeholder">Search songs, artists...</string>
+    <string name="common_ui_more_options_content_description">More options</string>
+
+    <string name="common_ui_add_widgets_banner_text">Add widgets to your home screen</string>
+    <string name="common_ui_go_content_description">Go</string>
+
+    <string name="common_ui_action_shuffle">Shuffle</string>
+    <string name="common_ui_action_play">Play</string>
+    <string name="common_ui_action_scan_music">Scan music</string>
+    <string name="common_ui_action_settings">Settings</string>
+    <string name="common_ui_add_to_playlist">Add to playlist</string>
+    <string name="common_ui_delete">Delete</string>
+    <string name="common_ui_more">More</string>
+
+    <string name="common_ui_like">Like</string>
+    <string name="common_ui_unlike">Unlike</string>
+    <string name="common_ui_private_session_no_history_expires">No listening history recorded &#8226; Expires in %1$d min</string>
+
+    <string name="common_ui_album_art_description">Album art for %1$s by %2$s</string>
+    <string name="common_ui_play_song_description">Play %1$s by %2$s</string>
+
+    <string name="common_ui_recently_played">Recently played</string>
+    <string name="common_ui_your_library">Your library</string>
+    <string name="common_ui_library_songs">Songs</string>
+    <string name="common_ui_library_playlists">Playlists</string>
+    <string name="common_ui_library_albums">Albums</string>
+    <string name="common_ui_library_folders">Folders</string>
+    <string name="common_ui_navigate_to">Navigate to %1$s</string>
+    <string name="common_ui_alphabet_index">ABCDEFGHIJKLMNOPQRSTUVWXYZ#</string>
+</resources>

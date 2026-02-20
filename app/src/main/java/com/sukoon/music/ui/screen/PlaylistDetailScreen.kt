@@ -78,12 +78,12 @@ fun PlaylistDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(playlist?.name ?: "Playlist") },
+                title = { Text(playlist?.name ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_default_title)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -93,7 +93,7 @@ fun PlaylistDetailScreen(
                         IconButton(onClick = { showRenameDialog = true }) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit playlist"
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_cd_edit)
                             )
                         }
                     }
@@ -177,9 +177,9 @@ private fun PlaylistDetailContent(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
         isDeleting = false
@@ -281,12 +281,12 @@ private fun PlaylistDetailContent(
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Error -> {
-                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
@@ -352,7 +352,7 @@ private fun PlaylistHeader(
                 if (playlist.coverImageUri != null) {
                     SubcomposeAsyncImage(
                         model = playlist.coverImageUri,
-                        contentDescription = "Playlist cover",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_cd_cover),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -403,7 +403,7 @@ private fun PlaylistHeader(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "${playlist.songCount} songs",
+            text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, playlist.songCount, playlist.songCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
@@ -427,7 +427,7 @@ private fun PlaylistHeader(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Play All")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all))
             }
 
             // Shuffle Button
@@ -442,7 +442,7 @@ private fun PlaylistHeader(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Shuffle")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle))
             }
         }
 
@@ -459,7 +459,7 @@ private fun PlaylistHeader(
                 modifier = Modifier.size(20.dp)
             )
             Spacer(modifier = Modifier.width(8.dp))
-            Text("Add Songs")
+            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_add_songs))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -518,7 +518,7 @@ private fun PlaylistSongItem(
                     if (song.albumArtUri != null) {
                         SubcomposeAsyncImage(
                             model = song.albumArtUri,
-                            contentDescription = "Album art",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             loading = {
@@ -588,7 +588,7 @@ private fun PlaylistSongItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -601,7 +601,7 @@ private fun PlaylistSongItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Remove from playlist",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_cd_remove_from_playlist),
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -639,13 +639,13 @@ private fun EmptyPlaylistState() {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No songs in this playlist",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_empty_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Add songs to get started",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_empty_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -701,12 +701,15 @@ private fun AddSongsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Add Songs",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_add_songs),
                         style = MaterialTheme.typography.headlineSmall
                     )
                     if (selectedSongs.isNotEmpty()) {
                         Text(
-                            text = "${selectedSongs.size} selected",
+                            text = androidx.compose.ui.res.stringResource(
+                                com.sukoon.music.R.string.label_selected_count,
+                                selectedSongs.size
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -720,11 +723,11 @@ private fun AddSongsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp),
-                    placeholder = { Text("Search songs...") },
+                    placeholder = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_search_songs_placeholder)) },
                     leadingIcon = {
                         Icon(
                             imageVector = Icons.Default.Search,
-                            contentDescription = "Search"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_search)
                         )
                     },
                     singleLine = true
@@ -742,9 +745,9 @@ private fun AddSongsDialog(
                     ) {
                         Text(
                             text = if (searchQuery.isBlank()) {
-                                "All songs are already in this playlist"
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_all_songs_already_added)
                             } else {
-                                "No songs found"
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_no_songs_found)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
@@ -808,7 +811,7 @@ private fun AddSongsDialog(
                                             if (song.albumArtUri != null) {
                                                 SubcomposeAsyncImage(
                                                     model = song.albumArtUri,
-                                                    contentDescription = "Album art",
+                                                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                                                     modifier = Modifier.fillMaxSize(),
                                                     contentScale = ContentScale.Crop,
                                                     loading = {
@@ -884,7 +887,7 @@ private fun AddSongsDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                     }
 
                     Button(
@@ -897,9 +900,12 @@ private fun AddSongsDialog(
                     ) {
                         Text(
                             if (selectedSongs.isEmpty()) {
-                                "Add"
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlist_detail_add_button)
                             } else {
-                                "Add (${selectedSongs.size})"
+                                androidx.compose.ui.res.stringResource(
+                                    com.sukoon.music.R.string.playlist_detail_add_button_with_count,
+                                    selectedSongs.size
+                                )
                             }
                         )
                     }
@@ -923,13 +929,13 @@ private fun EditPlaylistDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Playlist") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_edit_playlist_title)) },
         text = {
             Column {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Name") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -937,7 +943,7 @@ private fun EditPlaylistDialog(
                 OutlinedTextField(
                     value = description,
                     onValueChange = { description = it },
-                    label = { Text("Description (optional)") },
+                    label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_description_optional)) },
                     maxLines = 3,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -952,12 +958,12 @@ private fun EditPlaylistDialog(
                 },
                 enabled = name.isNotBlank() && (name != playlist.name || description != (playlist.description ?: ""))
             ) {
-                Text("Save")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         }
     )
@@ -973,3 +979,7 @@ private fun PlaylistDetailScreenPreview() {
         )
     }
 }
+
+
+
+

@@ -91,7 +91,19 @@ fun ArtistRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "${artist.formattedAlbumCount()} · ${artist.formattedSongCount()}",
+                    text = androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.artist_row_metadata_format,
+                        androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.library_screens_b_album_count,
+                            artist.albumCount,
+                            artist.albumCount
+                        ),
+                        androidx.compose.ui.res.pluralStringResource(
+                            com.sukoon.music.R.plurals.library_screens_b_song_count,
+                            artist.songCount,
+                            artist.songCount
+                        )
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -104,7 +116,7 @@ fun ArtistRow(
                 IconButton(onClick = { showMenu = true }, modifier = Modifier.size(40.dp)) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Menu",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -124,37 +136,37 @@ fun ArtistRow(
                     HorizontalDivider()
 
                     DropdownMenuItem(
-                        text = { Text("Play") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
                         onClick = { onPlayClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Play next") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                         onClick = { onPlayNextClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to queue") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                         onClick = { onAddToQueueClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.AddToQueue, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to playlist") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                         onClick = { onAddToPlaylistClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.PlaylistAdd, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Edit tags") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_edit_tags)) },
                         onClick = { onEditTagsClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.Edit, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Change cover") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_change_cover)) },
                         onClick = { onChangeCoverClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.Image, null, modifier = Modifier.size(20.dp)) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Delete from device") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device)) },
                         onClick = { onDeleteClick(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.Delete, null, modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error) }
                     )
@@ -173,3 +185,4 @@ private fun ArtistIconPlaceholder() {
         modifier = Modifier.size(28.dp)
     )
 }
+

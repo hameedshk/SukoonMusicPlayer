@@ -74,13 +74,13 @@ fun PremiumBanner(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Unlock Premium",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.settings_premium_banner_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
                     )
                     Text(
-                        text = "Remove ads • Lifetime • \$4.99",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.settings_premium_banner_subtitle),
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.White.copy(alpha = 0.9f)
                     )
@@ -88,7 +88,7 @@ fun PremiumBanner(
                 IconButton(onClick = onDismiss) {
                     Icon(
                         imageVector = Icons.Default.Close,
-                        contentDescription = "Dismiss",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_dismiss),
                         tint = Color.White
                     )
                 }

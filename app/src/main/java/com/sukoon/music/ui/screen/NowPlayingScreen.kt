@@ -112,9 +112,12 @@ import androidx.compose.ui.draw.blur
 import com.sukoon.music.ui.components.LiquidMeshBackground
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.SleepTimerDialog
+import com.sukoon.music.ui.animation.rememberPlaybackMotionClock
+import com.sukoon.music.ui.animation.toMotionDirective
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 import kotlin.math.abs
+import kotlin.math.sin
 
 /**
  * NowPlaying Screen Spacing Constants
@@ -342,6 +345,8 @@ fun NowPlayingScreen(
         animationSpec = tween(durationMillis = 220),
         label = "now_playing_slider_accent"
     )
+    val motionDirective = playbackState.toMotionDirective(isVisible = true)
+    val motionPhase by rememberPlaybackMotionClock(motionDirective)
     val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
 
     Box(
@@ -351,7 +356,8 @@ fun NowPlayingScreen(
         LiquidMeshBackground(
             palette = palette,
             songId = playbackState.currentSong?.id,
-            isPlaying = playbackState.isPlaying,
+            motion = motionDirective,
+            phase = motionPhase,
             modifier = Modifier.fillMaxSize()
         )
 
@@ -402,6 +408,8 @@ fun NowPlayingScreen(
                 if (playbackState.currentSong != null) {
                     NowPlayingContent(
                         playbackState = playbackState,
+                        motionDirective = motionDirective,
+                        motionPhase = motionPhase,
                         accentColor = accentColor,
                         controlsAccentColor = controlsAccentColor,
                         sliderColor = sliderAccentColor,
@@ -471,7 +479,7 @@ private fun TopUtilityBar(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = "PLAYING FROM",
+                    text = stringResource(R.string.now_playing_playing_from),
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 10.sp,
                         letterSpacing = 0.5.sp,
@@ -511,6 +519,8 @@ private fun TopUtilityBar(
 @Composable
 private fun NowPlayingContent(
     playbackState: PlaybackState,
+    motionDirective: com.sukoon.music.ui.animation.MotionDirective,
+    motionPhase: Float,
     accentColor: Color,
     controlsAccentColor: Color = accentColor,
     sliderColor: Color = accentColor,
@@ -560,9 +570,9 @@ private fun NowPlayingContent(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
     }
@@ -664,7 +674,8 @@ private fun NowPlayingContent(
                 // B. Album Art - Prominent, album-first design
                 AlbumArtSection(
                     song = song,
-                    isPlaying = playbackState.isPlaying,
+                    motionDirective = motionDirective,
+                    motionPhase = motionPhase,
                     onAlbumArtClick = { isImmersiveMode = !isImmersiveMode },
                     onNextClick = onNextClick,
                     onPreviousClick = onPreviousClick,
@@ -830,7 +841,7 @@ private fun NowPlayingContent(
             onPlaylistSelected = { playlistId ->
                 playlistViewModel.addSongToPlaylist(playlistId, song.id)
                 showPlaylistDialog = false
-                Toast.makeText(context, "Added to playlist", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_added_to_playlist), Toast.LENGTH_SHORT).show()
             },
             onDismiss = { showPlaylistDialog = false }
         )
@@ -842,18 +853,18 @@ private fun NowPlayingContent(
                 viewModel.setSleepTimer(minutes)
                 showSleepTimerDialog = false
                 if (minutes > 0) {
-                    Toast.makeText(context, "Timer set for $minutes minutes", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_timer_set_minutes, minutes), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Timer cancelled", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_timer_cancelled), Toast.LENGTH_SHORT).show()
                 }
             },
             onEndOfTrackSelected = {
                 val remainingMs = (playbackState.duration - currentPosition).coerceAtLeast(0L)
                 if (remainingMs > 0L) {
                     viewModel.setSleepTimerTargetTime(System.currentTimeMillis() + remainingMs)
-                    Toast.makeText(context, "Timer set for end of track", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_timer_set_end_of_track), Toast.LENGTH_SHORT).show()
                 } else {
-                    Toast.makeText(context, "Track end not available", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_track_end_not_available), Toast.LENGTH_SHORT).show()
                 }
                 showSleepTimerDialog = false
             },
@@ -881,11 +892,11 @@ private fun NowPlayingContent(
                         )
                     }
                     is DeleteHelper.DeleteResult.Success -> {
-                        Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                         songToDelete = null
                     }
                     is DeleteHelper.DeleteResult.Error -> {
-                        Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                         songToDelete = null
                     }
                 }
@@ -910,7 +921,8 @@ private fun NowPlayingContent(
 @Composable
 private fun AlbumArtSection(
     song: Song,
-    isPlaying: Boolean,
+    motionDirective: com.sukoon.music.ui.animation.MotionDirective,
+    motionPhase: Float,
     onAlbumArtClick: () -> Unit,
     onNextClick: () -> Unit = {},
     onPreviousClick: () -> Unit = {},
@@ -941,22 +953,11 @@ private fun AlbumArtSection(
     // Album art container - floating with rounded corners and shadow
     val haptic = LocalHapticFeedback.current
 
-    // Subtle breathing animation when playing (1.0 to 1.015 scale)
-    val infiniteTransition = rememberInfiniteTransition(label = "album_art_breath")
-    val breathScale by infiniteTransition.animateFloat(
-        initialValue = 1.0f,
-        targetValue = 1.015f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3500, easing = LinearEasing),
-            repeatMode = androidx.compose.animation.core.RepeatMode.Reverse
-        ),
-        label = "breath_scale"
-    )
-
-    // Smoothly transition between animated scale and static 1.0 when pausing
+    val breathScale = 1f + (0.015f * ((sin(motionPhase) + 1f) / 2f))
+    val isMotionActive = motionDirective.state == com.sukoon.music.ui.animation.MotionPlayState.RUNNING
     val isDragging = abs(horizontalDragOffset) > 0.5f
     val animatedScale by animateFloatAsState(
-        targetValue = if (isPlaying && !isDragging) breathScale else 1.0f,
+        targetValue = if (isMotionActive && !isDragging) breathScale else if (motionDirective.state == com.sukoon.music.ui.animation.MotionPlayState.REST) 1.0f else breathScale,
         animationSpec = tween(durationMillis = 1000),
         label = "smooth_breath_transition"
     )
@@ -1855,7 +1856,7 @@ private fun SecondaryActionsSection(
         ) {
             Icon(
                 imageVector = Icons.Default.PlaylistAdd,
-                contentDescription = "Add to playlist",
+                contentDescription = stringResource(R.string.common_add_to_playlist),
                 tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
@@ -1919,7 +1920,7 @@ private fun SecondaryActionsSection(
         ) {
             Icon(
                 imageVector = Icons.Default.Timer,
-                contentDescription = "Sleep timer",
+                contentDescription = stringResource(R.string.dialog_sleep_timer_title),
                 tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
@@ -2028,7 +2029,7 @@ private fun LyricsModalSheet(
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = song.artist.ifBlank { "Unknown Artist" },
+                    text = song.artist.ifBlank { stringResource(R.string.now_playing_unknown_artist) },
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     maxLines = 1,
@@ -2416,25 +2417,28 @@ private fun NowPlayingScreenPreview() {
     SukoonMusicPlayerTheme(theme = AppTheme.DARK) {
         val previewAccentTokens = accent()
         val previewAccentColor = previewAccentTokens.primary
-        NowPlayingContent(
-            playbackState = PlaybackState(
-                isPlaying = true,
-                currentPosition = 95000,
+        val previewPlaybackState = PlaybackState(
+            isPlaying = true,
+            currentPosition = 95000,
+            duration = 240000,
+            shuffleEnabled = true,
+            repeatMode = RepeatMode.ALL,
+            currentSong = Song(
+                id = 1,
+                title = "Blinding Lights",
+                artist = "The Weeknd",
+                album = "After Hours",
                 duration = 240000,
-                shuffleEnabled = true,
-                repeatMode = RepeatMode.ALL,
-                currentSong = Song(
-                    id = 1,
-                    title = "Blinding Lights",
-                    artist = "The Weeknd",
-                    album = "After Hours",
-                    duration = 240000,
-                    uri = "",
-                    albumArtUri = null,
-                    dateAdded = 0,
-                    isLiked = true
-                )
-            ),
+                uri = "",
+                albumArtUri = null,
+                dateAdded = 0,
+                isLiked = true
+            )
+        )
+        NowPlayingContent(
+            playbackState = previewPlaybackState,
+            motionDirective = previewPlaybackState.toMotionDirective(isVisible = true),
+            motionPhase = 1.2f,
             accentColor = previewAccentColor,
             sliderColor = previewAccentColor.copy(alpha = 0.6f), // Simulated desaturation for preview
             onBackClick = {},
@@ -2452,5 +2456,6 @@ private fun NowPlayingScreenPreview() {
         )
     }
 }
+
 
 

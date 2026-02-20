@@ -121,10 +121,10 @@ fun FeedbackReportScreen(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text("Tell us the problem") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_tell_us_the_problem)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -143,7 +143,7 @@ fun FeedbackReportScreen(
             verticalArrangement = Arrangement.spacedBy(SpacingMedium)
         ) {
             Text(
-                text = "Select the issue",
+                text = stringResource(R.string.feedback_select_issue),
                 style = MaterialTheme.typography.titleMedium
             )
             FlowRow(
@@ -171,7 +171,7 @@ fun FeedbackReportScreen(
             }
 
             Text(
-                text = "Details *",
+                text = stringResource(R.string.feedback_details_required),
                 style = MaterialTheme.typography.titleMedium
             )
             OutlinedTextField(
@@ -179,7 +179,7 @@ fun FeedbackReportScreen(
                 onValueChange = {
                     if (it.length <= 500) details = it
                 },
-                placeholder = { Text("Explain what happened, or suggestions.") },
+                placeholder = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_explain_what_happened)) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp),
@@ -190,14 +190,14 @@ fun FeedbackReportScreen(
                 )
             )
             Text(
-                text = "${details.length}/500",
+                text = stringResource(R.string.feedback_details_counter, details.length),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.align(Alignment.End)
             )
 
             Text(
-                text = "Screenshots or videos (Optional)",
+                text = stringResource(R.string.feedback_attachments_optional),
                 style = MaterialTheme.typography.titleMedium
             )
             Surface(
@@ -212,7 +212,7 @@ fun FeedbackReportScreen(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Filled.Add,
-                        contentDescription = "Add screenshot (coming soon)",
+                        contentDescription = stringResource(R.string.feedback_add_screenshot_coming_soon),
                         tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                     )
                 }
@@ -229,26 +229,27 @@ fun FeedbackReportScreen(
                         checkedColor = accentTokens.primary
                     )
                 )
+                val termsLabel = stringResource(R.string.terms_of_service)
+                val privacyLabel = stringResource(R.string.privacy_policy)
+                val consentText = stringResource(R.string.feedback_consent_text, termsLabel, privacyLabel)
+                val linkStyle = SpanStyle(
+                    color = accentTokens.primary,
+                    textDecoration = TextDecoration.Underline
+                )
                 val annotatedString = buildAnnotatedString {
-                    append("By continuing, you agree to our ")
-                    pushStringAnnotation(tag = "TERMS", annotation = "")
-                    withStyle(style = SpanStyle(
-                        color = accentTokens.primary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Terms")
+                    append(consentText)
+                    val termsStart = consentText.indexOf(termsLabel)
+                    if (termsStart >= 0) {
+                        val termsEnd = termsStart + termsLabel.length
+                        addStringAnnotation(tag = "TERMS", annotation = "", start = termsStart, end = termsEnd)
+                        addStyle(style = linkStyle, start = termsStart, end = termsEnd)
                     }
-                    pop()
-                    append(" and ")
-                    pushStringAnnotation(tag = "PRIVACY", annotation = "")
-                    withStyle(style = SpanStyle(
-                        color = accentTokens.primary,
-                        textDecoration = TextDecoration.Underline
-                    )) {
-                        append("Privacy Policy")
+                    val privacyStart = consentText.indexOf(privacyLabel)
+                    if (privacyStart >= 0) {
+                        val privacyEnd = privacyStart + privacyLabel.length
+                        addStringAnnotation(tag = "PRIVACY", annotation = "", start = privacyStart, end = privacyEnd)
+                        addStyle(style = linkStyle, start = privacyStart, end = privacyEnd)
                     }
-                    pop()
-                    append(".")
                 }
                 ClickableText(
                     text = annotatedString,
@@ -292,7 +293,7 @@ fun FeedbackReportScreen(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text("Submit")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_submit))
                 }
             }
         }
@@ -305,3 +306,5 @@ fun FeedbackReportScreenPreview() {
         FeedbackReportScreen(onBackClick = {})
     }
 }
+
+

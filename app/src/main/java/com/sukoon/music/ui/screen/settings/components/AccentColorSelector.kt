@@ -13,7 +13,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.AccentProfile
 import kotlinx.coroutines.delay
 import kotlin.math.sqrt
@@ -53,7 +55,7 @@ fun AccentColorSelector(
         item {
             ColorSwatch(
                 color = AccentProfile.Teal.accentPrimary,
-                label = "Teal",
+                label = stringResource(R.string.settings_accent_teal),
                 isSelected = currentProfile == AccentProfile.Teal,
                 onSelect = { pendingProfile = AccentProfile.Teal }
             )
@@ -62,7 +64,7 @@ fun AccentColorSelector(
         item {
             ColorSwatch(
                 color = AccentProfile.SteelBlue.accentPrimary,
-                label = "Steel Blue",
+                label = stringResource(R.string.settings_accent_steel_blue),
                 isSelected = currentProfile == AccentProfile.SteelBlue,
                 onSelect = { pendingProfile = AccentProfile.SteelBlue }
             )
@@ -71,7 +73,7 @@ fun AccentColorSelector(
         item {
             ColorSwatch(
                 color = AccentProfile.SoftCyan.accentPrimary,
-                label = "Soft Cyan",
+                label = stringResource(R.string.settings_accent_soft_cyan),
                 isSelected = currentProfile == AccentProfile.SoftCyan,
                 onSelect = { pendingProfile = AccentProfile.SoftCyan }
             )

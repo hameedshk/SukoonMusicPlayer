@@ -102,10 +102,10 @@ fun AlbumsScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Albums deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_album_deleted_successfully), Toast.LENGTH_SHORT).show()
             albumsPendingDeletion = false
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         albumsPendingDeletion = false
     }
@@ -139,7 +139,7 @@ fun AlbumsScreen(
             if (isSelectionMode) {
                 TopAppBar(
                     title = {
-                        Text("${selectedAlbumIds.size} selected")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_selected_count, selectedAlbumIds.size))
                     },
                     navigationIcon = {
                         IconButton(
@@ -149,7 +149,7 @@ fun AlbumsScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Exit selection"
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_exit_selection)
                             )
                         }
                     }
@@ -270,7 +270,7 @@ fun AlbumsScreen(
                         playlistViewModel.addSongToPlaylist(playlistId, song.id)
                     }
                     showPlaylistDialog = false
-                    Toast.makeText(context, "Songs added to playlist", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_songs_added_to_playlist), Toast.LENGTH_SHORT).show()
                     viewModel.toggleSelectionMode(false)
                 },
                 onDismiss = { showPlaylistDialog = false }
@@ -289,10 +289,10 @@ fun AlbumsScreen(
                     )
                 },
                 title = {
-                    Text("Delete ${selectedAlbumIds.size} album(s)?")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_selected_albums_title, selectedAlbumIds.size))
                 },
                 text = {
-                    Text("All songs in these albums will be permanently deleted from your device. This cannot be undone.")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_album_songs_message))
                 },
                 confirmButton = {
                     TextButton(
@@ -307,11 +307,11 @@ fun AlbumsScreen(
                                         )
                                     }
                                     is DeleteHelper.DeleteResult.Success -> {
-                                        Toast.makeText(context, "Albums deleted successfully", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_album_deleted_successfully), Toast.LENGTH_SHORT).show()
                                         albumsPendingDeletion = false
                                     }
                                     is DeleteHelper.DeleteResult.Error -> {
-                                        Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, deleteResult.message), Toast.LENGTH_SHORT).show()
                                         albumsPendingDeletion = false
                                     }
                                 }
@@ -319,12 +319,12 @@ fun AlbumsScreen(
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("Delete")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { albumsPendingDeletion = false }) {
-                        Text("Cancel")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                     }
                 }
             )
@@ -408,7 +408,7 @@ private fun AlbumCard(
                 if (album.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
-                        contentDescription = "Album cover",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -465,7 +465,7 @@ private fun AlbumCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Options",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_options),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -531,13 +531,13 @@ private fun EmptyAlbumsState() {
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "No albums found",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.albums_empty_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Scan your library to discover albums from your music collection",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_empty_message),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -575,14 +575,14 @@ private fun RecentlyPlayedAlbumsSection(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = "Recently played",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_recently_played),
                     style = MaterialTheme.typography.screenHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "See all",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_see_all),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -716,7 +716,15 @@ private fun AlbumContextMenuBottomSheet(
                         style = MaterialTheme.typography.cardTitle
                     )
                     Text(
-                        text = "${album.artist} · ${album.songCount} songs",
+                        text = androidx.compose.ui.res.stringResource(
+                            com.sukoon.music.R.string.library_albums_artist_song_count_format,
+                            album.artist,
+                            androidx.compose.ui.res.pluralStringResource(
+                                com.sukoon.music.R.plurals.common_song_count,
+                                album.songCount,
+                                album.songCount
+                            )
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -727,37 +735,37 @@ private fun AlbumContextMenuBottomSheet(
 
             // Menu Items
             ListItem(
-                headlineContent = { Text("Play") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
                 leadingContent = { Icon(Icons.Default.PlayArrow, null) },
                 modifier = Modifier.clickable(onClick = onPlay)
             )
             ListItem(
-                headlineContent = { Text("Play next") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                 leadingContent = { Icon(Icons.Default.SkipNext, null) },
                 modifier = Modifier.clickable(onClick = onPlayNext)
             )
             ListItem(
-                headlineContent = { Text("Add to queue") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                 leadingContent = { Icon(Icons.Default.Queue, null) },
                 modifier = Modifier.clickable(onClick = onAddToQueue)
             )
             ListItem(
-                headlineContent = { Text("Add to playlist") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                 leadingContent = { Icon(Icons.Default.PlaylistAdd, null) },
                 modifier = Modifier.clickable(onClick = onAddToPlaylist)
             )
             ListItem(
-                headlineContent = { Text("Edit tags") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_edit_tags)) },
                 leadingContent = { Icon(Icons.Default.Edit, null) },
                 modifier = Modifier.clickable(onClick = onEditTags)
             )
             ListItem(
-                headlineContent = { Text("Change cover") },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_change_cover)) },
                 leadingContent = { Icon(Icons.Default.Image, null) },
                 modifier = Modifier.clickable(onClick = onChangeCover)
             )
             ListItem(
-                headlineContent = { Text("Delete from device", color = MaterialTheme.colorScheme.error) },
+                headlineContent = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device), color = MaterialTheme.colorScheme.error) },
                 leadingContent = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) },
                 modifier = Modifier.clickable(onClick = onDelete)
             )
@@ -781,19 +789,29 @@ private fun AlbumSortHeader(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "$albumCount albums",
+            text = androidx.compose.ui.res.pluralStringResource(
+                com.sukoon.music.R.plurals.library_albums_count,
+                albumCount,
+                albumCount
+            ),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Row {
             IconButton(onClick = onSortClick) {
-                Icon(Icons.Default.Sort, contentDescription = "Sort")
+                Icon(
+                    Icons.Default.Sort,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort)
+                )
             }
             IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select)
+                )
             }
             /*IconButton(onClick = { /* TODO: Toggle Grid/List */ }) {
-                Icon(Icons.AutoMirrored.Filled.List, contentDescription = "View Mode")
+                Icon(Icons.AutoMirrored.Filled.List, contentDescription = null)
             }*/
         }
     }
@@ -834,3 +852,7 @@ private fun AlbumCardPreview() {
         )
     }
 }
+
+
+
+

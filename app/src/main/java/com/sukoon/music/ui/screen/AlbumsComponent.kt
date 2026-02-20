@@ -131,7 +131,11 @@ internal fun AlbumRow(
             )
         } else {
             IconButton(onClick = onMoreClick, modifier = Modifier.size(40.dp)) {
-                Icon(Icons.Default.MoreVert, contentDescription = "More", modifier = Modifier.size(20.dp))
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
@@ -149,36 +153,36 @@ internal  fun AlbumSortDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
-            TextButton(onClick = onDismiss) { Text("OK", color = MaterialTheme.colorScheme.primary) }
+            TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok), color = MaterialTheme.colorScheme.primary) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("CANCEL") }
+            TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel)) }
         },
-        title = { Text("Sort by") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by)) },
         text = {
             Column {
                 SortOption(
-                    text = "Album name",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_sort_album_name),
                     isSelected = currentSortMode == AlbumSortMode.ALBUM_NAME,
                     onClick = { onSortModeChange(AlbumSortMode.ALBUM_NAME) }
                 )
                 SortOption(
-                    text = "Artist name",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_sort_artist_name),
                     isSelected = currentSortMode == AlbumSortMode.ARTIST_NAME,
                     onClick = { onSortModeChange(AlbumSortMode.ARTIST_NAME) }
                 )
                 SortOption(
-                    text = "Number of songs",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_sort_number_of_songs),
                     isSelected = currentSortMode == AlbumSortMode.SONG_COUNT,
                     onClick = { onSortModeChange(AlbumSortMode.SONG_COUNT) }
                 )
                 SortOption(
-                    text = "Year",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_sort_year),
                     isSelected = currentSortMode == AlbumSortMode.YEAR,
                     onClick = { onSortModeChange(AlbumSortMode.YEAR) }
                 )
                 SortOption(
-                    text = "Random",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_random),
                     isSelected = currentSortMode == AlbumSortMode.RANDOM,
                     onClick = { onSortModeChange(AlbumSortMode.RANDOM) }
                 )
@@ -186,12 +190,12 @@ internal  fun AlbumSortDialog(
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                 SortOption(
-                    text = "From A to Z",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_a_to_z),
                     isSelected = isAscending,
                     onClick = { onOrderChange(true) }
                 )
                 SortOption(
-                    text = "From Z to A",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_z_to_a),
                     isSelected = !isAscending,
                     onClick = { onOrderChange(false) }
                 )
@@ -207,10 +211,17 @@ internal fun AlbumSelectionTopBar(
     onBackClick: () -> Unit
 ) {
     TopAppBar(
-        title = { Text("$selectedCount selected") },
+        title = {
+            Text(
+                androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.label_selected_count,
+                    selectedCount
+                )
+            )
+        },
         navigationIcon = {
             IconButton(onClick = onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back))
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -237,7 +248,10 @@ internal fun AlbumSearchBar(
             Spacer(modifier = Modifier.width(12.dp))
             Box(modifier = Modifier.weight(1f)) {
                 if (query.isEmpty()) {
-                    Text("Search albums", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_search_albums),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 androidx.compose.foundation.text.BasicTextField(
                     value = query,
@@ -248,7 +262,10 @@ internal fun AlbumSearchBar(
             }
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onQueryChange("") }, modifier = Modifier.size(20.dp)) {
-                    Icon(Icons.Default.Close, contentDescription = "Clear")
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_clear)
+                    )
                 }
             }
         }
@@ -268,7 +285,7 @@ private  fun SelectAllRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Select all",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select_all),
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f)
         )
@@ -295,10 +312,26 @@ private fun AlbumSelectionBottomBar(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
-            SelectionBottomBarItem(icon = Icons.Default.PlayArrow, label = "Play", onClick = onPlay)
-            SelectionBottomBarItem(icon = Icons.Default.PlaylistAdd, label = "Add to play", onClick = onAddToPlaylist)
-            SelectionBottomBarItem(icon = Icons.Default.Delete, label = "Delete", onClick = onDelete)
-            SelectionBottomBarItem(icon = Icons.Default.MoreVert, label = "More", onClick = onMore)
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlayArrow,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
+                onClick = onPlay
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.PlaylistAdd,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_add_to_play),
+                onClick = onAddToPlaylist
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.Delete,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete),
+                onClick = onDelete
+            )
+            SelectionBottomBarItem(
+                icon = Icons.Default.MoreVert,
+                label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
+                onClick = onMore
+            )
         }
     }
 }
@@ -318,3 +351,5 @@ private fun AlbumDefaultCover(albumId: Long, albumName: String) {
         iconOpacity = 0.35f
     )
 }
+
+

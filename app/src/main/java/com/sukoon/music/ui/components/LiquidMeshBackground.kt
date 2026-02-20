@@ -1,7 +1,7 @@
 package com.sukoon.music.ui.components
 
-import androidx.compose.animation.core.*
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -9,17 +9,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.luminance
 import androidx.core.graphics.ColorUtils
+import com.sukoon.music.ui.animation.MotionDirective
+import com.sukoon.music.ui.animation.MotionPlayState
 import com.sukoon.music.ui.util.AlbumPalette
 import com.sukoon.music.ui.theme.*
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sqrt
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * LiquidMeshBackground - Animated aurora background extracted from album art palette.
@@ -40,7 +39,8 @@ import kotlin.math.sqrt
 fun LiquidMeshBackground(
     palette: AlbumPalette,
     songId: Long?,
-    isPlaying: Boolean = true,
+    motion: MotionDirective,
+    phase: Float,
     modifier: Modifier = Modifier
 ) {
     // Detect theme from Material scheme
@@ -69,112 +69,15 @@ fun LiquidMeshBackground(
         label = "aurora_blob4"
     )
 
-    // Infinite animation for drifting blob positions
-    val infiniteTransition = rememberInfiniteTransition(label = "aurora_drift")
-
-    // Blob 1: 15s (playing) / 60s (paused)
-    val blob1X by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 15000 else 60000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob1_x"
-    )
-    val blob1Y by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 17000 else 65000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob1_y"
-    )
-
-    // Blob 2: 20s (playing) / 60s (paused)
-    val blob2X by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 20000 else 60000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob2_x"
-    )
-    val blob2Y by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 22000 else 64000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob2_y"
-    )
-
-    // Blob 3: 25s (playing) / 60s (paused)
-    val blob3X by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 25000 else 62000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob3_x"
-    )
-    val blob3Y by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0.3f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 23000 else 63000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob3_y"
-    )
-
-    // Blob 4: 18s (playing) / 60s (paused)
-    val blob4X by infiniteTransition.animateFloat(
-        initialValue = 0.7f,
-        targetValue = 0.2f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 18000 else 61000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob4_x"
-    )
-    val blob4Y by infiniteTransition.animateFloat(
-        initialValue = 0.2f,
-        targetValue = 0.8f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(
-                durationMillis = if (isPlaying) 21000 else 65000,
-                easing = LinearEasing
-            ),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "blob4_y"
-    )
+    val motionPhase = if (motion.state == MotionPlayState.REST) 0f else phase
+    val blob1X = (0.5f + 0.35f * sin(motionPhase * 0.70f + 0.10f)).coerceIn(0f, 1f)
+    val blob1Y = (0.5f + 0.34f * cos(motionPhase * 0.62f + 1.30f)).coerceIn(0f, 1f)
+    val blob2X = (0.5f + 0.30f * cos(motionPhase * 0.82f + 2.50f)).coerceIn(0f, 1f)
+    val blob2Y = (0.5f + 0.36f * sin(motionPhase * 0.73f + 0.80f)).coerceIn(0f, 1f)
+    val blob3X = (0.5f + 0.28f * sin(motionPhase * 0.58f + 4.10f)).coerceIn(0f, 1f)
+    val blob3Y = (0.5f + 0.31f * cos(motionPhase * 0.89f + 3.40f)).coerceIn(0f, 1f)
+    val blob4X = (0.5f + 0.33f * cos(motionPhase * 0.66f + 5.20f)).coerceIn(0f, 1f)
+    val blob4Y = (0.5f + 0.27f * sin(motionPhase * 0.77f + 4.70f)).coerceIn(0f, 1f)
 
     // Theme-specific settings
     val baseColor = if (isDarkTheme) {

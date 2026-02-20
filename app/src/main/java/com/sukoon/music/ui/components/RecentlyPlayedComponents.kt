@@ -31,7 +31,7 @@ import com.sukoon.music.ui.theme.CardElevationMedium
 @Composable
 fun <T> RecentlyPlayedSection(
     items: List<T>,
-    title: String = "Recently played",
+    title: String? = null,
     onItemClick: (T) -> Unit,
     onHeaderClick: () -> Unit = {},
     itemContent: @Composable (T, () -> Unit) -> Unit
@@ -61,14 +61,14 @@ fun <T> RecentlyPlayedSection(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = title,
+                    text = title ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_recently_played),
                     style = MaterialTheme.typography.sectionHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = "See all",
+                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_see_all),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp)
             )
@@ -183,7 +183,7 @@ fun RecentlyPlayedSongCard(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
                                 tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                                 modifier = Modifier
                                     .padding(8.dp)

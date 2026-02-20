@@ -1,0 +1,96 @@
+<resources>
+    <plurals name="songs_added_to_playlist">
+        <item quantity="one">%1$d song added to playlist</item>
+        <item quantity="other">%1$d songs added to playlist</item>
+    </plurals>
+
+    <plurals name="songs_added_to_play_next">
+        <item quantity="one">%1$d song added to play next</item>
+        <item quantity="other">%1$d songs added to play next</item>
+    </plurals>
+
+    <plurals name="songs_added_to_queue">
+        <item quantity="one">%1$d song added to queue</item>
+        <item quantity="other">%1$d songs added to queue</item>
+    </plurals>
+
+    <plurals name="albums_added_to_play_next">
+        <item quantity="one">%1$d album added to play next</item>
+        <item quantity="other">%1$d albums added to play next</item>
+    </plurals>
+
+    <plurals name="albums_added_to_queue">
+        <item quantity="one">%1$d album added to queue</item>
+        <item quantity="other">%1$d albums added to queue</item>
+    </plurals>
+
+    <plurals name="artists_added_to_play_next">
+        <item quantity="one">%1$d artist added to play next</item>
+        <item quantity="other">%1$d artists added to play next</item>
+    </plurals>
+
+    <plurals name="artists_added_to_queue">
+        <item quantity="one">%1$d artist added to queue</item>
+        <item quantity="other">%1$d artists added to queue</item>
+    </plurals>
+
+    <plurals name="genres_added_to_play_next">
+        <item quantity="one">%1$d genre added to play next</item>
+        <item quantity="other">%1$d genres added to play next</item>
+    </plurals>
+
+    <plurals name="genres_added_to_queue">
+        <item quantity="one">%1$d genre added to queue</item>
+        <item quantity="other">%1$d genres added to queue</item>
+    </plurals>
+
+    <plurals name="common_song_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+
+    <plurals name="common_result_count">
+        <item quantity="one">%1$d result</item>
+        <item quantity="other">%1$d results</item>
+    </plurals>
+
+    <plurals name="library_albums_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+
+    <plurals name="library_screens_b_album_count">
+        <item quantity="one">%1$d album</item>
+        <item quantity="other">%1$d albums</item>
+    </plurals>
+
+    <plurals name="library_screens_b_song_count">
+        <item quantity="one">%1$d song</item>
+        <item quantity="other">%1$d songs</item>
+    </plurals>
+
+    <plurals name="home_scan_completed_songs">
+        <item quantity="one">Scan completed: %1$d song found</item>
+        <item quantity="other">Scan completed: %1$d songs found</item>
+    </plurals>
+
+    <plurals name="home_scan_progress_found_count">
+        <item quantity="one">Found %1$d song</item>
+        <item quantity="other">Found %1$d songs</item>
+    </plurals>
+
+    <plurals name="song_selection_more_options_title">
+        <item quantity="one">More options (%1$d song)</item>
+        <item quantity="other">More options (%1$d songs)</item>
+    </plurals>
+
+    <plurals name="listening_stats_minutes_listened">
+        <item quantity="one">%1$d minute listened</item>
+        <item quantity="other">%1$d minutes listened</item>
+    </plurals>
+
+    <plurals name="listening_stats_hours_listened_whole">
+        <item quantity="one">%1$d hour listened</item>
+        <item quantity="other">%1$d hours listened</item>
+    </plurals>
+</resources>

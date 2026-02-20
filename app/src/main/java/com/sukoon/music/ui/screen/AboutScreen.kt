@@ -48,7 +48,7 @@ fun AboutScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "About Sukoon Music Player",
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.about_screen_title),
                         color = MaterialTheme.colorScheme.background
                     )
                 },
@@ -56,7 +56,7 @@ fun AboutScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -90,7 +90,7 @@ fun AboutScreen(
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.app_icon_cat),
-                        contentDescription = "Sukoon Music Player App Icon",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.about_app_icon_content_description),
                         modifier = Modifier
                             .size(120.dp)
                             .padding(bottom = SpacingLarge),
@@ -98,13 +98,16 @@ fun AboutScreen(
                     )
 
                     Text(
-                        text = "Sukoon Music Player",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.app_name),
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.padding(bottom = SpacingSmall)
                     )
 
                     Text(
-                        text = "Version ${viewModel.getAppVersion()}",
+                        text = androidx.compose.ui.res.stringResource(
+                            com.sukoon.music.R.string.about_version_format,
+                            viewModel.getAppVersion()
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         modifier = Modifier.padding(bottom = SpacingXLarge)
@@ -115,7 +118,7 @@ fun AboutScreen(
             // App Description
             item {
                 Text(
-                    text = "An offline-only local music player with high-fidelity UI and background playback.",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.about_app_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(bottom = SpacingXXLarge)
@@ -131,7 +134,7 @@ fun AboutScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.ThumbUp,
-                            title = "Rate us",
+                            title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rate_us),
                             onClick = {
                                 // Open Play Store rating
                                 val playStoreUrl = "https://play.google.com/store/apps/details?id=${context.packageName}"
@@ -143,15 +146,23 @@ fun AboutScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Share,
-                            title = "Share app",
+                            title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.share_app),
                             onClick = {
                                 // Share app
-                                val shareText = "Check out Sukoon Music Player - An amazing offline music player! https://play.google.com/store/apps/details?id=${context.packageName}"
+                                val shareText = context.getString(
+                                    com.sukoon.music.R.string.about_share_app_message,
+                                    context.packageName
+                                )
                                 val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
                                     type = "text/plain"
                                     putExtra(android.content.Intent.EXTRA_TEXT, shareText)
                                 }
-                                context.startActivity(android.content.Intent.createChooser(intent, "Share Sukoon Music Player"))
+                                context.startActivity(
+                                    android.content.Intent.createChooser(
+                                        intent,
+                                        context.getString(com.sukoon.music.R.string.about_share_chooser_title)
+                                    )
+                                )
                             }
                         )
                     )
@@ -165,7 +176,7 @@ fun AboutScreen(
                     rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.Security,
-                            title = "Privacy Policy",
+                            title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.privacy_policy),
                             onClick = {
                                 // Open privacy policy using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -180,7 +191,7 @@ fun AboutScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Description,
-                            title = "Terms of Service",
+                            title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.terms_of_service),
                             onClick = {
                                 // Open terms of service using global base URL
                                 val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
@@ -195,7 +206,7 @@ fun AboutScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Code,
-                            title = "Open Source Licenses",
+                            title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.open_source_licenses),
                             onClick = {
                                 // Open licenses info
                                 // This could be expanded to show in-app license info
@@ -209,7 +220,10 @@ fun AboutScreen(
             item {
                 val currentYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR)
                 Text(
-                    text = "© $currentYear Sukoon Music Player",
+                    text = androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.about_copyright_format,
+                        currentYear
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
                     modifier = Modifier.padding(top = SpacingXLarge)
@@ -227,3 +241,4 @@ private fun AboutScreenPreview() {
         AboutScreen(onBackClick = {})
     }
 }
+

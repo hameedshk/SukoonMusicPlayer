@@ -79,12 +79,12 @@ fun LikedSongsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Liked Songs") },
+                title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_liked_songs)) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -92,7 +92,10 @@ fun LikedSongsScreen(
                     // Sort menu
                     Box {
                         IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.Default.Sort, "Sort")
+                            Icon(
+                                Icons.Default.Sort,
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_cd_sort)
+                            )
                         }
                         SortModeMenu(
                             expanded = showSortMenu,
@@ -143,7 +146,7 @@ fun LikedSongsScreen(
             // Artist filter menu
             if (showArtistMenu) {
                 FilterMenu(
-                    title = "Filter by Artist",
+                    title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_filter_artist_title),
                     items = availableArtists,
                     selectedItem = selectedArtist,
                     onDismiss = { showArtistMenu = false },
@@ -161,7 +164,7 @@ fun LikedSongsScreen(
             // Album filter menu
             if (showAlbumMenu) {
                 FilterMenu(
-                    title = "Filter by Album",
+                    title = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_filter_album_title),
                     items = availableAlbums,
                     selectedItem = selectedAlbum,
                     onDismiss = { showAlbumMenu = false },
@@ -327,7 +330,7 @@ private fun LikedSongsHeader(songCount: Int) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Liked Songs",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_liked_songs),
             style = MaterialTheme.typography.screenHeader,
             color = MaterialTheme.colorScheme.onBackground
         )
@@ -335,7 +338,11 @@ private fun LikedSongsHeader(songCount: Int) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "$songCount ${if (songCount == 1) "song" else "songs"}",
+            text = androidx.compose.ui.res.pluralStringResource(
+                com.sukoon.music.R.plurals.liked_songs_count,
+                songCount,
+                songCount
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
         )
@@ -359,18 +366,26 @@ private fun PlayControlButtons(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Icon(Icons.Default.PlayArrow, "Play All", Modifier.size(20.dp))
+            Icon(
+                Icons.Default.PlayArrow,
+                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all),
+                Modifier.size(20.dp)
+            )
             Spacer(Modifier.width(8.dp))
-            Text("Play All")
+            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all))
         }
 
         OutlinedButton(
             onClick = onShuffleAll,
             modifier = Modifier.weight(1f)
         ) {
-            Icon(Icons.Default.Shuffle, "Shuffle", Modifier.size(20.dp))
+            Icon(
+                Icons.Default.Shuffle,
+                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle),
+                Modifier.size(20.dp)
+            )
             Spacer(Modifier.width(8.dp))
-            Text("Shuffle")
+            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle))
         }
     }
 }
@@ -393,7 +408,10 @@ private fun FilterChips(
             selected = selectedArtist != null,
             onClick = onArtistFilterClick,
             label = {
-                Text(selectedArtist ?: "Artist")
+                Text(
+                    selectedArtist
+                        ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_filter_chip_artist)
+                )
             },
             leadingIcon = if (selectedArtist != null) {
                 { Icon(Icons.Default.Person, null, Modifier.size(18.dp)) }
@@ -416,7 +434,10 @@ private fun FilterChips(
             selected = selectedAlbum != null,
             onClick = onAlbumFilterClick,
             label = {
-                Text(selectedAlbum ?: "Album")
+                Text(
+                    selectedAlbum
+                        ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_filter_chip_album)
+                )
             },
             leadingIcon = if (selectedAlbum != null) {
                 { Icon(Icons.Default.Album, null, Modifier.size(18.dp)) }
@@ -439,7 +460,7 @@ private fun FilterChips(
             FilterChip(
                 selected = false,
                 onClick = onClearFilters,
-                label = { Text("Clear") },
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_filter_chip_clear)) },
                 leadingIcon = {
                     Icon(Icons.Default.Close, null, Modifier.size(18.dp))
                 },
@@ -475,7 +496,10 @@ private fun FilterMenu(
                             onClick = onClear,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Clear Filter", color = MaterialTheme.colorScheme.primary)
+                            Text(
+                                androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_clear_filter),
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
                         HorizontalDivider()
                     }
@@ -507,7 +531,7 @@ private fun FilterMenu(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Close")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_close))
             }
         }
     )
@@ -548,11 +572,12 @@ private fun SortModeMenu(
     }
 }
 
+@Composable
 private fun getSortModeLabel(mode: LikedSongsSortMode): String = when (mode) {
-    LikedSongsSortMode.TITLE -> "Title (A-Z)"
-    LikedSongsSortMode.ARTIST -> "Artist (A-Z)"
-    LikedSongsSortMode.ALBUM -> "Album (A-Z)"
-    LikedSongsSortMode.DATE_ADDED -> "Recently Added"
+    LikedSongsSortMode.TITLE -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_sort_title_asc)
+    LikedSongsSortMode.ARTIST -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_sort_artist_asc)
+    LikedSongsSortMode.ALBUM -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_sort_album_asc)
+    LikedSongsSortMode.DATE_ADDED -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_sort_recently_added)
 }
 
 
@@ -576,13 +601,13 @@ private fun EmptyLikedSongsState(
         )
         Spacer(modifier = Modifier.height(24.dp))
         Text(
-            text = "No liked songs yet",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_empty_title),
             style = MaterialTheme.typography.emptyStateTitle,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = "Songs you like will appear here",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_empty_message),
             style = MaterialTheme.typography.emptyStateDescription,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -606,13 +631,13 @@ private fun NoFilterResultsState(
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "No songs match filters",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_no_filter_results_title),
             style = MaterialTheme.typography.emptyStateTitle,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "Try clearing filters",
+            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.liked_songs_no_filter_results_message),
             style = MaterialTheme.typography.emptyStateDescription,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
@@ -626,3 +651,6 @@ private fun LikedSongsScreenPreview() {
         LikedSongsScreen(onBackClick = {})
     }
 }
+
+
+

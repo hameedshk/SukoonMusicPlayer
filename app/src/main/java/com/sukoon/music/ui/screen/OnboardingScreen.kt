@@ -36,6 +36,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -52,6 +54,9 @@ import com.sukoon.music.ui.theme.buttonText
 import com.sukoon.music.ui.theme.screenHeader
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
+
+private const val MIN_USERNAME_LENGTH = 3
+private const val MAX_USERNAME_LENGTH = 10
 
 /**
  * Onboarding Screen - Two-step setup:
@@ -79,11 +84,19 @@ fun OnboardingScreen(
         }.getOrNull()
     }
 
-    val isUsernameValid = username.isEmpty() || (username.length in 3..10 && username.all { it.isLetter() })
+    val isUsernameValid = username.isEmpty() || (username.length in MIN_USERNAME_LENGTH..MAX_USERNAME_LENGTH && username.all { it.isLetter() })
     val usernameError = when {
-        username.isNotEmpty() && username.length < 3 -> "Minimum 3 characters required"
-        username.isNotEmpty() && username.length > 10 -> "Maximum 10 characters allowed"
-        username.isNotEmpty() && !username.all { it.isLetter() } -> "Only alphabets allowed"
+        username.isNotEmpty() && username.length < MIN_USERNAME_LENGTH -> pluralStringResource(
+            id = R.plurals.onboarding_username_min_chars_required,
+            count = MIN_USERNAME_LENGTH,
+            MIN_USERNAME_LENGTH
+        )
+        username.isNotEmpty() && username.length > MAX_USERNAME_LENGTH -> pluralStringResource(
+            id = R.plurals.onboarding_username_max_chars_allowed,
+            count = MAX_USERNAME_LENGTH,
+            MAX_USERNAME_LENGTH
+        )
+        username.isNotEmpty() && !username.all { it.isLetter() } -> stringResource(R.string.onboarding_username_error_letters_only)
         else -> ""
     }
 
@@ -96,7 +109,7 @@ fun OnboardingScreen(
 
     val onUsernameChange: (String) -> Unit = { newValue ->
         val filtered = newValue.filter { it.isLetter() }
-        if (filtered.length <= 10) {
+        if (filtered.length <= MAX_USERNAME_LENGTH) {
             username = filtered
         }
     }
@@ -236,21 +249,21 @@ private fun OnboardingHeader(visible: Boolean) {
             }
 
             Text(
-                text = "Sukoon Music",
+                text = stringResource(R.string.onboarding_header_title),
                 style = MaterialTheme.typography.screenHeader,
                 color = MaterialTheme.colorScheme.onBackground,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 14.dp)
             )
             Text(
-                text = "Offline Music Player",
+                text = stringResource(R.string.onboarding_header_subtitle),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 2.dp)
             )
             Text(
-                text = "Private offline music, on your device.",
+                text = stringResource(R.string.onboarding_header_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -258,7 +271,7 @@ private fun OnboardingHeader(visible: Boolean) {
             )
 
             Text(
-                text = "Offline | Private | On-device",
+                text = stringResource(R.string.onboarding_header_tags),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
@@ -295,15 +308,15 @@ private fun PermissionStepCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Allow Music Access",
+                        text = stringResource(R.string.onboarding_permission_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    StepBadge(text = "Required", isRequired = true)
+                    StepBadge(text = stringResource(R.string.onboarding_badge_required), isRequired = true)
                 }
 
                 Text(
-                    text = "Sukoon needs permission to scan and play songs stored on this device.",
+                    text = stringResource(R.string.onboarding_permission_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp, bottom = 14.dp)
@@ -322,9 +335,9 @@ private fun PermissionStepCard(
                 ) {
                     Text(
                         text = when {
-                            permissionState.hasPermission -> "Access Granted"
-                            permissionState.isPermanentlyDenied -> "Open Settings"
-                            else -> "Grant Access"
+                            permissionState.hasPermission -> stringResource(R.string.onboarding_permission_button_granted)
+                            permissionState.isPermanentlyDenied -> stringResource(R.string.onboarding_permission_button_open_settings)
+                            else -> stringResource(R.string.onboarding_permission_button_grant)
                         },
                         style = MaterialTheme.typography.buttonText
                     )
@@ -332,7 +345,7 @@ private fun PermissionStepCard(
 
                 if (permissionState.isPermanentlyDenied && !permissionState.hasPermission) {
                     Text(
-                        text = "Permission is blocked for this app. Open Settings and allow music access.",
+                        text = stringResource(R.string.onboarding_permission_blocked_help),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
@@ -373,15 +386,15 @@ private fun UsernameStepCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Add Your Name",
+                        text = stringResource(R.string.onboarding_username_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-                    StepBadge(text = "Optional", isRequired = false)
+                    StepBadge(text = stringResource(R.string.onboarding_badge_optional), isRequired = false)
                 }
 
                 Text(
-                    text = "Used for greetings and playlists. Leave it empty if you want to skip.",
+                    text = stringResource(R.string.onboarding_username_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp, bottom = 14.dp)
@@ -393,7 +406,7 @@ private fun UsernameStepCard(
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
                         Text(
-                            text = "Your name",
+                            text = stringResource(R.string.onboarding_username_placeholder),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
@@ -413,7 +426,7 @@ private fun UsernameStepCard(
                 } else {
                     if (username.isNotEmpty()) {
                         Text(
-                            text = "Display name: $displayUsername",
+                            text = stringResource(R.string.onboarding_username_display_name, displayUsername),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp)
@@ -432,7 +445,7 @@ private fun UsernameStepCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Stored only on this device",
+                            text = stringResource(R.string.onboarding_username_storage_notice),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(start = 8.dp)
@@ -478,7 +491,11 @@ private fun OnboardingFooter(
                 )
             ) {
                 Text(
-                    text = if (isSaving) "Starting..." else "Start Listening",
+                    text = if (isSaving) {
+                        stringResource(R.string.onboarding_footer_starting)
+                    } else {
+                        stringResource(R.string.onboarding_footer_start_listening)
+                    },
                     style = MaterialTheme.typography.buttonText
                 )
             }
@@ -486,9 +503,9 @@ private fun OnboardingFooter(
             if (!hasPermission) {
                 Text(
                     text = if (isPermanentlyDenied) {
-                        "Music access is blocked. Use \"Open Settings\" above to continue."
+                        stringResource(R.string.onboarding_footer_permission_blocked)
                     } else {
-                        "Music access is required to continue."
+                        stringResource(R.string.onboarding_footer_permission_required)
                     },
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

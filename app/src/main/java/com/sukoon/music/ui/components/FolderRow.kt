@@ -187,7 +187,7 @@ fun FolderRow(
                 IconButton(onClick = { showMenu = true }) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
-                        contentDescription = "Menu",
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -206,40 +206,40 @@ fun FolderRow(
                     HorizontalDivider()
 
                     DropdownMenuItem(
-                        text = { Text("Play") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
                         onClick = { onPlay(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Play next") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
                         onClick = { onPlayNext(); showMenu = false },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to queue") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
                         onClick = { onAddToQueue(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.AddToQueue, null) }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to playlist") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
                         onClick = { onAddToPlaylist(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.PlaylistAdd, null) }
                     )
                     if (isHidden) {
                         DropdownMenuItem(
-                            text = { Text("Unhide") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_unhide)) },
                             onClick = { onUnhide(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.Visibility, null) }
                         )
                     } else {
                         DropdownMenuItem(
-                            text = { Text("Hide") },
+                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_hide)) },
                             onClick = { onHide(); showMenu = false },
                             leadingIcon = { Icon(Icons.Default.VisibilityOff, null) }
                         )
                     }
                     DropdownMenuItem(
-                        text = { Text("Delete from device") },
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device)) },
                         onClick = { onDelete(); showMenu = false },
                         leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
                     )
@@ -248,3 +248,4 @@ fun FolderRow(
         }
     }
 }
+

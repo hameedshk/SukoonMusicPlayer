@@ -1,13 +1,17 @@
 package com.sukoon.music.ui.viewmodel
 
+import android.content.Context
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Queue
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.QueueRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -33,8 +37,14 @@ import com.sukoon.music.ui.theme.*
 @HiltViewModel
 class QueueViewModel @Inject constructor(
     private val queueRepository: QueueRepository,
-    val playbackRepository: PlaybackRepository
+    val playbackRepository: PlaybackRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
+
+    private fun localized(@StringRes resId: Int, vararg args: Any): String = context.getString(resId, *args)
+
+    private fun exceptionMessage(error: Exception): String =
+        error.message?.takeIf { it.isNotBlank() } ?: localized(R.string.queue_vm_unknown_error)
 
     // ============================================
     // QUEUE DATA
@@ -86,13 +96,13 @@ class QueueViewModel @Inject constructor(
                         markAsCurrent = false // Don't mark as current, just save as a snapshot
                     )
                     _uiState.value = _uiState.value.copy(
-                        message = "Queue saved as \"$name\"",
+                        message = localized(R.string.queue_vm_saved_as, name),
                         isError = false
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to save queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_save, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -108,17 +118,21 @@ class QueueViewModel @Inject constructor(
                 val songs = queueRepository.restoreQueue(queueId)
                 if (songs != null && songs.isNotEmpty()) {
                     val savedQueue = savedQueues.value.find { it.id == queueId }
-                    val queueName = savedQueue?.name ?: "Saved Queue"
-                    playbackRepository.playQueue(songs, startIndex = 0, queueName = "Queue: $queueName")
+                    val queueName = savedQueue?.name ?: localized(R.string.queue_vm_saved_queue_fallback_name)
+                    playbackRepository.playQueue(
+                        songs,
+                        startIndex = 0,
+                        queueName = localized(R.string.queue_vm_queue_name_prefix, queueName)
+                    )
                     queueRepository.setCurrentQueue(queueId)
                     _uiState.value = _uiState.value.copy(
-                        message = "Queue loaded",
+                        message = localized(R.string.queue_vm_loaded),
                         isError = false
                     )
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to load queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_load, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -133,12 +147,12 @@ class QueueViewModel @Inject constructor(
             try {
                 queueRepository.deleteQueue(queueId)
                 _uiState.value = _uiState.value.copy(
-                    message = "Queue deleted",
+                    message = localized(R.string.queue_vm_deleted),
                     isError = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to delete queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_delete, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -154,7 +168,7 @@ class QueueViewModel @Inject constructor(
                 playbackRepository.removeFromQueue(index)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to remove song: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_remove_song, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -188,7 +202,7 @@ class QueueViewModel @Inject constructor(
                 playbackRepository.playQueue(currentQueue, startIndex = newCurrentIndex, queueName = playbackState.value.currentQueueName)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to reorder queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_reorder, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -205,7 +219,7 @@ class QueueViewModel @Inject constructor(
                 playbackRepository.play()
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to play song: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_play_song, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -220,12 +234,12 @@ class QueueViewModel @Inject constructor(
             try {
                 playbackRepository.playQueue(emptyList(), 0)
                 _uiState.value = _uiState.value.copy(
-                    message = "Queue cleared",
+                    message = localized(R.string.queue_vm_cleared),
                     isError = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to clear queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_clear, exceptionMessage(e)),
                     isError = true
                 )
             }
@@ -250,12 +264,12 @@ class QueueViewModel @Inject constructor(
 
                 playbackRepository.playQueue(queue, startIndex = 0, queueName = playbackState.value.currentQueueName)
                 _uiState.value = _uiState.value.copy(
-                    message = "Queue shuffled",
+                    message = localized(R.string.queue_vm_shuffled),
                     isError = false
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
-                    message = "Failed to shuffle queue: ${e.message}",
+                    message = localized(R.string.queue_vm_failed_shuffle, exceptionMessage(e)),
                     isError = true
                 )
             }

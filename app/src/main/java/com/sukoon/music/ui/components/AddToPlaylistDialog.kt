@@ -28,7 +28,7 @@ fun AddToPlaylistDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add to playlist") },
+        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
         text = {
             if (playlists.isEmpty()) {
                 Box(
@@ -38,7 +38,7 @@ fun AddToPlaylistDialog(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No playlists available",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.playlists_screen_empty_title),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -75,7 +75,7 @@ fun AddToPlaylistDialog(
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = "${playlist.songCount} songs",
+                                        text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, playlist.songCount, playlist.songCount),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -88,9 +88,11 @@ fun AddToPlaylistDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
         },
         modifier = modifier
     )
 }
+
+

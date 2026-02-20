@@ -51,7 +51,11 @@ fun <T : Enum<T>> CategoryPillRow(
             shape = MaterialTheme.shapes.small
         ) {
             Text(
-                text = "$itemCount $itemLabel",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.category_pill_count_label_format,
+                    itemCount,
+                    itemLabel
+                ),
                 style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -67,7 +71,7 @@ fun <T : Enum<T>> CategoryPillRow(
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Sort,
-                    contentDescription = "Sort",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -92,7 +96,7 @@ fun <T : Enum<T>> CategoryPillRow(
                             if (currentSortMode == mode) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
-                                    contentDescription = "Selected",
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_checked),
                                     modifier = Modifier.size(18.dp)
                                 )
                             }

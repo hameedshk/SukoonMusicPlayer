@@ -77,10 +77,10 @@ fun ArtistSelectionScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_artist_deleted_successfully), Toast.LENGTH_SHORT).show()
             onBackClick()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -104,7 +104,7 @@ fun ArtistSelectionScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "${selectedArtistIds.size} selected",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_selected_count, selectedArtistIds.size),
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
@@ -112,7 +112,7 @@ fun ArtistSelectionScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -148,12 +148,12 @@ fun ArtistSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "Play",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Play",
+                                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -171,12 +171,12 @@ fun ArtistSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.PlaylistAdd,
-                                contentDescription = "Add to playlist",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Add to playlist",
+                                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -192,12 +192,12 @@ fun ArtistSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Delete,
-                                contentDescription = "Delete",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete),
                                 tint = MaterialTheme.colorScheme.error
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Delete",
+                                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -213,12 +213,12 @@ fun ArtistSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "More",
+                                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -259,7 +259,7 @@ fun ArtistSelectionScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
+                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_search),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(12.dp))
@@ -268,7 +268,7 @@ fun ArtistSelectionScreen(
                                 onValueChange = { searchQuery = it },
                                 placeholder = {
                                     Text(
-                                        text = "Search artists",
+                                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_search_artists),
                                         style = MaterialTheme.typography.bodyLarge,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -292,7 +292,7 @@ fun ArtistSelectionScreen(
                                 IconButton(onClick = { searchQuery = "" }) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear search",
+                                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_clear_search),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
@@ -322,7 +322,7 @@ fun ArtistSelectionScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Select all",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select_all),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
@@ -370,7 +370,7 @@ fun ArtistSelectionScreen(
                     playlistViewModel.addSongToPlaylist(playlistId, song.id)
                 }
                 showAddToPlaylistDialog = false
-                Toast.makeText(context, "${artistSongsForPlaylist.size} songs added to playlist", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.resources.getQuantityString(com.sukoon.music.R.plurals.songs_added_to_playlist, artistSongsForPlaylist.size, artistSongsForPlaylist.size), Toast.LENGTH_SHORT).show()
                 viewModel.clearSelection()
                 onBackClick()
             },
@@ -390,10 +390,10 @@ fun ArtistSelectionScreen(
                 )
             },
             title = {
-                Text("Delete ${selectedArtistIds.size} artist(s)?")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_selected_artists_title, selectedArtistIds.size))
             },
             text = {
-                Text("All songs by these artists will be permanently deleted from your device. This cannot be undone.")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_artist_songs_message))
             },
             confirmButton = {
                 TextButton(
@@ -407,12 +407,12 @@ fun ArtistSelectionScreen(
                                     showDeleteDialog = false
                                 }
                                 is DeleteHelper.DeleteResult.Success -> {
-                                    Toast.makeText(context, "Artists deleted successfully", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_artist_deleted_successfully), Toast.LENGTH_SHORT).show()
                                     showDeleteDialog = false
                                     onBackClick()
                                 }
                                 is DeleteHelper.DeleteResult.Error -> {
-                                    Toast.makeText(context, "Error: ${deleteResult.message}", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, deleteResult.message), Toast.LENGTH_SHORT).show()
                                     showDeleteDialog = false
                                 }
                             }
@@ -420,12 +420,12 @@ fun ArtistSelectionScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteDialog = false }) {
-                    Text("Cancel")
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                 }
             }
         )
@@ -442,7 +442,10 @@ fun ArtistSelectionScreen(
                     .padding(vertical = 8.dp)
             ) {
                 Text(
-                    text = "More options (${selectedArtistIds.size} artists)",
+                    text = androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.library_screens_b_more_options_artists_title,
+                        selectedArtistIds.size
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                 )
@@ -452,11 +455,11 @@ fun ArtistSelectionScreen(
                 // Play next
                 MoreOptionItem(
                     icon = Icons.Default.PlayArrow,
-                    text = "Play next",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next),
                     onClick = {
                         viewModel.playSelectedArtistsNext()
                         showMoreOptionsSheet = false
-                        Toast.makeText(context, "${selectedArtistIds.size} artists added to play next", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getQuantityString(com.sukoon.music.R.plurals.artists_added_to_play_next, selectedArtistIds.size, selectedArtistIds.size), Toast.LENGTH_SHORT).show()
                         viewModel.clearSelection()
                         onBackClick()
                     }
@@ -465,11 +468,11 @@ fun ArtistSelectionScreen(
                 // Add to queue
                 MoreOptionItem(
                     icon = Icons.Default.Queue,
-                    text = "Add to queue",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue),
                     onClick = {
                         viewModel.addSelectedArtistsToQueue()
                         showMoreOptionsSheet = false
-                        Toast.makeText(context, "${selectedArtistIds.size} artists added to queue", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.resources.getQuantityString(com.sukoon.music.R.plurals.artists_added_to_queue, selectedArtistIds.size, selectedArtistIds.size), Toast.LENGTH_SHORT).show()
                         viewModel.clearSelection()
                         onBackClick()
                     }
@@ -478,7 +481,7 @@ fun ArtistSelectionScreen(
                 // Select all
                 MoreOptionItem(
                     icon = Icons.Default.SelectAll,
-                    text = "Select all",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select_all),
                     onClick = {
                         artists.forEach { artist ->
                             if (artist.id !in selectedArtistIds) {
@@ -492,7 +495,7 @@ fun ArtistSelectionScreen(
                 // Deselect all
                 MoreOptionItem(
                     icon = Icons.Default.Deselect,
-                    text = "Deselect all",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_deselect_all),
                     onClick = {
                         viewModel.clearSelection()
                         showMoreOptionsSheet = false
@@ -529,7 +532,7 @@ private fun ArtistSelectionItem(
             if (artist.artworkUri != null) {
                 SubcomposeAsyncImage(
                     model = artist.artworkUri,
-                    contentDescription = "Artist art",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_artist_art),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     error = {
@@ -568,7 +571,19 @@ private fun ArtistSelectionItem(
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${artist.albumCount} album${if (artist.albumCount > 1) "s" else ""} • ${artist.songCount} song${if (artist.songCount > 1) "s" else ""}",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.library_artists_item_stats_format,
+                    artist.albumCount,
+                    androidx.compose.ui.res.stringResource(
+                        if (artist.albumCount == 1) com.sukoon.music.R.string.library_artists_word_album_singular
+                        else com.sukoon.music.R.string.library_artists_word_album_plural
+                    ),
+                    artist.songCount,
+                    androidx.compose.ui.res.stringResource(
+                        if (artist.songCount == 1) com.sukoon.music.R.string.library_artists_word_song_singular
+                        else com.sukoon.music.R.string.library_artists_word_song_plural
+                    )
+                ),
                 style = MaterialTheme.typography.bodyMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
@@ -616,3 +631,7 @@ private fun MoreOptionItem(
         )
     }
 }
+
+
+
+

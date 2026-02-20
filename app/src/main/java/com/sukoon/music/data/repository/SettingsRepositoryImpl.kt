@@ -165,6 +165,18 @@ class SettingsRepositoryImpl @Inject constructor(
         preferencesManager.setHasRatedApp(rated)
     }
 
+    override fun appLanguageTagFlow(): Flow<String?> {
+        return preferencesManager.appLanguageTagFlow()
+    }
+
+    override suspend fun setAppLanguageTag(languageTag: String?) {
+        preferencesManager.setAppLanguageTag(languageTag)
+    }
+
+    override suspend fun getAppLanguageTag(): String? {
+        return preferencesManager.getAppLanguageTag()
+    }
+
     /**
      * Get database file size in bytes.
      */

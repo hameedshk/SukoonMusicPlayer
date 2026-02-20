@@ -72,10 +72,10 @@ import com.sukoon.music.ui.theme.*
             contract = ActivityResultContracts.StartIntentSenderForResult()
         ) { result ->
             if (result.resultCode == android.app.Activity.RESULT_OK) {
-                Toast.makeText(context, "Genres deleted successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_genre_deleted_successfully), Toast.LENGTH_SHORT).show()
                 genresPendingDeletion = false
             } else {
-                Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
             }
             genresPendingDeletion = false
         }
@@ -90,13 +90,13 @@ import com.sukoon.music.ui.theme.*
                 }
                 is DeleteHelper.DeleteResult.Success -> {
                     if (genresPendingDeletion) {
-                        Toast.makeText(context, "Genres deleted successfully", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_genre_deleted_successfully), Toast.LENGTH_SHORT).show()
                         genresPendingDeletion = false
                         viewModel.clearDeleteResult()
                     }
                 }
                 is DeleteHelper.DeleteResult.Error -> {
-                    Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                     genresPendingDeletion = false
                     viewModel.clearDeleteResult()
                 }
@@ -141,12 +141,12 @@ import com.sukoon.music.ui.theme.*
             topBar = {
                 if (isSelectionMode) {
                     TopAppBar(
-                        title = { Text("${selectedGenreIds.size} selected") },
+                        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_selected_count, selectedGenreIds.size)) },
                         navigationIcon = {
                             IconButton(onClick = { viewModel.toggleSelectionMode(false) }) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Exit selection"
+                                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_exit_selection)
                                 )
                             }
                         },
@@ -320,10 +320,19 @@ import com.sukoon.music.ui.theme.*
                         },
                         title = {
                             val count = genresToDelete!!.size
-                            Text("Delete ${if (count == 1) "Genre" else "$count Genres"}?")
+                            Text(
+                                if (count == 1) {
+                                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_genres_delete_title_single)
+                                } else {
+                                    androidx.compose.ui.res.stringResource(
+                                        com.sukoon.music.R.string.library_genres_delete_title_multiple,
+                                        count
+                                    )
+                                }
+                            )
                         },
                         text = {
-                            Text("All songs in these genres will be permanently deleted from your device. This cannot be undone.")
+                            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_genre_songs_message))
                         },
                         confirmButton = {
                             TextButton(
@@ -334,7 +343,7 @@ import com.sukoon.music.ui.theme.*
                                 },
                                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                             ) {
-                                Text("Delete")
+                                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
                             }
                         },
                         dismissButton = {
@@ -342,7 +351,7 @@ import com.sukoon.music.ui.theme.*
                                 genresPendingDeletion = false
                                 genresToDelete = null
                             }) {
-                                Text("Cancel")
+                                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
                             }
                         }
                     )
@@ -402,7 +411,7 @@ import com.sukoon.music.ui.theme.*
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No genres found",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_genres_empty_title),
                     style = MaterialTheme.typography.emptyStateTitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -410,7 +419,7 @@ import com.sukoon.music.ui.theme.*
                 if (!isSearching) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Scan your media library to discover music by genre",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_genres_empty_message),
                         style = MaterialTheme.typography.emptyStateDescription,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
@@ -425,7 +434,7 @@ import com.sukoon.music.ui.theme.*
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Scan music")
+                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_scan_music))
                     }
                 }
             }
@@ -439,10 +448,17 @@ import com.sukoon.music.ui.theme.*
         onBackClick: () -> Unit
     ) {
         TopAppBar(
-            title = { Text("$selectedCount selected") },
+            title = {
+                Text(
+                    androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.label_selected_count,
+                        selectedCount
+                    )
+                )
+            },
             navigationIcon = {
                 IconButton(onClick = onBackClick) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back))
                 }
             },
             colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -463,12 +479,22 @@ import com.sukoon.music.ui.theme.*
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "$genreCount ${if (genreCount == 1) "genre" else "genres"}",
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.library_genres_header_count_format,
+                    genreCount,
+                    androidx.compose.ui.res.stringResource(
+                        if (genreCount == 1) com.sukoon.music.R.string.library_genres_word_genre_singular
+                        else com.sukoon.music.R.string.library_genres_word_genre_plural
+                    )
+                ),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             IconButton(onClick = onSelectionClick) {
-                Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                Icon(
+                    Icons.Default.CheckCircle,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select)
+                )
             }
         }
     }
@@ -490,9 +516,19 @@ import com.sukoon.music.ui.theme.*
         ) {
             Text(
                 text = if (isSelectionMode) {
-                    "$selectedCount selected"
+                    androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.label_selected_count,
+                        selectedCount
+                    )
                 } else {
-                    "$genreCount ${if (genreCount == 1) "genre" else "genres"}"
+                    androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.library_genres_header_count_format,
+                        genreCount,
+                        androidx.compose.ui.res.stringResource(
+                            if (genreCount == 1) com.sukoon.music.R.string.library_genres_word_genre_singular
+                            else com.sukoon.music.R.string.library_genres_word_genre_plural
+                        )
+                    )
                 },
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -502,10 +538,16 @@ import com.sukoon.music.ui.theme.*
             } else {
                 Row {
                     IconButton(onClick = onSortClick) {
-                        Icon(Icons.Default.Sort, contentDescription = "Sort")
+                        Icon(
+                            Icons.Default.Sort,
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort)
+                        )
                     }
                     IconButton(onClick = onSelectionClick) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = "Select")
+                        Icon(
+                            Icons.Default.CheckCircle,
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select)
+                        )
                     }
                 }
             }
@@ -524,27 +566,27 @@ import com.sukoon.music.ui.theme.*
             onDismissRequest = onDismiss,
             confirmButton = {
                 TextButton(onClick = onDismiss) {
-                    Text("OK", color = MaterialTheme.colorScheme.primary)
+                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok), color = MaterialTheme.colorScheme.primary)
                 }
             },
             dismissButton = {
-                TextButton(onClick = onDismiss) { Text("CANCEL") }
+                TextButton(onClick = onDismiss) { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel)) }
             },
-            title = { Text("Sort by") },
+            title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by)) },
             text = {
                 Column {
                     SortOption(
-                        text = "Genre name",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_genres_sort_genre_name),
                         isSelected = currentSortMode == GenreSortMode.NAME,
                         onClick = { onSortModeChange(GenreSortMode.NAME) }
                     )
                     SortOption(
-                        text = "Number of songs",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_genres_sort_number_of_songs),
                         isSelected = currentSortMode == GenreSortMode.SONG_COUNT,
                         onClick = { onSortModeChange(GenreSortMode.SONG_COUNT) }
                     )
                     SortOption(
-                        text = "Random",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_random),
                         isSelected = currentSortMode == GenreSortMode.RANDOM,
                         onClick = { onSortModeChange(GenreSortMode.RANDOM) }
                     )
@@ -552,12 +594,12 @@ import com.sukoon.music.ui.theme.*
                     HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
                     SortOption(
-                        text = "From A to Z",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_a_to_z),
                         isSelected = isAscending,
                         onClick = { onOrderChange(true) }
                     )
                     SortOption(
-                        text = "From Z to A",
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_z_to_a),
                         isSelected = !isAscending,
                         onClick = { onOrderChange(false) }
                     )
@@ -565,3 +607,7 @@ import com.sukoon.music.ui.theme.*
             }
         )
     }
+
+
+
+

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="playlists_screen_my_playlists_title">My playlists</string>
+    <string name="playlists_screen_visible_of_total_results">%1$d of %2$d results</string>
+    <string name="playlists_screen_smart_playlists_title">Smart playlists</string>
+    <string name="playlists_screen_smart_playlists_subtitle">Playlists generated from your listening activity</string>
+    <string name="playlists_screen_quick_actions_title">Quick actions</string>
+    <string name="playlists_screen_restore_action">Restore</string>
+    <string name="playlists_screen_search_placeholder">Search playlists...</string>
+    <string name="playlists_screen_search_content_description">Search</string>
+    <string name="playlists_screen_clear_search_content_description">Clear search</string>
+    <string name="playlists_screen_sort_by_label">Sort by</string>
+    <string name="playlists_screen_no_matches_title">No playlists match &quot;%1$s&quot;</string>
+    <string name="playlists_screen_no_matches_subtitle">Try another search or change sorting.</string>
+    <string name="playlists_screen_create_query">Create &quot;%1$s&quot;</string>
+    <string name="playlists_screen_playlist_content_description">%1$s, %2$s</string>
+    <string name="playlists_screen_playlist_cover_content_description">Playlist cover</string>
+    <string name="playlists_screen_play_playlist_content_description">Play playlist</string>
+    <string name="playlists_screen_options_content_description">Options</string>
+    <string name="playlists_screen_empty_title">No playlists yet</string>
+    <string name="playlists_screen_empty_subtitle">Tap the button below to create one</string>
+    <string name="playlists_screen_create_playlist_title">Create Playlist</string>
+    <string name="playlists_screen_rename_playlist_title">Rename Playlist</string>
+    <string name="playlists_screen_playlist_name_label">Playlist Name</string>
+    <string name="playlists_screen_delete_playlist_message">Are you sure you want to delete &quot;%1$s&quot;? This will move it to trash where you can restore it later.</string>
+    <string name="playlists_screen_import_paste_json_hint">Paste playlist JSON data below:</string>
+    <string name="playlists_screen_import_json_placeholder" translatable="false">{"version":1,"playlists":[...]}</string>
+    <string name="playlists_screen_import_failed">Failed to import playlists. Check JSON format.</string>
+    <string name="playlists_screen_album_art_content_description">Album art</string>
+    <string name="playlists_screen_no_song_playing">No song playing</string>
+    <string name="playlists_screen_previous_content_description">Previous</string>
+    <string name="playlists_screen_pause_content_description">Pause</string>
+    <string name="playlists_screen_play_content_description">Play</string>
+    <string name="playlists_screen_next_content_description">Next</string>
+    <string name="playlists_screen_add_songs_title">Add Songs to Playlist</string>
+    <string name="playlists_screen_no_songs_available">No songs available</string>
+    <string name="playlists_screen_no_songs_found">No songs found</string>
+    <string name="playlists_screen_add_button">Add</string>
+    <string name="playlists_screen_add_button_with_count">Add (%1$d)</string>
+    <string name="playlists_screen_sort_recent">Recent</string>
+    <string name="playlists_screen_sort_name">Name</string>
+    <string name="playlists_screen_sort_songs">Songs</string>
+
+    <plurals name="playlists_screen_playlist_count">
+        <item quantity="one">%d playlist</item>
+        <item quantity="other">%d playlists</item>
+    </plurals>
+
+    <plurals name="playlists_screen_song_count">
+        <item quantity="one">%d song</item>
+        <item quantity="other">%d songs</item>
+    </plurals>
+
+    <plurals name="playlists_screen_import_success">
+        <item quantity="one">Successfully imported %d playlist</item>
+        <item quantity="other">Successfully imported %d playlists</item>
+    </plurals>
+
+    <plurals name="playlists_screen_selected_count">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+</resources>

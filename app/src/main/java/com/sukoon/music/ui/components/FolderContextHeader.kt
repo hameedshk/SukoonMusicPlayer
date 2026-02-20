@@ -39,14 +39,15 @@ fun FolderContextHeader(
                 selected = selectedMode == FolderViewMode.DIRECTORIES,
                 onClick = { onModeChanged(FolderViewMode.DIRECTORIES) },
                 shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                label = { Text("Directories") }
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_directories)) }
             )
             SegmentedButton(
                 selected = selectedMode == FolderViewMode.HIDDEN,
                 onClick = { onModeChanged(FolderViewMode.HIDDEN) },
                 shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                label = { Text("Hidden folders") }
+                label = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_hidden_folders)) }
             )
         }
     }
 }
+

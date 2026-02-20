@@ -46,7 +46,7 @@
 
     <!-- Settings Screen - Premium Banner -->
     <string name="settings_premium_banner_title">Unlock Premium</string>
-    <string name="settings_premium_banner_subtitle">Remove ads • Lifetime • $4.99</string>
+    <string name="settings_premium_banner_subtitle">Remove ads - Lifetime - $4.99</string>
     <string name="settings_premium_banner_dismiss">Dismiss premium banner</string>
 
     <!-- Settings Screen - Section Headers -->
@@ -171,4 +171,423 @@
     <string name="min_required_version_update_cta">Update</string>
     <string name="min_required_version_retry_cta">Retry</string>
     <string name="min_required_version_retrying_cta">Checking...</string>
+
+    <!-- Common -->
+    <string name="common_ok">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_close">Close</string>
+    <string name="common_back">Back</string>
+    <string name="common_open">Open</string>
+    <string name="common_clear">Clear</string>
+    <string name="common_continue">Continue</string>
+    <string name="common_apply">Apply</string>
+    <string name="common_set">Set</string>
+    <string name="common_save">Save</string>
+    <string name="common_create">Create</string>
+    <string name="common_import">Import</string>
+    <string name="common_submit">Submit</string>
+    <string name="common_skip">Skip</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_rename">Rename</string>
+    <string name="common_restore">Restore</string>
+    <string name="common_settings">Settings</string>
+    <string name="common_play">Play</string>
+    <string name="common_play_all">Play All</string>
+    <string name="common_play_next">Play next</string>
+    <string name="common_add_to_queue">Add to queue</string>
+    <string name="common_add_to_playlist">Add to playlist</string>
+    <string name="common_shuffle">Shuffle</string>
+    <string name="common_sort_by">Sort by</string>
+    <string name="common_name">Name</string>
+    <string name="common_description_optional">Description (optional)</string>
+    <string name="common_restore_purchase">Restore Purchase</string>
+    <string name="common_more">More</string>
+    <string name="common_search">Search</string>
+    <string name="common_select">Select</string>
+    <string name="common_select_all">Select all</string>
+    <string name="common_deselect_all">Deselect all</string>
+    <string name="common_share">Share</string>
+    <string name="common_info">Info</string>
+    <string name="common_options">Options</string>
+    <string name="common_exit_selection">Exit selection</string>
+    <string name="common_clear_search">Clear search</string>
+    <string name="common_album_art">Album art</string>
+    <string name="common_album_art_for_song">Album art for %1$s</string>
+    <string name="common_artist_album_pair">%1$s - %2$s</string>
+    <string name="common_queue_empty">Queue is empty</string>
+    <string name="common_no_songs_found">No songs found</string>
+    <string name="common_see_all">See all</string>
+    <string name="common_remove">Remove</string>
+    <string name="albums_empty_title">No albums found</string>
+
+    <!-- Toasts and user messages -->
+    <string name="toast_song_deleted_successfully">Song deleted successfully</string>
+    <string name="toast_songs_deleted_successfully">Songs deleted successfully</string>
+    <string name="toast_album_deleted_successfully">Albums deleted successfully</string>
+    <string name="toast_artist_deleted_successfully">Artists deleted successfully</string>
+    <string name="toast_genre_deleted_successfully">Genres deleted successfully</string>
+    <string name="toast_delete_cancelled">Delete cancelled</string>
+    <string name="toast_songs_added_to_playlist">Songs added to playlist</string>
+    <string name="toast_added_to_playlist">Added to playlist</string>
+    <string name="toast_error_with_message">Error: %1$s</string>
+    <string name="toast_unable_to_share_file">Unable to share file</string>
+    <string name="toast_unable_to_share_files">Unable to share files: %1$s</string>
+    <string name="toast_no_songs_to_share">No songs to share</string>
+    <string name="toast_timer_set_minutes">Timer set for %1$d minutes</string>
+    <string name="toast_timer_cancelled">Timer cancelled</string>
+    <string name="toast_timer_set_end_of_track">Timer set for end of track</string>
+    <string name="toast_track_end_not_available">Track end not available</string>
+
+    <!-- Permission dialogs -->
+    <string name="permission_required_title">Permission Required</string>
+    <string name="permission_required_action_grant">Grant Permission</string>
+    <string name="permission_required_action_not_now">Not Now</string>
+    <string name="permission_denied_title">Permission Denied</string>
+    <string name="permission_denied_action_open_settings">Open Settings</string>
+    <string name="permission_rationale_message">Sukoon Music needs access to your audio files to scan and play your local music library. Without this permission, the app cannot discover or play songs stored on your device.</string>
+    <string name="permission_denied_message">Audio file access was denied. To use Sukoon Music, please enable the permission in Settings.\n\nSettings > Apps > Sukoon Music > Permissions > Files and media</string>
+
+    <!-- Dialogs and labels -->
+    <string name="dialog_delete_from_device_title">Delete from device?</string>
+    <string name="dialog_delete_folder_title">Delete folder?</string>
+    <string name="dialog_delete_playlist_title">Delete Playlist?</string>
+    <string name="dialog_delete_queue_title">Delete Queue?</string>
+    <string name="dialog_delete_forever_title">Delete Forever?</string>
+    <string name="dialog_restore_playlist_title">Restore Playlist</string>
+    <string name="dialog_clear_all_trash_title">Clear All Trash?</string>
+    <string name="dialog_custom_timer_title">Custom timer</string>
+    <string name="dialog_sleep_timer_title">Sleep Timer</string>
+    <string name="dialog_save_queue_title">Save Queue</string>
+    <string name="dialog_queue_name_label">Queue Name</string>
+    <string name="dialog_enter_queue_name">Enter a name for this queue:</string>
+    <string name="dialog_create_playlist_title">Create Playlist</string>
+    <string name="dialog_rename_playlist_title">Rename Playlist</string>
+    <string name="dialog_edit_playlist_title">Edit Playlist</string>
+    <string name="dialog_import_playlist_title">Import Playlist</string>
+    <string name="dialog_json_data_label">JSON Data</string>
+    <string name="dialog_search_songs_placeholder">Search songs...</string>
+    <string name="dialog_clear_all">Clear All</string>
+    <string name="dialog_delete_forever">Delete Forever</string>
+    <string name="dialog_queue_title">Queue</string>
+    <string name="label_minutes">Minutes</string>
+    <string name="label_directories">Directories</string>
+    <string name="label_hidden_folders">Hidden folders</string>
+    <string name="label_liked_only">Liked only</string>
+    <string name="label_liked_songs">Liked Songs</string>
+    <string name="label_my_playlists">My Playlists</string>
+    <string name="label_smart_playlists">Smart Playlists</string>
+    <string name="label_all">All</string>
+    <string name="label_get_premium">Get Premium</string>
+    <string name="label_go_premium">Go Premium</string>
+    <string name="label_clear_all">Clear all</string>
+    <string name="label_scan_music">Scan music</string>
+    <string name="label_scan_for_music">Scan for Music</string>
+    <string name="label_rescan_library_question">Rescan Library?</string>
+    <string name="label_delete_from_device">Delete from device</string>
+    <string name="label_restore_folder_question">Restore Folder?</string>
+    <string name="label_play_folder">Play folder</string>
+    <string name="label_unhide">Unhide</string>
+    <string name="label_hide">Hide</string>
+    <string name="label_edit_tags">Edit tags</string>
+    <string name="label_change_cover">Change cover</string>
+    <string name="label_processing_purchase">Processing Purchase...</string>
+    <string name="label_premium_activated">Premium Activated!</string>
+    <string name="label_purchase_failed">Purchase Failed</string>
+    <string name="label_sukoon_premium">Sukoon Premium</string>
+    <string name="premium_ads_removed">Ads have been removed.</string>
+    <string name="premium_one_time_payment_lifetime">One-time payment - Lifetime access</string>
+    <string name="label_add_songs">Add Songs</string>
+    <string name="label_create_playlist">Create playlist</string>
+    <string name="label_queue">Queue</string>
+    <string name="label_go_back">Go Back</string>
+    <string name="label_maybe_later">Maybe Later</string>
+    <string name="label_excluded_folders">Excluded Folders</string>
+    <string name="label_audio_quality">Audio Quality</string>
+    <string name="label_audio_buffer_size">Audio Buffer Size</string>
+    <string name="label_crossfade_duration">Crossfade Duration</string>
+    <string name="label_minimum_audio_duration">Minimum Audio Duration</string>
+    <string name="label_equalizer">Equalizer</string>
+    <string name="label_choose_theme">Choose Theme</string>
+    <string name="label_choose_accent_color">Choose Accent Color</string>
+    <string name="label_preset_name">Preset Name</string>
+    <string name="label_reset_to_flat">Reset to Flat</string>
+    <string name="label_tell_us_the_problem">Tell us the problem</string>
+    <string name="label_explain_what_happened">Explain what happened, or suggestions.</string>
+    <string name="dialog_delete_artist_songs_message">All songs by these artists will be permanently deleted from your device. This cannot be undone.</string>
+    <string name="dialog_delete_album_songs_message">All songs in these albums will be permanently deleted from your device. This cannot be undone.</string>
+    <string name="dialog_delete_genre_songs_message">All songs in these genres will be permanently deleted from your device. This cannot be undone.</string>
+    <string name="dialog_delete_songs_message">These songs will be permanently deleted from your device. This cannot be undone.</string>
+    <string name="dialog_rescan_library_message">This will scan your device for new music files. It may take a moment.</string>
+    <string name="dialog_scanning_music">Scanning your device for music files...</string>
+    <string name="dialog_delete_selected_songs_title">Delete %1$d song(s)?</string>
+    <string name="dialog_delete_selected_albums_title">Delete %1$d album(s)?</string>
+    <string name="dialog_delete_selected_artists_title">Delete %1$d artist(s)?</string>
+    <string name="dialog_delete_selected_genres_title">Delete %1$d genre(s)?</string>
+    <string name="label_selected_count">%1$d selected</string>
+    <string name="common_shuffle_all">Shuffle All</string>
+
+    <!-- Excluded Folders Screen -->
+    <string name="excluded_folders_hidden_info">Songs in these folders are hidden from your library.</string>
+    <string name="excluded_folders_restore_confirm_message">Do you want to show songs from "%1$s" in your library again?</string>
+    <string name="excluded_folders_cd_remove_exclusion">Remove exclusion</string>
+    <string name="excluded_folders_empty_title">No excluded folders</string>
+    <string name="excluded_folders_empty_message">Folders you hide from your library will appear here.</string>
+
+    <!-- Feedback Screen -->
+    <string name="feedback_select_issue">Select the issue</string>
+    <string name="feedback_details_required">Details *</string>
+    <string name="feedback_details_counter">%1$d/500</string>
+    <string name="feedback_attachments_optional">Screenshots or videos (Optional)</string>
+    <string name="feedback_add_screenshot_coming_soon">Add screenshot (coming soon)</string>
+    <string name="feedback_consent_text">By continuing, you agree to our %1$s and %2$s.</string>
+
+    <!-- Folder Detail Screen -->
+    <string name="folder_detail_default_title">Folder</string>
+    <string name="folder_detail_cd_open_folder">Open folder</string>
+    <string name="folder_detail_cd_folder_cover">Folder cover</string>
+    <string name="folder_detail_cd_no_songs">No songs</string>
+    <string name="folder_detail_empty_title">No songs in this folder</string>
+
+    <!-- Home Screen -->
+    <string name="home_default_username">there</string>
+    <string name="home_tab_greeting">Hi %1$s</string>
+    <string name="home_tab_songs">Songs</string>
+    <string name="home_tab_playlists">Playlists</string>
+    <string name="home_tab_folders">Folders</string>
+    <string name="home_tab_albums">Albums</string>
+    <string name="home_tab_artists">Artists</string>
+    <string name="home_tab_genres">Genres</string>
+    <string name="home_scan_failed_title">Scan failed</string>
+    <string name="home_scan_failed_with_reason">Scan failed: %1$s</string>
+    <string name="home_topbar_scanning_context">Scanning %1$d songs...</string>
+    <string name="home_topbar_private_session_active">Private session is active</string>
+    <string name="home_scan_progress_title">Scanning for music...</string>
+    <string name="home_empty_no_music_found_title">No music found</string>
+    <string name="home_empty_no_songs_title">No songs</string>
+    <string name="home_empty_permission_message">Grant permission to access your music library and discover local songs</string>
+    <string name="home_empty_scan_prompt">Tap the button below to scan for local music</string>
+    <string name="home_empty_tap_scan_refresh">Tap scan to refresh</string>
+    <string name="home_cd_playlist_cover">Playlist cover</string>
+    <string name="home_continue_listening">Continue listening</string>
+
+    <!-- Now Playing Screen -->
+    <string name="now_playing_playing_from">PLAYING FROM</string>
+    <string name="now_playing_unknown_artist">Unknown Artist</string>
+
+    <!-- Playlist Detail Screen -->
+    <string name="playlist_detail_default_title">Playlist</string>
+    <string name="playlist_detail_cd_edit">Edit playlist</string>
+    <string name="playlist_detail_cd_cover">Playlist cover</string>
+    <string name="playlist_detail_cd_remove_from_playlist">Remove from playlist</string>
+    <string name="playlist_detail_empty_title">No songs in this playlist</string>
+    <string name="playlist_detail_empty_message">Add songs to get started</string>
+    <string name="playlist_detail_all_songs_already_added">All songs are already in this playlist</string>
+    <string name="playlist_detail_add_button">Add</string>
+    <string name="playlist_detail_add_button_with_count">Add (%1$d)</string>
+
+    <!-- Search Screen -->
+    <string name="search_query_with_quotes">"%1$s"</string>
+    <string name="search_recent_searches">Recent searches</string>
+    <string name="search_sort_relevance">Relevance</string>
+    <string name="search_sort_title_asc">Title (A-Z)</string>
+    <string name="search_sort_artist_asc">Artist (A-Z)</string>
+    <string name="search_sort_date_added">Date Added</string>
+    <string name="search_result_separator"> • </string>
+    <string name="search_initial_title">Search your library</string>
+    <string name="search_initial_message">Find your favorite songs, artists,\nand albums in seconds</string>
+    <string name="search_history_state_title">Rediscover</string>
+    <string name="search_no_results_title">No results found</string>
+    <string name="search_no_results_message">We couldn\'t find anything matching</string>
+
+    <!-- Songs Screen -->
+    <string name="songs_cd_sort">Sort</string>
+
+    <!-- Settings Components -->
+    <string name="settings_theme_preview_sample">Aa</string>
+    <string name="settings_accent_teal">Teal</string>
+    <string name="settings_accent_steel_blue">Steel Blue</string>
+    <string name="settings_accent_soft_cyan">Soft Cyan</string>
+
+    <!-- Genres -->
+    <string name="library_screens_b_search_genres">Search genres</string>
+    <string name="library_screens_b_more_options_genres_title">More options (%1$d genres)</string>
+    <string name="library_screens_b_genre_artwork">Genre artwork</string>
+    <string name="library_genres_delete_title_single">Delete genre?</string>
+    <string name="library_genres_delete_title_multiple">Delete %1$d genres?</string>
+    <string name="library_genres_empty_title">No genres found</string>
+    <string name="library_genres_empty_message">Scan your library to discover genres from your music collection</string>
+    <string name="library_genres_header_count_format">%1$d %2$s</string>
+    <string name="library_genres_word_genre_singular">genre</string>
+    <string name="library_genres_word_genre_plural">genres</string>
+    <string name="library_genres_sort_genre_name">Genre name</string>
+    <string name="library_genres_sort_number_of_songs">Number of songs</string>
+
+    <!-- Ads -->
+    <string name="ad_badge_label">Ad</string>
+    <string name="ad_icon_content_description">Ad icon</string>
+
+    <!-- Billing -->
+    <string name="billing_message_test_purchase_complete">Test purchase complete</string>
+    <string name="billing_message_product_not_loaded">Product not loaded</string>
+    <string name="billing_message_error_fallback">Billing error</string>
+    <string name="billing_message_acknowledge_failed">Acknowledge failed</string>
+    <string name="billing_message_premium_activated">Premium activated</string>
+    <string name="billing_product_title_test">Premium (Test)</string>
+    <string name="billing_product_desc_test">Static purchase test</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_music_playback_name">Music Playback</string>
+    <string name="notification_channel_music_playback_description">Controls for music playback</string>
+
+    <!-- About screen -->
+    <string name="about_screen_title">About Sukoon Music Player</string>
+    <string name="about_app_icon_content_description">Sukoon Music Player app icon</string>
+    <string name="about_version_format">Version %1$s</string>
+    <string name="about_share_app_message">Check out Sukoon Music Player - An amazing offline music player! https://play.google.com/store/apps/details?id=%1$s</string>
+    <string name="about_share_chooser_title">Share Sukoon Music Player</string>
+    <string name="about_copyright_format">© %1$d Sukoon Music Player</string>
+
+    <!-- Library common -->
+    <string name="library_common_recently_played">Recently played</string>
+    <string name="library_common_sort">Sort</string>
+    <string name="library_common_random">Random</string>
+    <string name="library_common_sort_order_a_to_z">From A to Z</string>
+    <string name="library_common_sort_order_z_to_a">From Z to A</string>
+
+    <!-- Albums -->
+    <string name="library_albums_sort_album_name">Album name</string>
+    <string name="library_albums_sort_artist_name">Artist name</string>
+    <string name="library_albums_sort_number_of_songs">Number of songs</string>
+    <string name="library_albums_sort_year">Year</string>
+    <string name="library_albums_search_albums">Search albums</string>
+    <string name="library_albums_add_to_play">Add to play</string>
+    <string name="library_albums_more_options_title">More options (%1$d albums)</string>
+    <string name="library_albums_artist_song_count_format">%1$s • %2$s</string>
+    <string name="library_albums_empty_message">Scan your library to discover albums from your music collection</string>
+    <string name="library_album_detail_no_songs">No songs in this album</string>
+    <string name="library_album_detail_sort_track_number">Track number</string>
+
+    <!-- Artists -->
+    <string name="library_artists_empty_title">No artists found</string>
+    <string name="library_artists_empty_message">Scan your library to discover artists from your music collection</string>
+    <string name="library_artists_header_count_format">%1$d %2$s</string>
+    <string name="library_artists_item_stats_format">%1$d %2$s • %3$d %4$s</string>
+    <string name="library_artists_context_stats_format">%1$d albums • %2$d songs</string>
+    <string name="library_artists_selection_add_to_play">Add to play</string>
+    <string name="library_artists_sort_artist_name">Artist name</string>
+    <string name="library_artists_sort_number_of_albums">Number of albums</string>
+    <string name="library_artists_sort_number_of_songs">Number of songs</string>
+    <string name="library_artists_word_artist_singular">artist</string>
+    <string name="library_artists_word_artist_plural">artists</string>
+    <string name="library_artists_word_album_singular">album</string>
+    <string name="library_artists_word_album_plural">albums</string>
+    <string name="library_artists_word_song_singular">song</string>
+    <string name="library_artists_word_song_plural">songs</string>
+
+    <!-- Library screens b keys used by owned screens -->
+    <string name="library_screens_b_search_artists">Search artists</string>
+    <string name="library_screens_b_more_options_artists_title">More options (%1$d artists)</string>
+    <string name="library_screens_b_artist_art">Artist art</string>
+    <string name="library_screens_b_checked">Checked</string>
+    <string name="library_screens_b_unchecked">Unchecked</string>
+    <string name="library_screens_b_genre_title">Genre</string>
+    <string name="library_screens_b_genre_not_found_title">Genre not found</string>
+    <string name="library_screens_b_genre_not_found_message">This genre could not be loaded. It may have been deleted or does not exist.</string>
+    <string name="library_screens_b_no_songs_in_genre">No songs in this genre</string>
+    <string name="library_screens_b_sort">Sort</string>
+    <string name="library_screens_b_select_songs">Select songs</string>
+    <string name="library_screens_b_sort_option_title_az">Title (A-Z)</string>
+    <string name="library_screens_b_sort_option_artist_az">Artist (A-Z)</string>
+    <string name="library_screens_b_sort_option_album_az">Album (A-Z)</string>
+    <string name="library_screens_b_sort_option_duration">Duration</string>
+
+    <!-- Component localization cleanup -->
+    <string name="playlist_create_new">Create new playlist</string>
+    <string name="common_dismiss">Dismiss</string>
+    <string name="common_dismiss_ad">Dismiss ad</string>
+    <string name="category_pill_count_label_format">%1$d %2$s</string>
+    <string name="artist_row_metadata_format">%1$s • %2$s</string>
+    <string name="folder_icon_content_description">Folder</string>
+    <string name="folder_album_art_content_description">Folder album art</string>
+
+    <!-- Edit genre dialog -->
+    <string name="edit_genre_dialog_title">Edit Genre</string>
+    <string name="edit_genre_dialog_message">Rename genre (updates all songs with this genre)</string>
+    <string name="edit_genre_dialog_genre_name_label">Genre name</string>
+    <string name="edit_genre_dialog_genre_name_error">Genre name cannot be empty</string>
+
+    <!-- Listening stats -->
+    <string name="listening_stats_title">Your Week</string>
+    <string name="listening_stats_total_listening_label">Total Listening</string>
+    <string name="listening_stats_mostly_label">Mostly</string>
+    <string name="listening_stats_peak_time_value">%1$s 🎧</string>
+    <string name="listening_stats_top_artist_label">Top Artist</string>
+    <string name="listening_stats_hours_listened_decimal">%1$.1f hours listened</string>
+
+    <!-- Ads -->
+    <string name="native_ad_sponsored_label">Sponsored</string>
+    <string name="native_ad_featured_promotion">Featured promotion from our partners</string>
+    <string name="ad_media_content_description">Ad media</string>
+    <string name="ad_advertiser_format">Ad: %1$s</string>
+
+    <!-- Rediscover -->
+    <string name="rediscover_albums_title">You Loved This Before</string>
+
+    <!-- Song context menu -->
+    <string name="song_context_playlist_label">Playlist</string>
+    <string name="song_context_go_to_album">Go to Album</string>
+    <string name="song_context_go_to_artist">Go to Artist</string>
+    <string name="song_context_edit_audio">Edit Audio</string>
+    <string name="song_context_premium_badge">PREMIUM</string>
+
+    <!-- Song info dialog -->
+    <string name="song_info_title">Song information</string>
+    <string name="song_info_label_title">Title</string>
+    <string name="song_info_label_format">Format</string>
+    <string name="song_info_label_size">Size</string>
+    <string name="song_info_label_duration">Duration</string>
+    <string name="song_info_label_bitrate">Bitrate</string>
+    <string name="song_info_value_bitrate_kbps">%1$d kbps</string>
+    <string name="song_info_label_sampling_rate">Sampling rate</string>
+    <string name="song_info_value_sampling_rate_hz">%1$d Hz</string>
+    <string name="song_info_label_channels">Channels</string>
+    <string name="song_info_channel_mono">Mono</string>
+    <string name="song_info_channel_stereo">Stereo</string>
+    <string name="song_info_label_artist">Artist</string>
+    <string name="song_info_label_file_name">File name</string>
+    <string name="song_info_label_location">Location</string>
+    <string name="song_info_unknown">&lt;unknown&gt;</string>
+    <string name="song_info_file_size_mb">%1$.2f MB</string>
+
+    <!-- Sleep timer -->
+    <string name="sleep_timer_option_off">Off</string>
+    <string name="sleep_timer_option_5_minutes">5 minutes</string>
+    <string name="sleep_timer_option_10_minutes">10 minutes</string>
+    <string name="sleep_timer_option_end_of_track">End of track</string>
+    <string name="sleep_timer_option_custom">Custom</string>
+    <string name="sleep_timer_custom_minutes_error">Enter %1$d to %2$d minutes</string>
+
+    <!-- Smart playlist empty states -->
+    <string name="smart_playlist_empty_my_favourite_title">No liked songs yet</string>
+    <string name="smart_playlist_empty_my_favourite_message">Like songs to see them here</string>
+    <string name="smart_playlist_empty_last_added_title">No songs added</string>
+    <string name="smart_playlist_empty_last_added_message">Scan your music library to get started</string>
+    <string name="smart_playlist_empty_recently_played_title">No recently played songs</string>
+    <string name="smart_playlist_empty_recently_played_message">Start playing music to see your history</string>
+    <string name="smart_playlist_empty_most_played_title">No play history yet</string>
+    <string name="smart_playlist_empty_most_played_message">Songs you play often will appear here</string>
+    <string name="smart_playlist_empty_never_played_title">Everything has been played</string>
+    <string name="smart_playlist_empty_never_played_message">Check your history to find your favorites</string>
+    <string name="smart_playlist_empty_discover_title">Nothing to discover</string>
+    <string name="smart_playlist_empty_discover_message">Add more songs to your library</string>
+
+    <!-- Share -->
+    <string name="share_song_chooser_title_single">Share %1$s</string>
+    <string name="share_song_chooser_title_multiple">Share %1$d songs</string>
+
+    <!-- Feedback helper -->
+    <string name="feedback_email_subject">Sukoon Music Player Feedback</string>
+    <string name="feedback_chooser_title">Send Feedback</string>
+    <string name="feedback_clipboard_label">Support Email</string>
+    <string name="feedback_email_copied_toast">Support email copied to clipboard: %1$s</string>
 </resources>

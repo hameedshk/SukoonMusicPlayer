@@ -77,9 +77,9 @@ fun SmartPlaylistDetailScreen(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Delete cancelled", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
         isDeleting = false
@@ -111,7 +111,7 @@ fun SmartPlaylistDetailScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
                         )
                     }
                 },
@@ -158,12 +158,12 @@ fun SmartPlaylistDetailScreen(
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, "Song deleted successfully", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
                         is DeleteHelper.DeleteResult.Error -> {
-                            Toast.makeText(context, "Error: ${result.message}", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, result.message), Toast.LENGTH_SHORT).show()
                             songToDelete = null
                             isDeleting = false
                         }
@@ -299,7 +299,7 @@ private fun SmartPlaylistHeader(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "$songCount songs",
+            text = androidx.compose.ui.res.pluralStringResource(com.sukoon.music.R.plurals.common_song_count, songCount, songCount),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
         )
@@ -323,7 +323,7 @@ private fun SmartPlaylistHeader(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Play All")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all))
             }
 
             // Shuffle Button
@@ -338,7 +338,7 @@ private fun SmartPlaylistHeader(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Shuffle")
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle))
             }
         }
 
@@ -396,7 +396,7 @@ private fun SmartPlaylistSongItem(
                     if (song.albumArtUri != null) {
                         SubcomposeAsyncImage(
                             model = song.albumArtUri,
-                            contentDescription = "Album art",
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Crop,
                             loading = {
@@ -466,7 +466,7 @@ private fun SmartPlaylistSongItem(
             ) {
                 Icon(
                     imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -479,7 +479,11 @@ private fun SmartPlaylistSongItem(
             ) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = if (song.isLiked) "Unlike" else "Like",
+                    contentDescription = if (song.isLiked) {
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ui_unlike)
+                    } else {
+                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ui_like)
+                    },
                     tint = if (song.isLiked) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
@@ -498,13 +502,13 @@ private fun SmartPlaylistSongItem(
 
 @Composable
 private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
-    val (message, description) = when (playlistType) {
-        SmartPlaylistType.MY_FAVOURITE -> "No liked songs yet" to "Like songs to see them here"
-        SmartPlaylistType.LAST_ADDED -> "No songs added" to "Scan your music library to get started"
-        SmartPlaylistType.RECENTLY_PLAYED -> "No recently played songs" to "Start playing music to see your history"
-        SmartPlaylistType.MOST_PLAYED -> "No play history yet" to "Songs you play often will appear here"
-        SmartPlaylistType.NEVER_PLAYED -> "Everything has been played" to "Check your history to find your favorites"
-        SmartPlaylistType.DISCOVER -> "Nothing to discover" to "Add more songs to your library"
+    val (messageRes, descriptionRes) = when (playlistType) {
+        SmartPlaylistType.MY_FAVOURITE -> com.sukoon.music.R.string.smart_playlist_empty_my_favourite_title to com.sukoon.music.R.string.smart_playlist_empty_my_favourite_message
+        SmartPlaylistType.LAST_ADDED -> com.sukoon.music.R.string.smart_playlist_empty_last_added_title to com.sukoon.music.R.string.smart_playlist_empty_last_added_message
+        SmartPlaylistType.RECENTLY_PLAYED -> com.sukoon.music.R.string.smart_playlist_empty_recently_played_title to com.sukoon.music.R.string.smart_playlist_empty_recently_played_message
+        SmartPlaylistType.MOST_PLAYED -> com.sukoon.music.R.string.smart_playlist_empty_most_played_title to com.sukoon.music.R.string.smart_playlist_empty_most_played_message
+        SmartPlaylistType.NEVER_PLAYED -> com.sukoon.music.R.string.smart_playlist_empty_never_played_title to com.sukoon.music.R.string.smart_playlist_empty_never_played_message
+        SmartPlaylistType.DISCOVER -> com.sukoon.music.R.string.smart_playlist_empty_discover_title to com.sukoon.music.R.string.smart_playlist_empty_discover_message
     }
 
     Column(
@@ -527,13 +531,13 @@ private fun EmptySmartPlaylistState(playlistType: SmartPlaylistType) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = message,
+            text = androidx.compose.ui.res.stringResource(messageRes),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
-            text = description,
+            text = androidx.compose.ui.res.stringResource(descriptionRes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
             textAlign = TextAlign.Center
@@ -551,3 +555,7 @@ private fun SmartPlaylistDetailScreenPreview() {
         )
     }
 }
+
+
+
+

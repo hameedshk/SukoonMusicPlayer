@@ -110,7 +110,7 @@ fun SongContextMenu(
             ) {
                 UtilityIconButton(
                     icon = if (song.isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    label = "Like",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_like),
                     isLiked = song.isLiked,
                     songId = song.id,
                     onClick = {
@@ -119,7 +119,7 @@ fun SongContextMenu(
                 )
                 UtilityIconButton(
                     icon = Icons.Default.Share,
-                    label = "Share",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_share),
                     onClick = {
                         menuHandler.handleShare(song)
                         onDismiss()
@@ -127,7 +127,7 @@ fun SongContextMenu(
                 )
                 UtilityIconButton(
                     icon = Icons.Default.Info,
-                    label = "Info",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_info),
                     onClick = {
                         menuHandler.handleShowSongInfo(song)
                         onDismiss()
@@ -135,7 +135,7 @@ fun SongContextMenu(
                 )
                 UtilityIconButton(
                     icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    label = "Playlist",
+                    label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_playlist_label),
                     onClick = {
                         menuHandler.handleAddToPlaylist(song)
                         onDismiss()
@@ -150,7 +150,7 @@ fun SongContextMenu(
                 // Group A: Playback
                 OptionItem(
                 icon = Icons.Default.SkipNext,
-                text = "Play Next",
+                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next),
                     onClick = {
                         menuHandler.handlePlayNext(song)
                         onDismiss()
@@ -158,7 +158,7 @@ fun SongContextMenu(
                 )
                 OptionItem(
                     icon = Icons.Default.QueueMusic,
-                    text = "Add to Queue",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue),
                     onClick = {
                         menuHandler.handleAddToQueue(song)
                         onDismiss()
@@ -166,7 +166,7 @@ fun SongContextMenu(
                 )
                 OptionItem(
                     icon = Icons.AutoMirrored.Filled.PlaylistAdd,
-                    text = "Add to Playlist",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                     onClick = {
                         menuHandler.handleAddToPlaylist(song)
                         onDismiss()
@@ -180,7 +180,7 @@ fun SongContextMenu(
                 // Group B: Navigation
                 OptionItem(
                     icon = Icons.Default.Album,
-                    text = "Go to Album",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_go_to_album),
                     onClick = {
                         menuHandler.handleGoToAlbum(song)
                         onDismiss()
@@ -188,7 +188,7 @@ fun SongContextMenu(
                 )
                 OptionItem(
                     icon = Icons.Default.Person,
-                    text = "Go to Artist",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_go_to_artist),
                     onClick = {
                         menuHandler.handleGoToArtist(song)
                         onDismiss()
@@ -202,14 +202,14 @@ fun SongContextMenu(
                 // Group C: System
                 OptionItem(
                     icon = Icons.Default.Edit,
-                    text = "Edit Audio",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_edit_audio),
                     trailing = {
                         Surface(
                             color = MaterialTheme.colorScheme.primaryContainer,
                             shape = MaterialTheme.shapes.small
                         ) {
                             Text(
-                                text = "PREMIUM",
+                                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_premium_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -223,7 +223,7 @@ fun SongContextMenu(
                 )
                 OptionItem(
                     icon = Icons.Default.Delete,
-                    text = "Delete from Device",
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device),
                     tint = MaterialTheme.colorScheme.error,
                     onClick = {
                         menuHandler.handleDeleteFromDevice(song)
@@ -324,3 +324,4 @@ private fun OptionItem(
         }
     }
 }
+
