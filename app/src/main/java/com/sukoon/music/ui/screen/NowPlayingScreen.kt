@@ -957,7 +957,12 @@ private fun AlbumArtSection(
     val isMotionActive = motionDirective.state == com.sukoon.music.ui.animation.MotionPlayState.RUNNING
     val isDragging = abs(horizontalDragOffset) > 0.5f
     val animatedScale by animateFloatAsState(
-        targetValue = if (isMotionActive && !isDragging) breathScale else if (motionDirective.state == com.sukoon.music.ui.animation.MotionPlayState.REST) 1.0f else breathScale,
+        targetValue = when {
+            motionDirective.state == com.sukoon.music.ui.animation.MotionPlayState.REST -> 1.0f
+            isDragging -> 1.0f
+            isMotionActive -> breathScale
+            else -> breathScale
+        },
         animationSpec = tween(durationMillis = 1000),
         label = "smooth_breath_transition"
     )
