@@ -281,6 +281,11 @@ class MainActivity : ComponentActivity() {
                 val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
                 val isPremium by premiumManager.isPremiumUser.collectAsStateWithLifecycle(false)
 
+                LaunchedEffect(Unit) {
+                    // Force reconnect on app start (re-attach listener if service restarted)
+                    homeViewModel.playbackRepository.connect()
+                }
+
                 LaunchedEffect(isPremium) {
                     analyticsTracker.setUserProperty("is_premium", isPremium.toString())
                 }

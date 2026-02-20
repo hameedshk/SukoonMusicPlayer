@@ -71,6 +71,9 @@ class PlaybackRepositoryImpl @Inject constructor(
     // Recently Played Tracking
     private var lastLoggedSongId: Long? = null
 
+    // Connection State Tracking
+    private var isConnected = false
+
     // Mutex for thread-safe listener state updates
     private val listenerMutex = Mutex()
 
@@ -235,8 +238,19 @@ class PlaybackRepositoryImpl @Inject constructor(
     // Lifecycle Methods
 
     override suspend fun connect() {
-        // Avoid duplicate connections
-        if (mediaController != null) return
+        // If already connected and controller is valid, return
+        if (isConnected && mediaController != null) return
+
+        // Clean up stale connection before reconnecting
+        if (mediaController != null) {
+            try {
+                mediaController?.removeListener(playerListener)
+                mediaController?.release()
+            } catch (e: Exception) {
+                DevLogger.e("PlaybackRepository", "Error cleaning up stale controller", e)
+            }
+            mediaController = null
+        }
 
         connectionJob = scope.launch {
             try {
@@ -264,6 +278,7 @@ class PlaybackRepositoryImpl @Inject constructor(
 
                 // Register listener after successful connection
                 mediaController?.addListener(playerListener)
+                isConnected = true
                 updatePlaybackState()
 
                 // Restore last queue on app launch if queue is empty
@@ -271,9 +286,11 @@ class PlaybackRepositoryImpl @Inject constructor(
                     restoreLastQueue()
                 }
             } catch (e: Exception) {
+                isConnected = false
                 _playbackState.update {
                     it.copy(error = "Failed to connect to playback service: ${e.message}")
                 }
+                DevLogger.e("PlaybackRepository", "Connection failed", e)
             }
         }
 
@@ -359,9 +376,14 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override fun disconnect() {
-        mediaController?.removeListener(playerListener)
-        mediaController?.release()
+        try {
+            mediaController?.removeListener(playerListener)
+            mediaController?.release()
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Error disconnecting", e)
+        }
         mediaController = null
+        isConnected = false
         connectionJob?.cancel()
         connectionJob = null
     }
