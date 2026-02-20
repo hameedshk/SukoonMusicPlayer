@@ -1,64 +1,64 @@
 package com.sukoon.music.ui.screen
 
+import android.util.Log
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.statusBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalContext
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.IntentSenderRequest
-import androidx.activity.result.contract.ActivityResultContracts
-import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
-import androidx.compose.material.icons.automirrored.filled.Sort
+import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.AnimatedEqualizer
-import com.sukoon.music.ui.components.BannerAdView
-import com.sukoon.music.ui.components.SongContextMenu
-import com.sukoon.music.ui.components.SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
-import com.sukoon.music.ui.components.MiniPlayer
-import com.sukoon.music.ui.components.SongInfoDialog
-import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.AnimatedEqualizer
+import com.sukoon.music.ui.components.DeleteConfirmationDialog
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.components.PlaceholderAlbumArt
-import com.sukoon.music.domain.model.AppTheme
-import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
-import com.sukoon.music.ui.theme.*
-// SukoonOrange removed - using MaterialTheme.colorScheme.primary instead
-import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
+import com.sukoon.music.ui.components.SimpleBannerAd
+import com.sukoon.music.ui.components.SongContextMenu
+import com.sukoon.music.ui.components.SongInfoDialog
+import com.sukoon.music.ui.components.SongMenuHandler
 import com.sukoon.music.ui.components.rememberShareHandler
-import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.navigation.PreferencesManagerEntryPoint
+import com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint
+import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.theme.ContentBottomPadding
+import com.sukoon.music.ui.theme.ContentTopPadding
+import com.sukoon.music.ui.util.AlbumSourceType
+import com.sukoon.music.ui.util.buildAlbumHeaderModel
+import com.sukoon.music.ui.util.rememberAlbumPalette
+import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
+import dagger.hilt.android.EntryPointAccessors
 
 /**
  * Album Detail Screen - Shows songs in a specific album.
@@ -94,8 +94,33 @@ fun AlbumDetailScreen(
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val tag = "AlbumDetailScreen"
     val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+
+    val preferencesManager = remember(context) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                context,
+                PreferencesManagerEntryPoint::class.java
+            ).preferencesManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve PreferencesManager entry point", error)
+            null
+        }
+    }
+
+    val remoteConfigManager = remember(context) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                context,
+                RemoteConfigManagerEntryPoint::class.java
+            ).remoteConfigManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve RemoteConfigManager entry point", error)
+            null
+        }
+    }
 
     // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -255,17 +280,32 @@ fun AlbumDetailScreen(
             }
         },
         bottomBar = {
-            if (isSelectionMode && selectedSongIds.isNotEmpty()) {
-                MultiSelectActionBottomBar(
-                    onPlay = { viewModel.playSelectedSongs(songs) },
-                    onAddToPlaylist = {
-                        songsPendingPlaylistAdd = songs.filter { selectedSongIds.contains(it.id) }
-                        showPlaylistDialogForSelection = true
-                    },
-                    onDelete = { songsPendingDeletion = true },
-                    onPlayNext = { viewModel.playSelectedSongsNext(songs) },
-                    onAddToQueue = { viewModel.addSelectedSongsToQueueBatch(songs) }
-                )
+            when {
+                isSelectionMode && selectedSongIds.isNotEmpty() -> {
+                    MultiSelectActionBottomBar(
+                        onPlay = { viewModel.playSelectedSongs(songs) },
+                        onAddToPlaylist = {
+                            songsPendingPlaylistAdd = songs.filter { selectedSongIds.contains(it.id) }
+                            showPlaylistDialogForSelection = true
+                        },
+                        onDelete = { songsPendingDeletion = true },
+                        onPlayNext = { viewModel.playSelectedSongsNext(songs) },
+                        onAddToQueue = { viewModel.addSelectedSongsToQueueBatch(songs) }
+                    )
+                }
+                preferencesManager != null && remoteConfigManager != null -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        tonalElevation = 1.dp
+                    ) {
+                        SimpleBannerAd(
+                            adMobManager = viewModel.adMobManager,
+                            preferencesManager = preferencesManager,
+                            remoteConfigManager = remoteConfigManager
+                        )
+                    }
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -291,9 +331,6 @@ fun AlbumDetailScreen(
                             onNavigateToNowPlaying()
                         }
                     }
-                },
-                onToggleLike = { songId, isLiked ->
-                    viewModel.toggleLike(songId, isLiked)
                 },
                 onSortClick = { showSortDialog = true },
                 onSelectionClick = { viewModel.toggleSelectionMode(true) },
@@ -377,18 +414,16 @@ private fun AlbumDetailContent(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     onSongClick: (Song) -> Unit,
-    onToggleLike: (Long, Boolean) -> Unit,
     onSortClick: () -> Unit,
     onSelectionClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
         modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.statusBars),
+            .fillMaxSize(),
         contentPadding = PaddingValues(
             top = ContentTopPadding,
-            bottom = 16.dp + ContentBottomPadding,
+            bottom = 8.dp + ContentBottomPadding,
             start = 0.dp,
             end = 0.dp
         )
@@ -408,16 +443,12 @@ private fun AlbumDetailContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = androidx.compose.ui.res.pluralStringResource(
-                            com.sukoon.music.R.plurals.common_song_count,
-                            album.songCount,
-                            album.songCount
-                        ),
+                        text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_tab_songs),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -439,39 +470,6 @@ private fun AlbumDetailContent(
             }
         }
 
-        // Play/Shuffle Buttons Row - hide in selection mode
-        if (!isSelectionMode) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = onShuffle,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Shuffle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle), color = MaterialTheme.colorScheme.onSurface)
-                    }
-                    Button(
-                        onClick = onPlayAll,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.PlayCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play), color = MaterialTheme.colorScheme.onSurface)
-                    }
-                }
-            }
-        }
-
         // Song List
         if (songs.isEmpty()) {
             item {
@@ -483,14 +481,14 @@ private fun AlbumDetailContent(
                 key = { _, song -> song.id }
             ) { index, song ->
                 AlbumSongItemRow(
+                    index = index + 1,
                     song = song,
                     isCurrentlyPlaying = song.id == currentSongId,
                     isPlayingGlobally = isPlayingGlobally,
                     isSelectionMode = isSelectionMode,
                     isSelected = selectedSongIds.contains(song.id),
                     menuHandler = menuHandler,
-                    onClick = { onSongClick(song) },
-                    onToggleLike = { onToggleLike(song.id, song.isLiked) }
+                    onClick = { onSongClick(song) }
                 )
             }
         }
@@ -503,16 +501,35 @@ private fun AlbumHeader(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit
 ) {
+    val palette = rememberAlbumPalette(album.albumArtUri)
+    val songCountLabel = androidx.compose.ui.res.pluralStringResource(
+        R.plurals.common_song_count,
+        album.songCount,
+        album.songCount
+    )
+    val headerModel = buildAlbumHeaderModel(
+        album = album,
+        songCountLabel = songCountLabel,
+        unknownAlbumLabel = androidx.compose.ui.res.stringResource(R.string.library_album_detail_unknown_album),
+        unknownArtistLabel = androidx.compose.ui.res.stringResource(R.string.now_playing_unknown_artist),
+        unknownYearLabel = androidx.compose.ui.res.stringResource(R.string.library_album_detail_unknown_year)
+    )
+
+    val sourceLabel = when (headerModel.sourceType) {
+        AlbumSourceType.TAGGED_ALBUM -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_album)
+        AlbumSourceType.FOLDER_INFERRED -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_folder)
+        AlbumSourceType.ARTIST_SCOPED -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_artist)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp, bottom = 16.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Album Cover
         Card(
-            modifier = Modifier.size(220.dp),
-            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.size(216.dp),
+            shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
             Box(
@@ -549,49 +566,120 @@ private fun AlbumHeader(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Album Title
+        Spacer(modifier = Modifier.height(18.dp))
         Text(
-            text = album.title,
+            text = headerModel.title,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
         )
 
         Spacer(modifier = Modifier.height(4.dp))
-
-        // Artist
         Text(
-            text = album.artist,
-            style = MaterialTheme.typography.titleMedium,
+            text = headerModel.metadataLine,
+            style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
+
+        Spacer(modifier = Modifier.height(10.dp))
+        Surface(
+            color = palette.mutedLight.copy(alpha = 0.38f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(
+                text = sourceLabel,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onShuffle,
+                enabled = album.songCount > 0,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(androidx.compose.ui.res.stringResource(R.string.common_shuffle))
+            }
+
+            Button(
+                onClick = onPlayAll,
+                enabled = album.songCount > 0,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(48.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.vibrant,
+                    contentColor = Color.White
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = androidx.compose.ui.res.stringResource(R.string.common_play_all),
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
     }
 }
 
 @Composable
 private fun AlbumSongItemRow(
+    index: Int,
     song: Song,
     isCurrentlyPlaying: Boolean,
     isPlayingGlobally: Boolean,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     menuHandler: SongMenuHandler,
-    onClick: () -> Unit,
-    onToggleLike: () -> Unit
+    onClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val unknownArtistLabel = androidx.compose.ui.res.stringResource(R.string.now_playing_unknown_artist)
+    val trimmedArtist = song.artist.trim()
+    val displayArtist = when {
+        trimmedArtist.isEmpty() -> unknownArtistLabel
+        trimmedArtist.equals(song.title.trim(), ignoreCase = true) -> unknownArtistLabel
+        trimmedArtist.equals("<unknown>", ignoreCase = true) -> unknownArtistLabel
+        else -> trimmedArtist
+    }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Dash, Playing Indicator, or Checkbox
+        Box(
+            modifier = Modifier.width(28.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
         if (isSelectionMode) {
             Icon(
                 imageVector = if (isSelected) Icons.Default.CheckBox else Icons.Default.CheckBoxOutlineBlank,
@@ -614,15 +702,15 @@ private fun AlbumSongItemRow(
             )
         } else {
             Text(
-                text = "-",
-                style = MaterialTheme.typography.bodyLarge,
+                text = index.toString(),
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp))
 
-        // Song Info
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -641,16 +729,23 @@ private fun AlbumSongItemRow(
                     AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = song.artist,
-                style = MaterialTheme.typography.listItemSubtitle,
+                text = displayArtist,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
 
-        // More options button - hide in selection mode
+        Text(
+            text = song.durationFormatted(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp, end = 4.dp)
+        )
+
         if (!isSelectionMode) {
             IconButton(onClick = { showMenu = true }) {
                 Icon(
