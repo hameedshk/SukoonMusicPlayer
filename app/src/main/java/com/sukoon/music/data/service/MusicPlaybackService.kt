@@ -9,6 +9,7 @@ import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.AudioDeviceInfo
 import android.graphics.Bitmap
 import android.media.AudioManager
 import android.os.Build
@@ -77,13 +78,20 @@ class MusicPlaybackService : MediaSessionService() {
     // Audio focus state tracking
     private enum class PauseReason {
         NONE,                    // Not paused or paused by user
-        AUDIO_FOCUS_LOSS,        // Paused due to permanent audio focus loss
+        AUDIO_FOCUS_LOSS_TRANSIENT, // Paused due to transient audio focus loss (Android Auto handoff, prompts)
+        AUDIO_FOCUS_LOSS_PERMANENT, // Paused due to permanent audio focus loss
         AUDIO_BECOMING_NOISY,    // Paused due to headphones unplugging
         USER_PAUSE               // Explicitly paused by user
     }
 
     private var currentPauseReason = PauseReason.NONE
     private var currentAudioFocusState = AudioManager.AUDIOFOCUS_NONE
+    private var wasPlayingBeforeFocusLoss = false
+    private var lastPlayWhenReady = false
+    private var lastAndroidAutoControllerSeenAtMs: Long = 0L
+    private var lastExternalControllerSeenAtMs: Long = 0L
+    private var lastForcedRecoveryAtMs: Long = 0L
+    private var lastServiceStartAtMs: Long = 0L
     private var audioManager: AudioManager? = null
 
     // Volume state for ducking
@@ -101,11 +109,19 @@ class MusicPlaybackService : MediaSessionService() {
     private var sleepTimerJob: Job? = null
     private var sleepTimerObserverJob: Job? = null
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var playerListenersAttached = false
+    private var sessionRegistered = false
 
     companion object {
         private const val NOTIFICATION_ID = 101
         private const val CHANNEL_ID = "sukoon_music_playback"
         private const val DUCK_VOLUME = 0.2f // 20% volume when ducked
+        private const val ANDROID_AUTO_ACTIVE_WINDOW_MS = 15_000L
+        private const val EXTERNAL_CONTROLLER_ACTIVE_WINDOW_MS = 20_000L
+        private const val NOISY_ROUTE_SETTLE_DELAY_MS = 400L
+        private const val FOCUS_RECOVERY_DELAY_MS = 500L
+        private const val FORCED_RECOVERY_COOLDOWN_MS = 10_000L
+        private const val SERVICE_START_RECOVERY_WINDOW_MS = 20_000L
     }
 
     override fun onCreate() {
@@ -119,7 +135,10 @@ class MusicPlaybackService : MediaSessionService() {
             initializePlayer()
 
             // Register MediaSession with the service for Android Auto discovery
-            addSession(mediaSession)
+            if (!sessionRegistered) {
+                addSession(mediaSession)
+                sessionRegistered = true
+            }
 
             registerAudioNoisyReceiver()
             observeResumeOnAudioFocusSetting()
@@ -167,14 +186,11 @@ class MusicPlaybackService : MediaSessionService() {
             AudioManager.AUDIOFOCUS_GAIN
         )
 
-        // Add listener to track audio focus changes
-        player.addListener(audioFocusListener)
+        lastPlayWhenReady = player.playWhenReady
+        attachPlayerListenersIfNeeded()
 
         // Initialize crossfade manager
         crossfadeManager = com.sukoon.music.data.audio.CrossfadeManager(player, scope)
-
-        // Add listener for crossfade transitions
-        player.addListener(crossfadeListener)
 
         // Observe crossfade setting
         observeCrossfadeSetting()
@@ -435,30 +451,49 @@ class MusicPlaybackService : MediaSessionService() {
     /**
      * Audio focus change listener to handle focus gain and resumption.
      * Only resumes if:
-     * - Feature is enabled
-     * - Pause reason was AUDIO_FOCUS_LOSS (not user pause or headphone unplug)
+     * - Pause reason is transient focus loss (always) OR permanent focus loss (if setting enabled)
      * - Player is not already playing
      */
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
+        currentAudioFocusState = focusChange
         when (focusChange) {
             AudioManager.AUDIOFOCUS_GAIN -> {
-                // Audio focus regained
-                if (resumeOnAudioFocus &&
-                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS &&
-                    !player.isPlaying) {
-                    DevLogger.d("MusicPlaybackService", "Audio focus regained, resuming playback")
+                if (isDucked) {
+                    player.volume = normalVolume
+                    isDucked = false
+                }
+
+                val shouldResumeFromTransientLoss =
+                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT &&
+                        wasPlayingBeforeFocusLoss &&
+                        !player.isPlaying
+                val shouldResumeFromPermanentLoss =
+                    (resumeOnAudioFocus || isAndroidAutoRecentlyActive()) &&
+                        currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                        !player.isPlaying
+
+                if (shouldResumeFromTransientLoss || shouldResumeFromPermanentLoss) {
+                    DevLogger.d(
+                        "MusicPlaybackService",
+                        "FOCUS_GAIN_RESUME: reason=${currentPauseReason.name}, wasPlayingBeforeLoss=$wasPlayingBeforeFocusLoss"
+                    )
                     player.play()
                     currentPauseReason = PauseReason.NONE
+                    wasPlayingBeforeFocusLoss = false
                 } else {
-                    val reason = if (!resumeOnAudioFocus) "feature disabled"
-                                 else if (currentPauseReason != PauseReason.AUDIO_FOCUS_LOSS) "pause reason is ${currentPauseReason.name}"
-                                 else "already playing"
-                    DevLogger.d("MusicPlaybackService", "Audio focus regained but not resuming ($reason)")
+                    DevLogger.d(
+                        "MusicPlaybackService",
+                        "FOCUS_GAIN_NO_RESUME: reason=${currentPauseReason.name}, resumeOnAudioFocus=$resumeOnAudioFocus, androidAutoRecent=${isAndroidAutoRecentlyActive()}, wasPlayingBeforeLoss=$wasPlayingBeforeFocusLoss, isPlaying=${player.isPlaying}"
+                    )
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-                // Transient focus loss - ignore for resume purposes
-                DevLogger.d("MusicPlaybackService", "Transient audio focus loss, ignoring")
+                wasPlayingBeforeFocusLoss = player.isPlaying || player.playWhenReady
+                currentPauseReason = PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT
+                DevLogger.d(
+                    "MusicPlaybackService",
+                    "FOCUS_LOSS_TRANSIENT: wasPlayingBeforeLoss=$wasPlayingBeforeFocusLoss"
+                )
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                 // Can duck - reduce volume instead of pausing
@@ -467,6 +502,14 @@ class MusicPlaybackService : MediaSessionService() {
                 if (player.isPlaying) {
                     player.volume = DUCK_VOLUME
                 }
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                wasPlayingBeforeFocusLoss = player.isPlaying || player.playWhenReady
+                currentPauseReason = PauseReason.AUDIO_FOCUS_LOSS_PERMANENT
+                DevLogger.d(
+                    "MusicPlaybackService",
+                    "FOCUS_LOSS_PERMANENT: wasPlayingBeforeLoss=$wasPlayingBeforeFocusLoss"
+                )
             }
         }
     }
@@ -480,21 +523,77 @@ class MusicPlaybackService : MediaSessionService() {
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
             when (reason) {
                 Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> {
-                    // Audio focus was lost - set pause reason to enable conditional resume
-                    currentPauseReason = PauseReason.AUDIO_FOCUS_LOSS
-                    DevLogger.d("MusicPlaybackService", "Audio focus lost, set pause reason to AUDIO_FOCUS_LOSS")
+                    if (!playWhenReady) {
+                        val wasPlayingBeforePause = lastPlayWhenReady || player.isPlaying || wasPlayingBeforeFocusLoss
+                        if (wasPlayingBeforePause) {
+                            wasPlayingBeforeFocusLoss = true
+                        }
+                        val resolvedPauseReason = when (currentAudioFocusState) {
+                            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT,
+                            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT
+                            AudioManager.AUDIOFOCUS_LOSS -> PauseReason.AUDIO_FOCUS_LOSS_PERMANENT
+                            else -> if (wasPlayingBeforePause || isAndroidAutoRecentlyActive()) {
+                                PauseReason.AUDIO_FOCUS_LOSS_TRANSIENT
+                            } else {
+                                PauseReason.AUDIO_FOCUS_LOSS_PERMANENT
+                            }
+                        }
+                        currentPauseReason = resolvedPauseReason
+                        DevLogger.d(
+                            "MusicPlaybackService",
+                            "PLAYER_FOCUS_PAUSE: reason=${resolvedPauseReason.name}, focusState=$currentAudioFocusState, wasPlayingBeforePause=$wasPlayingBeforePause, androidAutoRecent=${isAndroidAutoRecentlyActive()}"
+                        )
+
+                        if (resolvedPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                            wasPlayingBeforePause &&
+                            shouldRecoverAfterPermanentFocusLoss()
+                        ) {
+                            serviceScope.launch {
+                                delay(FOCUS_RECOVERY_DELAY_MS)
+                                if (!player.isPlaying &&
+                                    currentPauseReason == PauseReason.AUDIO_FOCUS_LOSS_PERMANENT &&
+                                    shouldRecoverAfterPermanentFocusLoss()
+                                ) {
+                                    val focusRequested = requestAudioFocusForPlayback()
+                                    lastForcedRecoveryAtMs = System.currentTimeMillis()
+                                    DevLogger.d(
+                                        "MusicPlaybackService",
+                                        "FORCED_ANDROID_AUTO_RECOVERY_PLAY: focusRequested=$focusRequested"
+                                    )
+                                    player.play()
+                                    currentPauseReason = PauseReason.NONE
+                                    wasPlayingBeforeFocusLoss = false
+                                }
+                            }
+                        }
+                    }
                 }
                 Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> {
                     // User explicitly played/paused - mark reason as user pause
                     if (!playWhenReady) {
                         currentPauseReason = PauseReason.USER_PAUSE
+                        wasPlayingBeforeFocusLoss = false
                         DevLogger.d("MusicPlaybackService", "User paused playback")
                     } else {
                         currentPauseReason = PauseReason.NONE
+                        wasPlayingBeforeFocusLoss = false
                         DevLogger.d("MusicPlaybackService", "User resumed playback")
                     }
                 }
+                Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE -> {
+                    if (playWhenReady) {
+                        currentPauseReason = PauseReason.NONE
+                        wasPlayingBeforeFocusLoss = false
+                    }
+                }
+                else -> {
+                    if (playWhenReady) {
+                        currentPauseReason = PauseReason.NONE
+                        wasPlayingBeforeFocusLoss = false
+                    }
+                }
             }
+            lastPlayWhenReady = playWhenReady
         }
 
         override fun onPlayerErrorChanged(error: PlaybackException?) {
@@ -536,11 +635,26 @@ class MusicPlaybackService : MediaSessionService() {
                 if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
                     // Only pause if setting is enabled and playback is active
                     if (pauseOnAudioNoisy && player.isPlaying) {
-                        DevLogger.d("MusicPlaybackService", "Headphones disconnected, pausing playback")
-                        player.pause()
+                        serviceScope.launch {
+                            // Give route handoff a short window (Android Auto/Bluetooth connect path)
+                            delay(NOISY_ROUTE_SETTLE_DELAY_MS)
+                            val externalOutputActive = hasExternalAudioOutput()
+                            if (isAndroidAutoRecentlyActive() || externalOutputActive) {
+                                DevLogger.d(
+                                    "MusicPlaybackService",
+                                    "NOISY_IGNORED_FOR_ROUTE_HANDOFF: androidAutoRecent=${isAndroidAutoRecentlyActive()}, externalOutputActive=$externalOutputActive"
+                                )
+                                return@launch
+                            }
+                            if (player.isPlaying) {
+                                DevLogger.d("MusicPlaybackService", "Headphones disconnected, pausing playback")
+                                player.pause()
 
-                        // Mark pause reason as headphone unplug - DO NOT resume on this
-                        currentPauseReason = PauseReason.AUDIO_BECOMING_NOISY
+                                // Mark pause reason as headphone unplug - DO NOT resume on this
+                                currentPauseReason = PauseReason.AUDIO_BECOMING_NOISY
+                                wasPlayingBeforeFocusLoss = false
+                            }
+                        }
                     } else if (!pauseOnAudioNoisy) {
                         DevLogger.d("MusicPlaybackService", "Headphones disconnected, but pause on audio noisy is disabled")
                     } else {
@@ -571,6 +685,20 @@ class MusicPlaybackService : MediaSessionService() {
             }
         }
         audioNoisyReceiver = null
+    }
+
+    private fun attachPlayerListenersIfNeeded() {
+        if (playerListenersAttached) return
+        player.addListener(audioFocusListener)
+        player.addListener(crossfadeListener)
+        playerListenersAttached = true
+    }
+
+    private fun detachPlayerListenersIfNeeded() {
+        if (!playerListenersAttached) return
+        player.removeListener(audioFocusListener)
+        player.removeListener(crossfadeListener)
+        playerListenersAttached = false
     }
 
     /**
@@ -645,7 +773,127 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? {
+        markControllerActivity(controllerInfo.packageName)
         return mediaSession
+    }
+
+    private fun markControllerActivity(packageName: String?) {
+        val pkg = packageName ?: return
+        if (pkg == this.packageName) return
+
+        lastExternalControllerSeenAtMs = System.currentTimeMillis()
+        if (isAndroidAutoController(pkg)) {
+            lastAndroidAutoControllerSeenAtMs = System.currentTimeMillis()
+            AndroidAutoConnectionTracker.markInteraction()
+            DevLogger.d(
+                "MusicPlaybackService",
+                "ANDROID_AUTO_CONTROLLER_CONNECTED: package=$pkg"
+            )
+        } else {
+            DevLogger.d("MusicPlaybackService", "EXTERNAL_MEDIA_CONTROLLER_CONNECTED: package=$pkg")
+        }
+    }
+
+    private fun isAndroidAutoController(packageName: String?): Boolean {
+        val pkg = packageName ?: return false
+        if (pkg == "com.google.android.projection.gearhead") return true
+        if (pkg == "com.google.android.apps.automotive.media") return true
+        if (pkg == "com.android.car.media") return true
+        return pkg.contains("gearhead", ignoreCase = true) ||
+            pkg.contains("automotive", ignoreCase = true) ||
+            pkg.contains(".car.", ignoreCase = true)
+    }
+
+    private fun isAndroidAutoRecentlyActive(): Boolean {
+        val localRecent = if (lastAndroidAutoControllerSeenAtMs <= 0L) {
+            false
+        } else {
+            System.currentTimeMillis() - lastAndroidAutoControllerSeenAtMs <= ANDROID_AUTO_ACTIVE_WINDOW_MS
+        }
+        return localRecent || AndroidAutoConnectionTracker.isRecent(ANDROID_AUTO_ACTIVE_WINDOW_MS)
+    }
+
+    private fun isExternalControllerRecentlyActive(): Boolean {
+        if (lastExternalControllerSeenAtMs <= 0L) return false
+        return System.currentTimeMillis() - lastExternalControllerSeenAtMs <= EXTERNAL_CONTROLLER_ACTIVE_WINDOW_MS
+    }
+
+    private fun isRecentServiceStartActivity(): Boolean {
+        if (lastServiceStartAtMs <= 0L) return false
+        return System.currentTimeMillis() - lastServiceStartAtMs <= SERVICE_START_RECOVERY_WINDOW_MS
+    }
+
+    private fun shouldRecoverAfterPermanentFocusLoss(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastForcedRecoveryAtMs < FORCED_RECOVERY_COOLDOWN_MS) {
+            DevLogger.d("MusicPlaybackService", "Skip forced recovery: cooldown active")
+            return false
+        }
+
+        val hasControllerSignal = isAndroidAutoRecentlyActive() || isExternalControllerRecentlyActive()
+        val hasServiceSignal = isRecentServiceStartActivity()
+
+        val manager = audioManager ?: return true
+        val mode = manager.mode
+        if (mode == AudioManager.MODE_IN_CALL || mode == AudioManager.MODE_IN_COMMUNICATION) {
+            DevLogger.d("MusicPlaybackService", "Skip forced recovery: in-call mode")
+            return false
+        }
+        // Avoid fighting another active media app.
+        if (manager.isMusicActive && !player.isPlaying && !hasControllerSignal && !hasServiceSignal) {
+            DevLogger.d("MusicPlaybackService", "Skip forced recovery: another app is active")
+            return false
+        }
+        if (currentPauseReason == PauseReason.USER_PAUSE || currentPauseReason == PauseReason.AUDIO_BECOMING_NOISY) {
+            DevLogger.d("MusicPlaybackService", "Skip forced recovery: pause reason=${currentPauseReason.name}")
+            return false
+        }
+        if (!hasControllerSignal && !hasServiceSignal) {
+            DevLogger.d("MusicPlaybackService", "Forced recovery without explicit handoff marker (global fallback)")
+        } else if (!hasControllerSignal && hasServiceSignal) {
+            DevLogger.d("MusicPlaybackService", "Forced recovery using service-start handoff signal")
+        }
+        return true
+    }
+
+    private fun requestAudioFocusForPlayback(): Boolean {
+        val manager = audioManager ?: return false
+        return try {
+            val result = manager.requestAudioFocus(
+                audioFocusChangeListener,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+            result == AudioManager.AUDIOFOCUS_REQUEST_GRANTED
+        } catch (e: Exception) {
+            DevLogger.e("MusicPlaybackService", "Audio focus request failed during recovery", e)
+            false
+        }
+    }
+
+    private fun hasExternalAudioOutput(): Boolean {
+        val manager = audioManager ?: return false
+        return try {
+            manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { device ->
+                when (device.type) {
+                    AudioDeviceInfo.TYPE_WIRED_HEADSET,
+                    AudioDeviceInfo.TYPE_WIRED_HEADPHONES,
+                    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP,
+                    AudioDeviceInfo.TYPE_BLUETOOTH_SCO,
+                    AudioDeviceInfo.TYPE_USB_HEADSET,
+                    AudioDeviceInfo.TYPE_USB_DEVICE,
+                    AudioDeviceInfo.TYPE_HDMI,
+                    AudioDeviceInfo.TYPE_AUX_LINE,
+                    AudioDeviceInfo.TYPE_BLE_HEADSET,
+                    AudioDeviceInfo.TYPE_BLE_SPEAKER,
+                    AudioDeviceInfo.TYPE_BLE_BROADCAST -> true
+                    else -> false
+                }
+            }
+        } catch (e: Exception) {
+            DevLogger.e("MusicPlaybackService", "Failed to inspect audio output devices", e)
+            false
+        }
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
@@ -661,6 +909,7 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        lastServiceStartAtMs = System.currentTimeMillis()
         // Log service start for debugging
         DevLogger.d("MusicPlaybackService", "onStartCommand: action=${intent?.action}, flags=$flags, startId=$startId")
 
@@ -713,12 +962,13 @@ class MusicPlaybackService : MediaSessionService() {
         }
 
         try {
-            player.removeListener(audioFocusListener)
-            player.removeListener(crossfadeListener)
-            player.release()
-            mediaSession.release()
+            detachPlayerListenersIfNeeded()
+            if (sessionRegistered) {
+                removeSession(mediaSession)
+                sessionRegistered = false
+            }
         } catch (e: Exception) {
-            DevLogger.e("MusicPlaybackService", "Error releasing player/session", e)
+            DevLogger.e("MusicPlaybackService", "Error during service cleanup", e)
         }
 
         sleepTimerObserverJob?.cancel()

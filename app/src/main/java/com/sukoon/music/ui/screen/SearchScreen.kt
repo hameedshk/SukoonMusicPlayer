@@ -511,7 +511,11 @@ private fun SearchResultItem(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+        color = if (isCurrentSong) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        } else {
+            MaterialTheme.colorScheme.surfaceContainerLow
+        }
     ) {
         Row(
             modifier = Modifier

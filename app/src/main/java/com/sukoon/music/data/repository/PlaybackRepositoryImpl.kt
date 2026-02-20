@@ -153,20 +153,25 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-            when (reason) {
-                Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> {
-                    pausedByAudioFocusLoss = true
-                    pausedByNoisyAudio = false
-                }
-                Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> {
-                    pausedByNoisyAudio = true
-                    pausedByAudioFocusLoss = false
-                }
-                Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE,
-                Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> {
-                    // Explicit user action - clear flags
-                    pausedByAudioFocusLoss = false
-                    pausedByNoisyAudio = false
+            if (playWhenReady) {
+                pausedByAudioFocusLoss = false
+                pausedByNoisyAudio = false
+            } else {
+                when (reason) {
+                    Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS -> {
+                        pausedByAudioFocusLoss = true
+                        pausedByNoisyAudio = false
+                    }
+                    Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_BECOMING_NOISY -> {
+                        pausedByNoisyAudio = true
+                        pausedByAudioFocusLoss = false
+                    }
+                    Player.PLAY_WHEN_READY_CHANGE_REASON_REMOTE,
+                    Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST -> {
+                        // Explicit user/remote action - clear focus/noisy flags
+                        pausedByAudioFocusLoss = false
+                        pausedByNoisyAudio = false
+                    }
                 }
             }
             updatePlaybackState()

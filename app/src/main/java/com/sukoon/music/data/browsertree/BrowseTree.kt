@@ -53,80 +53,40 @@ class BrowseTree @Inject constructor(
         }
     }
 
+    fun getRootFallbackChildren(): List<MediaItem> {
+        return buildRootCategories(includeRecentlyPlayed = false)
+    }
+
     private suspend fun getRootChildren(): List<MediaItem> {
-        val children = mutableListOf<MediaItem>()
-
-        // Add browsable categories
-        children.add(
-            MediaItem.Builder()
-                .setMediaId(QUEUE_ID)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle("Queue")
-                        .setIsBrowsable(true)
-                        .setIsPlayable(false)
-                        .build()
-                )
-                .build()
-        )
-
-        children.add(
-            MediaItem.Builder()
-                .setMediaId(PLAYLISTS_ID)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle("Playlists")
-                        .setIsBrowsable(true)
-                        .setIsPlayable(false)
-                        .build()
-                )
-                .build()
-        )
-
-        children.add(
-            MediaItem.Builder()
-                .setMediaId(ALBUMS_ID)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle("Albums")
-                        .setIsBrowsable(true)
-                        .setIsPlayable(false)
-                        .build()
-                )
-                .build()
-        )
-
-        children.add(
-            MediaItem.Builder()
-                .setMediaId(ARTISTS_ID)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle("Artists")
-                        .setIsBrowsable(true)
-                        .setIsPlayable(false)
-                        .build()
-                )
-                .build()
-        )
-
         // Only show Recently Played if NOT in private session
         val userPrefs = preferencesManager.userPreferencesFlow.first()
-        if (!userPrefs.isPrivateSessionEnabled) {
-            children.add(
-                MediaItem.Builder()
-                    .setMediaId(RECENTLY_PLAYED_ID)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle("Recently Played")
-                            .setIsBrowsable(true)
-                            .setIsPlayable(false)
-                            .build()
-                    )
+        return buildRootCategories(includeRecentlyPlayed = !userPrefs.isPrivateSessionEnabled)
+    }
+
+    private fun buildRootCategories(includeRecentlyPlayed: Boolean): List<MediaItem> {
+        val children = mutableListOf(
+            createBrowsableCategory(QUEUE_ID, "Queue"),
+            createBrowsableCategory(PLAYLISTS_ID, "Playlists"),
+            createBrowsableCategory(ALBUMS_ID, "Albums"),
+            createBrowsableCategory(ARTISTS_ID, "Artists")
+        )
+        if (includeRecentlyPlayed) {
+            children.add(createBrowsableCategory(RECENTLY_PLAYED_ID, "Recently Played"))
+        }
+        return children
+    }
+
+    private fun createBrowsableCategory(mediaId: String, title: String): MediaItem {
+        return MediaItem.Builder()
+            .setMediaId(mediaId)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(title)
+                    .setIsBrowsable(true)
+                    .setIsPlayable(false)
                     .build()
             )
-        }
-
-        return children
+            .build()
     }
 
     private suspend fun getQueueChildren(): List<MediaItem> {

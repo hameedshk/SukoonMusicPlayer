@@ -4,7 +4,9 @@ import com.sukoon.music.domain.repository.PlaylistRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.domain.repository.QueueRepository
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.domain.model.UserPreferences
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
@@ -27,7 +29,7 @@ class BrowseTreeTest {
 
     @Test
     fun `getRootChildren includes Queue, Playlists, Albums, Artists when not in private session`() = runTest {
-        coEvery { preferencesManager.isPrivateSession() } returns false
+        every { preferencesManager.userPreferencesFlow } returns flowOf(UserPreferences(isPrivateSessionEnabled = false))
 
         val children = browseTree.getChildren(BrowseTree.ROOT_ID)
 
@@ -41,7 +43,7 @@ class BrowseTreeTest {
 
     @Test
     fun `getRootChildren excludes Recently Played in private session`() = runTest {
-        coEvery { preferencesManager.isPrivateSession() } returns true
+        every { preferencesManager.userPreferencesFlow } returns flowOf(UserPreferences(isPrivateSessionEnabled = true))
 
         val children = browseTree.getChildren(BrowseTree.ROOT_ID)
 
@@ -52,11 +54,19 @@ class BrowseTreeTest {
 
     @Test
     fun `getRootChildren returns empty list on error`() = runTest {
-        coEvery { preferencesManager.isPrivateSession() } throws Exception("Database error")
+        every { preferencesManager.userPreferencesFlow } throws Exception("DataStore error")
 
         val children = browseTree.getChildren(BrowseTree.ROOT_ID)
 
         assertEquals(0, children.size, "Should return empty list on error")
+    }
+
+    @Test
+    fun `getRootFallbackChildren excludes recently played`() {
+        val children = browseTree.getRootFallbackChildren()
+        val titles = children.map { it.mediaMetadata?.title?.toString() }
+
+        assertEquals(listOf("Queue", "Playlists", "Albums", "Artists"), titles)
     }
 
     @Test

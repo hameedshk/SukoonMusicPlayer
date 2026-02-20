@@ -764,6 +764,14 @@ fun StandardSongListItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isCurrentSong) {
+                    MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                } else {
+                    Color.Transparent
+                }
+            )
             .clickable(onClick = onClick) // enhanced clickable with long press could be added here if needed
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically

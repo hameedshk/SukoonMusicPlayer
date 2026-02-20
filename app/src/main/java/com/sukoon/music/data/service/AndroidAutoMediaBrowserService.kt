@@ -4,14 +4,17 @@ import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import androidx.media.MediaBrowserServiceCompat
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import com.sukoon.music.data.browsertree.BrowseTree
-import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 
 /**
@@ -27,17 +30,27 @@ class AndroidAutoMediaBrowserService : MediaBrowserServiceCompat() {
     @Inject
     lateinit var browseTree: BrowseTree
 
-    @Inject
-    @ApplicationScope
-    lateinit var scope: CoroutineScope
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var isSessionTokenReady = false
 
-    @OptIn(UnstableApi::class)
+    companion object {
+        private const val BROWSE_TIMEOUT_MS = 2500L
+        private const val EXTRA_CONTENT_STYLE_SUPPORTED = "android.media.browse.CONTENT_STYLE_SUPPORTED"
+        private const val EXTRA_CONTENT_STYLE_BROWSABLE_HINT = "android.media.browse.CONTENT_STYLE_BROWSABLE_HINT"
+        private const val EXTRA_CONTENT_STYLE_PLAYABLE_HINT = "android.media.browse.CONTENT_STYLE_PLAYABLE_HINT"
+        private const val CONTENT_STYLE_LIST = 1
+        private const val CONTENT_STYLE_GRID = 2
+    }
+
     override fun onCreate() {
         super.onCreate()
+        AndroidAutoConnectionTracker.markInteraction()
         try {
             setSessionToken(mediaSession.sessionCompatToken)
+            isSessionTokenReady = true
             DevLogger.d("AndroidAutoMediaBrowserService", "Service initialized with MediaSession token")
         } catch (e: Exception) {
+            isSessionTokenReady = false
             DevLogger.e("AndroidAutoMediaBrowserService", "Failed to initialize", e)
         }
     }
@@ -50,7 +63,15 @@ class AndroidAutoMediaBrowserService : MediaBrowserServiceCompat() {
         clientUid: Int,
         rootHints: Bundle?
     ): BrowserRoot {
-        return BrowserRoot(BrowseTree.ROOT_ID, null)
+        AndroidAutoConnectionTracker.markInteraction()
+        ensureSessionTokenReady()
+        if (!isSessionTokenReady) {
+            DevLogger.d(
+                "AndroidAutoMediaBrowserService",
+                "ROOT_REQUEST_BEFORE_TOKEN_READY: package=$clientPackageName uid=$clientUid"
+            )
+        }
+        return BrowserRoot(BrowseTree.ROOT_ID, buildRootExtras())
     }
 
     /**
@@ -60,23 +81,88 @@ class AndroidAutoMediaBrowserService : MediaBrowserServiceCompat() {
         parentId: String,
         result: Result<MutableList<MediaBrowserCompat.MediaItem>>
     ) {
+        AndroidAutoConnectionTracker.markInteraction()
         result.detach()
-        scope.launch {
+        serviceScope.launch {
+            ensureSessionTokenReady()
+            var resultDelivered = false
+            fun sendResultOnce(items: MutableList<MediaBrowserCompat.MediaItem>) {
+                if (resultDelivered) return
+                resultDelivered = true
+                result.sendResult(items)
+            }
+
+            if (!isSessionTokenReady) {
+                DevLogger.d(
+                    "AndroidAutoMediaBrowserService",
+                    "CHILDREN_REQUEST_BEFORE_TOKEN_READY: parentId=$parentId"
+                )
+                sendResultOnce(if (parentId == BrowseTree.ROOT_ID) fallbackRootChildren() else mutableListOf())
+                return@launch
+            }
+
             try {
-                val children = browseTree.getChildren(parentId)
-                    .map { it.toBrowserItem() }
-                    .toMutableList()
-                result.sendResult(children)
+                val children = withContext(Dispatchers.IO) {
+                    withTimeoutOrNull(BROWSE_TIMEOUT_MS) {
+                        browseTree.getChildren(parentId)
+                    }
+                }
+                val resolvedChildren = when {
+                    children == null -> {
+                        DevLogger.d(
+                            "AndroidAutoMediaBrowserService",
+                            "BROWSE_TIMEOUT: parentId=$parentId timeoutMs=$BROWSE_TIMEOUT_MS"
+                        )
+                        if (parentId == BrowseTree.ROOT_ID) browseTree.getRootFallbackChildren() else emptyList()
+                    }
+                    children.isEmpty() && parentId == BrowseTree.ROOT_ID -> {
+                        DevLogger.d(
+                            "AndroidAutoMediaBrowserService",
+                            "BROWSE_EMPTY_ROOT_FALLBACK: parentId=$parentId"
+                        )
+                        browseTree.getRootFallbackChildren()
+                    }
+                    else -> children
+                }
+
+                sendResultOnce(resolvedChildren.map { it.toBrowserItem() }.toMutableList())
             } catch (e: Exception) {
                 DevLogger.e("AndroidAutoMediaBrowserService", "Failed to load children for $parentId", e)
-                result.sendResult(mutableListOf())
+                sendResultOnce(if (parentId == BrowseTree.ROOT_ID) fallbackRootChildren() else mutableListOf())
             }
         }
     }
 
     override fun onDestroy() {
+        serviceScope.cancel()
         super.onDestroy()
         DevLogger.d("AndroidAutoMediaBrowserService", "Service destroyed")
+    }
+
+    private fun buildRootExtras(): Bundle {
+        return Bundle().apply {
+            putBoolean(EXTRA_CONTENT_STYLE_SUPPORTED, true)
+            putInt(EXTRA_CONTENT_STYLE_BROWSABLE_HINT, CONTENT_STYLE_GRID)
+            putInt(EXTRA_CONTENT_STYLE_PLAYABLE_HINT, CONTENT_STYLE_LIST)
+        }
+    }
+
+    private fun fallbackRootChildren(): MutableList<MediaBrowserCompat.MediaItem> {
+        return browseTree.getRootFallbackChildren()
+            .map { it.toBrowserItem() }
+            .toMutableList()
+    }
+
+    private fun ensureSessionTokenReady() {
+        if (isSessionTokenReady) return
+        try {
+            setSessionToken(mediaSession.sessionCompatToken)
+            isSessionTokenReady = true
+            DevLogger.d("AndroidAutoMediaBrowserService", "Session token re-initialized")
+        } catch (e: Exception) {
+            isSessionTokenReady = false
+            DevLogger.e("AndroidAutoMediaBrowserService", "Session token initialization retry failed", e)
+        }
     }
 
     private fun androidx.media3.common.MediaItem.toBrowserItem(): MediaBrowserCompat.MediaItem {

@@ -352,7 +352,11 @@ private fun SongListItem(
     Surface(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
+        color = if (isCurrentSong) {
+            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+        } else {
+            MaterialTheme.colorScheme.surface
+        }
     ) {
         Row(
             modifier = Modifier

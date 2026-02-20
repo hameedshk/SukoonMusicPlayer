@@ -5,12 +5,13 @@ import android.net.Uri
 import android.os.Build
 import android.provider.OpenableColumns
 import com.google.android.gms.tasks.Task
-import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
 import com.sukoon.music.BuildConfig
 import com.sukoon.music.data.preferences.PreferencesManager
+import com.sukoon.music.data.remote.dto.FeedbackDocument
+import com.sukoon.music.data.remote.dto.FeedbackSnapshot
 import com.sukoon.music.domain.model.FeedbackAttachment
 import com.sukoon.music.domain.model.FeedbackCategory
 import com.sukoon.music.domain.repository.FeedbackRepository
@@ -45,27 +46,27 @@ class FeedbackRepositoryImpl @Inject constructor(
         return@withContext try {
             val userId = preferencesManager.getOrCreateAnonymousUserId()
             val uploadedAttachment = attachment?.let { uploadAttachment(userId, it) }
-
-            val feedbackData = mutableMapOf<String, Any?>(
-                "userId" to userId,
-                "category" to category.displayName,
-                "details" to details,
-                "appVersion" to BuildConfig.VERSION_NAME,
-                "androidVersion" to Build.VERSION.SDK_INT,
-                "deviceModel" to "${Build.MANUFACTURER} ${Build.MODEL}",
-                "timestamp" to FieldValue.serverTimestamp(),
-                "status" to "NEW",
-                "consentGiven" to consentGiven,
-                "hasAttachment" to (uploadedAttachment != null)
-            )
-
-            if (uploadedAttachment != null) {
-                feedbackData["screenshotPath"] = uploadedAttachment.path
-                uploadedAttachment.downloadUrl?.let { feedbackData["screenshotDownloadUrl"] = it }
-                feedbackData["screenshotFileName"] = uploadedAttachment.fileName
-                feedbackData["screenshotMimeType"] = uploadedAttachment.mimeType
-                uploadedAttachment.sizeBytes?.let { feedbackData["screenshotSizeBytes"] = it }
+            val snapshot = uploadedAttachment?.let {
+                FeedbackSnapshot(
+                    path = it.path,
+                    downloadUrl = it.downloadUrl,
+                    fileName = it.fileName,
+                    mimeType = it.mimeType,
+                    sizeBytes = it.sizeBytes
+                )
             }
+            val feedbackData = FeedbackDocument(
+                userId = userId,
+                category = category.displayName,
+                details = details,
+                appVersion = BuildConfig.VERSION_NAME,
+                androidVersion = Build.VERSION.SDK_INT,
+                deviceModel = "${Build.MANUFACTURER} ${Build.MODEL}",
+                status = "NEW",
+                consentGiven = consentGiven,
+                hasAttachment = snapshot != null,
+                snapshot = snapshot
+            )
 
             val writeResult = withTimeoutOrNull(FIRESTORE_TIMEOUT_MS) {
                 awaitTask(feedbackCollection.add(feedbackData))
