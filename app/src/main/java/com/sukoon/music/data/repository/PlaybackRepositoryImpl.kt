@@ -409,11 +409,14 @@ class PlaybackRepositoryImpl @Inject constructor(
         val currentSongBasic = currentMediaItem?.toSong()
 
         _playbackState.update { currentState ->
+            val duration = controller.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+            val currentPosition = controller.currentPosition.coerceIn(0L, duration)
+
             currentState.copy(
                 isPlaying = controller.isPlaying,
                 isLoading = controller.playbackState == Player.STATE_BUFFERING,
-                currentPosition = controller.currentPosition,
-                duration = controller.duration.takeIf { it != C.TIME_UNSET } ?: 0L,
+                currentPosition = currentPosition,
+                duration = duration,
                 currentSong = currentSongBasic,
                 playbackSpeed = controller.playbackParameters.speed,
                 repeatMode = controller.repeatMode.toRepeatMode(),
@@ -422,7 +425,7 @@ class PlaybackRepositoryImpl @Inject constructor(
 
                 // Queue state
                 queue = queue,
-                currentQueueIndex = controller.currentMediaItemIndex,
+                currentQueueIndex = controller.currentMediaItemIndex.coerceAtLeast(-1),
                 currentQueueId = currentSavedQueueId,
                 currentQueueName = currentSourceName ?: if (currentSavedQueueId != null) "Current Queue" else null,
                 queueTimestamp = System.currentTimeMillis(),
@@ -503,7 +506,20 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun seekTo(positionMs: Long) {
-        mediaController?.seekTo(positionMs)
+        val controller = mediaController ?: return
+        val duration = controller.duration.takeIf { it != C.TIME_UNSET } ?: 0L
+
+        // Clamp seek position to valid range
+        val validPosition = positionMs.coerceIn(0L, duration)
+
+        try {
+            controller.seekTo(validPosition)
+        } catch (e: Exception) {
+            _playbackState.update {
+                it.copy(error = "Seek failed: ${e.message}")
+            }
+            DevLogger.e("PlaybackRepository", "Error seeking to $validPosition", e)
+        }
     }
 
     override suspend fun seekToNext() {
@@ -683,16 +699,23 @@ class PlaybackRepositoryImpl @Inject constructor(
         val metadata = mediaMetadata
         val mediaId = mediaId.toLongOrNull() ?: return null
 
+        // Get duration from player if available
+        val duration = if (mediaController != null && mediaController?.currentMediaItem == this) {
+            mediaController?.duration?.takeIf { it != C.TIME_UNSET } ?: 0L
+        } else {
+            0L // Duration will be updated in PlaybackState.duration
+        }
+
         return Song(
             id = mediaId,
             title = metadata.title?.toString() ?: "",
             artist = metadata.artist?.toString() ?: "",
             album = metadata.albumTitle?.toString() ?: "",
-            duration = 0L, // Duration is tracked separately in PlaybackState
+            duration = duration, // Now properly fetched
             uri = localConfiguration?.uri?.toString() ?: "",
             albumArtUri = metadata.artworkUri?.toString(),
-            dateAdded = 0L, // Not available from MediaItem
-            isLiked = false // Not available from MediaItem, should be queried from Room
+            dateAdded = 0L,
+            isLiked = false // Will be updated asynchronously in updatePlaybackState
         )
     }
 
