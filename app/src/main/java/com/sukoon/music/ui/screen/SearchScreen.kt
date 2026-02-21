@@ -593,17 +593,6 @@ private fun SearchResultItem(
                 }
             }
 
-            // Like Button
-            IconButton(onClick = onLikeClick) {
-                AnimatedFavoriteIcon(
-                    isLiked = song.isLiked,
-                    songId = song.id,
-                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    size = 24.dp
-                )
-            }
-            
-             // More options menu
             Box {
                 IconButton(onClick = { showMenu = true }) {
                     Icon(

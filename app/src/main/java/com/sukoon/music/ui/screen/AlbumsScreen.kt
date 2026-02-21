@@ -138,21 +138,6 @@ fun AlbumsScreen(
                         }
                     }
                 )
-            } else {
-                TopAppBar(
-                    title = {
-                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_tab_albums))
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBackClick) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_back)
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
-                )
             }
         },
         bottomBar = {
