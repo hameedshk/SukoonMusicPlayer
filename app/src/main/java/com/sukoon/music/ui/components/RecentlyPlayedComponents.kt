@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -247,6 +248,12 @@ fun RecentlyPlayedAlbumCard(
     album: Album,
     onClick: () -> Unit
 ) {
+    val placeholderSeed = PlaceholderAlbumArt.generateSeed(
+        albumName = album.title,
+        artistName = album.artist,
+        albumId = album.id
+    )
+
     Column(
         modifier = Modifier
             .width(140.dp)
@@ -260,20 +267,19 @@ fun RecentlyPlayedAlbumCard(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                SubcomposeAsyncImage(
-                    model = album.albumArtUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    error = {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(64.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                )
+                if (album.albumArtUri != null) {
+                    SubcomposeAsyncImage(
+                        model = album.albumArtUri,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        error = {
+                            DefaultRecentlyPlayedAlbumArt(seed = placeholderSeed)
+                        }
+                    )
+                } else {
+                    DefaultRecentlyPlayedAlbumArt(seed = placeholderSeed)
+                }
             }
         }
         Spacer(modifier = Modifier.height(SpacingSmall))
@@ -289,6 +295,28 @@ fun RecentlyPlayedAlbumCard(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun DefaultRecentlyPlayedAlbumArt(seed: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(10.dp)
+            .shadow(
+                elevation = 10.dp,
+                shape = RoundedCornerShape(14.dp),
+                clip = false
+            )
+            .clip(RoundedCornerShape(14.dp))
+    ) {
+        PlaceholderAlbumArt.Placeholder(
+            seed = seed,
+            icon = Icons.Default.MusicNote,
+            iconSize = 56,
+            iconOpacity = 0.35f
         )
     }
 }

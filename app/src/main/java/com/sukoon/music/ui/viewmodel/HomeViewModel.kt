@@ -65,6 +65,9 @@ class HomeViewModel @Inject constructor(
         private const val TAG = "HomeViewModel"
     }
 
+    private var homeEntryTimestampMs: Long? = null
+    private var hasLoggedHomeFirstPlayback = false
+
     // Tab State Management (persisted to DataStore, survives app restart)
     private val _selectedTab = MutableStateFlow(HomeTabKey.HOME)
     val selectedTab: StateFlow<HomeTabKey> = _selectedTab.asStateFlow()
@@ -157,6 +160,50 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesManager.setSelectedHomeTab(tab.storageToken)
         }
+    }
+
+    fun onHomeVisible() {
+        homeEntryTimestampMs = System.currentTimeMillis()
+        hasLoggedHomeFirstPlayback = false
+    }
+
+    fun onHomeResumeTap() {
+        analyticsTracker.logEvent(
+            name = "home_resume_tap",
+            params = mapOf("surface" to "home", "cta" to "continue_listening")
+        )
+        maybeLogHomeTimeToFirstPlay(trigger = "continue_listening")
+    }
+
+    fun onHomeShuffleTap() {
+        analyticsTracker.logEvent(
+            name = "home_shuffle_tap",
+            params = mapOf("surface" to "home", "cta" to "quick_start_shuffle")
+        )
+        maybeLogHomeTimeToFirstPlay(trigger = "quick_start_shuffle")
+    }
+
+    fun onHomeSectionPlayTap(source: String) {
+        analyticsTracker.logEvent(
+            name = "home_play_tap",
+            params = mapOf("surface" to "home", "source" to source)
+        )
+        maybeLogHomeTimeToFirstPlay(trigger = source)
+    }
+
+    private fun maybeLogHomeTimeToFirstPlay(trigger: String) {
+        if (hasLoggedHomeFirstPlayback) return
+        val entryMs = homeEntryTimestampMs ?: return
+        val elapsedMs = (System.currentTimeMillis() - entryMs).coerceAtLeast(0L)
+        analyticsTracker.logEvent(
+            name = "home_time_to_first_play",
+            params = mapOf(
+                "surface" to "home",
+                "trigger" to trigger,
+                "elapsed_ms" to elapsedMs
+            )
+        )
+        hasLoggedHomeFirstPlayback = true
     }
 
     // Song List State

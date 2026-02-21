@@ -215,6 +215,18 @@ val Typography.playlistSectionHeader: TextStyle
 val Typography.screenHeader: TextStyle
     get() = headlineSmall  // 24sp, Bold
 
+// Home tab pill label
+val Typography.homeTabLabel: TextStyle
+    get() = labelLarge.copy(fontWeight = FontWeight.SemiBold)
+
+// Home section headings ("Continue listening", "Recently played", "Your library")
+val Typography.homeSectionHeader: TextStyle
+    get() = titleLarge.copy(fontWeight = FontWeight.Bold, fontSize = 20.sp, lineHeight = 26.sp)
+
+// Home top bar context line ("Hi ...", "Scanning ...")
+val Typography.homeContextSubtitle: TextStyle
+    get() = bodySmall.copy(fontSize = 12.sp, lineHeight = 16.sp)
+
 // ============================================================================
 // Empty State Typography
 // ============================================================================

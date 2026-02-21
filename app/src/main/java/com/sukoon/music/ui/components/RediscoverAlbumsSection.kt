@@ -52,7 +52,7 @@ fun RediscoverAlbumsSection(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = SpacingMedium)
+            .padding(top = SpacingMedium)
     ) {
         // Header
         Row(
@@ -75,7 +75,7 @@ fun RediscoverAlbumsSection(
                 )
                 Text(
                     text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rediscover_albums_title),
-                    style = MaterialTheme.typography.sectionHeader,
+                    style = MaterialTheme.typography.homeSectionHeader,
                     color = MaterialTheme.colorScheme.onBackground
                 )
             }
@@ -115,12 +115,6 @@ fun RediscoverAlbumsSection(
             }
         }
 
-        Spacer(modifier = Modifier.height(SpacingLarge))
-        Divider(
-            modifier = Modifier.padding(horizontal = SpacingLarge),
-            color = MaterialTheme.colorScheme.outlineVariant,
-            thickness = 1.dp
-        )
     }
 }
 
@@ -194,23 +188,19 @@ fun RediscoverAlbumCard(
                         ),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    IconButton(
-                        onClick = onClick,
-                        modifier = Modifier.padding(8.dp)
+                    Surface(
+                        modifier = Modifier.padding(8.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .size(20.dp)
+                        )
                     }
                 }
 
@@ -245,14 +235,14 @@ fun RediscoverAlbumCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = album.title,
-            style = MaterialTheme.typography.listItemTitle,
+            style = MaterialTheme.typography.cardTitle,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = album.artist,
-            style = MaterialTheme.typography.listItemSubtitle,
+            style = MaterialTheme.typography.cardSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

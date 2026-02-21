@@ -406,9 +406,6 @@ fun SukoonNavHost(
             )
         }
 
-        // Artists Screen - REMOVED: Now handled in HomeScreen Artists tab
-        // Clicking on artist in HomeScreen navigates directly to ArtistDetailScreen
-
         // Artist Detail Screen - Songs and albums by an artist
         composable(
             route = Routes.ArtistDetail.route,

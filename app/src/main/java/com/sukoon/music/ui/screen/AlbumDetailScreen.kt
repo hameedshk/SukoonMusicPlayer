@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -54,7 +55,6 @@ import com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.theme.ContentBottomPadding
 import com.sukoon.music.ui.theme.ContentTopPadding
-import com.sukoon.music.ui.util.AlbumSourceType
 import com.sukoon.music.ui.util.albumArtContentDescription
 import com.sukoon.music.ui.util.buildAlbumHeaderModel
 import com.sukoon.music.ui.util.rememberAlbumPalette
@@ -499,6 +499,8 @@ private fun AlbumHeader(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit
 ) {
+    val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
+    val albumArtSize = (screenWidthDp * 0.72f).coerceIn(216.dp, 320.dp)
     val palette = rememberAlbumPalette(album.albumArtUri)
     val songCountLabel = androidx.compose.ui.res.pluralStringResource(
         R.plurals.common_song_count,
@@ -512,12 +514,6 @@ private fun AlbumHeader(
         unknownArtistLabel = androidx.compose.ui.res.stringResource(R.string.now_playing_unknown_artist)
     )
 
-    val sourceLabel = when (headerModel.sourceType) {
-        AlbumSourceType.TAGGED_ALBUM -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_album)
-        AlbumSourceType.FOLDER_INFERRED -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_folder)
-        AlbumSourceType.ARTIST_SCOPED -> androidx.compose.ui.res.stringResource(R.string.library_album_detail_source_artist)
-    }
-
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -525,7 +521,7 @@ private fun AlbumHeader(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Card(
-            modifier = Modifier.size(216.dp),
+            modifier = Modifier.size(albumArtSize),
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
@@ -594,19 +590,6 @@ private fun AlbumHeader(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-
-        Spacer(modifier = Modifier.height(10.dp))
-        Surface(
-            color = palette.mutedLight.copy(alpha = 0.38f),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text(
-                text = sourceLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-            )
-        }
 
         Spacer(modifier = Modifier.height(16.dp))
         Row(
@@ -945,4 +928,3 @@ private fun AlbumDetailScreenPreview() {
         )
     }
 }
-

@@ -543,7 +543,7 @@ internal fun LastAddedSection(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = SpacingMedium)
+            .padding(top = SpacingMedium)
     ) {
         Row(
             modifier = Modifier
@@ -555,9 +555,7 @@ internal fun LastAddedSection(
         ) {
             Text(
                 text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_last_added),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
+                style = MaterialTheme.typography.homeSectionHeader,
                 color = MaterialTheme.colorScheme.onBackground
             )
             Icon(
@@ -582,13 +580,6 @@ internal fun LastAddedSection(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(SpacingLarge))
-        Divider(
-            modifier = Modifier.padding(horizontal = SpacingLarge),
-            color = MaterialTheme.colorScheme.outlineVariant,
-            thickness = 1.dp
-        )
     }
 }
 
@@ -661,23 +652,19 @@ internal fun LastAddedCard(
                         ),
                     contentAlignment = Alignment.BottomEnd
                 ) {
-                    IconButton(
-                        onClick = onClick,
-                        modifier = Modifier.padding(8.dp)
+                    Surface(
+                        modifier = Modifier.padding(8.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceVariant
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play),
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                                modifier = Modifier
-                                    .padding(8.dp)
-                                    .size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .size(20.dp)
+                        )
                     }
                 }
             }
@@ -687,15 +674,14 @@ internal fun LastAddedCard(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = song.title,
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.cardTitle,
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
         Text(
             text = song.album,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.cardSubtitle,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis

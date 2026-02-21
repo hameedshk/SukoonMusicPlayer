@@ -14,9 +14,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -24,11 +26,11 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.*
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +45,7 @@ import com.sukoon.music.ui.util.albumArtContentDescription
 import com.sukoon.music.ui.viewmodel.AlbumSortMode
 import com.sukoon.music.ui.theme.*
 
-private val AlbumRowArtSize = 64.dp
+private val AlbumRowArtSize = 56.dp
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -60,12 +62,28 @@ internal fun AlbumRow(
         artistName = album.artist,
         albumId = album.id
     )
+    val rowShape = RoundedCornerShape(12.dp)
+    val rowSelected = isSelectionMode && isSelected
+    val rowContainerColor = if (rowSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    } else {
+        Color.Transparent
+    }
+    val rowBorderWidth = if (rowSelected) 1.dp else 0.dp
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(horizontal = SpacingMedium, vertical = SpacingTiny)
+            .clip(rowShape)
+            .background(rowContainerColor)
+            .border(
+                width = rowBorderWidth,
+                color = if (rowSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = rowShape
+            )
             .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -96,7 +114,7 @@ internal fun AlbumRow(
             }
         }
 
-        Spacer(modifier = Modifier.width(SpacingLarge))
+        Spacer(modifier = Modifier.width(SpacingMedium))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -106,43 +124,46 @@ internal fun AlbumRow(
                 overflow = TextOverflow.Ellipsis
             )
             Spacer(modifier = Modifier.height(SpacingXSmall))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = album.artist,
-                    style = MaterialTheme.typography.cardSubtitle,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                Text(
-                    text = "${album.songCount}",
-                    style = MaterialTheme.typography.genreMetadata,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    modifier = Modifier.padding(start = SpacingSmall)
-                )
-            }
+            Text(
+                text = androidx.compose.ui.res.stringResource(
+                    com.sukoon.music.R.string.library_albums_artist_song_count_format,
+                    album.artist,
+                    androidx.compose.ui.res.pluralStringResource(
+                        com.sukoon.music.R.plurals.common_song_count,
+                        album.songCount,
+                        album.songCount
+                    )
+                ),
+                style = MaterialTheme.typography.cardSubtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
 
         if (isSelectionMode) {
-            Icon(
-                imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                contentDescription = androidx.compose.ui.res.stringResource(
-                    if (isSelected) {
-                        com.sukoon.music.R.string.library_screens_b_checked
-                    } else {
-                        com.sukoon.music.R.string.library_screens_b_unchecked
-                    }
-                ),
-                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(20.dp)
-            )
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onClick),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = androidx.compose.ui.res.stringResource(
+                        if (isSelected) {
+                            com.sukoon.music.R.string.library_screens_b_checked
+                        } else {
+                            com.sukoon.music.R.string.library_screens_b_unchecked
+                        }
+                    ),
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         } else {
-            IconButton(onClick = onMoreClick, modifier = Modifier.size(40.dp)) {
+            IconButton(onClick = onMoreClick, modifier = Modifier.size(48.dp)) {
                 Icon(
                     Icons.Default.MoreVert,
                     contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
@@ -330,7 +351,7 @@ private fun AlbumSelectionBottomBar(
                 onClick = onPlay
             )
             SelectionBottomBarItem(
-                icon = Icons.Default.PlaylistAdd,
+                icon = Icons.AutoMirrored.Filled.PlaylistAdd,
                 label = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_albums_add_to_play),
                 onClick = onAddToPlaylist
             )

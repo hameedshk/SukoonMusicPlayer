@@ -6,10 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.PlaybackState
+import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SongRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -158,9 +162,7 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            val allSelectedSongs = ids.flatMap { id ->
-                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            }
+            val allSelectedSongs = loadSongsForAlbumIds(ids)
             if (allSelectedSongs.isNotEmpty()) {
                 playbackRepository.setShuffleEnabled(false)
                 playbackRepository.playQueue(allSelectedSongs, startIndex = 0)
@@ -196,9 +198,7 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            val allSelectedSongs = ids.flatMap { id ->
-                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            }
+            val allSelectedSongs = loadSongsForAlbumIds(ids)
             if (allSelectedSongs.isNotEmpty()) {
                 playbackRepository.addToQueue(allSelectedSongs)
                 toggleSelectionMode(false)
@@ -211,9 +211,7 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            val allSelectedSongs = ids.flatMap { id ->
-                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            }
+            val allSelectedSongs = loadSongsForAlbumIds(ids)
             if (allSelectedSongs.isNotEmpty()) {
                 DeleteHelper.deleteSongs(context, allSelectedSongs)
                 toggleSelectionMode(false)
@@ -226,9 +224,7 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            val allSelectedSongs = ids.flatMap { id ->
-                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            }
+            val allSelectedSongs = loadSongsForAlbumIds(ids)
             if (allSelectedSongs.isNotEmpty()) {
                 val result = DeleteHelper.deleteSongs(context, allSelectedSongs)
                 onResult(result)
@@ -242,9 +238,7 @@ class AlbumsViewModel @Inject constructor(
         if (ids.isEmpty()) return
 
         viewModelScope.launch {
-            val allSelectedSongs = ids.flatMap { id ->
-                songRepository.getSongsByAlbumId(id).firstOrNull() ?: emptyList()
-            }
+            val allSelectedSongs = loadSongsForAlbumIds(ids)
             if (allSelectedSongs.isNotEmpty()) {
                 playbackRepository.playNext(allSelectedSongs)
                 toggleSelectionMode(false)
@@ -256,6 +250,38 @@ class AlbumsViewModel @Inject constructor(
         return _selectedAlbumIds.value.toList()
     }
 
+    suspend fun getSongsForAlbums(albumIds: Set<Long>): List<Song> {
+        return loadSongsForAlbumIds(albumIds)
+    }
+
     suspend fun getSongsForAlbum(albumId: Long) =
         songRepository.getSongsByAlbumId(albumId).firstOrNull() ?: emptyList()
+
+    private suspend fun loadSongsForAlbumIds(albumIds: Set<Long>): List<Song> {
+        if (albumIds.isEmpty()) return emptyList()
+
+        val orderedAlbumIds = orderedAlbumIds(albumIds)
+        return coroutineScope {
+            orderedAlbumIds
+                .map { id ->
+                    async {
+                        songRepository.getSongsByAlbumId(id).firstOrNull().orEmpty()
+                    }
+                }
+                .awaitAll()
+                .flatten()
+        }
+    }
+
+    private fun orderedAlbumIds(albumIds: Set<Long>): List<Long> {
+        val visibleOrder = albums.value
+            .asSequence()
+            .map { it.id }
+            .filter { it in albumIds }
+            .toList()
+        if (visibleOrder.size == albumIds.size) return visibleOrder
+
+        val remainingIds = albumIds - visibleOrder.toSet()
+        return visibleOrder + remainingIds
+    }
 }

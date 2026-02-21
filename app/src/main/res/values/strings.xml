@@ -354,6 +354,8 @@
 
     <!-- Home Screen -->
     <string name="home_default_username">there</string>
+    <string name="home_tab_home">Home</string>
+    <string name="home_tab_for_you">For You</string>
     <string name="home_tab_greeting">Hi %1$s</string>
     <string name="home_tab_songs">Songs</string>
     <string name="home_tab_playlists">Playlists</string>
@@ -361,6 +363,9 @@
     <string name="home_tab_albums">Albums</string>
     <string name="home_tab_artists">Artists</string>
     <string name="home_tab_genres">Genres</string>
+    <string name="home_topbar_title">Sukoon Music</string>
+    <string name="home_topbar_greeting">Hi %1$s</string>
+    <string name="home_topbar_welcome_back">Welcome back</string>
     <string name="home_scan_failed_title">Scan failed</string>
     <string name="home_scan_failed_with_reason">Scan failed: %1$s</string>
     <string name="home_topbar_scanning_context">Scanning %1$d songs...</string>

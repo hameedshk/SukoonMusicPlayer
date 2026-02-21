@@ -94,6 +94,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -177,8 +179,7 @@ fun HomeScreen(
         }
     }
 
-    // Use provided username or default greeting
-    val displayUsername = username.ifBlank { appContext.getString(com.sukoon.music.R.string.home_default_username) }
+    val displayUsername = username.trim()
 
     // Use ViewModel's tab state (persisted to DataStore, survives app restart)
     val selectedTab by viewModel.selectedTab.collectAsStateWithLifecycle()
@@ -187,11 +188,16 @@ fun HomeScreen(
         viewModel.setSelectedTab(tab)
     }
 
-    val tabs = remember(displayUsername, appContext) {
+    val tabs = remember(appContext, displayUsername) {
+        val homeLabel = if (displayUsername.isNotBlank()) {
+            appContext.getString(com.sukoon.music.R.string.home_tab_greeting, displayUsername)
+        } else {
+            appContext.getString(com.sukoon.music.R.string.home_tab_for_you)
+        }
         listOf(
             HomeTabSpec(
                 HomeTabKey.HOME,
-                appContext.getString(com.sukoon.music.R.string.home_tab_greeting, displayUsername),
+                homeLabel,
                 Icons.Default.Home
             ),
             HomeTabSpec(HomeTabKey.SONGS, appContext.getString(com.sukoon.music.R.string.home_tab_songs), Icons.Default.MusicNote),
@@ -201,6 +207,16 @@ fun HomeScreen(
             HomeTabSpec(HomeTabKey.ARTISTS, appContext.getString(com.sukoon.music.R.string.home_tab_artists), Icons.Default.Person),
             HomeTabSpec(HomeTabKey.GENRES, appContext.getString(com.sukoon.music.R.string.home_tab_genres), Icons.Default.Star)
         )
+    }
+
+    val normalizedSelectedTab = remember(selectedTab, tabs) {
+        if (tabs.any { it.key == selectedTab }) selectedTab else HomeTabKey.HOME
+    }
+
+    LaunchedEffect(selectedTab, normalizedSelectedTab) {
+        if (selectedTab != normalizedSelectedTab) {
+            handleTabSelection(normalizedSelectedTab)
+        }
     }
 
 
@@ -281,7 +297,11 @@ fun HomeScreen(
         }
     }
 
-    LaunchedEffect(selectedTab) {
+    LaunchedEffect(Unit) {
+        viewModel.onHomeVisible()
+    }
+
+    LaunchedEffect(normalizedSelectedTab) {
         collapsibleTopBarOffsetPx = 0f
     }
 
@@ -340,21 +360,22 @@ fun HomeScreen(
                             onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
+                            subtitleText = topBarContextText,
                             sessionState = sessionState
                         )
                     }
                 }
                 TabPills(
                     tabs = tabs,
-                    selectedTab = selectedTab,
+                    selectedTab = normalizedSelectedTab,
                     onTabSelected = { handleTabSelection(it) }
                 )
             }
         },
         bottomBar = {
             val shouldAddPlaylistMiniGap =
-                selectedTab == HomeTabKey.PLAYLISTS && playbackState.currentSong != null
-            val playlistBannerTopGap = if (selectedTab == HomeTabKey.PLAYLISTS) SpacingSmall else 0.dp
+                normalizedSelectedTab == HomeTabKey.PLAYLISTS && playbackState.currentSong != null
+            val playlistBannerTopGap = if (normalizedSelectedTab == HomeTabKey.PLAYLISTS) SpacingSmall else 0.dp
             val playlistBottomGap = if (shouldAddPlaylistMiniGap) SpacingMedium else 0.dp
             Column {
                 // Banner ad
@@ -396,7 +417,7 @@ fun HomeScreen(
                 }
                 else -> {
                     val pagerState = rememberPagerState(
-                        initialPage = tabs.indexOfFirst { it.key == selectedTab }.coerceAtLeast(0),
+                        initialPage = tabs.indexOfFirst { it.key == normalizedSelectedTab }.coerceAtLeast(0),
                         pageCount = { tabs.size }
                     )
 
@@ -404,15 +425,15 @@ fun HomeScreen(
                     LaunchedEffect(pagerState.currentPage, pagerState.isScrollInProgress) {
                         if (!pagerState.isScrollInProgress) {
                             val newTab = tabs.getOrNull(pagerState.currentPage)?.key
-                            if (newTab != null && newTab != selectedTab) {
+                            if (newTab != null && newTab != normalizedSelectedTab) {
                                 handleTabSelection(newTab)
                             }
                         }
                     }
 
                     // Sync ViewModel state to pager (for pill clicks)
-                    LaunchedEffect(selectedTab) {
-                        val targetPage = tabs.indexOfFirst { it.key == selectedTab }
+                    LaunchedEffect(normalizedSelectedTab) {
+                        val targetPage = tabs.indexOfFirst { it.key == normalizedSelectedTab }
                         if (targetPage != -1 && targetPage != pagerState.currentPage) {
                             pagerState.scrollToPage(targetPage)
                         }
@@ -461,7 +482,7 @@ fun HomeScreen(
                             HomeTabKey.GENRES -> {
                                 GenresScreen(
                                     onNavigateToGenre = onNavigateToGenreDetail,
-                                    onBackClick = { /* optional: navController.popBackStack() */ },
+                                    onBackClick = { },
                                     onNavigateToGenreSelection = onNavigateToGenreSelection
                                 )
                             }
@@ -479,7 +500,6 @@ fun HomeScreen(
                                     onNavigateToFolder = onNavigateToFolderDetail,
                                     onNavigateToNowPlaying = onNavigateToNowPlaying,
                                     onBackClick = {}
-
                                 )
                             }
                         }
@@ -495,6 +515,7 @@ private fun ScanProgressView(
     scanState: ScanState.Scanning
 ) {
     val accentTokens = accent()
+    val scanProgressLabel = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_scan_progress_title)
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -503,14 +524,18 @@ private fun ScanProgressView(
         verticalArrangement = Arrangement.Center
     ) {
         CircularProgressIndicator(
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier
+                .size(64.dp)
+                .semantics {
+                    contentDescription = scanProgressLabel
+                },
             color = accentTokens.primary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.home_scan_progress_title),
+            text = scanProgressLabel,
             style = MaterialTheme.typography.titleLarge
         )
 

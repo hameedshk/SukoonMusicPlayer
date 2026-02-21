@@ -12,9 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.sukoon.music.ui.theme.CardElevationLow
+import com.sukoon.music.ui.theme.CardShape
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.theme.cardTitle
 import androidx.compose.ui.tooling.preview.Preview
 
 /**
@@ -36,11 +38,13 @@ fun RatingBanner(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        color = Color.Transparent
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationLow)
     ) {
         Box(
             modifier = Modifier
@@ -69,8 +73,7 @@ fun RatingBanner(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.rating_banner_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.cardTitle,
                         color = Color.White
                     )
                     Text(

@@ -26,6 +26,7 @@
 
     <string name="common_ui_album_art_description">%2$s द्वारा %1$s के लिए एल्बम कला</string>
     <string name="common_ui_play_song_description">%2$s द्वारा %1$s चलाएं</string>
+    <string name="common_ui_pause_song_description">%2$s द्वारा %1$s रोकें</string>
 
     <string name="common_ui_recently_played">हाल ही में चलाया गया</string>
     <string name="common_ui_your_library">आपकी लाइब्रेरी</string>

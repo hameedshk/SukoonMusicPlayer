@@ -119,4 +119,14 @@
         <item quantity="one">%1$d हटाई गई प्लेलिस्ट</item>
         <item quantity="other">%1$d हटाई गई प्लेलिस्ट</item>
     </plurals>
+
+    <!-- Home -->
+    <string name="home_tab_home">होम</string>
+    <string name="home_tab_for_you">आपके लिए</string>
+    <string name="home_topbar_title">सुकून म्यूज़िक</string>
+    <string name="home_topbar_greeting">हाय %1$s</string>
+    <string name="home_topbar_welcome_back">फिर से स्वागत है</string>
+
+    <!-- Rediscover -->
+    <string name="rediscover_albums_title">तुम्हें यह पहले पसंद था</string>
 </resources>

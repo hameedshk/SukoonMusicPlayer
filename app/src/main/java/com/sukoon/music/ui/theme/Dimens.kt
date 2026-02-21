@@ -58,7 +58,7 @@ val ActionButtonHeight = 56.dp
 val ActionButtonCornerRadius = 12.dp
 
 // Tab pill dimensions
-val TabPillHeight = 44.dp
+val TabPillHeight = 48.dp
 val TabPillCornerRadius = 22.dp // Fully rounded (half of height)
 val TabPillMaxWidth = 120.dp // Prevents orphaned text on narrow screens (~32% on 360dp device)
 

@@ -26,6 +26,7 @@
 
     <string name="common_ui_album_art_description">Album art for %1$s by %2$s</string>
     <string name="common_ui_play_song_description">Play %1$s by %2$s</string>
+    <string name="common_ui_pause_song_description">Pause %1$s by %2$s</string>
 
     <string name="common_ui_recently_played">Recently played</string>
     <string name="common_ui_your_library">Your library</string>
