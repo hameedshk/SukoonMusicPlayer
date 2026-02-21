@@ -265,4 +265,27 @@ class GenreDetailViewModel @Inject constructor(
     fun setSortMode(mode: GenreSongSortMode) {
         _sortMode.value = mode
     }
+
+    /**
+     * Resolve canonical album ID for a song without relying on hash-only navigation.
+     * Used by Genre screen "Go to album" to avoid mismatched album targets.
+     */
+    suspend fun resolveAlbumIdForSong(song: Song): Long? {
+        val albumName = song.album.trim()
+        if (albumName.isEmpty()) return null
+
+        val albums = songRepository.getAllAlbums().firstOrNull().orEmpty()
+
+        albums.firstOrNull { it.songIds.contains(song.id) }?.let { return it.id }
+
+        val artistName = song.artist.trim()
+        albums.firstOrNull {
+            it.title.equals(albumName, ignoreCase = true) &&
+                it.artist.equals(artistName, ignoreCase = true)
+        }?.let { return it.id }
+
+        albums.firstOrNull { it.title.equals(albumName, ignoreCase = true) }?.let { return it.id }
+
+        return null
+    }
 }

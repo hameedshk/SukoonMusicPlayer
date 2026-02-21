@@ -21,6 +21,7 @@ class SongMenuHandler(
     private val coroutineScope: CoroutineScope,
     private val playbackRepository: PlaybackRepository,
     private val onNavigateToAlbum: (Long) -> Unit = {},
+    private val onNavigateToAlbumBySong: ((Song) -> Unit)? = null,
     private val onNavigateToArtist: (Long) -> Unit = {},
     private val onShowPlaylistSelector: (Song) -> Unit = {},
     private val onShowDeleteConfirmation: (Song) -> Unit = {},
@@ -69,6 +70,10 @@ class SongMenuHandler(
     }
 
     fun handleGoToAlbum(song: Song) {
+        onNavigateToAlbumBySong?.let { navigateBySong ->
+            navigateBySong(song)
+            return
+        }
         val albumId = song.album.hashCode().toLong()
         onNavigateToAlbum(albumId)
     }
@@ -120,6 +125,7 @@ class SongMenuHandler(
 fun rememberSongMenuHandler(
     playbackRepository: PlaybackRepository,
     onNavigateToAlbum: (Long) -> Unit = {},
+    onNavigateToAlbumBySong: ((Song) -> Unit)? = null,
     onNavigateToArtist: (Long) -> Unit = {},
     onShowPlaylistSelector: (Song) -> Unit = {},
     onShowDeleteConfirmation: (Song) -> Unit = {},
@@ -138,6 +144,7 @@ fun rememberSongMenuHandler(
     return remember(
         playbackRepository,
         onNavigateToAlbum,
+        onNavigateToAlbumBySong,
         onNavigateToArtist,
         onShowPlaylistSelector,
         onShowDeleteConfirmation,
@@ -150,6 +157,7 @@ fun rememberSongMenuHandler(
             coroutineScope = coroutineScope,
             playbackRepository = playbackRepository,
             onNavigateToAlbum = onNavigateToAlbum,
+            onNavigateToAlbumBySong = onNavigateToAlbumBySong,
             onNavigateToArtist = onNavigateToArtist,
             onShowPlaylistSelector = onShowPlaylistSelector,
             onShowDeleteConfirmation = onShowDeleteConfirmation,

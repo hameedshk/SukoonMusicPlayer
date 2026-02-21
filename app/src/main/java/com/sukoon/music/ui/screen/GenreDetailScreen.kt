@@ -56,6 +56,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,6 +92,7 @@ import com.sukoon.music.ui.viewmodel.GenreDetailViewModel
 import com.sukoon.music.ui.viewmodel.GenreSongSortMode
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,9 +154,27 @@ fun GenreDetailScreen(
     }
 
     val shareHandler = rememberShareHandler()
+    val genreScope = rememberCoroutineScope()
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
+        onNavigateToAlbumBySong = { song ->
+            genreScope.launch {
+                val resolvedAlbumId = viewModel.resolveAlbumIdForSong(song)
+                if (resolvedAlbumId != null) {
+                    onNavigateToAlbum(resolvedAlbumId)
+                } else {
+                    Toast.makeText(
+                        context,
+                        context.getString(
+                            R.string.toast_error_with_message,
+                            context.getString(R.string.library_album_detail_unknown_album)
+                        ),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        },
         onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { song -> showSongInfo = song },
         onShowDeleteConfirmation = { song -> songToDelete = song },
