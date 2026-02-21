@@ -108,4 +108,6 @@
     <string name="common_settings">सेटिंग्स</string>
     <string name="common_delete">हटाएं</string>
     <string name="common_restore_purchase">खरीद को पुनर्स्थापित करें</string>
+    <string name="home_continue_listening">सुनना जारी रखें</string>
+    <string name="listening_stats_title">आपका सप्ताह</string>
 </resources>
