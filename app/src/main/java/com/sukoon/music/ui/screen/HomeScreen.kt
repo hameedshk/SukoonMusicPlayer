@@ -498,6 +498,8 @@ fun HomeScreen(
                                 FoldersScreen(
                                     onNavigateToFolder = onNavigateToFolderDetail,
                                     onNavigateToNowPlaying = onNavigateToNowPlaying,
+                                    onNavigateToAlbum = onNavigateToAlbumDetail,
+                                    onNavigateToArtist = onNavigateToArtistDetail,
                                     onBackClick = {}
                                 )
                             }

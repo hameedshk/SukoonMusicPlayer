@@ -7,6 +7,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -482,10 +484,6 @@ private fun FoldersContent(
         }
 
         if (!isSelectionMode) {
-            FolderContextHeader(
-                selectedMode = folderViewMode,
-                onModeChanged = { folderViewModel.setFolderViewMode(it) }
-            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -505,15 +503,13 @@ private fun FoldersContent(
                             contentDescription = stringResource(com.sukoon.music.R.string.library_common_sort)
                         )
                     }
-                    if (folderViewMode != FolderViewMode.DIRECTORIES) {
-                        IconButton(
-                            onClick = { folderViewModel.toggleSelectionMode(true) }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = stringResource(com.sukoon.music.R.string.common_select)
-                            )
-                        }
+                    IconButton(
+                        onClick = { folderViewModel.toggleSelectionMode(true) }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = stringResource(com.sukoon.music.R.string.common_select)
+                        )
                     }
                 }
             }
@@ -607,9 +603,24 @@ private fun FoldersContent(
                         }) { index ->
                             when (val item = browsingContent[index]) {
                                 is com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder -> {
+                                    val itemPathHash = item.path.hashCode().toLong()
                                     FolderBrowserSubFolderRow(
                                         subFolder = item,
-                                        onClick = { folderViewModel.navigateToFolder(item.path) },
+                                        isSelectionMode = isSelectionMode,
+                                        isSelected = selectedFolderIds.contains(itemPathHash),
+                                        onClick = {
+                                            if (isSelectionMode) {
+                                                folderViewModel.toggleSelection(itemPathHash)
+                                            } else {
+                                                folderViewModel.navigateToFolder(item.path)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!isSelectionMode) {
+                                                folderViewModel.toggleSelectionMode(true)
+                                            }
+                                            folderViewModel.toggleSelection(itemPathHash)
+                                        },
                                         onPlay = { folderViewModel.playFolder(item.path) }
                                     )
                                 }
@@ -618,12 +629,24 @@ private fun FoldersContent(
                                         song = item.song,
                                         isCurrentlyPlaying = item.song.id == playbackState.currentSong?.id,
                                         isPlayingGlobally = playbackState.isPlaying,
+                                        isSelectionMode = isSelectionMode,
+                                        isSelected = selectedFolderIds.contains(item.song.id),
                                         menuHandler = menuHandler,
                                         onClick = {
-                                            val contextSongs = browsingContent.filterIsInstance<com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem>()
-                                                .map { it.song }
-                                            folderViewModel.playSong(item.song, contextSongs)
-                                            onNavigateToNowPlaying()
+                                            if (isSelectionMode) {
+                                                folderViewModel.toggleSelection(item.song.id)
+                                            } else {
+                                                val contextSongs = browsingContent.filterIsInstance<com.sukoon.music.ui.viewmodel.FolderBrowserItem.SongItem>()
+                                                    .map { it.song }
+                                                folderViewModel.playSong(item.song, contextSongs)
+                                                onNavigateToNowPlaying()
+                                            }
+                                        },
+                                        onLongClick = {
+                                            if (!isSelectionMode) {
+                                                folderViewModel.toggleSelectionMode(true)
+                                            }
+                                            folderViewModel.toggleSelection(item.song.id)
                                         }
                                     )
                                 }
@@ -711,8 +734,8 @@ private fun FoldersContent(
     }
 
     // Delete confirmation dialog
-    showDeleteConfirmation?.let { folder ->
-        DeleteFolderConfirmationDialog(
+    showDeleteConfirmation?.let { folder: Folder ->
+        DeleteConfirmationDialog(
             folder = folder,
             onConfirm = {
                 folderToDeleteId?.let { folderViewModel.deleteFolder(it) }
@@ -727,10 +750,14 @@ private fun FoldersContent(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderBrowserSubFolderRow(
     subFolder: com.sukoon.music.ui.viewmodel.FolderBrowserItem.SubFolder,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
     onClick: () -> Unit,
+    onLongClick: () -> Unit,
     onPlay: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
@@ -738,12 +765,13 @@ private fun FolderBrowserSubFolderRow(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
-    )
-
-    {
+    ) {
         Box(
             modifier = Modifier
                 .size(48.dp)
@@ -810,40 +838,58 @@ private fun FolderBrowserSubFolderRow(
             )
         }
 
-        Spacer(modifier = Modifier.width(8.dp))
-
-        Box {
-            IconButton(
-                onClick = { menuExpanded = true }
+        if (isSelectionMode) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_folder_options),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
                 )
             }
+        }
 
-            DropdownMenu(
-                expanded = menuExpanded,
-                onDismissRequest = { menuExpanded = false }
-            ) {
-                DropdownMenuItem(
-                    text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_open)) },
-                    onClick = {
-                        menuExpanded = false
-                        onClick()
-                    },
-                    leadingIcon = { Icon(Icons.Default.FolderOpen, null) }
-                )
+        Spacer(modifier = Modifier.width(8.dp))
 
-                DropdownMenuItem(
-                    text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_play_folder)) },
-                    onClick = {
-                        menuExpanded = false
-                        onPlay()
-                    },
-                    leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
-                )
+        if (!isSelectionMode) {
+            Box {
+                IconButton(
+                    onClick = { menuExpanded = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_cd_folder_options),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_open)) },
+                        onClick = {
+                            menuExpanded = false
+                            onClick()
+                        },
+                        leadingIcon = { Icon(Icons.Default.FolderOpen, null) }
+                    )
+
+                    DropdownMenuItem(
+                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_play_folder)) },
+                        onClick = {
+                            menuExpanded = false
+                            onPlay()
+                        },
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
+                    )
+                }
             }
         }
     }
@@ -939,78 +985,27 @@ private fun FolderContextMenuBottomSheet(
     }
 }
 
-@Composable
-private fun DeleteFolderConfirmationDialog(
-    folder: Folder,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        icon = {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.error
-            )
-        },
-        title = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.dialog_delete_folder_title)) },
-        text = {
-            Column {
-                Text(
-                    androidx.compose.ui.res.pluralStringResource(
-                        com.sukoon.music.R.plurals.folders_delete_confirmation_message,
-                        folder.songCount,
-                        folder.songCount
-                    )
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = folder.path,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.folders_delete_confirmation_warning),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
-            ) {
-                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_delete))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
-            }
-        }
-    )
-}
-
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FolderBrowserSongRow(
     song: Song,
     isCurrentlyPlaying: Boolean,
     isPlayingGlobally: Boolean,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
     menuHandler: SongMenuHandler,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
             .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1074,14 +1069,32 @@ private fun FolderBrowserSongRow(
             )
         }
 
+        if (isSelectionMode) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(androidx.compose.foundation.shape.CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+
         Spacer(modifier = Modifier.width(8.dp))
 
-        IconButton(onClick = { showMenu = true }) {
-            Icon(
-                imageVector = Icons.Default.MoreVert,
-                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        if (!isSelectionMode) {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 

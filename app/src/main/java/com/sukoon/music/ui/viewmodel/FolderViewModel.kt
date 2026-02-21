@@ -216,11 +216,11 @@ class FolderViewModel @Inject constructor(
         }
     }
 
-    fun toggleFolderSelection(folderId: Long) {
-        val updated = if (_selectedFolderIds.value.contains(folderId)) {
-            _selectedFolderIds.value - folderId
+    fun toggleSelection(id: Long) {
+        val updated = if (_selectedFolderIds.value.contains(id)) {
+            _selectedFolderIds.value - id
         } else {
-            _selectedFolderIds.value + folderId
+            _selectedFolderIds.value + id
         }
         _selectedFolderIds.value = updated
         if (updated.isEmpty() && _isSelectionMode.value) {
@@ -228,13 +228,24 @@ class FolderViewModel @Inject constructor(
         }
     }
 
+    fun toggleFolderSelection(folderId: Long) {
+        toggleSelection(folderId)
+    }
+
     fun selectAllVisibleFolders() {
-        val source = if (_folderViewMode.value == FolderViewMode.DIRECTORIES) {
-            folders.value
-        } else {
-            hiddenFolders.value
+        val ids = when (_folderViewMode.value) {
+            FolderViewMode.DIRECTORIES -> {
+                browsingContent.value.map { 
+                    when (it) {
+                        is FolderBrowserItem.SubFolder -> it.path.hashCode().toLong()
+                        is FolderBrowserItem.SongItem -> it.song.id
+                    }
+                }
+            }
+            FolderViewMode.HIDDEN -> hiddenFolders.value.map { it.id }
+            else -> folders.value.map { it.id }
         }
-        _selectedFolderIds.value = source.map { it.id }.toSet()
+        _selectedFolderIds.value = ids.toSet()
     }
 
     fun clearSelection() {
@@ -416,15 +427,18 @@ class FolderViewModel @Inject constructor(
         }
     }
 
-    suspend fun getSongsForFolders(folderIds: Set<Long>): List<Song> {
-        if (folderIds.isEmpty()) return emptyList()
-        val songById = allSongs.value.associateBy { it.id }
-        return allFolders.value
-            .asSequence()
-            .filter { folderIds.contains(it.id) }
-            .flatMap { it.songIds.asSequence() }
-            .distinct()
-            .mapNotNull { songById[it] }
-            .toList()
+    suspend fun getSongsForFolders(ids: Set<Long>): List<Song> {
+        if (ids.isEmpty()) return emptyList()
+        val allSongsInLibrary = allSongs.value
+        val songById = allSongsInLibrary.associateBy { it.id }
+        
+        // Items in 'ids' could be either Folder IDs (path hash) or Song IDs
+        val selectedFolders = allFolders.value.filter { ids.contains(it.id) }
+        val songsFromFolders = selectedFolders.flatMap { it.songIds }.mapNotNull { songById[it] }
+        
+        // Individual songs selected directly
+        val individualSongs = allSongsInLibrary.filter { ids.contains(it.id) && !songsFromFolders.any { sf -> sf.id == it.id } }
+        
+        return (songsFromFolders + individualSongs).distinctBy { it.id }
     }
 }
