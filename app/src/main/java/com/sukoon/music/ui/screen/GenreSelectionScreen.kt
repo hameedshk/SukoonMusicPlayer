@@ -28,11 +28,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.AddToPlaylistDialog
-import com.sukoon.music.ui.components.PlaceholderAlbumArt
+import com.sukoon.music.ui.components.GenreArtwork
 import com.sukoon.music.ui.theme.*
 import com.sukoon.music.ui.viewmodel.GenresViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
@@ -523,45 +522,12 @@ private fun GenreSelectionItem(
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Genre artwork
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            if (genre.artworkUri != null) {
-                SubcomposeAsyncImage(
-                    model = genre.artworkUri,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_genre_artwork),
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = genre.name,
-                                albumId = genre.id
-                            )
-                        )
-                    },
-                    error = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = genre.name,
-                                albumId = genre.id
-                            )
-                        )
-                    }
-                )
-            } else {
-                PlaceholderAlbumArt.Placeholder(
-                    seed = PlaceholderAlbumArt.generateSeed(
-                        albumName = genre.name,
-                        albumId = genre.id
-                    )
-                )
-            }
-        }
+        GenreArtwork(
+            genreName = genre.name,
+            genreId = genre.id,
+            artworkUri = genre.artworkUri,
+            modifier = Modifier.size(64.dp)
+        )
 
         Spacer(modifier = Modifier.width(16.dp))
 

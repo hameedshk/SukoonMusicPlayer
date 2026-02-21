@@ -43,6 +43,9 @@ class FolderViewModel @Inject constructor(
     @ApplicationContext private val context: Context
 
 ) : ViewModel() {
+    companion object {
+        private const val ALL_SELECTED_FOLDERS_SENTINEL = -1L
+    }
 
     private fun String.stripAndroidStoragePrefix(): String {
         val prefix = "/storage/emulated/0/"
@@ -59,6 +62,12 @@ class FolderViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), FolderSortMode.NAME_ASC)
 
     val playbackState: StateFlow<PlaybackState> = playbackRepository.playbackState
+
+    private val _selectedFolderIds = MutableStateFlow<Set<Long>>(emptySet())
+    val selectedFolderIds: StateFlow<Set<Long>> = _selectedFolderIds.asStateFlow()
+
+    private val _isSelectionMode = MutableStateFlow(false)
+    val isSelectionMode: StateFlow<Boolean> = _isSelectionMode.asStateFlow()
 
     private val _folderViewMode = MutableStateFlow(FolderViewMode.DIRECTORIES)
     val folderViewMode: StateFlow<FolderViewMode> = _folderViewMode.asStateFlow()
@@ -188,11 +197,49 @@ class FolderViewModel @Inject constructor(
         }
     }
 
+    fun resetBrowsing() {
+        _currentPath.value = null
+    }
+
     fun setFolderViewMode(mode: FolderViewMode) {
         _folderViewMode.value = mode
+        toggleSelectionMode(false)
         if (mode == FolderViewMode.HIDDEN) {
             _currentPath.value = null // Reset browsing when viewing hidden
         }
+    }
+
+    fun toggleSelectionMode(enabled: Boolean) {
+        _isSelectionMode.value = enabled
+        if (!enabled) {
+            _selectedFolderIds.value = emptySet()
+        }
+    }
+
+    fun toggleFolderSelection(folderId: Long) {
+        val updated = if (_selectedFolderIds.value.contains(folderId)) {
+            _selectedFolderIds.value - folderId
+        } else {
+            _selectedFolderIds.value + folderId
+        }
+        _selectedFolderIds.value = updated
+        if (updated.isEmpty() && _isSelectionMode.value) {
+            _isSelectionMode.value = false
+        }
+    }
+
+    fun selectAllVisibleFolders() {
+        val source = if (_folderViewMode.value == FolderViewMode.DIRECTORIES) {
+            folders.value
+        } else {
+            hiddenFolders.value
+        }
+        _selectedFolderIds.value = source.map { it.id }.toSet()
+    }
+
+    fun clearSelection() {
+        _selectedFolderIds.value = emptySet()
+        _isSelectionMode.value = false
     }
 
     fun unhideFolder(path: String) {
@@ -217,6 +264,20 @@ class FolderViewModel @Inject constructor(
         }
     }
 
+    fun deleteSelectedFolders() {
+        val ids = _selectedFolderIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val songs = getSongsForFolders(ids)
+            _deleteResult.value = if (songs.isEmpty()) {
+                DeleteHelper.DeleteResult.Success
+            } else {
+                DeleteHelper.deleteSongs(context, songs)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
     fun clearDeleteResult() {
         _deleteResult.value = null
     }
@@ -225,19 +286,32 @@ class FolderViewModel @Inject constructor(
         _selectedFolderForPlaylist.value = folderId
     }
 
+    fun showAddSelectedToPlaylistDialog() {
+        if (_selectedFolderIds.value.isNotEmpty()) {
+            _selectedFolderForPlaylist.value = ALL_SELECTED_FOLDERS_SENTINEL
+        }
+    }
+
     fun dismissPlaylistDialog() {
         _selectedFolderForPlaylist.value = null
     }
 
     fun addFolderToPlaylist(folderId: Long, playlistId: Long) {
         viewModelScope.launch {
-            songRepository.getSongsByFolderId(folderId)
-                .stateIn(viewModelScope)
-                .value
-                .forEach { song ->
+            val songs = if (folderId == ALL_SELECTED_FOLDERS_SENTINEL) {
+                getSongsForFolders(_selectedFolderIds.value)
+            } else {
+                songRepository.getSongsByFolderId(folderId)
+                    .stateIn(viewModelScope)
+                    .value
+            }
+            songs.forEach { song ->
                     songRepository.addSongToPlaylist(playlistId, song.id)
                 }
             dismissPlaylistDialog()
+            if (folderId == ALL_SELECTED_FOLDERS_SENTINEL) {
+                toggleSelectionMode(false)
+            }
         }
     }
 
@@ -274,6 +348,43 @@ class FolderViewModel @Inject constructor(
         }
     }
 
+    fun playSelectedFolders() {
+        val ids = _selectedFolderIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val selectedSongs = getSongsForFolders(ids)
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.setShuffleEnabled(false)
+                playbackRepository.playQueue(selectedSongs, 0)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun playSelectedFoldersNext() {
+        val ids = _selectedFolderIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val selectedSongs = getSongsForFolders(ids)
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.playNext(selectedSongs)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
+    fun addSelectedFoldersToQueue() {
+        val ids = _selectedFolderIds.value
+        if (ids.isEmpty()) return
+        viewModelScope.launch {
+            val selectedSongs = getSongsForFolders(ids)
+            if (selectedSongs.isNotEmpty()) {
+                playbackRepository.addToQueue(selectedSongs)
+            }
+            toggleSelectionMode(false)
+        }
+    }
+
     fun addToQueue(path: String) {
         viewModelScope.launch {
             val folderSongs = allFolders.value
@@ -303,5 +414,17 @@ class FolderViewModel @Inject constructor(
         viewModelScope.launch {
             songRepository.updateLikeStatus(songId, !currentLiked)
         }
+    }
+
+    suspend fun getSongsForFolders(folderIds: Set<Long>): List<Song> {
+        if (folderIds.isEmpty()) return emptyList()
+        val songById = allSongs.value.associateBy { it.id }
+        return allFolders.value
+            .asSequence()
+            .filter { folderIds.contains(it.id) }
+            .flatMap { it.songIds.asSequence() }
+            .distinct()
+            .mapNotNull { songById[it] }
+            .toList()
     }
 }

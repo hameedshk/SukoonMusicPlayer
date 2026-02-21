@@ -86,20 +86,22 @@ fun rememberAlbumPalette(
             colorScheme.surfaceContainer
         ).joinToString(separator = "_") { it.toArgb().toString() }
     }
-    val paletteCacheKey = remember(albumArtUri, themeSignature) {
-        albumArtUri?.takeIf { it.isNotBlank() }?.let { "$it|$themeSignature" }
+    // Use genre-specific key even when artwork is null to ensure state resets on navigation
+    val resetKey = remember(albumArtUri, themeSignature) { 
+        albumArtUri ?: "empty_$themeSignature" 
     }
+    var palette by remember(resetKey) { mutableStateOf(defaultPalette) }
 
-    var palette by remember(paletteCacheKey) { mutableStateOf(defaultPalette) }
-
-    LaunchedEffect(paletteCacheKey) {
-        if (paletteCacheKey == null) {
+    LaunchedEffect(resetKey) {
+        val cacheKey = albumArtUri?.takeIf { it.isNotBlank() }
+        if (cacheKey == null) {
             palette = defaultPalette
+            onPaletteExtracted?.invoke(defaultPalette)
             return@LaunchedEffect
         }
 
         // Check cache first
-        val cachedPalette = paletteCache.get(paletteCacheKey)
+        val cachedPalette = paletteCache.get(cacheKey)
         if (cachedPalette != null) {
             DevLogger.d("PaletteExtractor", "Using cached palette for: $albumArtUri")
             palette = cachedPalette
@@ -176,7 +178,7 @@ fun rememberAlbumPalette(
                 )
 
                 // Cache the extracted palette for reuse
-                paletteCache.put(paletteCacheKey, extractedAlbumPalette)
+                paletteCache.put(cacheKey, extractedAlbumPalette)
 
                 palette = extractedAlbumPalette
                 DevLogger.d("PaletteExtractor", "Palette extracted and cached - Vibrant: ${palette.vibrant}, Dominant: ${palette.dominant}")

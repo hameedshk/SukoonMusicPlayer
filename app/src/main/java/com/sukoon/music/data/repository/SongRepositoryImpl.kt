@@ -363,12 +363,17 @@ class SongRepositoryImpl @Inject constructor(
     override fun getAllGenres(): Flow<List<Genre>> {
         return combine(
             songDao.getAllSongs(),
+            genreCoverDao.getAllCovers(),
             preferencesManager.userPreferencesFlow
-        ) { entities, preferences ->
+        ) { entities, covers, preferences ->
+            val coverMap = covers.associateBy { it.genreId }
             entities
                 .filter { shouldIncludeSong(it, preferences) }
                 .groupBy { it.genre }
-                .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
+                .map { (genreName, songs) ->
+                    val genreId = Genre.generateId(genreName)
+                    createGenreFromSongs(genreName, songs, coverMap[genreId]?.customArtworkUri)
+                }
                 .sortedBy { it.name.lowercase() }
         }
     }
@@ -376,26 +381,33 @@ class SongRepositoryImpl @Inject constructor(
     override fun getGenreById(genreId: Long): Flow<Genre?> {
         return combine(
             songDao.getAllSongs(),
+            genreCoverDao.getByGenreIdFlow(genreId),
             preferencesManager.userPreferencesFlow
-        ) { entities, preferences ->
-            entities
-                .filter { shouldIncludeSong(it, preferences) }
-                .groupBy { it.genre }
-                .map { (genreName, songs) -> createGenreFromSongs(genreName, songs) }
-                .find { it.id == genreId }
+        ) { entities, customCover, preferences ->
+            val filteredSongs = entities.filter { shouldIncludeSong(it, preferences) }
+            val targetGenreName = filteredSongs
+                .map { it.genre }
+                .distinct()
+                .find { Genre.generateId(it) == genreId } ?: return@combine null
+
+            val genreSongs = filteredSongs.filter { it.genre == targetGenreName }
+            createGenreFromSongs(targetGenreName, genreSongs, customCover?.customArtworkUri)
         }
     }
 
     override fun getGenreByName(genreName: String): Flow<Genre?> {
+        val genreId = Genre.generateId(genreName)
         return combine(
             songDao.getAllSongs(),
+            genreCoverDao.getByGenreIdFlow(genreId),
             preferencesManager.userPreferencesFlow
-        ) { entities, preferences ->
-            entities
-                .filter { shouldIncludeSong(it, preferences) }
-                .groupBy { it.genre }
-                .map { (name, songs) -> createGenreFromSongs(name, songs) }
-                .find { it.name.equals(genreName, ignoreCase = true) }
+        ) { entities, customCover, preferences ->
+            val genreSongs = entities.filter { 
+                it.genre.equals(genreName, ignoreCase = true) && shouldIncludeSong(it, preferences) 
+            }
+            if (genreSongs.isEmpty()) return@combine null
+            
+            createGenreFromSongs(genreName, genreSongs, customCover?.customArtworkUri)
         }
     }
 
@@ -616,13 +628,13 @@ class SongRepositoryImpl @Inject constructor(
         )
     }
 
-    private fun createGenreFromSongs(genreName: String, songs: List<SongEntity>): Genre {
+    private fun createGenreFromSongs(genreName: String, songs: List<SongEntity>, customArtworkUri: String? = null): Genre {
         return Genre(
             id = Genre.generateId(genreName),
             name = genreName,
             songCount = songs.size,
             totalDuration = songs.sumOf { it.duration },
-            artworkUri = songs.firstOrNull()?.albumArtUri,
+            artworkUri = customArtworkUri ?: songs.firstOrNull { it.albumArtUri != null }?.albumArtUri,
             songIds = songs.map { it.id }
         )
     }

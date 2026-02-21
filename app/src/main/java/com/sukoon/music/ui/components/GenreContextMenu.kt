@@ -32,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.components.GenreArtwork
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,8 +66,10 @@ fun GenreContextMenu(
                     modifier = Modifier.size(64.dp),
                     shape = MaterialTheme.shapes.small
                 ) {
-                    GenreIcon(
+                    GenreArtwork(
                         genreName = genre.name,
+                        genreId = genre.id,
+                        artworkUri = genre.artworkUri,
                         modifier = Modifier.fillMaxSize()
                     )
                 }

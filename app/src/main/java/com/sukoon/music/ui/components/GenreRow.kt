@@ -30,13 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Genre
-import com.sukoon.music.ui.theme.SpacingLarge
-import com.sukoon.music.ui.theme.SpacingMedium
-import com.sukoon.music.ui.theme.SpacingSmall
-import com.sukoon.music.ui.theme.SpacingTiny
-import com.sukoon.music.ui.theme.SpacingXSmall
 import com.sukoon.music.ui.theme.*
 
 @Composable
@@ -86,37 +80,12 @@ fun GenreRow(
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
-            if (genre.artworkUri != null) {
-                SubcomposeAsyncImage(
-                    model = genre.artworkUri,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = genre.name,
-                                albumId = genre.id
-                            )
-                        )
-                    },
-                    error = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = genre.name,
-                                albumId = genre.id
-                            )
-                        )
-                    }
-                )
-            } else {
-                PlaceholderAlbumArt.Placeholder(
-                    seed = PlaceholderAlbumArt.generateSeed(
-                        albumName = genre.name,
-                        albumId = genre.id
-                    )
-                )
-            }
+            GenreArtwork(
+                genreName = genre.name,
+                genreId = genre.id,
+                artworkUri = genre.artworkUri,
+                modifier = Modifier.fillMaxSize()
+            )
         }
 
         Spacer(modifier = Modifier.width(SpacingMedium))

@@ -1,251 +1,163 @@
 package com.sukoon.music.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ripple
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Folder
-import com.sukoon.music.ui.theme.*
-import com.sukoon.music.ui.util.rememberAlbumPalette
-import androidx.compose.material.icons.filled.MusicNote
+import com.sukoon.music.ui.theme.CompactButtonCornerRadius
+import com.sukoon.music.ui.theme.SpacingLarge
+import com.sukoon.music.ui.theme.SpacingMedium
+import com.sukoon.music.ui.theme.SpacingSmall
+import com.sukoon.music.ui.theme.SpacingTiny
+import com.sukoon.music.ui.theme.SpacingXSmall
 
-/**
- * Reusable list item for folders.
- *
- * Features:
- * - Leading: Folder icon or album art (48dp rounded)
- * - Middle: Column with folder name + subtitle (path • song count)
- * - Trailing: Three-dot menu button
- * - Context Menu with various actions
- */
-@OptIn(ExperimentalMaterial3Api::class)
+private val FolderRowArtSize = 56.dp
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun FolderRow(
     folder: Folder,
     isHidden: Boolean,
-    onFolderClick: () -> Unit,
-    onPlay: () -> Unit,
-    onPlayNext: () -> Unit,
-    onAddToQueue: () -> Unit,
-    onAddToPlaylist: () -> Unit,
-    onHide: () -> Unit,
-    onUnhide: () -> Unit,
-    onDelete: () -> Unit,
+    isSelectionMode: Boolean,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit,
+    onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showMenu by remember { mutableStateOf(false) }
+    val rowShape = RoundedCornerShape(12.dp)
+    val rowSelected = isSelectionMode && isSelected
+    val rowContainerColor = if (rowSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    } else {
+        Color.Transparent
+    }
+    val songCountLabel = androidx.compose.ui.res.pluralStringResource(
+        com.sukoon.music.R.plurals.common_song_count,
+        folder.songCount,
+        folder.songCount
+    )
+    val metaLine = "$songCountLabel \u2022 ${folder.formattedDuration()}"
 
-    Surface(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(
-                onClick = onFolderClick,
-                indication = ripple(bounded = true),
-                interactionSource = remember { MutableInteractionSource() }
-            ),
-        color = Color.Transparent
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left accent stripe with extracted vibrant color
-            val palette = rememberAlbumPalette(folder.albumArtUris.firstOrNull())
-            val accentColor = palette.vibrant.copy(alpha = 0.6f)
-            val backgroundTint = palette.mutedLight.copy(alpha = 0.12f)
-
-            Box(
-                modifier = Modifier
-                    .width(4.dp)
-                    .height(80.dp)
-                    .background(accentColor, RoundedCornerShape(topEnd = 2.dp, bottomEnd = 2.dp))
+            .padding(horizontal = SpacingMedium, vertical = SpacingTiny)
+            .clip(rowShape)
+            .background(rowContainerColor)
+            .border(
+                width = if (rowSelected) 1.dp else 0.dp,
+                color = if (rowSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = rowShape
             )
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(FolderRowArtSize)
+                .clip(RoundedCornerShape(CompactButtonCornerRadius))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            FolderAlbumArtCollage(
+                albumArtUris = folder.albumArtUris,
+                size = FolderRowArtSize
+            )
+        }
 
-            Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(SpacingMedium))
 
-            // Leading: Album art collage with shadow and dynamic background tint
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = folder.name,
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(SpacingXSmall))
+            Text(
+                text = metaLine,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            if (isHidden) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_hidden_folders),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+
+        if (isSelectionMode) {
             Box(
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .shadow(elevation = 2.dp, shape = RoundedCornerShape(8.dp), clip = false)
-                    .background(backgroundTint)
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .combinedClickable(onClick = onClick, onLongClick = onLongClick),
+                contentAlignment = Alignment.Center
             ) {
-                FolderAlbumArtCollage(
-                    albumArtUris = folder.albumArtUris,
-                    size = 80.dp
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Middle: Info
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = folder.name,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.3.sp
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = androidx.compose.ui.res.stringResource(
+                        if (isSelected) {
+                            com.sukoon.music.R.string.library_screens_b_checked
+                        } else {
+                            com.sukoon.music.R.string.library_screens_b_unchecked
+                        }
                     ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(end = 4.dp)
-                )
-
-                // Metadata badges with vibrant accent colors
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.height(20.dp)
-                ) {
-                    val iconAccent = palette.vibrant
-                    val badgeBg = palette.vibrant.copy(alpha = 0.15f)
-
-                    // Song count badge
-                    Surface(
-                        color = badgeBg,
-                        shape = RoundedCornerShape(2.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = iconAccent,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = "${folder.songCount}",
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.3.sp
-                                ),
-                                color = iconAccent
-                            )
-                        }
-                    }
-
-                    // Duration badge
-                    Surface(
-                        color = badgeBg,
-                        shape = RoundedCornerShape(2.dp)
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Schedule,
-                                contentDescription = null,
-                                tint = iconAccent,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = folder.formattedDuration(),
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 0.3.sp
-                                ),
-                                color = iconAccent
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Trailing: Menu
-            Box {
-                IconButton(onClick = { showMenu = true }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    // Header (non-clickable info)
-                    Text(
-                        text = folder.path,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    HorizontalDivider()
-
-                    DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play)) },
-                        onClick = { onPlay(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.PlayArrow, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_next)) },
-                        onClick = { onPlayNext(); showMenu = false },
-                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_queue)) },
-                        onClick = { onAddToQueue(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.AddToQueue, null) }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist)) },
-                        onClick = { onAddToPlaylist(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.PlaylistAdd, null) }
-                    )
-                    if (isHidden) {
-                        DropdownMenuItem(
-                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_unhide)) },
-                            onClick = { onUnhide(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.Visibility, null) }
-                        )
+                    tint = if (isSelected) {
+                        MaterialTheme.colorScheme.primary
                     } else {
-                        DropdownMenuItem(
-                            text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_hide)) },
-                            onClick = { onHide(); showMenu = false },
-                            leadingIcon = { Icon(Icons.Default.VisibilityOff, null) }
-                        )
-                    }
-                    DropdownMenuItem(
-                        text = { Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.label_delete_from_device)) },
-                        onClick = { onDelete(); showMenu = false },
-                        leadingIcon = { Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error) }
-                    )
-                }
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        } else {
+            IconButton(onClick = onMoreClick, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }
 }
-

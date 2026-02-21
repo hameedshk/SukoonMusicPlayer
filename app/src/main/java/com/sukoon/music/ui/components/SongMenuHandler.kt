@@ -23,6 +23,7 @@ class SongMenuHandler(
     private val onNavigateToAlbum: (Long) -> Unit = {},
     private val onNavigateToAlbumBySong: ((Song) -> Unit)? = null,
     private val onNavigateToArtist: (Long) -> Unit = {},
+    private val onNavigateToArtistBySong: ((Song) -> Unit)? = null,
     private val onShowPlaylistSelector: (Song) -> Unit = {},
     private val onShowDeleteConfirmation: (Song) -> Unit = {},
     private val onShowEditTags: (Song) -> Unit = {},
@@ -79,6 +80,10 @@ class SongMenuHandler(
     }
 
     fun handleGoToArtist(song: Song) {
+        onNavigateToArtistBySong?.let { navigateBySong ->
+            navigateBySong(song)
+            return
+        }
         val artistId = song.artist.hashCode().toLong()
         onNavigateToArtist(artistId)
     }
@@ -127,6 +132,7 @@ fun rememberSongMenuHandler(
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToAlbumBySong: ((Song) -> Unit)? = null,
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToArtistBySong: ((Song) -> Unit)? = null,
     onShowPlaylistSelector: (Song) -> Unit = {},
     onShowDeleteConfirmation: (Song) -> Unit = {},
     onShowEditTags: (Song) -> Unit = {},
@@ -146,6 +152,7 @@ fun rememberSongMenuHandler(
         onNavigateToAlbum,
         onNavigateToAlbumBySong,
         onNavigateToArtist,
+        onNavigateToArtistBySong,
         onShowPlaylistSelector,
         onShowDeleteConfirmation,
         onShowSongInfo,
@@ -159,6 +166,7 @@ fun rememberSongMenuHandler(
             onNavigateToAlbum = onNavigateToAlbum,
             onNavigateToAlbumBySong = onNavigateToAlbumBySong,
             onNavigateToArtist = onNavigateToArtist,
+            onNavigateToArtistBySong = onNavigateToArtistBySong,
             onShowPlaylistSelector = onShowPlaylistSelector,
             onShowDeleteConfirmation = onShowDeleteConfirmation,
             onShowEditTags = onShowEditTags,

@@ -76,7 +76,7 @@ import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.AnimatedEqualizer
 import com.sukoon.music.ui.components.DeleteConfirmationDialog
-import com.sukoon.music.ui.components.GenreIcon
+import com.sukoon.music.ui.components.GenreArtwork
 import com.sukoon.music.ui.components.MultiSelectActionBottomBar
 import com.sukoon.music.ui.components.SimpleBannerAd
 import com.sukoon.music.ui.components.SongContextMenu
@@ -86,8 +86,8 @@ import com.sukoon.music.ui.components.rememberShareHandler
 import com.sukoon.music.ui.components.rememberSongMenuHandler
 import com.sukoon.music.ui.navigation.PreferencesManagerEntryPoint
 import com.sukoon.music.ui.navigation.RemoteConfigManagerEntryPoint
-import com.sukoon.music.ui.theme.ContentBottomPadding
-import com.sukoon.music.ui.theme.ContentTopPadding
+import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.GenreDetailViewModel
 import com.sukoon.music.ui.viewmodel.GenreSongSortMode
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
@@ -481,7 +481,7 @@ private fun GenreDetailContent(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             top = ContentTopPadding,
-            bottom = 8.dp + ContentBottomPadding,
+            bottom = SpacingSmall + ContentBottomPadding,
             start = 0.dp,
             end = 0.dp
         )
@@ -501,7 +501,7 @@ private fun GenreDetailContent(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .padding(horizontal = SpacingLarge, vertical = SpacingXSmall),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -562,6 +562,8 @@ private fun GenreHeader(
     val screenWidthDp = LocalConfiguration.current.screenWidthDp.dp
     val artworkSize = (screenWidthDp * 0.72f).coerceIn(216.dp, 320.dp)
 
+    val palette = rememberAlbumPalette(genre.artworkUri)
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -573,8 +575,10 @@ private fun GenreHeader(
             shape = RoundedCornerShape(20.dp),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
         ) {
-            GenreIcon(
+            GenreArtwork(
                 genreName = genre.name,
+                genreId = genre.id,
+                artworkUri = genre.artworkUri,
                 modifier = Modifier.fillMaxSize()
             )
         }
@@ -635,7 +639,11 @@ private fun GenreHeader(
                 modifier = Modifier
                     .weight(1f)
                     .height(48.dp),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = palette.vibrant,
+                    contentColor = Color.White
+                )
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayArrow,
@@ -669,7 +677,7 @@ private fun GenreSongItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+            .padding(start = SpacingLarge, end = SpacingSmall, top = SpacingSmall, bottom = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
