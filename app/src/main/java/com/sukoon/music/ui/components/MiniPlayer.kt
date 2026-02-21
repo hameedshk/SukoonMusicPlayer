@@ -3,6 +3,7 @@ package com.sukoon.music.ui.components
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
@@ -53,6 +54,9 @@ import androidx.compose.ui.graphics.Color
 import com.sukoon.music.ui.theme.*
 import androidx.compose.foundation.border
 import com.sukoon.music.ui.theme.LocalIsAmoled
+import com.sukoon.music.ui.util.hasUsableAlbumArt
+import com.sukoon.music.ui.util.rememberAlbumPalette
+import com.sukoon.music.ui.util.resolveNowPlayingAccentColors
 
 /**
  * Shimmer effect modifier for loading states.
@@ -132,7 +136,7 @@ fun MiniPlayer(
 @Composable
 private fun MiniPlayerProgressBar(
     playbackState: PlaybackState,
-    accentColor: Color,
+    statusColor: Color,
     onSeek: (Long) -> Unit
 ) {
     val playbackStateSnapshot by rememberUpdatedState(playbackState)
@@ -215,7 +219,7 @@ private fun MiniPlayerProgressBar(
             modifier = Modifier
                 .fillMaxHeight()
                 .fillMaxWidth(progress)
-                .background(accentColor)
+                .background(statusColor)
         )
     }
 }
@@ -253,9 +257,22 @@ private fun MiniPlayerContentLayout(
 ) {
     val song = playbackState.currentSong ?: return
 
-    // Use theme's primary color (respects accent profile setting changes in real-time)
-    // This ensures MiniPlayer updates immediately when accent profile changes in settings
-    val accentColor = MaterialTheme.colorScheme.primary
+    val fallbackAccentColor = accent().primary
+    val palette = rememberAlbumPalette(song.albumArtUri)
+    val hasAlbumArt = remember(song.albumArtUri) { hasUsableAlbumArt(song.albumArtUri) }
+    val resolvedAccentColors = remember(palette, fallbackAccentColor, hasAlbumArt) {
+        resolveNowPlayingAccentColors(
+            palette = palette,
+            hasAlbumArt = hasAlbumArt,
+            fallbackAccent = fallbackAccentColor
+        )
+    }
+    val accentColor = resolvedAccentColors.controlsColor
+    val statusColor by animateColorAsState(
+        targetValue = resolvedAccentColors.sliderColor,
+        animationSpec = tween(durationMillis = 220),
+        label = "mini_player_status_color"
+    )
 
     // Frosted glass styling - theme-aware
     val isDarkTheme = MaterialTheme.colorScheme.onBackground.red > 0.5f
@@ -416,7 +433,7 @@ private fun MiniPlayerContentLayout(
 
             MiniPlayerProgressBar(
                 playbackState = playbackState,
-                accentColor = accentColor,
+                statusColor = statusColor,
                 onSeek = onSeek
             )
         }

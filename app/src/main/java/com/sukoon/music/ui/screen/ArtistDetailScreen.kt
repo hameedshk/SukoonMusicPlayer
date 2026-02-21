@@ -722,46 +722,27 @@ private fun AlbumCard(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(0.9f),
-        shape = RoundedCornerShape(12.dp),
+            .aspectRatio(1f),   // Square card = bigger art
+        shape = RoundedCornerShape(14.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Album Art
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // BIG Album Art
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1.6f),   // 👈 Give MORE space to image
                 contentAlignment = Alignment.Center
             ) {
                 if (album.albumArtUri != null) {
                     SubcomposeAsyncImage(
                         model = album.albumArtUri,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_album_cover),
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = album.title,
-                                    artistName = album.artist,
-                                    albumId = album.id
-                                )
-                            )
-                        },
-                        error = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = album.title,
-                                    artistName = album.artist,
-                                    albumId = album.id
-                                )
-                            )
-                        }
+                        contentScale = ContentScale.Crop
                     )
                 } else {
                     PlaceholderAlbumArt.Placeholder(
@@ -774,25 +755,20 @@ private fun AlbumCard(
                 }
             }
 
-            // Album Info
+            // Compact Text (less space → bigger art)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(12.dp)
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
             ) {
                 Text(
                     text = album.title,
                     style = MaterialTheme.typography.compactCardTitle,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = androidx.compose.ui.res.stringResource(
-                        com.sukoon.music.R.string.library_screens_b_song_count_always_plural,
-                        album.songCount
-                    ),
+                    text = "${album.songCount} songs",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
