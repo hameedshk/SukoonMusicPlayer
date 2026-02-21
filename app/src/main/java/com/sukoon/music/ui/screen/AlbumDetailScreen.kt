@@ -261,7 +261,10 @@ fun AlbumDetailScreen(
             } else {
                 TopAppBar(
                     title = {
-                        Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_album_detail_header_title))
+                        Text(
+                            text = album?.title?.takeIf { it.isNotBlank() }
+                                ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_album_detail_header_title)
+                        )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {

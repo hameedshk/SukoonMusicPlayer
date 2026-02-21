@@ -286,7 +286,12 @@ fun ArtistDetailScreen(
                 )
             } else {
                 TopAppBar(
-                    title = { Text(androidx.compose.ui.res.stringResource(R.string.library_screens_b_artist_title)) },
+                    title = {
+                        Text(
+                            text = artist?.name?.takeIf { it.isNotBlank() }
+                                ?: androidx.compose.ui.res.stringResource(R.string.library_screens_b_artist_title)
+                        )
+                    },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
                             Icon(

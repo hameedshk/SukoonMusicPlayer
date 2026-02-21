@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -170,7 +171,7 @@ fun GenreSelectionScreen(
                                 .padding(vertical = 8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlaylistAdd,
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                                 contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -524,7 +525,7 @@ private fun GenreSelectionItem(
         // Genre artwork
         Box(
             modifier = Modifier
-                .size(56.dp)
+                .size(64.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -536,7 +537,12 @@ private fun GenreSelectionItem(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
                     loading = {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = genre.name,
+                                albumId = genre.id
+                            )
+                        )
                     },
                     error = {
                         PlaceholderAlbumArt.Placeholder(

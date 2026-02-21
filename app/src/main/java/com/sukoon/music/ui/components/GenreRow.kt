@@ -1,47 +1,53 @@
 package com.sukoon.music.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Checkbox
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Genre
-import com.sukoon.music.ui.components.PlaceholderAlbumArt
+import com.sukoon.music.ui.theme.SpacingLarge
+import com.sukoon.music.ui.theme.SpacingMedium
+import com.sukoon.music.ui.theme.SpacingSmall
+import com.sukoon.music.ui.theme.SpacingTiny
+import com.sukoon.music.ui.theme.SpacingXSmall
 import com.sukoon.music.ui.theme.*
 
-/**
- * Reusable list item for genres.
- *
- * Features:
- * - Leading: Genre icon (MusicNote, 56dp circular) or Checkbox in selection mode
- * - Middle: Column with genre name + song count
- * - Trailing: Three-dot menu button
- */
 @Composable
 fun GenreRow(
     genre: Genre,
     onClick: () -> Unit,
-    onPlayClick: () -> Unit,
-    onPlayNextClick: () -> Unit,
-    onAddToQueueClick: () -> Unit,
-    onAddToPlaylistClick: () -> Unit,
-    onDeleteClick: () -> Unit,
+    onPlayClick: () -> Unit = {},
+    onPlayNextClick: () -> Unit = {},
+    onAddToQueueClick: () -> Unit = {},
+    onAddToPlaylistClick: () -> Unit = {},
+    onDeleteClick: () -> Unit = {},
     onMoreClick: (Genre) -> Unit = {},
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
@@ -49,122 +55,120 @@ fun GenreRow(
     modifier: Modifier = Modifier,
     key: Any? = null
 ) {
-    Surface(
+    val rowShape = RoundedCornerShape(12.dp)
+    val rowSelected = isSelectionMode && isSelected
+    val rowContainerColor = if (rowSelected) {
+        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.55f)
+    } else {
+        Color.Transparent
+    }
+    val rowBorderWidth = if (rowSelected) 1.dp else 0.dp
+
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = if (isSelectionMode) onSelectionToggle else onClick),
-        color = if (isSelected && isSelectionMode) {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        } else {
-            Color.Transparent
-        }
+            .padding(horizontal = SpacingMedium, vertical = SpacingTiny)
+            .clip(rowShape)
+            .background(rowContainerColor)
+            .border(
+                width = rowBorderWidth,
+                color = if (rowSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                shape = rowShape
+            )
+            .clickable(onClick = if (isSelectionMode) onSelectionToggle else onClick)
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(56.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
         ) {
-            // Leading: Genre Icon (always shown)
+            if (genre.artworkUri != null) {
+                SubcomposeAsyncImage(
+                    model = genre.artworkUri,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = genre.name,
+                                albumId = genre.id
+                            )
+                        )
+                    },
+                    error = {
+                        PlaceholderAlbumArt.Placeholder(
+                            seed = PlaceholderAlbumArt.generateSeed(
+                                albumName = genre.name,
+                                albumId = genre.id
+                            )
+                        )
+                    }
+                )
+            } else {
+                PlaceholderAlbumArt.Placeholder(
+                    seed = PlaceholderAlbumArt.generateSeed(
+                        albumName = genre.name,
+                        albumId = genre.id
+                    )
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.width(SpacingMedium))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = genre.name,
+                style = MaterialTheme.typography.compactCardTitle,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.size(SpacingXSmall))
+            Text(
+                text = androidx.compose.ui.res.pluralStringResource(
+                    com.sukoon.music.R.plurals.common_song_count,
+                    genre.songCount,
+                    genre.songCount
+                ),
+                style = MaterialTheme.typography.cardSubtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        if (isSelectionMode) {
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clickable(onClick = onSelectionToggle),
                 contentAlignment = Alignment.Center
             ) {
-                if (genre.artworkUri != null) {
-                    SubcomposeAsyncImage(
-                        model = genre.artworkUri,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = {
-                            PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(
-                                    albumName = genre.name,
-                                    albumId = genre.id
-                                )
-                            )
-                        }
-                    )
-                } else {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = genre.name,
-                            albumId = genre.id
-                        )
-                    )
-                }
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-
-            // Middle: Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                // Genre name with fade-right effect for long text
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = genre.name,
-                        style = MaterialTheme.typography.genreTitle,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    // Gradient fade on right edge for premium truncation
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .width(32.dp)
-                            .height(20.dp)
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.Transparent,
-                                        MaterialTheme.colorScheme.surface
-                                    ),
-                                    startX = 0f,
-                                    endX = Float.MAX_VALUE
-                                )
-                            )
-                    )
-                }
-                Text(
-                    text = androidx.compose.ui.res.pluralStringResource(
-                        com.sukoon.music.R.plurals.common_song_count,
-                        genre.songCount,
-                        genre.songCount
+                Icon(
+                    imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                    contentDescription = androidx.compose.ui.res.stringResource(
+                        if (isSelected) com.sukoon.music.R.string.library_screens_b_checked
+                        else com.sukoon.music.R.string.library_screens_b_unchecked
                     ),
-                    style = MaterialTheme.typography.genreMetadata,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
                 )
             }
-
-            // Trailing: RadioButton/Checkbox in selection mode, Menu Button otherwise
-            if (isSelectionMode) {
-                if (isSelected) {
-                    Checkbox(
-                        checked = true,
-                        onCheckedChange = { onSelectionToggle() }
-                    )
-                } else {
-                    RadioButton(
-                        selected = false,
-                        onClick = { onSelectionToggle() }
-                    )
-                }
-            } else {
-                IconButton(onClick = { onMoreClick(genre) }) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_options),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+        } else {
+            IconButton(onClick = { onMoreClick(genre) }, modifier = Modifier.size(48.dp)) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_more),
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
-
-
