@@ -360,7 +360,6 @@ fun HomeScreen(
                             onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
-                            subtitleText = topBarContextText,
                             sessionState = sessionState
                         )
                     }

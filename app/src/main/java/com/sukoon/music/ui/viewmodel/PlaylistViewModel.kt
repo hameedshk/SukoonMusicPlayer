@@ -63,6 +63,55 @@ class PlaylistViewModel @Inject constructor(
             initialValue = emptyList()
         )
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    private val _sortMode = MutableStateFlow(PlaylistSortMode.RECENT)
+    val sortMode: StateFlow<PlaylistSortMode> = _sortMode.asStateFlow()
+
+    private val _sortOrder = MutableStateFlow(PlaylistSortOrder.DESCENDING)
+    val sortOrder: StateFlow<PlaylistSortOrder> = _sortOrder.asStateFlow()
+
+    val visiblePlaylists: StateFlow<List<Playlist>> = combine(
+        playlists,
+        _searchQuery,
+        _sortMode,
+        _sortOrder
+    ) { all, query, mode, order ->
+        val filtered = if (query.isBlank()) {
+            all
+        } else {
+            all.filter { playlist ->
+                playlist.name.contains(query, ignoreCase = true) ||
+                    (playlist.description?.contains(query, ignoreCase = true) == true)
+            }
+        }
+
+        val sorted = when (mode) {
+            PlaylistSortMode.RECENT -> filtered.sortedBy { it.createdAt ?: 0L }
+            PlaylistSortMode.NAME -> filtered.sortedBy { it.name.lowercase() }
+            PlaylistSortMode.SONG_COUNT -> filtered.sortedBy { it.songCount }
+        }
+
+        if (order == PlaylistSortOrder.ASCENDING) sorted else sorted.asReversed()
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun setSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun setSortMode(mode: PlaylistSortMode) {
+        _sortMode.value = mode
+    }
+
+    fun setSortOrder(order: PlaylistSortOrder) {
+        _sortOrder.value = order
+    }
+
     /**
      * Smart playlists (My favourite, Last added, Recently played, Most played).
      * These are dynamically generated based on user behavior.

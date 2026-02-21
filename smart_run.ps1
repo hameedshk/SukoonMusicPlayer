@@ -467,3 +467,4 @@ if ($LASTEXITCODE -eq 0) {
 #ensure typed ip device is conncected
 #work on pairing
 #adb forward tcp:5277 tcp:5277
+#./gradlew :app:compileDebugKotlin

@@ -1,16 +1,12 @@
 package com.sukoon.music.ui.components
 
-import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -30,14 +26,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.layout.ContentScale
 import android.util.Log
 import coil.compose.SubcomposeAsyncImage
@@ -153,20 +148,20 @@ internal fun PrivateSessionIndicatorStrip(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = stringResource(R.string.common_ui_private_session_active),
+                contentDescription = "Private Session Active",
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(18.dp)
             )
             Text(
-                text = stringResource(R.string.common_ui_private_session),
-                style = MaterialTheme.typography.homeContextSubtitle,
+                text = "Private Session",
+                style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                 fontWeight = FontWeight.Medium
             )
             Spacer(Modifier.weight(1f))
             Text(
-                text = stringResource(R.string.common_ui_private_session_minutes_remaining, remainingMinutes),
-                style = MaterialTheme.typography.homeContextSubtitle,
+                text = "$remainingMinutes min",
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.8f)
             )
         }
@@ -179,7 +174,6 @@ internal fun RedesignedTopBar(
     onGlobalSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoClick: () -> Unit = {},
-    subtitleText: String? = null,
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -235,7 +229,7 @@ internal fun RedesignedTopBar(
 
                 Image(
                     painter = painterResource(id = R.drawable.app_logo),
-                    contentDescription = stringResource(R.string.common_ui_logo_content_description),
+                    contentDescription = "Sukoon Music Logo",
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
@@ -250,29 +244,17 @@ internal fun RedesignedTopBar(
                         )
                 )
 
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(end = SpacingSmall)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_topbar_title),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (!subtitleText.isNullOrBlank()) {
-                        Text(
-                            text = subtitleText,
-                            style = MaterialTheme.typography.homeContextSubtitle,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
+                // App name - full "Sukoon Music"
+                Text(
+                    text = "Sukoon Music",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.wrapContentWidth()
+                )
+
+                // Spacer to push icons to the right
+                Spacer(modifier = Modifier.weight(1f))
 
                 // Search icon button
                 IconButton(
@@ -281,7 +263,7 @@ internal fun RedesignedTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = stringResource(R.string.common_ui_search_content_description),
+                        contentDescription = "Search",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )
@@ -294,12 +276,11 @@ internal fun RedesignedTopBar(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = stringResource(R.string.common_settings),
+                        contentDescription = "Settings",
                         tint = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.size(24.dp)
                     )
                 }
-
             }
         }
 
@@ -338,52 +319,39 @@ internal fun TabPills(
             key = { it.key }
         ) { tab ->
             val isSelected = tab.key == selectedTab
-            val interactionSource = remember { MutableInteractionSource() }
-            val isFocused by interactionSource.collectIsFocusedAsState()
-            val borderColor by animateColorAsState(
-                targetValue = when {
-                    isSelected -> MaterialTheme.colorScheme.primary
-                    isFocused -> MaterialTheme.colorScheme.outline
-                    else -> Color.Transparent
-                },
-                label = "tab_pill_border"
-            )
 
             Surface(
                 modifier = Modifier
-                    .defaultMinSize(minHeight = MinimumTouchTargetSize)
                     .height(TabPillHeight)
                     .selectable(
                         selected = isSelected,
                         onClick = { onTabSelected(tab.key) },
-                        role = Role.Tab,
-                        interactionSource = interactionSource
+                        role = Role.Tab
                     ),
                 shape = PillShape,
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
                 tonalElevation = 0.dp,
-                shadowElevation = if (isSelected) 1.dp else 0.dp,
-                border = BorderStroke(width = 1.dp, color = borderColor)
+                shadowElevation = 0.dp
             ) {
                 Row(
                     modifier = Modifier
-                        .animateContentSize()
-                        .padding(horizontal = 10.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp), // Tightened: 10dp horiz, 8dp vert
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(SpacingSmall)
+                    horizontalArrangement = Arrangement.spacedBy(SpacingSmall) // 6.5dp icon-text gap
                 ) {
                     Icon(
                         imageVector = tab.icon,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(13.dp)
-                            .offset(x = 1.dp),
+                            .size(13.dp) // Reduced from 16dp: better optical balance vs 14sp text
+                            .offset(x = 1.dp), // Optical shift right for visual centering
                         tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f)
                     )
+                    // Font weight changes with selection state (no interpolation needed for discrete value)
                     Text(
                         text = tab.label,
-                        style = MaterialTheme.typography.homeTabLabel,
+                        style = MaterialTheme.typography.bodyMedium,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                         else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
@@ -427,14 +395,14 @@ internal fun WidgetBanner(
                     modifier = Modifier.size(24.dp)
                 )
                 Text(
-                    text = stringResource(R.string.common_ui_add_widgets_banner_text),
+                    text = "Add widgets to your home screen",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
             }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = stringResource(R.string.common_ui_go_content_description),
+                contentDescription = "Go",
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(20.dp)
             )
@@ -792,19 +760,19 @@ fun PrivateSessionIndicator(
         ) {
             Icon(
                 imageVector = Icons.Default.Lock,
-                contentDescription = stringResource(R.string.common_ui_private_session_active),
+                contentDescription = "Private Session Active",
                 tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(20.dp)
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(R.string.common_ui_private_session_active),
-                    style = MaterialTheme.typography.homeContextSubtitle,
+                    text = "Private Session Active",
+                    style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onTertiaryContainer,
                     fontWeight = FontWeight.Medium
                 )
                 Text(
-                    text = stringResource(R.string.common_ui_private_session_no_history_expires, remainingMinutes),
+                    text = "No listening history recorded • Expires in $remainingMinutes min",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
                 )
@@ -837,10 +805,8 @@ private fun String.cleanMetadata(): String {
 @Composable
 fun ContinueListeningCard(
     song: com.sukoon.music.domain.model.Song?,
-    isPlaying: Boolean,
     onPlayClick: () -> Unit,
     onClick: () -> Unit,
-    horizontalPadding: Dp = SpacingLarge,
     modifier: Modifier = Modifier
 ) {
     if (song == null) return
@@ -874,7 +840,7 @@ fun ContinueListeningCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = horizontalPadding)
+            .padding(horizontal = ScreenSafeAreaMargin)
     ) {
         // Card with album art and play button
         Surface(
@@ -884,6 +850,7 @@ fun ContinueListeningCard(
                 .scale(if (isCardPressed) 0.98f else 1f)
                 .clickable(
                     interactionSource = cardInteractionSource,
+                    indication = null,
                     enabled = true,
                     onClick = onClick
                 ),
@@ -895,11 +862,7 @@ fun ContinueListeningCard(
                 // Album artwork (full background)
                 SubcomposeAsyncImage(
                     model = song.albumArtUri,
-                    contentDescription = stringResource(
-                        R.string.common_ui_album_art_description,
-                        song.title,
-                        song.artist
-                    ),
+                    contentDescription = "Album art for ${song.title} by ${song.artist}",
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(RoundedCornerShape(ContinueListeningCornerRadius)),
@@ -933,8 +896,9 @@ fun ContinueListeningCard(
                 ) {
                     IconButton(
                         onClick = {
-                            Log.d("ContinueListeningCard", "Toggle playback: ${song.title}")
+                            Log.d("ContinueListeningCard", "Play clicked: ${song.title}")
                             onPlayClick()
+                            onClick()
                         },
                         modifier = Modifier
                             .size(56.dp)
@@ -945,16 +909,8 @@ fun ContinueListeningCard(
                         interactionSource = playButtonInteractionSource
                     ) {
                         Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = stringResource(
-                                if (isPlaying) {
-                                    R.string.common_ui_pause_song_description
-                                } else {
-                                    R.string.common_ui_play_song_description
-                                },
-                                song.title,
-                                song.artist
-                            ),
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Play ${song.title} by ${song.artist}",
                             modifier = Modifier.size(28.dp),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
@@ -967,7 +923,9 @@ fun ContinueListeningCard(
         Spacer(modifier = Modifier.height(12.dp))
         Text(
             text = song.title.cleanMetadata(),
-            style = MaterialTheme.typography.songTitleLarge,
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -998,8 +956,10 @@ fun RecentlyPlayedScrollSection(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = stringResource(R.string.common_ui_recently_played),
-            style = MaterialTheme.typography.homeSectionHeader,
+            text = "Recently played",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
         )
@@ -1034,16 +994,13 @@ fun RecentlyPlayedScrollSection(
                         .scale(if (itemPressed) 0.95f else 1f)
                         .clickable(
                             interactionSource = itemInteractionSource,
+                            indication = null,
                             onClick = { onItemClick(song) }
                         )
                 ) {
                     SubcomposeAsyncImage(
                         model = song.albumArtUri,
-                        contentDescription = stringResource(
-                            R.string.common_ui_play_song_description,
-                            song.title,
-                            song.artist
-                        ),
+                        contentDescription = "Play ${song.title} by ${song.artist}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop,
                         loading = {
@@ -1107,8 +1064,10 @@ fun LibraryNavigationCards(
     ) {
         // Section header - consistent with other sections
         Text(
-            text = stringResource(R.string.common_ui_your_library),
-            style = MaterialTheme.typography.homeSectionHeader,
+            text = "Your library",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
             color = MaterialTheme.colorScheme.onBackground
         )
 
@@ -1123,13 +1082,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_songs),
+                    title = "Songs",
                     icon = Icons.Default.MusicNote,
                     onClick = onSongsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_playlists),
+                    title = "Playlists",
                     icon = Icons.AutoMirrored.Filled.List,
                     onClick = onPlaylistsClick,
                     modifier = Modifier.weight(1f)
@@ -1141,13 +1100,13 @@ fun LibraryNavigationCards(
                 horizontalArrangement = Arrangement.spacedBy(LibraryCardSpacing)
             ) {
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_albums),
+                    title = "Albums",
                     icon = Icons.Default.Album,
                     onClick = onAlbumsClick,
                     modifier = Modifier.weight(1f)
                 )
                 LibraryCard(
-                    title = stringResource(R.string.common_ui_library_folders),
+                    title = "Folders",
                     icon = Icons.Default.Folder,
                     onClick = onFoldersClick,
                     modifier = Modifier.weight(1f)
@@ -1186,6 +1145,7 @@ private fun LibraryCard(
             .scale(if (isPressed) 0.97f else 1f)
             .clickable(
                 interactionSource = interactionSource,
+                indication = null,
                 onClick = onClick
             ),
         shape = RoundedCornerShape(LibraryCardCornerRadius),
@@ -1203,7 +1163,7 @@ private fun LibraryCard(
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = stringResource(R.string.common_ui_navigate_to, title),
+                contentDescription = "Navigate to $title",
                 modifier = Modifier.size(24.dp),
                 tint = accent().primary
             )
@@ -1358,4 +1318,3 @@ fun RedesignedTopBarPreview() {
         )
     }
 }
-

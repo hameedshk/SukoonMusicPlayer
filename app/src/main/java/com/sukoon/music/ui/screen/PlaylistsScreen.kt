@@ -4,33 +4,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.MusicNote
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Upload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -56,25 +48,20 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
-import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Playlist
-import com.sukoon.music.ui.components.getSmartPlaylistIcon
-import com.sukoon.music.R
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.NativeAdCard
-import com.sukoon.music.ui.components.PlaceholderAlbumArt
+import com.sukoon.music.ui.components.getSmartPlaylistIcon
+import com.sukoon.music.ui.components.SortOption
+import com.sukoon.music.R
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.ui.components.PlaceholderAlbumArt
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
+import com.sukoon.music.ui.viewmodel.PlaylistSortMode
+import com.sukoon.music.ui.viewmodel.PlaylistSortOrder
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
-
-private enum class PlaylistSortMode(val labelResId: Int) {
-    RECENT(R.string.playlists_screen_sort_recent),
-    NAME(R.string.playlists_screen_sort_name),
-    SONG_COUNT(R.string.playlists_screen_sort_songs)
-}
 
 /**
  * Playlists Screen - Shows smart playlists and user playlists.
@@ -95,6 +82,10 @@ fun PlaylistsScreen(
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     val playlists by viewModel.playlists.collectAsStateWithLifecycle()
+    val visiblePlaylists by viewModel.visiblePlaylists.collectAsStateWithLifecycle()
+    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
+    val sortOrder by viewModel.sortOrder.collectAsStateWithLifecycle()
     val smartPlaylists by viewModel.smartPlaylists.collectAsStateWithLifecycle()
     val availableSongs by viewModel.availableSongs.collectAsStateWithLifecycle()
     val deletedPlaylistsCount by viewModel.deletedPlaylistsCount.collectAsStateWithLifecycle()
@@ -103,30 +94,27 @@ fun PlaylistsScreen(
     var showImportDialog by remember { mutableStateOf(false) }
     var importResult by remember { mutableStateOf<String?>(null) }
     var importSuccess by remember { mutableStateOf<Boolean?>(null) }
-    var playlistToDelete by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
-    var playlistToRename by remember { mutableStateOf<com.sukoon.music.domain.model.Playlist?>(null) }
+    var playlistToDelete by remember { mutableStateOf<Playlist?>(null) }
+    var playlistToRename by remember { mutableStateOf<Playlist?>(null) }
     var createDialogInitialName by remember { mutableStateOf("") }
     var newPlaylistId by remember { mutableStateOf<Long?>(null) }
     var showAddSongsDialog by remember { mutableStateOf(false) }
-    var playlistSearchQuery by remember { mutableStateOf("") }
-    var playlistSortMode by remember { mutableStateOf(PlaylistSortMode.RECENT) }
+    var showSortDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    val visiblePlaylists = remember(playlists, playlistSearchQuery, playlistSortMode) {
-        val filtered = playlists.filter { playlist ->
-            if (playlistSearchQuery.isBlank()) {
-                true
-            } else {
-                playlist.name.contains(playlistSearchQuery, ignoreCase = true) ||
-                    (playlist.description?.contains(playlistSearchQuery, ignoreCase = true) == true)
-            }
-        }
-        when (playlistSortMode) {
-            PlaylistSortMode.RECENT -> filtered.sortedByDescending { it.createdAt }
-            PlaylistSortMode.NAME -> filtered.sortedBy { it.name.lowercase() }
-            PlaylistSortMode.SONG_COUNT -> filtered.sortedByDescending { it.songCount }
-        }
+    val playlistSubtitle = if (searchQuery.isBlank()) {
+        pluralStringResource(
+            id = R.plurals.playlists_screen_playlist_count,
+            count = visiblePlaylists.size,
+            visiblePlaylists.size
+        )
+    } else {
+        stringResource(
+            R.string.playlists_screen_visible_of_total_results,
+            visiblePlaylists.size,
+            playlists.size
+        )
     }
 
     LazyColumn(
@@ -156,75 +144,38 @@ fun PlaylistsScreen(
         }
 
         if (playlists.isNotEmpty()) {
+    item {
+        PlaylistSortHeader(
+            playlistCount = playlists.size,
+            subtitle = playlistSubtitle,
+            onSortClick = { showSortDialog = true }
+        )
+    }
             item {
-                PlaylistListControls(
-                    query = playlistSearchQuery,
-                    onQueryChange = { playlistSearchQuery = it },
-                    sortMode = playlistSortMode,
-                    onSortModeChange = { playlistSortMode = it }
+                PlaylistSearchBar(
+                    query = searchQuery,
+                    onQueryChange = { viewModel.setSearchQuery(it) }
                 )
-            }
-            item {
-                val subtitle = if (playlistSearchQuery.isBlank()) {
-                    pluralStringResource(
-                        id = R.plurals.playlists_screen_playlist_count,
-                        count = visiblePlaylists.size,
-                        visiblePlaylists.size
-                    )
-                } else {
-                    stringResource(
-                        R.string.playlists_screen_visible_of_total_results,
-                        visiblePlaylists.size,
-                        playlists.size
-                    )
-                }
-                Column(
-                    modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.playlists_screen_my_playlists_title),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
             }
 
             if (visiblePlaylists.isNotEmpty()) {
                 items(
-                    items = visiblePlaylists.chunked(2),
-                    key = { row -> row.first().id }
-                ) { rowPlaylists ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        rowPlaylists.forEach { playlist ->
-                            Box(modifier = Modifier.weight(1f)) {
-                                PlaylistCard(
-                                    playlist = playlist,
-                                    onClick = { onNavigateToPlaylist(playlist.id) },
-                                    onDeleteClick = { playlistToDelete = playlist },
-                                    onPlayClick = { viewModel.playPlaylist(playlist.id) },
-                                    onPlayNextClick = { viewModel.playNextPlaylist(playlist.id) },
-                                    onRenameClick = { playlistToRename = playlist }
-                                )
-                            }
-                        }
-                        if (rowPlaylists.size == 1) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
+                    items = visiblePlaylists,
+                    key = { it.id }
+                ) { playlist ->
+                    PlaylistRow(
+                        playlist = playlist,
+                        onClick = { onNavigateToPlaylist(playlist.id) },
+                        onPlay = { viewModel.playPlaylist(playlist.id) },
+                        onPlayNext = { viewModel.playNextPlaylist(playlist.id) },
+                        onRename = { playlistToRename = playlist },
+                        onDelete = { playlistToDelete = playlist }
+                    )
                 }
             } else {
                 item {
                     EmptyFilteredPlaylistsState(
-                        query = playlistSearchQuery,
+                        query = searchQuery,
                         onCreateFromQuery = { query ->
                             createDialogInitialName = query
                             showCreateDialog = true
@@ -251,98 +202,108 @@ fun PlaylistsScreen(
         }
     }
 
-    // Create Playlist Dialog
-        if (showCreateDialog) {
-            CreatePlaylistDialog(
-                initialName = createDialogInitialName,
-                onDismiss = {
-                    showCreateDialog = false
-                    createDialogInitialName = ""
-                },
-                onConfirm = { name, description ->
-                    viewModel.createPlaylist(name, description) { playlistId ->
-                        // Store the new playlist ID and show song selection dialog
-                        newPlaylistId = playlistId
-                        viewModel.loadPlaylist(playlistId)
-                        showAddSongsDialog = true
+    if (showSortDialog) {
+        PlaylistSortDialog(
+            currentMode = sortMode,
+            currentOrder = sortOrder,
+            onDismiss = { showSortDialog = false },
+            onSortModeChange = {
+                viewModel.setSortMode(it)
+                showSortDialog = false
+            },
+            onOrderChange = {
+                viewModel.setSortOrder(it)
+                showSortDialog = false
+            }
+        )
+    }
+
+    if (showCreateDialog) {
+        CreatePlaylistDialog(
+            initialName = createDialogInitialName,
+            onDismiss = {
+                showCreateDialog = false
+                createDialogInitialName = ""
+            },
+            onConfirm = { name, description ->
+                viewModel.createPlaylist(name, description) { playlistId ->
+                    newPlaylistId = playlistId
+                    viewModel.loadPlaylist(playlistId)
+                    showAddSongsDialog = true
+                }
+                showCreateDialog = false
+                createDialogInitialName = ""
+            }
+        )
+    }
+
+    if (showAddSongsDialog && newPlaylistId != null) {
+        AddSongsToNewPlaylistDialog(
+            availableSongs = availableSongs,
+            onDismiss = {
+                showAddSongsDialog = false
+                newPlaylistId?.let { onNavigateToPlaylist(it) }
+                newPlaylistId = null
+            },
+            onAddSongs = { selectedSongs ->
+                selectedSongs.forEach { song ->
+                    viewModel.addSongToPlaylist(newPlaylistId!!, song.id)
+                }
+                showAddSongsDialog = false
+                newPlaylistId?.let { onNavigateToPlaylist(it) }
+                newPlaylistId = null
+            }
+        )
+    }
+
+    if (showImportDialog) {
+        ImportPlaylistDialog(
+            onDismiss = {
+                showImportDialog = false
+                importResult = null
+                importSuccess = null
+            },
+            onImport = { json ->
+                scope.launch {
+                    val count = viewModel.importPlaylists(json)
+                    importResult = if (count > 0) {
+                        context.resources.getQuantityString(
+                            R.plurals.playlists_screen_import_success,
+                            count,
+                            count
+                        )
+                    } else {
+                        context.getString(R.string.playlists_screen_import_failed)
                     }
-                    showCreateDialog = false
-                    createDialogInitialName = ""
+                    importSuccess = count > 0
                 }
-            )
-        }
+            },
+            importResult = importResult,
+            importSuccess = importSuccess
+        )
+    }
 
-        // Add Songs Dialog for newly created playlist
-        if (showAddSongsDialog && newPlaylistId != null) {
-            AddSongsToNewPlaylistDialog(
-                availableSongs = availableSongs,
-                onDismiss = {
-                    showAddSongsDialog = false
-                    newPlaylistId?.let { onNavigateToPlaylist(it) }
-                    newPlaylistId = null
-                },
-                onAddSongs = { selectedSongs ->
-                    selectedSongs.forEach { song ->
-                        viewModel.addSongToPlaylist(newPlaylistId!!, song.id)
-                    }
-                    showAddSongsDialog = false
-                    newPlaylistId?.let { onNavigateToPlaylist(it) }
-                    newPlaylistId = null
-                }
-            )
-        }
+    playlistToDelete?.let { playlist ->
+        DeletePlaylistConfirmationDialog(
+            playlistName = playlist.name,
+            onDismiss = { playlistToDelete = null },
+            onConfirm = {
+                viewModel.deletePlaylist(playlist.id)
+                playlistToDelete = null
+            }
+        )
+    }
 
-        // Import Playlist Dialog
-        if (showImportDialog) {
-            ImportPlaylistDialog(
-                onDismiss = {
-                    showImportDialog = false
-                    importResult = null
-                    importSuccess = null
-                },
-                onImport = { json ->
-                    scope.launch {
-                        val count = viewModel.importPlaylists(json)
-                        importResult = if (count > 0) {
-                            context.resources.getQuantityString(
-                                R.plurals.playlists_screen_import_success,
-                                count,
-                                count
-                            )
-                        } else {
-                            context.getString(R.string.playlists_screen_import_failed)
-                        }
-                        importSuccess = count > 0
-                    }
-                },
-                importResult = importResult,
-                importSuccess = importSuccess
-            )
-        }
-
-        // Delete Confirmation Dialog
-        playlistToDelete?.let { playlist ->
-            DeletePlaylistConfirmationDialog(
-                playlistName = playlist.name,
-                onDismiss = { playlistToDelete = null },
-                onConfirm = {
-                    viewModel.deletePlaylist(playlist.id)
-                    playlistToDelete = null
-                }
-            )
-        }
-
-        // Rename Dialog
-        playlistToRename?.let { playlist ->
-            RenamePlaylistDialog(
-                currentName = playlist.name,
-                onDismiss = { playlistToRename = null },
-                onConfirm = { newName ->
-                    viewModel.updatePlaylist(playlist.copy(name = newName))
-                    playlistToRename = null
-                }
-            )
-        }
+    playlistToRename?.let { playlist ->
+        RenamePlaylistDialog(
+            currentName = playlist.name,
+            onDismiss = { playlistToRename = null },
+            onConfirm = { newName ->
+                viewModel.updatePlaylist(playlist.copy(name = newName))
+                playlistToRename = null
+            }
+        )
+    }
 }
 
 /**
@@ -627,97 +588,321 @@ private fun QuickActionButton(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PlaylistListControls(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    sortMode: PlaylistSortMode,
-    onSortModeChange: (PlaylistSortMode) -> Unit
+private fun PlaylistSortHeader(
+    playlistCount: Int,
+    subtitle: String,
+    onSortClick: () -> Unit
 ) {
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        tonalElevation = 1.dp
+    val accentTokens = accent()
+    val sortInteractionSource = remember { MutableInteractionSource() }
+    val isSortPressed by sortInteractionSource.collectIsPressedAsState()
+    val pressedContainerColor = accentTokens.softBg.copy(alpha = 0.30f)
+    val actionIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+                .padding(horizontal = 2.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-                placeholder = {
+            Text(
+                text = pluralStringResource(
+                    id = R.plurals.playlists_screen_playlist_count,
+                    count = playlistCount,
+                    playlistCount
+                ),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (isSortPressed) pressedContainerColor else Color.Transparent)
+                    .clickable(
+                        interactionSource = sortInteractionSource,
+                        indication = null,
+                        onClick = onSortClick
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Sort,
+                    contentDescription = stringResource(R.string.library_common_sort),
+                    tint = if (isSortPressed) accentTokens.active else actionIconColor,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        }
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlaylistSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerLow),
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = stringResource(R.string.playlists_screen_search_content_description),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Box(modifier = Modifier.weight(1f)) {
+                if (query.isEmpty()) {
                     Text(
                         text = stringResource(R.string.playlists_screen_search_placeholder),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                },
-                leadingIcon = {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = stringResource(R.string.playlists_screen_search_content_description)
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = onQueryChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = MaterialTheme.typography.bodyLarge.copy(
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                },
-                trailingIcon = {
-                    if (query.isNotBlank()) {
-                        IconButton(onClick = { onQueryChange("") }) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = stringResource(R.string.playlists_screen_clear_search_content_description)
-                            )
-                        }
-                    }
-                },
-                shape = RoundedCornerShape(14.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                    focusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.65f),
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
-                    focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-                    unfocusedLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            )
-            Text(
-                text = stringResource(R.string.playlists_screen_sort_by_label),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                PlaylistSortMode.values().forEach { mode ->
-                    val selected = sortMode == mode
-                    FilterChip(
-                        selected = selected,
-                        onClick = { onSortModeChange(mode) },
-                        label = { Text(stringResource(mode.labelResId)) },
-                        shape = RoundedCornerShape(999.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-                            selectedLabelColor = MaterialTheme.colorScheme.primary,
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = selected,
-                            borderColor = MaterialTheme.colorScheme.outlineVariant,
-                            selectedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
-                            borderWidth = 1.dp,
-                            selectedBorderWidth = 1.dp
-                        )
+            }
+            if (query.isNotEmpty()) {
+                IconButton(onClick = { onQueryChange("") }) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = stringResource(R.string.playlists_screen_clear_search_content_description)
                     )
                 }
             }
         }
     }
+}
+
+@Composable
+private fun PlaylistRow(
+    playlist: Playlist,
+    onClick: () -> Unit,
+    onPlay: () -> Unit,
+    onPlayNext: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    val playlistSongCountText = pluralStringResource(
+        id = R.plurals.playlists_screen_song_count,
+        count = playlist.songCount,
+        playlist.songCount
+    )
+    val playlistContentDescription = stringResource(
+        R.string.playlists_screen_playlist_content_description,
+        playlist.name,
+        playlistSongCountText
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .semantics { contentDescription = playlistContentDescription },
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .padding(12.dp)
+                .fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                if (playlist.coverImageUri != null) {
+                    SubcomposeAsyncImage(
+                        model = playlist.coverImageUri,
+                        contentDescription = stringResource(R.string.playlists_screen_playlist_cover_content_description),
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                        loading = {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                        },
+                        error = {
+                            DefaultPlaylistCover(playlist.id)
+                        }
+                    )
+                } else {
+                    DefaultPlaylistCover(playlist.id)
+                }
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = playlist.name,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = playlistSongCountText,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            IconButton(
+                onClick = onPlay,
+                modifier = Modifier
+                    .padding(end = 4.dp)
+                    .size(40.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = stringResource(R.string.playlists_screen_play_playlist_content_description),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+            }
+
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.playlists_screen_options_content_description)
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_play_next)) },
+                        onClick = {
+                            onPlayNext()
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_rename)) },
+                        onClick = {
+                            onRename()
+                            showMenu = false
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.common_delete)) },
+                        onClick = {
+                            onDelete()
+                            showMenu = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PlaylistSortDialog(
+    currentMode: PlaylistSortMode,
+    currentOrder: PlaylistSortOrder,
+    onDismiss: () -> Unit,
+    onSortModeChange: (PlaylistSortMode) -> Unit,
+    onOrderChange: (PlaylistSortOrder) -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.common_sort_by)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                PlaylistSortMode.values().forEach { mode ->
+                    SortOption(
+                        text = stringResource(
+                            when (mode) {
+                                PlaylistSortMode.RECENT -> R.string.playlists_screen_sort_recent
+                                PlaylistSortMode.NAME -> R.string.playlists_screen_sort_name
+                                PlaylistSortMode.SONG_COUNT -> R.string.playlists_screen_sort_songs
+                            }
+                        ),
+                        isSelected = currentMode == mode,
+                        onClick = { onSortModeChange(mode) }
+                    )
+                }
+                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = currentOrder == PlaylistSortOrder.ASCENDING,
+                        onClick = { onOrderChange(PlaylistSortOrder.ASCENDING) },
+                        label = {
+                            Text(
+                                stringResource(R.string.library_common_sort_order_a_to_z),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    FilterChip(
+                        selected = currentOrder == PlaylistSortOrder.DESCENDING,
+                        onClick = { onOrderChange(PlaylistSortOrder.DESCENDING) },
+                        label = {
+                            Text(
+                                stringResource(R.string.library_common_sort_order_z_to_a),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+                            selectedLabelColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_ok))
+            }
+        }
+    )
 }
 
 @Composable
@@ -760,227 +945,6 @@ private fun EmptyFilteredPlaylistsState(
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(stringResource(R.string.playlists_screen_create_query, query))
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlaylistsGrid(
-    playlists: List<Playlist>,
-    adMobManager: com.sukoon.music.data.ads.AdMobManager,
-    onPlaylistClick: (Long) -> Unit,
-    onDeletePlaylist: (Long) -> Unit
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        contentPadding = PaddingValues(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Intersperse native ads every 6 playlists
-        val adInterval = 6
-        var itemIndex = 0
-
-        playlists.forEachIndexed { index, playlist ->
-            // Add native ad before this playlist if we've shown enough playlists
-            if (index > 0 && index % adInterval == 0) {
-                item(key = "ad_$itemIndex") {
-                    // Native ad placeholder - ads are handled by SimpleNativeAd in individual screens
-                }
-                itemIndex++
-            }
-
-            // Regular playlist card
-            item(key = playlist.id) {
-                PlaylistCard(
-                    playlist = playlist,
-                    onClick = { onPlaylistClick(playlist.id) },
-                    onDeleteClick = { onDeletePlaylist(playlist.id) },
-                    onPlayClick = {},
-                    onPlayNextClick = {},
-                    onRenameClick = {}
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PlaylistCard(
-    playlist: Playlist,
-    onClick: () -> Unit,
-    onDeleteClick: () -> Unit,
-    onPlayClick: () -> Unit,
-    onPlayNextClick: () -> Unit,
-    onRenameClick: () -> Unit
-) {
-    var showMenu by remember { mutableStateOf(false) }
-    val playlistSongCountText = pluralStringResource(
-        id = R.plurals.playlists_screen_song_count,
-        count = playlist.songCount,
-        playlist.songCount
-    )
-    val playlistContentDescription = stringResource(
-        R.string.playlists_screen_playlist_content_description,
-        playlist.name,
-        playlistSongCountText
-    )
-
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(0.95f)
-            .border(
-                width = 1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                shape = RoundedCornerShape(16.dp)
-            )
-            .semantics {
-                contentDescription = playlistContentDescription
-            },
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 5.dp
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                if (playlist.coverImageUri != null) {
-                    SubcomposeAsyncImage(
-                        model = playlist.coverImageUri,
-                        contentDescription = stringResource(R.string.playlists_screen_playlist_cover_content_description),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(32.dp)
-                            )
-                        },
-                        error = {
-                            DefaultPlaylistCover(playlist.id)
-                        }
-                    )
-                } else {
-                    DefaultPlaylistCover(playlist.id)
-                }
-
-                FilledIconButton(
-                    onClick = onPlayClick,
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .padding(8.dp)
-                        .size(34.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.PlayArrow,
-                        contentDescription = stringResource(R.string.playlists_screen_play_playlist_content_description),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                ) {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier.background(
-                            color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.35f),
-                            shape = CircleShape
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = stringResource(R.string.playlists_screen_options_content_description),
-                            tint = Color.White
-                        )
-                    }
-
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_play)) },
-                            onClick = {
-                                onPlayClick()
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_play_next)) },
-                            onClick = {
-                                onPlayNextClick()
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_rename)) },
-                            onClick = {
-                                onRenameClick()
-                                showMenu = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.common_delete)) },
-                            onClick = {
-                                onDeleteClick()
-                                showMenu = false
-                            }
-                        )
-                    }
-                }
-            }
-
-            // Playlist Info
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 12.dp)
-            ) {
-                Text(
-                    text = playlist.name,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .fadeEllipsis()
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Surface(
-                    shape = RoundedCornerShape(999.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant
-                ) {
-                    Text(
-                        text = playlistSongCountText,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
             }
         }
     }
@@ -1263,209 +1227,8 @@ fun ImportPlaylistDialog(
 }
 
 /**
- * Filter chips for filtering playlists
- */
-@Composable
-private fun PlaylistFilterChips(
-    selectedFilter: Boolean?,
-    onFilterChange: (Boolean?) -> Unit
-) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        item {
-            FilterChip(
-                selected = selectedFilter == null,
-                onClick = { onFilterChange(null) },
-                label = { Text(stringResource(R.string.label_all)) },
-                modifier = if (selectedFilter != null) {
-                    Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .surfaceLevel2Gradient()
-                } else {
-                    Modifier
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != null) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != null) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-        item {
-            FilterChip(
-                selected = selectedFilter == true,
-                onClick = { onFilterChange(true) },
-                label = { Text(stringResource(R.string.label_smart_playlists)) },
-                leadingIcon = if (selectedFilter == true) {
-                    { Icon(Icons.Default.Star, null, Modifier.size(18.dp)) }
-                } else null,
-                modifier = if (selectedFilter != true) {
-                    Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .surfaceLevel2Gradient()
-                } else {
-                    Modifier
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != true) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != true) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-        item {
-            FilterChip(
-                selected = selectedFilter == false,
-                onClick = { onFilterChange(false) },
-                label = { Text(stringResource(R.string.label_my_playlists)) },
-                leadingIcon = if (selectedFilter == false) {
-                    { Icon(Icons.Default.Folder, null, Modifier.size(18.dp)) }
-                } else null,
-                modifier = if (selectedFilter != false) {
-                    Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .surfaceLevel2Gradient()
-                } else {
-                    Modifier
-                },
-                colors = FilterChipDefaults.filterChipColors(
-                    containerColor = if (selectedFilter != false) Color.Transparent else MaterialTheme.colorScheme.primary,
-                    labelColor = if (selectedFilter != false) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        }
-    }
-}
-
-/**
  * Mini Player for playlist screens - Shows current song with playback controls
  */
-@Composable
-private fun PlaylistMiniPlayer(
-    playbackState: com.sukoon.music.domain.model.PlaybackState,
-    onPlayPauseClick: () -> Unit,
-    onNextClick: () -> Unit,
-    onPreviousClick: () -> Unit,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        tonalElevation = 8.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Album art
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surface),
-                contentAlignment = Alignment.Center
-            ) {
-                if (playbackState.currentSong?.albumArtUri != null) {
-                    SubcomposeAsyncImage(
-                        model = playbackState.currentSong.albumArtUri,
-                        contentDescription = stringResource(R.string.playlists_screen_album_art_content_description),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        error = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Song info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = playbackState.currentSong?.title ?: stringResource(R.string.playlists_screen_no_song_playing),
-                    style = MaterialTheme.typography.listItemTitle,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = playbackState.currentSong?.artist ?: "",
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            // Playback controls
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPreviousClick) {
-                    Icon(
-                        imageVector = Icons.Default.SkipPrevious,
-                        contentDescription = stringResource(R.string.playlists_screen_previous_content_description),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                IconButton(
-                    onClick = onPlayPauseClick,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primary,
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        contentDescription = if (playbackState.isPlaying) {
-                            stringResource(R.string.playlists_screen_pause_content_description)
-                        } else {
-                            stringResource(R.string.playlists_screen_play_content_description)
-                        },
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-
-                IconButton(onClick = onNextClick) {
-                    Icon(
-                        imageVector = Icons.Default.SkipNext,
-                        contentDescription = stringResource(R.string.playlists_screen_next_content_description),
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
-}
-
 /**
  * Dialog for selecting songs to add to a newly created playlist.
  */
@@ -1741,26 +1504,5 @@ private fun PlaylistsScreenPreview() {
         )
     }
 }
-
-@Preview(showBackground = true)
-@Composable
-private fun PlaylistCardPreview() {
-    SukoonMusicPlayerTheme {
-        PlaylistCard(
-            playlist = Playlist(
-                id = 1,
-                name = "My Favorite Songs",
-                description = "The best tracks",
-                songCount = 42
-            ),
-            onClick = {},
-            onDeleteClick = {},
-            onPlayClick = {},
-            onPlayNextClick = {},
-            onRenameClick = {}
-        )
-    }
-}
-
 
 

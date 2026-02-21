@@ -74,13 +74,11 @@ fun HomeTabScreen(
 
                 ContinueListeningCard(
                     song = playbackState.currentSong,
-                    isPlaying = playbackState.isPlaying,
                     onPlayClick = {
                         viewModel.onHomeResumeTap()
                         viewModel.playPause()
                     },
-                    onClick = onNavigateToNowPlaying,
-                    horizontalPadding = SpacingLarge
+                    onClick = onNavigateToNowPlaying
                 )
             }
         } else if (songs.isNotEmpty()) {

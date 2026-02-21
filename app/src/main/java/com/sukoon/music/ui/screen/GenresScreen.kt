@@ -193,7 +193,28 @@ fun GenresScreen(
 
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        topBar = {
+        bottomBar = {
+            if (isSelectionMode && selectedGenreIds.isNotEmpty()) {
+                MultiSelectActionBottomBar(
+                    onPlay = { viewModel.playSelectedGenres() },
+                    onAddToPlaylist = {
+                        showAddToPlaylistDialog = selectedGenreIds.toList()
+                    },
+                    onDelete = {
+                        genresToDelete = genres.filter { it.id in selectedGenreIds }
+                        genresPendingDeletion = true
+                    },
+                    onPlayNext = { viewModel.playSelectedNext() },
+                    onAddToQueue = { viewModel.addSelectedToQueue() }
+                )
+            }
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             if (isSelectionMode) {
                 TopAppBar(
                     title = {
@@ -214,89 +235,72 @@ fun GenresScreen(
                     }
                 )
             }
-        },
-        bottomBar = {
-            if (isSelectionMode && selectedGenreIds.isNotEmpty()) {
-                MultiSelectActionBottomBar(
-                    onPlay = { viewModel.playSelectedGenres() },
-                    onAddToPlaylist = {
-                        showAddToPlaylistDialog = selectedGenreIds.toList()
-                    },
-                    onDelete = {
-                        genresToDelete = genres.filter { it.id in selectedGenreIds }
-                        genresPendingDeletion = true
-                    },
-                    onPlayNext = { viewModel.playSelectedNext() },
-                    onAddToQueue = { viewModel.addSelectedToQueue() }
-                )
-            }
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (isSelectionMode) Modifier.padding(paddingValues) else Modifier)
-        ) {
-            if (genres.isEmpty()) {
-                EmptyGenresState(onScanClick = { viewModel.scanMediaLibrary() })
-            } else {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(bottom = MiniPlayerHeight + SpacingSmall)
-                    ) {
-                        if (!isSelectionMode) {
-                            stickyHeader(key = "header") {
-                                GenreSortHeader(
-                                    genreCount = genres.size,
-                                    onSortClick = { showSortDialog = true },
-                                    onSelectionClick = onNavigateToGenreSelection,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(MaterialTheme.colorScheme.background)
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+            ) {
+                if (genres.isEmpty()) {
+                    EmptyGenresState(onScanClick = { viewModel.scanMediaLibrary() })
+                } else {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = MiniPlayerHeight + SpacingSmall)
+                        ) {
+                            if (!isSelectionMode) {
+                                stickyHeader(key = "header") {
+                                    GenreSortHeader(
+                                        genreCount = genres.size,
+                                        onSortClick = { showSortDialog = true },
+                                        onSelectionClick = onNavigateToGenreSelection,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(MaterialTheme.colorScheme.background)
+                                    )
+                                }
+                            }
+
+                            items(
+                                items = genres,
+                                key = { it.id },
+                                contentType = { "genre_row" }
+                            ) { genre ->
+                                GenreRow(
+                                    genre = genre,
+                                    isSelected = selectedGenreIds.contains(genre.id),
+                                    isSelectionMode = isSelectionMode,
+                                    onClick = {
+                                        if (isSelectionMode) viewModel.toggleGenreSelection(genre.id)
+                                        else onNavigateToGenre(genre.id)
+                                    },
+                                    onSelectionToggle = { viewModel.toggleGenreSelection(genre.id) },
+                                    onPlayClick = { viewModel.playGenre(genre.id) },
+                                    onPlayNextClick = { viewModel.playGenreNext(genre.id) },
+                                    onAddToQueueClick = { viewModel.addGenreToQueue(genre.id) },
+                                    onAddToPlaylistClick = { showAddToPlaylistDialog = listOf(genre.id) },
+                                    onDeleteClick = {
+                                        genresToDelete = listOf(genre)
+                                        genresPendingDeletion = true
+                                    },
+                                    onMoreClick = { genreForMore = it }
                                 )
                             }
                         }
 
-                        items(
-                            items = genres,
-                            key = { it.id },
-                            contentType = { "genre_row" }
-                        ) { genre ->
-                            GenreRow(
-                                genre = genre,
-                                isSelected = selectedGenreIds.contains(genre.id),
-                                isSelectionMode = isSelectionMode,
-                                onClick = {
-                                    if (isSelectionMode) viewModel.toggleGenreSelection(genre.id)
-                                    else onNavigateToGenre(genre.id)
-                                },
-                                onSelectionToggle = { viewModel.toggleGenreSelection(genre.id) },
-                                onPlayClick = { viewModel.playGenre(genre.id) },
-                                onPlayNextClick = { viewModel.playGenreNext(genre.id) },
-                                onAddToQueueClick = { viewModel.addGenreToQueue(genre.id) },
-                                onAddToPlaylistClick = { showAddToPlaylistDialog = listOf(genre.id) },
-                                onDeleteClick = {
-                                    genresToDelete = listOf(genre)
-                                    genresPendingDeletion = true
-                                },
-                                onMoreClick = { genreForMore = it }
-                            )
-                        }
+                        AlphabetScrollBar(
+                            onLetterClick = { letter ->
+                                letterToIndexMap[letter]?.let { index ->
+                                    scope.launch { listState.animateScrollToItem(index) }
+                                }
+                            },
+                            activeLetter = activeLetter,
+                            modifier = Modifier
+                                .align(Alignment.CenterEnd)
+                                .padding(end = 4.dp)
+                        )
                     }
-
-                    AlphabetScrollBar(
-                        onLetterClick = { letter ->
-                            letterToIndexMap[letter]?.let { index ->
-                                scope.launch { listState.animateScrollToItem(index) }
-                            }
-                        },
-                        activeLetter = activeLetter,
-                        modifier = Modifier
-                            .align(Alignment.CenterEnd)
-                            .padding(end = 4.dp)
-                    )
                 }
             }
 
