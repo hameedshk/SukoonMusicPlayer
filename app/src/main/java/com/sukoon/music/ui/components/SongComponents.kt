@@ -3,6 +3,8 @@ package com.sukoon.music.ui.components
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
@@ -28,6 +30,8 @@ import com.sukoon.music.ui.animation.MotionDirective
 import com.sukoon.music.ui.animation.MotionPlayState
 import com.sukoon.music.ui.animation.rememberPlaybackMotionClock
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.viewmodel.SongSortMode
+import com.sukoon.music.ui.viewmodel.SortOrder
 import kotlin.math.sin
 
 private const val EQUALIZER_PLAYBACK_MOTION_SPEED = 3.0f
@@ -446,88 +450,190 @@ internal fun SongItemSelectable(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun SongSortDialog(
-    currentSortMode: String,
-    currentOrder: String,
+    currentSortMode: SongSortMode,
+    currentOrder: SortOrder,
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit
+    onConfirm: (SongSortMode, SortOrder) -> Unit
 ) {
     var selectedMode by remember { mutableStateOf(currentSortMode) }
     var selectedOrder by remember { mutableStateOf(currentOrder) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp)) {
-            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by), style = MaterialTheme.typography.headlineSmall,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp))
-
-            listOf("Song name", "Artist name", "Album name", "Folder name",
-                "Time added", "Play count", "Year", "Duration", "Size").forEach { mode ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { selectedMode = mode }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = when (mode) {
-                            "Song name" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_song_name)
-                            "Artist name" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_artist_name)
-                            "Album name" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_album_name)
-                            "Folder name" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_folder_name)
-                            "Time added" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_time_added)
-                            "Play count" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_play_count)
-                            "Year" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_year)
-                            "Duration" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_duration)
-                            "Size" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_size)
-                            else -> mode
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedMode == mode) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface)
-                    if (selectedMode == mode) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = { onConfirm(selectedMode, selectedOrder) }) {
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok),
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
-
-            Spacer(Modifier.height(16.dp))
-
-            listOf("A to Z", "Z to A").forEach { order ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().clickable { selectedOrder = order }
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = when (order) {
-                            "A to Z" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_order_from_a_to_z)
-                            "Z to A" -> androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_order_from_z_to_a)
-                            else -> order
-                        },
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = if (selectedOrder == order) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onSurface)
-                    if (selectedOrder == order) {
-                        Icon(Icons.Default.CheckCircle, contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel))
             }
+        },
+        title = {
+            Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_sort_by))
+        },
+        text = {
+            Column {
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_song_name),
+                    isSelected = selectedMode == SongSortMode.TITLE,
+                    onClick = { selectedMode = SongSortMode.TITLE }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_artist_name),
+                    isSelected = selectedMode == SongSortMode.ARTIST,
+                    onClick = { selectedMode = SongSortMode.ARTIST }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_album_name),
+                    isSelected = selectedMode == SongSortMode.ALBUM,
+                    onClick = { selectedMode = SongSortMode.ALBUM }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_folder_name),
+                    isSelected = selectedMode == SongSortMode.FOLDER,
+                    onClick = { selectedMode = SongSortMode.FOLDER }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_time_added),
+                    isSelected = selectedMode == SongSortMode.DATE_ADDED,
+                    onClick = { selectedMode = SongSortMode.DATE_ADDED }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_play_count),
+                    isSelected = selectedMode == SongSortMode.PLAY_COUNT,
+                    onClick = { selectedMode = SongSortMode.PLAY_COUNT }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_year),
+                    isSelected = selectedMode == SongSortMode.YEAR,
+                    onClick = { selectedMode = SongSortMode.YEAR }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_duration),
+                    isSelected = selectedMode == SongSortMode.DURATION,
+                    onClick = { selectedMode = SongSortMode.DURATION }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_sort_mode_size),
+                    isSelected = selectedMode == SongSortMode.SIZE,
+                    onClick = { selectedMode = SongSortMode.SIZE }
+                )
 
-            Spacer(Modifier.height(16.dp))
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(onClick = onDismiss, modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                    Text(
-                        androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_cancel).uppercase(),
-                        color = MaterialTheme.colorScheme.onSurface
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_a_to_z),
+                    isSelected = selectedOrder == SortOrder.ASC,
+                    onClick = { selectedOrder = SortOrder.ASC }
+                )
+                SortOption(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort_order_z_to_a),
+                    isSelected = selectedOrder == SortOrder.DESC,
+                    onClick = { selectedOrder = SortOrder.DESC }
+                )
+            }
+        }
+    )
+}
+
+@Composable
+internal fun SongsSortHeader(
+    songCount: Int,
+    hasActiveFilters: Boolean,
+    onSortClick: () -> Unit,
+    onFilterClick: () -> Unit,
+    showFilterAction: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val accentTokens = accent()
+    val sortInteractionSource = remember { MutableInteractionSource() }
+    val filterInteractionSource = remember { MutableInteractionSource() }
+    val isSortPressed by sortInteractionSource.collectIsPressedAsState()
+    val isFilterPressed by filterInteractionSource.collectIsPressedAsState()
+    val pressedContainerColor = accentTokens.softBg.copy(alpha = 0.30f)
+    val actionIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background),
+        color = MaterialTheme.colorScheme.background,
+        tonalElevation = 0.dp,
+        shadowElevation = 0.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = androidx.compose.ui.res.pluralStringResource(
+                    com.sukoon.music.R.plurals.common_song_count,
+                    songCount,
+                    songCount
+                ),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(if (isSortPressed) pressedContainerColor else Color.Transparent)
+                        .clickable(
+                            interactionSource = sortInteractionSource,
+                            indication = null,
+                            onClick = onSortClick
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_common_sort),
+                        tint = if (isSortPressed) accentTokens.active else actionIconColor,
+                        modifier = Modifier.size(18.dp)
                     )
                 }
-                Button(onClick = { onConfirm(selectedMode, selectedOrder) }, modifier = Modifier.weight(1f)) {
-                    Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ok))
+                if (showFilterAction) {
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(
+                                if (isFilterPressed || hasActiveFilters) {
+                                    pressedContainerColor
+                                } else {
+                                    Color.Transparent
+                                }
+                            )
+                            .clickable(
+                                interactionSource = filterInteractionSource,
+                                indication = null,
+                                onClick = onFilterClick
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FilterAlt,
+                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_select),
+                            tint = if (isFilterPressed || hasActiveFilters) accentTokens.active else actionIconColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
@@ -741,6 +847,8 @@ fun StandardSongListItem(
     isPlaybackActive: Boolean,
     isSelectionMode: Boolean = false,
     isSelected: Boolean = false,
+    showArtistAlbumMeta: Boolean = true,
+    showLikeButton: Boolean = true,
     onClick: () -> Unit,
     onCheckboxClick: (Boolean) -> Unit = {},
     onLongPress: () -> Unit = {},
@@ -818,26 +926,30 @@ fun StandardSongListItem(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            if (showArtistAlbumMeta) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
 
         // Action Buttons (Hidden in selection mode)
         if (!isSelectionMode) {
-            // Like Button
-            AnimatedFavoriteIcon(
-                isLiked = song.isLiked,
-                songId = song.id,
-                modifier = Modifier
-                    .padding(8.dp)
-                    .clickable { onLikeClick() }
-            )
+            if (showLikeButton) {
+                // Like Button
+                AnimatedFavoriteIcon(
+                    isLiked = song.isLiked,
+                    songId = song.id,
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clickable { onLikeClick() }
+                )
+            }
 
             // Menu Button
             IconButton(onClick = onMenuClick) {

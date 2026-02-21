@@ -599,17 +599,24 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun playQueue(songs: List<Song>, startIndex: Int, queueName: String?) {
-        // Guard: Don't restart if already playing the same song at startIndex
-        if (startIndex in songs.indices && _playbackState.value.currentSong?.id == songs[startIndex].id) {
-            return
-        }
+        // Guard: Skip only when queue content/order and index are already identical.
+        // If only the current song matches but queue differs (e.g., filtered/visible order),
+        // we must rebuild queue so Next/Previous follows the visible list order.
+        val currentState = _playbackState.value
+        val isSameSongAtIndex = startIndex in songs.indices &&
+            currentState.currentSong?.id == songs[startIndex].id
+        val hasSameIndex = currentState.currentQueueIndex == startIndex
+        val hasSameQueueOrder = currentState.queue.size == songs.size &&
+            currentState.queue.map { it.id } == songs.map { it.id }
+        if (isSameSongAtIndex && hasSameIndex && hasSameQueueOrder) return
 
         currentSourceName = queueName
         mediaController?.let { controller ->
             try {
+                val safeStartIndex = if (songs.isEmpty()) 0 else startIndex.coerceIn(0, songs.lastIndex)
                 controller.setMediaItems(
                     songs.map { it.toMediaItem() },
-                    startIndex,
+                    safeStartIndex,
                     0L
                 )
                 controller.prepare()

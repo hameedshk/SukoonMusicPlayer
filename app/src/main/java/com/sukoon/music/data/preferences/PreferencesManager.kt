@@ -91,6 +91,11 @@ class PreferencesManager @Inject constructor(
 
         // UI State
         private val KEY_SELECTED_HOME_TAB = stringPreferencesKey("selected_home_tab")
+        private val KEY_SONGS_SORT_MODE = stringPreferencesKey("songs_sort_mode")
+        private val KEY_SONGS_SORT_ORDER = stringPreferencesKey("songs_sort_order")
+        private val KEY_SONGS_SEARCH_QUERY = stringPreferencesKey("songs_search_query")
+        private val KEY_SONGS_ARTIST_FILTER = stringPreferencesKey("songs_artist_filter")
+        private val KEY_SONGS_ALBUM_FILTER = stringPreferencesKey("songs_album_filter")
 
         // Ratings & Feedback
         private val KEY_APP_LAUNCH_COUNT = intPreferencesKey("app_launch_count")
@@ -447,6 +452,74 @@ class PreferencesManager @Inject constructor(
     suspend fun setSelectedHomeTab(tabName: String) {
         context.dataStore.edit { preferences ->
             preferences[KEY_SELECTED_HOME_TAB] = tabName
+        }
+    }
+
+    fun getSongsSortModeFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SONGS_SORT_MODE]
+        }
+    }
+
+    suspend fun setSongsSortMode(mode: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SONGS_SORT_MODE] = mode
+        }
+    }
+
+    fun getSongsSortOrderFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SONGS_SORT_ORDER]
+        }
+    }
+
+    suspend fun setSongsSortOrder(order: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SONGS_SORT_ORDER] = order
+        }
+    }
+
+    fun getSongsSearchQueryFlow(): Flow<String> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SONGS_SEARCH_QUERY] ?: ""
+        }
+    }
+
+    suspend fun setSongsSearchQuery(query: String) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_SONGS_SEARCH_QUERY] = query
+        }
+    }
+
+    fun getSongsArtistFilterFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SONGS_ARTIST_FILTER]
+        }
+    }
+
+    suspend fun setSongsArtistFilter(artist: String?) {
+        context.dataStore.edit { preferences ->
+            if (artist.isNullOrBlank()) {
+                preferences.remove(KEY_SONGS_ARTIST_FILTER)
+            } else {
+                preferences[KEY_SONGS_ARTIST_FILTER] = artist
+            }
+        }
+    }
+
+    fun getSongsAlbumFilterFlow(): Flow<String?> {
+        return context.dataStore.data.map { preferences ->
+            preferences[KEY_SONGS_ALBUM_FILTER]
+        }
+    }
+
+    suspend fun setSongsAlbumFilter(album: String?) {
+        context.dataStore.edit { preferences ->
+            if (album.isNullOrBlank()) {
+                preferences.remove(KEY_SONGS_ALBUM_FILTER)
+            } else {
+                preferences[KEY_SONGS_ALBUM_FILTER] = album
+            }
         }
     }
 

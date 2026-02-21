@@ -1,49 +1,74 @@
 package com.sukoon.music.ui.screen
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil.compose.SubcomposeAsyncImage
-import com.sukoon.music.domain.model.PlaybackState
-import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.*
-import com.sukoon.music.ui.theme.*
-import com.sukoon.music.ui.viewmodel.HomeViewModel
-import com.sukoon.music.ui.viewmodel.SongsViewModel
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.components.AddToPlaylistDialog
+import com.sukoon.music.ui.components.AlphabetScrollBar
+import com.sukoon.music.ui.components.DeleteConfirmationDialog
+import com.sukoon.music.ui.components.SongContextMenu
+import com.sukoon.music.ui.components.SongInfoDialog
+import com.sukoon.music.ui.components.SongSortDialog
+import com.sukoon.music.ui.components.SongsSortHeader
+import com.sukoon.music.ui.components.StandardSongListItem
+import com.sukoon.music.ui.components.rememberShareHandler
+import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.theme.ContentBottomPadding
+import com.sukoon.music.ui.theme.ContentTopPadding
+import com.sukoon.music.ui.theme.MiniPlayerHeight
+import com.sukoon.music.ui.theme.SpacingSmall
+import com.sukoon.music.ui.viewmodel.HomeViewModel
+import com.sukoon.music.ui.viewmodel.SongsViewModel
+import kotlinx.coroutines.launch
 
-/**
- * Songs Screen - Displays all songs with sorting and playback controls.
- * Owns SongsViewModel lifecycle and coordinates state flow to UI.
- */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+private const val ALPHABET_SCROLL_THRESHOLD = 150
+
 @Composable
+@Suppress("UNUSED_PARAMETER")
 fun SongsScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
@@ -53,6 +78,7 @@ fun SongsScreen(
     songsViewModel: SongsViewModel = hiltViewModel()
 ) {
     val songs by songsViewModel.songs.collectAsStateWithLifecycle()
+    val visibleSongs by songsViewModel.visibleSongs.collectAsStateWithLifecycle()
     val playbackState by songsViewModel.playbackState.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val sortMode by songsViewModel.sortMode.collectAsStateWithLifecycle()
@@ -61,45 +87,55 @@ fun SongsScreen(
     val selectedSongId by songsViewModel.selectedSongId.collectAsStateWithLifecycle()
     val showMenu by songsViewModel.showMenu.collectAsStateWithLifecycle()
     val songToDelete by songsViewModel.songToDelete.collectAsStateWithLifecycle()
-    val isDeleting by songsViewModel.isDeleting.collectAsStateWithLifecycle()
     val showInfoForSong by songsViewModel.showInfoForSong.collectAsStateWithLifecycle()
     val deleteError by songsViewModel.deleteError.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    // Handle lifecycle
     DisposableEffect(Unit) {
         songsViewModel.setScreenActive(true)
-        onDispose {
-            songsViewModel.setScreenActive(false)
-        }
+        onDispose { songsViewModel.setScreenActive(false) }
     }
 
-    // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
         if (result.resultCode == android.app.Activity.RESULT_OK) {
-            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_song_deleted_successfully),
+                Toast.LENGTH_SHORT
+            ).show()
         } else {
-            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_delete_cancelled),
+                Toast.LENGTH_SHORT
+            ).show()
         }
         songsViewModel.finalizeDeletion()
     }
 
-    // Show error toast
     deleteError?.let { error ->
         LaunchedEffect(error) {
-            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_error_with_message, error), Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context,
+                context.getString(R.string.toast_error_with_message, error),
+                Toast.LENGTH_SHORT
+            ).show()
             songsViewModel.clearDeleteError()
         }
+    }
+
+    LaunchedEffect(Unit) {
+        songsViewModel.setSearchQuery("")
+        songsViewModel.clearFilters()
     }
 
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
 
-    val shareHandler = rememberShareHandler()
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = homeViewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
@@ -111,180 +147,116 @@ fun SongsScreen(
         onShowSongInfo = { song -> songsViewModel.showSongInfo(song) },
         onShowDeleteConfirmation = { song -> songsViewModel.showDeleteConfirmation(song) },
         onToggleLike = { songId, isLiked -> homeViewModel.toggleLike(songId, isLiked) },
-        onShare = shareHandler
+        onShare = rememberShareHandler()
     )
 
-    // Sort songs
-    val sortedSongs = remember(songs, sortMode, sortOrder) {
-        val sorted = when (sortMode) {
-            "Song name" -> songs.sortedBy { it.title.lowercase() }
-            "Artist name" -> songs.sortedBy { it.artist.lowercase() }
-            "Album name" -> songs.sortedBy { it.album.lowercase() }
-            "Folder name" -> songs.sortedBy { it.path.lowercase() }
-            "Time added" -> songs.sortedByDescending { it.dateAdded }
-            "Play count" -> songs.sortedByDescending { it.playCount }
-            "Year" -> songs.sortedByDescending { it.year }
-            "Duration" -> songs.sortedByDescending { it.duration }
-            "Size" -> songs.sortedByDescending { it.size }
-            else -> songs.sortedBy { it.title.lowercase() }
-        }
-        if (sortOrder == "Z to A") sorted.reversed() else sorted
-    }
-
-    if (sortedSongs.isEmpty()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(SpacingMedium)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MusicNote,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_no_songs_found),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+    val songStartIndex = 1
+    val letterToIndexMap = remember(visibleSongs, songStartIndex) {
+        val map = mutableMapOf<String, Int>()
+        visibleSongs.forEachIndexed { songIndex, song ->
+            val firstChar = song.title.firstOrNull()?.uppercaseChar()?.toString() ?: "#"
+            val key = if (firstChar.firstOrNull()?.isLetter() == true) firstChar else "#"
+            if (!map.containsKey(key)) {
+                map[key] = songStartIndex + songIndex
             }
         }
-    } else {
-        Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                state = scrollState,
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(
-                    top = 0.dp,
-                    bottom = MiniPlayerHeight + SpacingSmall
-                )
-            ) {
-                stickyHeader(key = "header") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = androidx.compose.ui.res.pluralStringResource(
-                                com.sukoon.music.R.plurals.common_song_count,
-                                sortedSongs.size,
-                                sortedSongs.size
-                            ),
-                            style = MaterialTheme.typography.sectionHeader,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+        map
+    }
+    val activeLetter by remember(scrollState, visibleSongs, songStartIndex) {
+        derivedStateOf {
+            val firstSongItem = scrollState.layoutInfo.visibleItemsInfo
+                .firstOrNull { it.index >= songStartIndex }
+            firstSongItem?.let {
+                visibleSongs.getOrNull(it.index - songStartIndex)?.title?.firstOrNull()?.let { ch ->
+                    if (ch.isLetter()) ch.uppercaseChar().toString() else "#"
+                }
+            }
+        }
+    }
+
+    when {
+        songs.isEmpty() -> {
+            EmptySongsState()
+        }
+
+        visibleSongs.isEmpty() -> {
+            NoSongsResultsState(onClear = { songsViewModel.clearSearchAndFilters() })
+        }
+
+        else -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    state = scrollState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = MiniPlayerHeight + SpacingSmall)
+                ) {
+                    stickyHeader(key = "header") {
+                        SongsSortHeader(
+                            songCount = visibleSongs.size,
+                            hasActiveFilters = false,
+                            onSortClick = { songsViewModel.showSortDialog() },
+                            onFilterClick = {},
+                            showFilterAction = false,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(MaterialTheme.colorScheme.background)
                         )
-                        Row(horizontalArrangement = Arrangement.spacedBy(SpacingSmall)) {
-                            IconButton(onClick = { songsViewModel.showSortDialog() }) {
-                                Icon(
-                                    imageVector = Icons.Default.Sort,
-                                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.songs_cd_sort),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        }
+                    }
+
+                    itemsIndexed(
+                        items = visibleSongs,
+                        key = { _, song -> song.id },
+                        contentType = { _, _ -> "song_row" }
+                    ) { index, song ->
+                        val isCurrentSong = playbackState.currentSong?.id == song.id
+                        val isPlaybackActive = isCurrentSong && playbackState.isPlaying
+                        StandardSongListItem(
+                            song = song,
+                            isCurrentSong = isCurrentSong,
+                            isPlaybackActive = isPlaybackActive,
+                            showArtistAlbumMeta = false,
+                            showLikeButton = false,
+                            onClick = { songsViewModel.playQueue(visibleSongs, index) },
+                            onMenuClick = { songsViewModel.openMenuForSong(song.id) }
+                        )
                     }
                 }
 
-                stickyHeader(key = "chips") {
-                    Row(
+                if (visibleSongs.size >= ALPHABET_SCROLL_THRESHOLD) {
+                    AlphabetScrollBar(
+                        onLetterClick = { letter ->
+                            letterToIndexMap[letter]?.let { index ->
+                                scope.launch { scrollState.animateScrollToItem(index) }
+                            }
+                        },
+                        activeLetter = activeLetter,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.background)
-                            .padding(horizontal = 16.dp, vertical = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clip(CompactButtonShape)
-                                .surfaceLevel2Gradient()
-                                .clickable(onClick = { songsViewModel.shuffleAll() }),
-                            shape = CompactButtonShape,
-                            color = Color.Transparent
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                                Spacer(Modifier.width(SpacingSmall))
-                                Text(
-                                    androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle_all),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f)
-                                )
-                            }
-                        }
-                        Surface(
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(40.dp)
-                                .clip(CompactButtonShape)
-                                .surfaceLevel2Gradient()
-                                .clickable(onClick = { songsViewModel.playAll() }),
-                            shape = CompactButtonShape,
-                            color = Color.Transparent
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxSize(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                                Spacer(Modifier.width(SpacingSmall))
-                                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f))
-                            }
-                        }
-                    }
-                }
-
-                items(
-                    items = sortedSongs,
-                    key = { it.id }
-                ) { song ->
-                    val isCurrentSong = playbackState.currentSong?.id == song.id
-                    val isPlaybackActive = isCurrentSong && playbackState.isPlaying
-                    val index = songs.indexOf(song)
-
-                    SongListItem(
-                        song = song,
-                        isCurrentSong = isCurrentSong,
-                        isPlaybackActive = isPlaybackActive,
-                        menuHandler = menuHandler,
-                        onClick = { songsViewModel.playQueue(songs, index) },
-                        onLikeClick = { homeViewModel.toggleLike(song.id, song.isLiked) },
-                        onMenuClick = { songsViewModel.openMenuForSong(song.id) }
+                            .align(Alignment.CenterEnd)
+                            .padding(
+                                top = 56.dp,
+                                end = 4.dp,
+                                bottom = MiniPlayerHeight + SpacingSmall + 8.dp
+                            )
                     )
                 }
             }
         }
     }
 
-    // Dialogs
     if (showSortDialog) {
         SongSortDialog(
             currentSortMode = sortMode,
             currentOrder = sortOrder,
             onDismiss = { songsViewModel.hideSortDialog() },
-            onConfirm = { newMode, newOrder ->
-                songsViewModel.setSortMode(newMode, newOrder)
+            onConfirm = { mode, order ->
+                songsViewModel.setSortMode(mode, order)
                 songsViewModel.hideSortDialog()
             }
         )
     }
 
     if (showMenu && selectedSongId != null) {
-        val freshSong = sortedSongs.find { it.id == selectedSongId }
+        val freshSong = songs.firstOrNull { it.id == selectedSongId }
         if (freshSong != null) {
             SongContextMenu(
                 song = freshSong,
@@ -308,14 +280,18 @@ fun SongsScreen(
                 songsViewModel.confirmDelete(song) { result ->
                     when (result) {
                         is DeleteHelper.DeleteResult.RequiresPermission -> {
-                            deleteLauncher.launch(
-                                IntentSenderRequest.Builder(result.intentSender).build()
-                            )
+                            deleteLauncher.launch(IntentSenderRequest.Builder(result.intentSender).build())
                         }
+
                         is DeleteHelper.DeleteResult.Success -> {
-                            Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_song_deleted_successfully),
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                        is DeleteHelper.DeleteResult.Error -> {}
+
+                        is DeleteHelper.DeleteResult.Error -> Unit
                     }
                 }
             },
@@ -340,107 +316,79 @@ fun SongsScreen(
 }
 
 @Composable
-private fun SongListItem(
-    song: Song,
-    isCurrentSong: Boolean,
-    isPlaybackActive: Boolean,
-    menuHandler: SongMenuHandler,
-    onClick: () -> Unit,
-    onLikeClick: () -> Unit,
-    onMenuClick: () -> Unit
-) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        color = if (isCurrentSong) {
-            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
-        } else {
-            MaterialTheme.colorScheme.surface
-        }
+private fun EmptySongsState() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = SpacingLarge, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
-        ) {
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant
-            ) {
-                SubcomposeAsyncImage(
-                    model = song.albumArtUri,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art_for_song, song.title),
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    loading = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = song.album,
-                                artistName = song.artist,
-                                songId = song.id
-                            )
-                        )
-                    },
-                    error = {
-                        PlaceholderAlbumArt.Placeholder(
-                            seed = PlaceholderAlbumArt.generateSeed(
-                                albumName = song.album,
-                                artistName = song.artist,
-                                songId = song.id
-                            )
-                        )
-                    }
-                )
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 16.sp,
-                            fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold
-                        ),
-                        color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-                    if (isCurrentSong) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        AnimatedEqualizer(
-                            isAnimating = isPlaybackActive,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-                Text(
-                    text = song.artist,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 12.sp),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            IconButton(
-                onClick = onMenuClick,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.now_playing_more_options),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        }
+        Icon(
+            imageVector = Icons.Default.MusicNote,
+            contentDescription = null,
+            modifier = Modifier.size(96.dp),
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Text(
+            text = stringResource(R.string.home_empty_no_songs_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.common_no_songs_found),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
     }
 }
 
-
-
-
+@Composable
+private fun NoSongsResultsState(
+    onClear: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                start = 32.dp,
+                end = 32.dp,
+                top = ContentTopPadding,
+                bottom = ContentBottomPadding + 16.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Search,
+            contentDescription = null,
+            modifier = Modifier.size(72.dp),
+            tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = stringResource(R.string.liked_songs_no_filter_results_title),
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.liked_songs_no_filter_results_message),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = onClear) {
+            Text(stringResource(R.string.liked_songs_filter_chip_clear))
+        }
+    }
+}

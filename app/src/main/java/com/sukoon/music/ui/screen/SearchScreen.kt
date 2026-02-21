@@ -71,10 +71,16 @@ fun SearchScreen(
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
 
-    var showSortMenu by remember { mutableStateOf(false) }
+
     var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
+    var songToShowInfo by rememberSaveable { mutableStateOf<Song?>(null) }
+    var songToAddToPlaylist by rememberSaveable { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val context = LocalContext.current
+
+    val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
+    val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
     // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -98,6 +104,13 @@ fun SearchScreen(
         },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)
+        },
+        onShowSongInfo = { song ->
+            songToShowInfo = song
+        },
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
         }
     )
 
@@ -148,18 +161,7 @@ fun SearchScreen(
                     showLikedOnly = showLikedOnly,
                     sortMode = sortMode,
                     onToggleLikedFilter = { viewModel.toggleLikedFilter() },
-                    onSortClick = { showSortMenu = true }
-                )
-
-                // Sort Mode Menu
-                SortModeMenu(
-                    expanded = showSortMenu,
-                    currentMode = sortMode,
-                    onDismiss = { showSortMenu = false },
-                    onModeSelect = { mode ->
-                        viewModel.updateSortMode(mode)
-                        showSortMenu = false
-                    }
+                    onSortModeSelect = { viewModel.updateSortMode(it) }
                 )
             }
 
@@ -235,6 +237,31 @@ fun SearchScreen(
                 }
             },
             onDismiss = { songToDelete = null }
+        )
+    }
+
+    // Song Info Dialog
+    songToShowInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songToShowInfo = null }
+        )
+    }
+
+    // Add to Playlist Dialog
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                playlistViewModel.addSongToPlaylist(playlistId, songToAddToPlaylist!!.id)
+                Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_added_to_playlist), Toast.LENGTH_SHORT).show()
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
         )
     }
 }
@@ -339,9 +366,11 @@ private fun FilterAndSortSection(
     showLikedOnly: Boolean,
     sortMode: SortMode,
     onToggleLikedFilter: () -> Unit,
-    onSortClick: () -> Unit,
+    onSortModeSelect: (SortMode) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showSortMenu by remember { mutableStateOf(false) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -374,29 +403,41 @@ private fun FilterAndSortSection(
             )
         )
 
-        // Sort Mode Chip
-        FilterChip(
-            selected = true,
-            onClick = onSortClick,
-            label = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Sort,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Text(getSortModeLabel(sortMode))
-                    Icon(
-                        imageVector = Icons.Default.ArrowDropDown,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
+        // Sort Mode Chip and Menu
+        Box {
+            FilterChip(
+                selected = true,
+                onClick = { showSortMenu = true },
+                label = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(getSortModeLabel(sortMode))
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
-            }
-        )
+            )
+
+            SortModeMenu(
+                expanded = showSortMenu,
+                currentMode = sortMode,
+                onDismiss = { showSortMenu = false },
+                onModeSelect = { mode ->
+                    onSortModeSelect(mode)
+                    showSortMenu = false
+                }
+            )
+        }
     }
 }
 
