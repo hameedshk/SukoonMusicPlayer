@@ -10,10 +10,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -170,7 +170,7 @@ fun ArtistSelectionScreen(
                                 .padding(vertical = 8.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.PlaylistAdd,
+                                imageVector = Icons.AutoMirrored.Filled.PlaylistAdd,
                                 contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_add_to_playlist),
                                 tint = MaterialTheme.colorScheme.primary
                             )
@@ -524,8 +524,8 @@ private fun ArtistSelectionItem(
         // Artist art
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
+                .size(64.dp)
+                .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -535,6 +535,14 @@ private fun ArtistSelectionItem(
                     contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_artist_art),
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop,
+                    loading = {
+                        Icon(
+                            imageVector = Icons.Default.Person,
+                            contentDescription = null,
+                            modifier = Modifier.size(28.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
                     error = {
                         Icon(
                             imageVector = Icons.Default.Person,
