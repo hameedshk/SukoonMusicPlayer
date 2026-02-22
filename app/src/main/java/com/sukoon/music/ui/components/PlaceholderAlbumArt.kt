@@ -248,4 +248,63 @@ object PlaceholderAlbumArt {
             )
         }
     }
+
+    /**
+     * Extract dominant color from 2-color gradient for player UI tinting.
+     * Adjusts color based on theme for readability (WCAG AA consideration).
+     *
+     * @param color1 First gradient color
+     * @param color2 Second gradient color
+     * @param isDark True for dark theme, false for light theme
+     * @return Adjusted dominant color suitable for UI tinting
+     */
+    fun extractDominantColor(
+        color1: Color,
+        color2: Color,
+        isDark: Boolean
+    ): Color {
+        // Average the 2 gradient colors
+        val avgColor = Color(
+            red = (color1.red + color2.red) / 2f,
+            green = (color1.green + color2.green) / 2f,
+            blue = (color1.blue + color2.blue) / 2f,
+            alpha = (color1.alpha + color2.alpha) / 2f
+        )
+
+        val luminance = avgColor.luminance()
+
+        // Adjust for theme readability
+        return when {
+            isDark && luminance < 0.3f -> {
+                // Too dark for dark theme → lighten by 20%
+                avgColor.copy(
+                    red = (avgColor.red * 1.2f).coerceAtMost(1f),
+                    green = (avgColor.green * 1.2f).coerceAtMost(1f),
+                    blue = (avgColor.blue * 1.2f).coerceAtMost(1f)
+                )
+            }
+            !isDark && luminance > 0.7f -> {
+                // Too light for light theme → darken by 20%
+                avgColor.copy(
+                    red = (avgColor.red * 0.8f),
+                    green = (avgColor.green * 0.8f),
+                    blue = (avgColor.blue * 0.8f)
+                )
+            }
+            else -> avgColor
+        }
+    }
+
+    /**
+     * Check if color meets WCAG AA contrast ratio (4.5:1) against background.
+     * Used to verify UI tinting is readable before applying to seekbar/buttons.
+     *
+     * @param color Text/foreground color
+     * @param background Background color
+     * @return True if contrast >= 4.5:1
+     */
+    fun meetsWcagAA(color: Color, background: Color): Boolean {
+        val contrast = (color.luminance() + 0.05f) / (background.luminance() + 0.05f)
+        return contrast >= 4.5f
+    }
 }
