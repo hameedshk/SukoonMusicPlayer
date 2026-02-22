@@ -91,8 +91,11 @@ object PlaceholderAlbumArt {
     /**
      * Generate a deterministic hash from a seed string.
      * Uses simple polynomial rolling hash for consistency.
+     *
+     * @param seed Input string to hash
+     * @return Non-negative hash value
      */
-    private fun hashString(seed: String): Int {
+    fun hashString(seed: String): Int {
         if (seed.isEmpty()) return 0
         var hash = 0
         for (char in seed) {
