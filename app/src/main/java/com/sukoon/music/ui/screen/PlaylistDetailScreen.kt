@@ -504,50 +504,13 @@ private fun PlaylistSongItem(
             Spacer(modifier = Modifier.width(12.dp))
 
             // Album Art
-            Card(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(4.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (song.albumArtUri != null) {
-                        SubcomposeAsyncImage(
-                            model = song.albumArtUri,
-                            contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop,
-                            loading = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            },
-                            error = {
-                                Icon(
-                                    imageVector = Icons.Default.MusicNote,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
-                            }
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    }
-                }
-            }
+            AlbumArtWithFallback(
+                song = song,
+                modifier = Modifier,
+                size = 48.dp,
+                contentScale = ContentScale.Crop,
+                onDominantColorExtracted = { /* Ignore */ }
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
