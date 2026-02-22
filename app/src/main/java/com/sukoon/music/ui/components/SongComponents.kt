@@ -98,7 +98,7 @@ internal fun SongItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = SpacingLarge, vertical = SpacingMedium),
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -132,14 +132,14 @@ internal fun SongItem(
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(SpacingMedium))
 
         Column(
             modifier = Modifier.weight(1f)
         ) {
             Text(
                 text = song.title,
-                style = MaterialTheme.typography.bodyLarge,
+                style = MaterialTheme.typography.compactCardTitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = if (isPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
@@ -147,7 +147,7 @@ internal fun SongItem(
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.cardSubtitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -183,12 +183,12 @@ internal fun SongItemWithMenu(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -217,13 +217,13 @@ internal fun SongItemWithMenu(
             )
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(SpacingMedium))
 
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
+                    style = MaterialTheme.typography.compactCardTitle.copy(
                         fontWeight = if (isCurrentlyPlaying) FontWeight.Bold else FontWeight.Normal
                     ),
                     maxLines = 1,
@@ -236,10 +236,10 @@ internal fun SongItemWithMenu(
                     AnimatedEqualizer(isAnimating = isPlayingGlobally, tint = MaterialTheme.colorScheme.primary)
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = song.artist,
-                style = MaterialTheme.typography.bodySmall,
+                style = MaterialTheme.typography.cardSubtitle,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -406,12 +406,12 @@ internal fun SongItemSelectable(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -432,11 +432,11 @@ internal fun SongItemSelectable(
                 }
             )
         }
-        Spacer(Modifier.width(16.dp))
+        Spacer(Modifier.width(SpacingMedium))
         Column(modifier = Modifier.weight(1f)) {
-            Text(song.title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(song.title, style = MaterialTheme.typography.compactCardTitle, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(4.dp))
-            Text(song.artist, style = MaterialTheme.typography.bodySmall,
+            Text(song.artist, style = MaterialTheme.typography.cardSubtitle,
                 color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Icon(
@@ -867,7 +867,7 @@ fun StandardSongListItem(
                 }
             )
             .clickable(onClick = onClick) // enhanced clickable with long press could be added here if needed
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Selection Checkbox (Visible only in selection mode)
@@ -882,7 +882,7 @@ fun StandardSongListItem(
         // Album Art
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(56.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -905,14 +905,14 @@ fun StandardSongListItem(
 
         }
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(SpacingMedium))
 
         // Song Info
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = song.title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.compactCardTitle,
                     color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -930,7 +930,7 @@ fun StandardSongListItem(
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_artist_album_pair, song.artist, song.album),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.cardSubtitle,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

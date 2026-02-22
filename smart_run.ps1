@@ -102,13 +102,31 @@ function Get-Device-Status {
 }
 
 function Get-WorkingTreeSnapshot {
-    git ls-files --cached --others --exclude-standard |
-        Sort-Object |
-        ForEach-Object {
-            $file = $_
+$snapshot = @()
+
+    # --- Tracked files (real working tree content hash) ---
+    $tracked = git ls-files
+    foreach ($file in $tracked) {
+        if (Test-Path $file) {
             $hash = git hash-object $file
-            "$hash $file"
+            $snapshot += "$hash $file"
         }
+        else {
+            # file deleted
+            $snapshot += "DELETED $file"
+        }
+    }
+
+    # --- Untracked files ---
+    $untracked = git ls-files --others --exclude-standard
+    foreach ($file in $untracked) {
+        if (Test-Path $file) {
+            $hash = git hash-object $file
+            $snapshot += "NEW $file"
+        }
+    }
+
+    return $snapshot
 }
 
 
@@ -131,9 +149,8 @@ function Get-ChangedFilesSinceLastRun {
     }
 
     $old = Get-Content $STATE_FILES_FILE
-    $new = Get-WorkingTreeSnapshot
-	$oldFiles = $oldMap.Keys
-$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
+    $new = Get-WorkingTreeSnapshot	
+	$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
 
 foreach ($f in $oldFiles) {
     if ($f -notin $newFiles) {
@@ -146,7 +163,7 @@ foreach ($f in $oldFiles) {
         $hash, $file = $line -split ' ', 2
         $oldMap[$file] = $hash
     }
-
+	$oldFiles = $oldMap.Keys
     $changed = @()
 
     foreach ($line in $new) {
@@ -234,20 +251,61 @@ function Attach-Logcat {
 
 # ================= MAIN =================
 
-Write-Host "📱 Starting adb..." -ForegroundColor Cyan
-adb start-server | Out-Null
-Start-Sleep -Seconds 3
+Write-Host "📱 Initializing ADB..." -ForegroundColor Cyan
 
-if ((Get-Device-Status) -ne "ONLINE") {
-    Write-Host "⚠️ Device not connected — manual connect required" -ForegroundColor Yellow
-    $cfg = Load-LastDevice
+$state = adb get-state 2>$null
 
-if (-not $cfg) {
-    $cfg = Prompt-For-AdbTarget
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "⚠️ ADB server not running — starting..." -ForegroundColor Yellow
+    adb start-server | Out-Null
+    Start-Sleep -Seconds 2
+}
+elseif ($state -eq "unknown") {
+    Write-Host "⚠️ ADB in bad state — restarting..." -ForegroundColor Yellow
+    adb kill-server | Out-Null
+    Start-Sleep -Milliseconds 500
+    adb start-server | Out-Null
+    Start-Sleep -Seconds 2
+}
+else {
+    Write-Host "✅ ADB already running"
 }
 
-Try-Adb-Connect $cfg.ip $cfg.port
-Save-LastDevice $cfg.ip $cfg.port
+if ((Get-Device-Status) -ne "ONLINE") {
+    Write-Host "⚠️ Device not connected — attempting reconnect" -ForegroundColor Yellow
+
+    $cfg = Load-LastDevice
+    $connected = $false
+
+    if ($cfg) {
+        Write-Host "🔄 Trying saved device $($cfg.ip):$($cfg.port)" -ForegroundColor Cyan
+        $result = adb connect "$($cfg.ip):$($cfg.port)"
+        Write-Host $result
+        Start-Sleep -Seconds 1
+
+        $match = adb devices | Select-String "$($cfg.ip):$($cfg.port)\s+device"
+        if ($match) {
+            $connected = $true
+        } else {
+            Write-Host "⚠️ Saved device invalid (likely port changed)" -ForegroundColor Yellow
+        }
+    }
+
+    if (-not $connected) {
+        $cfg = Prompt-For-AdbTarget
+        Write-Host "🔄 Connecting to $($cfg.ip):$($cfg.port)" -ForegroundColor Cyan
+        $result = adb connect "$($cfg.ip):$($cfg.port)"
+        Write-Host $result
+        Start-Sleep -Seconds 1
+
+        $match = adb devices | Select-String "$($cfg.ip):$($cfg.port)\s+device"
+        if ($match) {
+            Save-LastDevice $cfg.ip $cfg.port
+        } else {
+            Write-Host "❌ Connection failed. Check Wireless Debugging / IP / Port." -ForegroundColor Red
+            exit 1
+        }
+    }
 }
 
 $devices = Get-ConnectedDevices
@@ -359,7 +417,7 @@ $duration = $end - $start
 Write-Host "for loop $($duration.ToString("hh\:mm\:ss"))"
 # ---------- FORCE FULL BUILD ----------
 # Force Gradle to use selected device
-$env:ANDROID_SERIAL = $device
+$env:ANDROID_SERIAL = $env:ADB_DEVICE
 if ($forceFullBuild) {
     Write-Host "🔄 FullBuild requested — ignoring cached state" -ForegroundColor Cyan
     $needsClean = $true
@@ -439,7 +497,7 @@ else {
 }
 $totalTime = (Get-Date) - $scriptStart
 
-Write-Host ("⏱ Total   : {0:mm\:ss}" -f (Format-Duration  $totalTime))
+Write-Host ("⏱ Total   : {0}" -f (Format-Duration  $totalTime))
 
 if ($LASTEXITCODE -eq 0) {
     New-BurntToastNotification -Text "Build Success ✅", "Your build completed successfully."
@@ -463,7 +521,6 @@ if ($LASTEXITCODE -eq 0) {
 #logs check 
 #adb logcat --pid=$(adb shell pidof -s com.sukoon.music) | Select-String "ContinueListeningCard"
 #.\smart_run.ps1 -Logcat -LogTag "FeedbackRepositoryImpl","Firestore"
-#todos
 #ensure typed ip device is conncected
 #work on pairing
 #adb forward tcp:5277 tcp:5277
