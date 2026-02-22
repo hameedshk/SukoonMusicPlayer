@@ -101,36 +101,13 @@ internal fun SongItem(
             .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art_for_song, song.title),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                },
-                error = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            )
-        }
+        AlbumArtWithFallback(
+            song = song,
+            modifier = Modifier,
+            size = 56.dp,
+            contentScale = ContentScale.Crop,
+            onDominantColorExtracted = { /* Ignore for HomeScreen */ }
+        )
 
         Spacer(modifier = Modifier.width(SpacingMedium))
 
@@ -186,36 +163,13 @@ internal fun SongItemWithMenu(
             .padding(horizontal = SpacingLarge, vertical = SpacingSmall),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art_for_song, song.title),
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                loading = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                },
-                error = {
-                    Icon(
-                        imageVector = Icons.Default.MusicNote,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                    )
-                }
-            )
-        }
+        AlbumArtWithFallback(
+            song = song,
+            modifier = Modifier,
+            size = 56.dp,
+            contentScale = ContentScale.Crop,
+            onDominantColorExtracted = { /* Ignore for now */ }
+        )
 
         Spacer(modifier = Modifier.width(SpacingMedium))
 
