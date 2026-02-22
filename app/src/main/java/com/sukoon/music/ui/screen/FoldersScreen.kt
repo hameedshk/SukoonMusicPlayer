@@ -69,6 +69,8 @@ import com.sukoon.music.ui.theme.*
 @Composable
 fun FoldersScreen(
     onNavigateToFolder: (Long) -> Unit,
+    onNavigateToFolderByPath: (String) -> Unit = {},
+    onNavigateToFolderSelection: () -> Unit = {},
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
@@ -190,6 +192,8 @@ fun FoldersScreen(
                 isSelectionMode = isSelectionMode,
                 selectedFolderIds = selectedFolderIds,
                 onFolderClick = onNavigateToFolder,
+                onNavigateToFolderByPath = onNavigateToFolderByPath,
+                onNavigateToFolderSelection = onNavigateToFolderSelection,
                 folderViewModel = viewModel,
                 menuHandler = rememberSongMenuHandler(
                     playbackRepository = viewModel.playbackRepository,
@@ -426,6 +430,8 @@ private fun FoldersContent(
     isSelectionMode: Boolean,
     selectedFolderIds: Set<Long>,
     onFolderClick: (Long) -> Unit,
+    onNavigateToFolderByPath: (String) -> Unit = {},
+    onNavigateToFolderSelection: () -> Unit = {},
     folderViewModel: com.sukoon.music.ui.viewmodel.FolderViewModel,
     menuHandler: SongMenuHandler,
     onNavigateToNowPlaying: () -> Unit
@@ -504,7 +510,7 @@ private fun FoldersContent(
                         )
                     }
                     IconButton(
-                        onClick = { folderViewModel.toggleSelectionMode(true) }
+                        onClick = { onNavigateToFolderSelection() }
                     ) {
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
@@ -609,11 +615,7 @@ private fun FoldersContent(
                                         isSelectionMode = isSelectionMode,
                                         isSelected = selectedFolderIds.contains(itemPathHash),
                                         onClick = {
-                                            if (isSelectionMode) {
-                                                folderViewModel.toggleSelection(itemPathHash)
-                                            } else {
-                                                folderViewModel.navigateToFolder(item.path)
-                                            }
+                                            onNavigateToFolderByPath(item.path)
                                         },
                                         onLongClick = {
                                             if (!isSelectionMode) {
@@ -674,19 +676,13 @@ private fun FoldersContent(
                             isSelectionMode = isSelectionMode,
                             isSelected = selectedFolderIds.contains(folder.id),
                             onClick = {
-                                if (isSelectionMode) {
-                                    folderViewModel.toggleFolderSelection(folder.id)
-                                } else {
-                                    onFolderClick(folder.id)
-                                }
+                                onFolderClick(folder.id)
                             },
                             onLongClick = {
                                 if (!isSelectionMode) {
                                     folderViewModel.toggleSelectionMode(true)
-                                    folderViewModel.toggleFolderSelection(folder.id)
-                                } else {
-                                    folderViewModel.toggleFolderSelection(folder.id)
                                 }
+                                folderViewModel.toggleFolderSelection(folder.id)
                             },
                             onMoreClick = { selectedFolderForMenu = folder }
                         )

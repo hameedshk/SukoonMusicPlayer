@@ -98,6 +98,12 @@ fun SukoonNavHost(
                 onNavigateToFolderDetail = { folderId ->
                     navController.navigate(Routes.FolderDetail.createRoute(folderId))
                 },
+                onNavigateToFolderByPath = { path ->
+                    navController.navigate(Routes.FolderDetailByPath.createRoute(path))
+                },
+                onNavigateToFolderSelection = {
+                    navController.navigate(Routes.FolderSelection.route)
+                },
                 onNavigateToAlbumDetail = { albumId ->
                     navController.navigate(Routes.AlbumDetail.createRoute(albumId))
                 },
@@ -471,6 +477,9 @@ fun SukoonNavHost(
                 onNavigateToFolder = { folderId ->
                     navController.navigate(Routes.FolderDetail.createRoute(folderId))
                 },
+                onNavigateToFolderByPath = { path ->
+                    navController.navigate(Routes.FolderDetailByPath.createRoute(path))
+                },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
                 },
@@ -501,6 +510,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToParent = {
                     navController.navigateUp()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
                 },
                 onNavigateToSubfolder = { folderPath ->
                     navController.navigate(Routes.FolderDetailByPath.createRoute(folderPath))
@@ -539,6 +551,9 @@ fun SukoonNavHost(
                         navController.navigateUp()
                     }
                 },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Routes.NowPlaying.route)
+                },
                 onNavigateToSubfolder = { subfolderPath ->
                     navController.navigate(Routes.FolderDetailByPath.createRoute(subfolderPath))
                 },
@@ -547,6 +562,15 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
+                }
+            )
+        }
+
+        // Folder Selection Screen - Multi-select folders
+        composable(route = Routes.FolderSelection.route) {
+            FolderSelectionScreen(
+                onBackClick = {
+                    navController.navigateUp()
                 }
             )
         }

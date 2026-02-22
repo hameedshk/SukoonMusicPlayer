@@ -24,16 +24,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.FolderItem
+import com.sukoon.music.domain.model.Playlist
 import com.sukoon.music.domain.model.Song
-import com.sukoon.music.ui.components.AnimatedEqualizer
-import com.sukoon.music.ui.components.SongContextMenu
-import com.sukoon.music.ui.components.SongMenuHandler
-import com.sukoon.music.ui.components.rememberSongMenuHandler
+import com.sukoon.music.ui.components.*
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.FolderDetailViewModel
 import com.sukoon.music.ui.theme.*
@@ -77,11 +77,33 @@ fun FolderDetailScreen(
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val parentFolderPath by viewModel.parentFolderPath.collectAsStateWithLifecycle()
 
+    // Dialog states
+    var songForInfo by remember { mutableStateOf<Song?>(null) }
+    var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
+    var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var songToDelete by remember { mutableStateOf<Song?>(null) }
+
+    val context = LocalContext.current
+    val shareHandler = rememberShareHandler()
+    val playlists by remember { derivedStateOf { emptyList<Playlist>() } }
+
     // Create menu handler for song context menu
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
-        onNavigateToArtist = onNavigateToArtist
+        onNavigateToArtist = onNavigateToArtist,
+        onShowPlaylistSelector = { song ->
+            songToAddToPlaylist = song
+            showAddToPlaylistDialog = true
+        },
+        onShowSongInfo = { song ->
+            songForInfo = song
+        },
+        onShowDeleteConfirmation = { song -> songToDelete = song },
+        onToggleLike = { songId, isLiked ->
+            viewModel.toggleLike(songId, isLiked)
+        },
+        onShare = shareHandler
     )
 
     // Handle case where folder is deleted or excluded while viewing
@@ -116,7 +138,7 @@ fun FolderDetailScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
@@ -125,9 +147,18 @@ fun FolderDetailScreen(
             // Hierarchical mode: show folders + songs
             HierarchicalFolderContent(
                 folderItems = folderItems,
+                folderPath = folderPath,
                 currentSongId = playbackState.currentSong?.id,
                 isPlayingGlobally = playbackState.isPlaying,
                 menuHandler = menuHandler,
+                onPlayAll = {
+                    val songs = folderItems.filterIsInstance<FolderItem.SongType>().map { it.song }
+                    viewModel.playFolder(songs)
+                },
+                onShuffle = {
+                    val songs = folderItems.filterIsInstance<FolderItem.SongType>().map { it.song }
+                    viewModel.shuffleFolder(songs)
+                },
                 onFolderClick = onNavigateToSubfolder,
                 onSongClick = { song ->
                     if (playbackState.currentSong?.id != song.id) {
@@ -167,14 +198,155 @@ fun FolderDetailScreen(
             )
         }
     }
+
+    // Song Info Dialog
+    songForInfo?.let { song ->
+        SongInfoDialog(
+            song = song,
+            onDismiss = { songForInfo = null }
+        )
+    }
+
+    // Add to Playlist Dialog (for songs)
+    if (showAddToPlaylistDialog && songToAddToPlaylist != null) {
+        AddToPlaylistDialog(
+            playlists = playlists,
+            onPlaylistSelected = { playlistId ->
+                // TODO: Implement add to playlist for FolderDetailScreen
+                // For now, we'll skip this as it requires playlist repository access
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            },
+            onDismiss = {
+                showAddToPlaylistDialog = false
+                songToAddToPlaylist = null
+            }
+        )
+    }
+
+    // Delete confirmation dialog (for songs)
+    songToDelete?.let { song ->
+        DeleteConfirmationDialog(
+            song = song,
+            onConfirm = {
+                when (val result = DeleteHelper.deleteSongs(context, listOf(song))) {
+                    is DeleteHelper.DeleteResult.RequiresPermission -> {
+                        // Handle permission request if needed
+                    }
+                    is DeleteHelper.DeleteResult.Success -> {
+                        songToDelete = null
+                    }
+                    is DeleteHelper.DeleteResult.Error -> {
+                        songToDelete = null
+                    }
+                }
+            },
+            onDismiss = { songToDelete = null }
+        )
+    }
+}
+
+@Composable
+private fun HierarchicalFolderHeader(
+    folderPath: String,
+    folderItems: List<FolderItem>,
+    onPlayAll: () -> Unit,
+    onShuffle: () -> Unit
+) {
+    val songCount = folderItems.count { it is FolderItem.SongType }
+    val folderName = folderPath.substringAfterLast('/').ifEmpty { folderPath }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        // Header: Folder icon + folder name
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Folder,
+                contentDescription = null,
+                modifier = Modifier.size(80.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = folderName,
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        // Song count
+        Text(
+            text = androidx.compose.ui.res.pluralStringResource(
+                com.sukoon.music.R.plurals.common_song_count,
+                songCount,
+                songCount
+            ),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        // Action buttons
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ElevatedButton(
+                onClick = onShuffle,
+                enabled = songCount > 0,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Shuffle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_shuffle))
+            }
+            ElevatedButton(
+                onClick = onPlayAll,
+                enabled = songCount > 0,
+                modifier = Modifier.weight(1f)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_play_all))
+            }
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
+    }
 }
 
 @Composable
 private fun HierarchicalFolderContent(
     folderItems: List<FolderItem>,
+    folderPath: String,
     currentSongId: Long?,
     isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
+    onPlayAll: () -> Unit,
+    onShuffle: () -> Unit,
     onFolderClick: (String) -> Unit,
     onSongClick: (Song) -> Unit,
     onToggleLike: (Long, Boolean) -> Unit,
@@ -182,8 +354,22 @@ private fun HierarchicalFolderContent(
 ) {
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        contentPadding = PaddingValues(
+            start = 0.dp,
+            top = 8.dp,
+            end = 0.dp,
+            bottom = MiniPlayerHeight + SpacingSmall
+        )
     ) {
+        item {
+            HierarchicalFolderHeader(
+                folderPath = folderPath,
+                folderItems = folderItems,
+                onPlayAll = onPlayAll,
+                onShuffle = onShuffle
+            )
+        }
+
         if (folderItems.isEmpty()) {
             item {
                 EmptyFolderState()
@@ -589,17 +775,42 @@ private fun FolderSongItem(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Track Number
-            Text(
-                text = index.toString(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = if (isCurrentlyPlaying) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                },
-                modifier = Modifier.width(32.dp)
-            )
+            // Album Art Thumbnail (56 dp)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                SubcomposeAsyncImage(
+                    model = song.albumArtUri,
+                    contentDescription = androidx.compose.ui.res.stringResource(
+                        com.sukoon.music.R.string.common_album_art_for_song,
+                        song.title
+                    ),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                    loading = {
+                        Icon(
+                            imageVector = Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    },
+                    error = {
+                        Icon(
+                            imageVector = if (isCurrentlyPlaying) Icons.Default.PlayArrow else Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = if (isCurrentlyPlaying) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
 
             // Song Info
             Column(

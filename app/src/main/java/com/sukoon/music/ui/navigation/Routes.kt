@@ -164,6 +164,11 @@ sealed class Routes(val route: String) {
     }
 
     /**
+     * Folder Selection screen - Full-screen multi-select interface for folders.
+     */
+    data object FolderSelection : Routes("folder_selection")
+
+    /**
      * Excluded Folders screen - Manage folders excluded from the music library.
      */
     data object ExcludedFolders : Routes("excluded_folders")

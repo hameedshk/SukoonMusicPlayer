@@ -125,6 +125,8 @@ fun HomeScreen(
     onNavigateToSmartPlaylist: (SmartPlaylistType) -> Unit = {},
     onNavigateToRestorePlaylist: () -> Unit = {},
     onNavigateToFolderDetail: (Long) -> Unit = {},
+    onNavigateToFolderByPath: (String) -> Unit = {},
+    onNavigateToFolderSelection: () -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToGenreDetail: (Long) -> Unit = {},
     username: String = "",
@@ -497,6 +499,8 @@ fun HomeScreen(
                             HomeTabKey.FOLDERS -> {
                                 FoldersScreen(
                                     onNavigateToFolder = onNavigateToFolderDetail,
+                                    onNavigateToFolderByPath = onNavigateToFolderByPath,
+                                    onNavigateToFolderSelection = onNavigateToFolderSelection,
                                     onNavigateToNowPlaying = onNavigateToNowPlaying,
                                     onNavigateToAlbum = onNavigateToAlbumDetail,
                                     onNavigateToArtist = onNavigateToArtistDetail,
