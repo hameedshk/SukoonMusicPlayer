@@ -834,30 +834,13 @@ fun StandardSongListItem(
         }
 
         // Album Art
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center
-        ) {
-            SubcomposeAsyncImage(
-                model = song.albumArtUri,
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize(),
-                contentScale = ContentScale.Crop,
-                error = {
-                    PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(
-                            albumName = song.album,
-                            artistName = song.artist,
-                            songId = song.id
-                        )
-                    )
-                }
-            )
-
-        }
+        AlbumArtWithFallback(
+            song = song,
+            modifier = Modifier,
+            size = 56.dp,
+            contentScale = ContentScale.Crop,
+            onDominantColorExtracted = { /* Ignore */ }
+        )
 
         Spacer(modifier = Modifier.width(SpacingMedium))
 
