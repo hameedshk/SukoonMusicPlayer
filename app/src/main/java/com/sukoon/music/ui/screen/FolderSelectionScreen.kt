@@ -48,7 +48,6 @@ fun FolderSelectionScreen(
     val folders by viewModel.folders.collectAsStateWithLifecycle()
     val selectedFolderIds by viewModel.selectedFolderIds.collectAsStateWithLifecycle()
 
-    var searchQuery by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showMoreOptionsSheet by remember { mutableStateOf(false) }
 
@@ -66,16 +65,7 @@ fun FolderSelectionScreen(
         }
     }
 
-    val filteredFolders = remember(folders, searchQuery) {
-        if (searchQuery.isBlank()) {
-            folders
-        } else {
-            folders.filter { folder ->
-                folder.name.contains(searchQuery, ignoreCase = true) ||
-                folder.path.contains(searchQuery, ignoreCase = true)
-            }
-        }
-    }
+    val filteredFolders = folders
 
     val allSelected = filteredFolders.isNotEmpty() && filteredFolders.all { it.id in selectedFolderIds }
 
@@ -137,26 +127,6 @@ fun FolderSelectionScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Search bar
-            TextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text(stringResource(com.sukoon.music.R.string.common_search)) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                trailingIcon = {
-                    if (searchQuery.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery = "" }) {
-                            Icon(Icons.Default.Clear, contentDescription = null)
-                        }
-                    }
-                },
-                singleLine = true,
-                shape = RoundedCornerShape(8.dp)
-            )
-
             if (filteredFolders.isEmpty()) {
                 Box(
                     modifier = Modifier
