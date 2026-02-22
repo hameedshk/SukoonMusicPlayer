@@ -570,23 +570,13 @@ private fun SearchResultItem(
                 shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
             ) {
-                if (song.albumArtUri != null) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        error = {
-                             PlaceholderAlbumArt.Placeholder(
-                                seed = PlaceholderAlbumArt.generateSeed(song.album, song.artist, song.id)
-                            )
-                        }
-                    )
-                } else {
-                     PlaceholderAlbumArt.Placeholder(
-                        seed = PlaceholderAlbumArt.generateSeed(song.album, song.artist, song.id)
-                    )
-                }
+                AlbumArtWithFallback(
+                    song = song,
+                    modifier = Modifier,
+                    size = 56.dp,
+                    contentScale = ContentScale.Crop,
+                    onDominantColorExtracted = { /* Ignore for search results */ }
+                )
             }
 
             Spacer(modifier = Modifier.width(16.dp))
