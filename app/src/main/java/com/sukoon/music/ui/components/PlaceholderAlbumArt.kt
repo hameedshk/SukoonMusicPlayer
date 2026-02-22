@@ -107,8 +107,12 @@ object PlaceholderAlbumArt {
     /**
      * Select 2-3 colors with spacing from the palette for visible gradients.
      * Uses larger intervals to ensure visual distinction between colors.
+     *
+     * @param hash Hash value to seed color selection
+     * @param isDark True for dark theme palette, false for light theme
+     * @return List of 2-3 colors suitable for gradient
      */
-    private fun selectColors(hash: Int, isDark: Boolean): List<Color> {
+    fun selectColors(hash: Int, isDark: Boolean): List<Color> {
         val palette = if (isDark) darkPalette else lightPalette
         val paletteSize = palette.size
         val startIndex = hash % paletteSize
