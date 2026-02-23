@@ -105,7 +105,11 @@ fun PremiumDialog(
             AlertDialog(
                 onDismissRequest = onDismiss,
                 confirmButton = {
-                    Button(onClick = onPurchase) {
+                    Button(
+                          onClick = onPurchase,
+    modifier = Modifier.fillMaxWidth(),
+    shape = MaterialTheme.shapes.large
+                    ) {
                         Text(stringResource(R.string.label_get_premium))
                     }
                 },
@@ -121,7 +125,22 @@ fun PremiumDialog(
                         }
                     }
                 },
-                title = { Text(stringResource(R.string.label_sukoon_premium)) },
+                title = { 
+Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Icon(
+            imageVector = Icons.Default.Star,
+            contentDescription = null,
+            modifier = Modifier.size(48.dp),
+            tint = Color(0xFFFFC107)   // Gold
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.label_sukoon_premium),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+}
+                },
                 text = {
                     Column(Modifier.fillMaxWidth()) {
                         PremiumFeatureItem(stringResource(R.string.settings_premium_feature_1), Icons.Default.Block)
@@ -129,7 +148,8 @@ fun PremiumDialog(
                         Spacer(Modifier.height(16.dp))
                         Text(
                             text = priceText,
-                            style = MaterialTheme.typography.headlineMedium,
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )

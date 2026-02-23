@@ -292,7 +292,19 @@ fun SettingsScreen(
                             icon = Icons.Default.Info,
                             title = stringResource(R.string.settings_screen_about_title),
                             onClick = onNavigateToAbout
-                        )
+                        ),
+                           SettingsRowModel(
+                            icon = Icons.Default.Star,
+                            title = stringResource(R.string.settings_screen_rate_us_title),
+                            value = stringResource(R.string.settings_screen_feedback_google_play),
+                            onClick = {
+                                analyticsTracker?.logEvent("rate_us_item_tap", mapOf("source" to "settings"))
+                                val activity = context as? ComponentActivity
+                                if (activity != null) {
+                                    viewModel.triggerInAppReview(activity)
+                                }
+                            }
+                        ) 
                     )
                 )
             }
@@ -313,19 +325,19 @@ fun SettingsScreen(
                                 )
                             }
                         ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Notifications,
-                            title = stringResource(R.string.settings_screen_show_notification_controls_title),
-                            value = stringResource(R.string.settings_screen_show_notification_controls_description),
-                            valuePlacement = ValuePlacement.Below,
-                            onClick = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) },
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.showNotificationControls,
-                                    onCheckedChange = { viewModel.setShowNotificationControls(it) },                                    
-                                )
-                            }
-                        )
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.Notifications,
+                        //     title = stringResource(R.string.settings_screen_show_notification_controls_title),
+                        //     value = stringResource(R.string.settings_screen_show_notification_controls_description),
+                        //     valuePlacement = ValuePlacement.Below,
+                        //     onClick = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) },
+                        //     trailingContent = {
+                        //         Switch(
+                        //             checked = userPreferences.showNotificationControls,
+                        //             onCheckedChange = { viewModel.setShowNotificationControls(it) },                                    
+                        //         )
+                        //     }
+                        // )
                     )
                 )
             }
@@ -364,19 +376,19 @@ fun SettingsScreen(
                             value = getCrossfadeLabel(context, userPreferences.crossfadeDurationMs),
                             onClick = { showCrossfadeDialog = true }
                         ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Settings,
-                            title = stringResource(R.string.settings_screen_audio_normalization_title),
-                            value = stringResource(R.string.settings_screen_audio_normalization_description),
-                            valuePlacement = ValuePlacement.Below,
-                            onClick = { viewModel.toggleAudioNormalization() },
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.audioNormalizationEnabled,
-                                    onCheckedChange = { viewModel.toggleAudioNormalization() },                                    
-                                )
-                            }
-                        ),
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.Settings,
+                        //     title = stringResource(R.string.settings_screen_audio_normalization_title),
+                        //     value = stringResource(R.string.settings_screen_audio_normalization_description),
+                        //     valuePlacement = ValuePlacement.Below,
+                        //     onClick = { viewModel.toggleAudioNormalization() },
+                        //     trailingContent = {
+                        //         Switch(
+                        //             checked = userPreferences.audioNormalizationEnabled,
+                        //             onCheckedChange = { viewModel.toggleAudioNormalization() },                                    
+                        //         )
+                        //     }
+                        // ),
                         SettingsRowModel(
                             icon = Icons.Default.Equalizer,
                             title = stringResource(R.string.settings_screen_equalizer_title),
@@ -390,16 +402,16 @@ fun SettingsScreen(
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
                     rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.PermMedia,
-                            title = stringResource(R.string.settings_screen_audio_permission_title),
-                            value = stringResource(R.string.settings_screen_permission_granted),
-                            onClick = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
-                                }
-                            }
-                        ),
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.PermMedia,
+                        //     title = stringResource(R.string.settings_screen_audio_permission_title),
+                        //     value = stringResource(R.string.settings_screen_permission_granted),
+                        //     onClick = {
+                        //         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        //             permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
+                        //         }
+                        //     }
+                        // ),
                         SettingsRowModel(
                             icon = Icons.Default.Search,
                             title = stringResource(R.string.settings_screen_scan_on_startup_title),
@@ -454,11 +466,11 @@ fun SettingsScreen(
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
                     rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.Info,
-                            title = stringResource(R.string.settings_screen_version_title),
-                            value = viewModel.getAppVersion()
-                        ),
+                        // SettingsRowModel(
+                        //     icon = Icons.Default.Info,
+                        //     title = stringResource(R.string.settings_screen_version_title),
+                        //     value = viewModel.getAppVersion()
+                        // ),
                         SettingsRowModel(
                             icon = Icons.Default.Star,
                             title = stringResource(R.string.settings_screen_rate_us_title),
