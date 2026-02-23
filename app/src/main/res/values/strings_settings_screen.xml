@@ -100,4 +100,6 @@
     <string name="settings_screen_lifetime_access_one_time_purchase">Lifetime access - One-time purchase</string>
     <string name="settings_screen_no_subscription_no_recurring_charges">No subscription - No recurring charges - Secured by Google Play</string>
     <string name="settings_screen_unlock_premium">Unlock Premium</string>
+    <string name="equalizer_delete_preset_title">Delete Preset</string>
+    <string name="equalizer_delete_preset_message">This custom preset will be permanently deleted.</string>
 </resources>

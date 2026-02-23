@@ -5,11 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.sukoon.music.domain.model.EqualizerPreset
 import com.sukoon.music.domain.model.EqualizerSettings
 import com.sukoon.music.domain.repository.AudioEffectRepository
+import com.sukoon.music.domain.repository.PlaybackRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -27,7 +30,8 @@ import com.sukoon.music.ui.theme.*
  */
 @HiltViewModel
 class EqualizerViewModel @Inject constructor(
-    private val audioEffectRepository: AudioEffectRepository
+    private val audioEffectRepository: AudioEffectRepository,
+    private val playbackRepository: PlaybackRepository
 ) : ViewModel() {
 
     // --- Current Settings ---
@@ -55,10 +59,21 @@ class EqualizerViewModel @Inject constructor(
                 initialValue = EqualizerPreset.BUILT_IN_PRESETS
             )
 
+    /**
+     * Current song's album art URI for dynamic color theming.
+     */
+    val currentAlbumArtUri: StateFlow<String?> = playbackRepository.playbackState
+        .map { it.currentSong?.albumArtUri }
+        .distinctUntilChanged()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
     // --- UI State ---
 
     private val _showSavePresetDialog = MutableStateFlow(false)
     val showSavePresetDialog: StateFlow<Boolean> = _showSavePresetDialog.asStateFlow()
+
+    private val _deleteConfirmPresetId = MutableStateFlow<Long?>(null)
+    val deleteConfirmPresetId: StateFlow<Long?> = _deleteConfirmPresetId.asStateFlow()
 
     // --- User Actions ---
 
@@ -187,6 +202,32 @@ class EqualizerViewModel @Inject constructor(
     fun resetToFlat() {
         viewModelScope.launch {
             audioEffectRepository.applyPreset(EqualizerPreset.FLAT)
+        }
+    }
+
+    /**
+     * Show delete confirmation dialog for a custom preset.
+     *
+     * @param presetId ID of the preset to delete
+     */
+    fun showDeleteConfirmation(presetId: Long) {
+        _deleteConfirmPresetId.value = presetId
+    }
+
+    /**
+     * Hide delete confirmation dialog.
+     */
+    fun dismissDeleteConfirmation() {
+        _deleteConfirmPresetId.value = null
+    }
+
+    /**
+     * Confirm and delete the preset shown in the confirmation dialog.
+     */
+    fun confirmDeletePreset() {
+        viewModelScope.launch {
+            _deleteConfirmPresetId.value?.let { audioEffectRepository.deletePreset(it) }
+            _deleteConfirmPresetId.value = null
         }
     }
 }

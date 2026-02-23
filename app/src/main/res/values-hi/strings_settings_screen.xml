@@ -100,4 +100,6 @@
     <string name="settings_screen_lifetime_access_one_time_purchase">आजीवन प्रवेश - एकबारी खरीद</string>
     <string name="settings_screen_no_subscription_no_recurring_charges">कोई सदस्यता नहीं - कोई आवर्ती शुल्क नहीं - Google Play द्वारा सुरक्षित</string>
     <string name="settings_screen_unlock_premium">प्रीमियम अनलॉक करें</string>
+    <string name="equalizer_delete_preset_title">प्रीसेट हटाएं</string>
+    <string name="equalizer_delete_preset_message">यह कस्टम प्रीसेट स्थायी रूप से हटा दिया जाएगा।</string>
 </resources>
