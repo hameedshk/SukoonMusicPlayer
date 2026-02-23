@@ -312,39 +312,13 @@ private fun MiniPlayerContentLayout(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(SpacingMedium)
             ) {
-            // Album Art with crossfade and loading shimmer
-            SubcomposeAsyncImage(
-                model = ImageRequest.Builder(LocalContext.current)
-                    .data(song.albumArtUri)
-                    .crossfade(300)
-                    .build(),
-                contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_album_art),
-                modifier = Modifier
-                    .size(MiniPlayerAlbumArtSize)
-                    .clip(RoundedCornerShape(8.dp)),
+            // Album Art with fallback gradient
+            AlbumArtWithFallback(
+                song = song,
+                modifier = Modifier,
+                size = MiniPlayerAlbumArtSize,
                 contentScale = ContentScale.Crop,
-                loading = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .shimmerEffect()
-                    )
-                },
-                error = {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(accentColor.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = accentColor,
-                            modifier = Modifier.size(28.dp)
-                        )
-                    }
-                }
+                onDominantColorExtracted = { /* Ignore for mini player */ }
             )
 
             // Song Info with expand affordance

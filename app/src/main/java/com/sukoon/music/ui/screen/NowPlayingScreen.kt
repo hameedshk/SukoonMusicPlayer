@@ -343,6 +343,9 @@ fun NowPlayingScreen(
         animationSpec = tween(durationMillis = 220),
         label = "now_playing_slider_accent"
     )
+    // Track fallback dominant color from generated gradient
+    var fallbackDominantColor by remember { mutableStateOf(accentColor) }
+
     val motionDirective = playbackState.toMotionDirective(isVisible = true)
     val motionPhase by rememberPlaybackMotionClock(motionDirective)
     val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
@@ -1077,12 +1080,26 @@ private fun AlbumArtSection(
                                 contentAlignment = Alignment.Center
                             ) {
                                 // Content-aware gradient background from song metadata
+                                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                                val seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+
+                                // Extract dominant color for UI tinting
+                                LaunchedEffect(seed, isDark) {
+                                    val hash = PlaceholderAlbumArt.hashString(seed)
+                                    val colors = PlaceholderAlbumArt.selectColors(hash, isDark)
+                                    fallbackDominantColor = PlaceholderAlbumArt.extractDominantColor(
+                                        color1 = colors[0],
+                                        color2 = colors.getOrElse(1) { colors[0] },
+                                        isDark = isDark
+                                    )
+                                }
+
                                 PlaceholderAlbumArt.Placeholder(
-                                    seed = PlaceholderAlbumArt.generateSeed(
-                                        albumName = song.album,
-                                        artistName = song.artist,
-                                        songId = song.id
-                                    ),
+                                    seed = seed,
                                     modifier = Modifier.fillMaxSize(),
                                     iconOpacity = 0f
                                 )
@@ -1101,12 +1118,26 @@ private fun AlbumArtSection(
                                 contentAlignment = Alignment.Center
                             ) {
                                 // Content-aware gradient background from song metadata
+                                val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
+                                val seed = PlaceholderAlbumArt.generateSeed(
+                                    albumName = song.album,
+                                    artistName = song.artist,
+                                    songId = song.id
+                                )
+
+                                // Extract dominant color for UI tinting
+                                LaunchedEffect(seed, isDark) {
+                                    val hash = PlaceholderAlbumArt.hashString(seed)
+                                    val colors = PlaceholderAlbumArt.selectColors(hash, isDark)
+                                    fallbackDominantColor = PlaceholderAlbumArt.extractDominantColor(
+                                        color1 = colors[0],
+                                        color2 = colors.getOrElse(1) { colors[0] },
+                                        isDark = isDark
+                                    )
+                                }
+
                                 PlaceholderAlbumArt.Placeholder(
-                                    seed = PlaceholderAlbumArt.generateSeed(
-                                        albumName = song.album,
-                                        artistName = song.artist,
-                                        songId = song.id
-                                    ),
+                                    seed = seed,
                                     modifier = Modifier.fillMaxSize(),
                                     icon = Icons.Default.MusicNote,
                                     iconSize = 64,

@@ -302,43 +302,13 @@ private fun QueueModalSongItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Album Art
-            Card(
-                modifier = Modifier.size(48.dp),
-                shape = RoundedCornerShape(6.dp),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = if (isCurrentSong) 4.dp else 2.dp
-                )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    SubcomposeAsyncImage(
-                        model = song.albumArtUri,
-                        contentDescription = stringResource(R.string.common_album_art_for_song, song.title),
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop,
-                        loading = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        },
-                        error = {
-                            Icon(
-                                imageVector = Icons.Default.MusicNote,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                            )
-                        }
-                    )
-                }
-            }
+            AlbumArtWithFallback(
+                song = song,
+                modifier = Modifier,
+                size = 48.dp,
+                contentScale = ContentScale.Crop,
+                onDominantColorExtracted = { /* Ignore */ }
+            )
 
             Spacer(modifier = Modifier.width(12.dp))
 
