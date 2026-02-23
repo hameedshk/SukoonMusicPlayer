@@ -69,23 +69,49 @@ object PlaceholderAlbumArt {
         }.build()
 
     /**
-     * Dark theme palette - muted charcoal grays (S-style).
+     * Dark theme palette - muted vibrant colors (Spotify-style gradients).
+     * Each song gets a distinct color for better visual differentiation.
      */
     private val darkPalette = listOf(
-        Color(0xFF2A2A2A), Color(0xFF1E1E1E), Color(0xFF333333), Color(0xFF3D3D3D),
-        Color(0xFF3A3634), Color(0xFF2D2B29), Color(0xFF474340), Color(0xFF2B2E33),
-        Color(0xFF353A40), Color(0xFF1F2326), Color(0xFF4A3F3F), Color(0xFF3F4A4A),
-        Color(0xFF4A4A3F), Color(0xFF262626), Color(0xFF3B3B3B), Color(0xFF424242)
+        Color(0xFF3B1F5E), // Deep purple
+        Color(0xFF1A3D4F), // Dark teal
+        Color(0xFF1E3D2A), // Forest green
+        Color(0xFF4A1C2A), // Burgundy
+        Color(0xFF1C2B4A), // Navy blue
+        Color(0xFF4A2E1A), // Burnt orange
+        Color(0xFF3D1C4A), // Plum
+        Color(0xFF1A4A3D), // Dark cyan
+        Color(0xFF4A3B1A), // Dark gold
+        Color(0xFF2A1A4A), // Indigo
+        Color(0xFF1A4A2A), // Emerald dark
+        Color(0xFF4A1A1A), // Dark red
+        Color(0xFF1A3A4A), // Steel blue
+        Color(0xFF3A4A1A), // Olive
+        Color(0xFF4A1A3A), // Rose dark
+        Color(0xFF1A2A4A)  // Midnight blue
     )
 
     /**
-     * Light theme palette - soft grays and whites (A Music-style).
+     * Light theme palette - soft pastel colors for readability.
+     * Each song gets a distinct pastel color for better visual differentiation.
      */
     private val lightPalette = listOf(
-        Color(0xFFE8E8E8), Color(0xFFD6D6D6), Color(0xFFC4C4C4), Color(0xFFB8B8B8),
-        Color(0xFFEEEEEE), Color(0xFFDDDDDD), Color(0xFFCCCCCC), Color(0xFFE0E0E0),
-        Color(0xFFD8D8D8), Color(0xFFF2F2F2), Color(0xFFDBDBDB), Color(0xFFC8C8C8),
-        Color(0xFFE5E5E5), Color(0xFFCFCFCF), Color(0xFFBEBEBE), Color(0xFFEAEAEA)
+        Color(0xFFD4B8F0), // Soft lavender
+        Color(0xFFB8D4F0), // Sky blue
+        Color(0xFFB8F0D4), // Mint
+        Color(0xFFF0B8D4), // Blush pink
+        Color(0xFFB8E8F0), // Powder blue
+        Color(0xFFF0D4B8), // Peach
+        Color(0xFFD4F0B8), // Lime pastel
+        Color(0xFFF0B8E8), // Lilac
+        Color(0xFFB8B8F0), // Periwinkle
+        Color(0xFFF0F0B8), // Pale yellow
+        Color(0xFFB8F0F0), // Aqua pastel
+        Color(0xFFF0C4B8), // Salmon
+        Color(0xFFD4B8E0), // Mauve
+        Color(0xFFB8D4B8), // Sage
+        Color(0xFFE0B8B8), // Dusty rose
+        Color(0xFFB8C8F0)  // Cornflower
     )
 
     /**

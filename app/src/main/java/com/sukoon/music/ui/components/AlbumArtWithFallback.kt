@@ -11,12 +11,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.domain.model.Song
@@ -102,9 +105,9 @@ fun AlbumArtWithFallback(
                 PlaceholderAlbumArt.Placeholder(
                     seed = fallbackSeed,
                     modifier = Modifier.fillMaxSize(),
-                    icon = Icons.Default.MusicNote,
-                    iconSize = 40,
-                    iconOpacity = 0.4f
+                    icon = Icons.Default.Album,
+                    iconSize = 56,
+                    iconOpacity = 0.65f
                 )
             }
         )

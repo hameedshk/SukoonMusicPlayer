@@ -343,9 +343,6 @@ fun NowPlayingScreen(
         animationSpec = tween(durationMillis = 220),
         label = "now_playing_slider_accent"
     )
-    // Track fallback dominant color from generated gradient
-    var fallbackDominantColor by remember { mutableStateOf(accentColor) }
-
     val motionDirective = playbackState.toMotionDirective(isVisible = true)
     val motionPhase by rememberPlaybackMotionClock(motionDirective)
     val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
@@ -951,6 +948,10 @@ private fun AlbumArtSection(
             .diskCacheKey(albumArtCacheKey)
             .build()
     }
+    val defaultFallbackColor = MaterialTheme.colorScheme.primary
+    var fallbackDominantColor by remember(song.id, defaultFallbackColor) {
+        mutableStateOf(defaultFallbackColor)
+    }
 
     // Album art container - floating with rounded corners and shadow
     val haptic = LocalHapticFeedback.current
@@ -1107,7 +1108,7 @@ private fun AlbumArtSection(
                                 // Loading spinner overlay
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(40.dp),
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                    color = fallbackDominantColor.copy(alpha = 0.7f),
                                     strokeWidth = 3.dp
                                 )
                             }
