@@ -49,9 +49,11 @@ import com.sukoon.music.ui.components.PremiumBanner
 import com.sukoon.music.ui.components.SettingsGroupCard
 import com.sukoon.music.ui.components.SettingsGroupRow
 import com.sukoon.music.ui.components.SettingsRowModel
+import com.sukoon.music.ui.components.SleepTimerDialog
 import com.sukoon.music.ui.components.ValuePlacement
 import com.sukoon.music.ui.theme.switchPadding
 import com.sukoon.music.ui.screen.settings.components.PremiumDialog
+import com.sukoon.music.ui.viewmodel.EndOfTrackResult
 import com.sukoon.music.ui.viewmodel.SettingsViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -127,6 +129,8 @@ fun SettingsScreen(
     var showMinDurationDialog by remember { mutableStateOf(false) }
     var showRescanDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showSleepTimerDialog by remember { mutableStateOf(false) }
+    var isSleepTimerActionInProgress by remember { mutableStateOf(false) }
     var showPremiumDialog by rememberSaveable(openPremiumDialog) { mutableStateOf(openPremiumDialog) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -216,7 +220,7 @@ fun SettingsScreen(
                             icon = Icons.Default.Timer,
                             title = stringResource(R.string.settings_screen_sleep_timer_title),
                             value = getSleepTimerLabel(context, userPreferences.sleepTimerTargetTimeMs),
-                            onClick = { showComingSoonToast(context, context.getString(R.string.settings_screen_sleep_timer_coming_soon)) }
+                            onClick = { showSleepTimerDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.WorkspacePremium,
@@ -462,30 +466,6 @@ fun SettingsScreen(
                     )
                 )
             }
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.Info,
-                        //     title = stringResource(R.string.settings_screen_version_title),
-                        //     value = viewModel.getAppVersion()
-                        // ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Star,
-                            title = stringResource(R.string.settings_screen_rate_us_title),
-                            value = stringResource(R.string.settings_screen_feedback_google_play),
-                            onClick = {
-                                analyticsTracker?.logEvent("rate_us_item_tap", mapOf("source" to "settings"))
-                                val activity = context as? ComponentActivity
-                                if (activity != null) {
-                                    viewModel.triggerInAppReview(activity)
-                                }
-                            }
-                        )                      
-                    )
-                )
-            }
         }
         // Dialogs
         if (showThemeDialog) {
@@ -534,6 +514,60 @@ fun SettingsScreen(
                         viewModel.setAppLanguageTag(languageTag)
                     }
                     showLanguageDialog = false
+                }
+            )
+        }
+
+        if (showSleepTimerDialog) {
+            SleepTimerDialog(
+                onTimerSelected = { minutes ->
+                    if (!isSleepTimerActionInProgress) {
+                        isSleepTimerActionInProgress = true
+                        viewModel.setSleepTimer(minutes)
+                        showSleepTimerDialog = false
+                        if (minutes > 0) {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_timer_set_minutes, minutes),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            Toast.makeText(
+                                context,
+                                context.getString(R.string.toast_timer_cancelled),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                        isSleepTimerActionInProgress = false
+                    }
+                },
+                onEndOfTrackSelected = {
+                    if (!isSleepTimerActionInProgress) {
+                        isSleepTimerActionInProgress = true
+                        when (viewModel.setSleepTimerEndOfTrack()) {
+                            EndOfTrackResult.Success -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.toast_timer_set_end_of_track),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            EndOfTrackResult.NoActiveTrack,
+                            EndOfTrackResult.TrackEndNotAvailable -> {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(R.string.toast_track_end_not_available),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                        showSleepTimerDialog = false
+                        isSleepTimerActionInProgress = false
+                    }
+                },
+                onDismiss = {
+                    showSleepTimerDialog = false
+                    isSleepTimerActionInProgress = false
                 }
             )
         }

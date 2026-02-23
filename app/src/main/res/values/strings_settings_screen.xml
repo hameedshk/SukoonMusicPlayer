@@ -3,7 +3,6 @@
     <string name="settings_screen_theme_title">Theme</string>
     <string name="settings_screen_accent_color_title">Accent Color</string>
     <string name="settings_screen_sleep_timer_title">Sleep timer</string>
-    <string name="settings_screen_sleep_timer_coming_soon">Sleep timer coming soon</string>
     <string name="settings_screen_remove_ads_title">Remove ads</string>
     <string name="settings_screen_premium_active">Premium active</string>
     <string name="settings_screen_discount_48_off">48% OFF</string>

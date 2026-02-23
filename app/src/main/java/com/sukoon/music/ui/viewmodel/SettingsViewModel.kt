@@ -8,6 +8,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AccentProfile
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.UserPreferences
+import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SettingsRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.domain.repository.StorageStats
@@ -35,10 +36,12 @@ import com.sukoon.music.util.AppLocaleManager
 class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val songRepository: SongRepository,
+    private val playbackRepository: PlaybackRepository,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController,
     private val premiumManager: PremiumManager,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    internal var currentTimeProvider: () -> Long = { System.currentTimeMillis() }
 
     // --- Premium Banner State (Persisted via DataStore) ---
 
@@ -238,6 +241,51 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.setAccentProfile(profile)
         }
+    }
+
+    /**
+     * Set a sleep timer to pause playback after [minutes].
+     * Passing 0 cancels the current timer.
+     */
+    fun setSleepTimer(minutes: Int) {
+        viewModelScope.launch {
+            if (minutes > 0) {
+                val targetTimeMs = currentTimeProvider() + (minutes * 60 * 1000L)
+                settingsRepository.setSleepTimerTargetTime(targetTimeMs)
+            } else {
+                settingsRepository.setSleepTimerTargetTime(0L)
+            }
+        }
+    }
+
+    /**
+     * Set the timer target directly as epoch millis.
+     */
+    fun setSleepTimerTargetTime(targetTimeMs: Long) {
+        viewModelScope.launch {
+            settingsRepository.setSleepTimerTargetTime(targetTimeMs)
+        }
+    }
+
+    /**
+     * Set timer to the end of currently playing track.
+     */
+    fun setSleepTimerEndOfTrack(): EndOfTrackResult {
+        playbackRepository.refreshPlaybackState()
+        val playbackState = playbackRepository.playbackState.value
+        if (playbackState.currentSong == null) {
+            return EndOfTrackResult.NoActiveTrack
+        }
+
+        val durationMs = playbackState.duration
+        val currentPositionMs = playbackState.currentPosition.coerceAtLeast(0L)
+        val remainingMs = (durationMs - currentPositionMs).coerceAtLeast(0L)
+        if (durationMs <= 0L || remainingMs <= 0L) {
+            return EndOfTrackResult.TrackEndNotAvailable
+        }
+
+        setSleepTimerTargetTime(currentTimeProvider() + remainingMs)
+        return EndOfTrackResult.Success
     }
 
     /**
@@ -456,4 +504,10 @@ class SettingsViewModel @Inject constructor(
      * Get package name.
      */
     fun getPackageName(): String = "com.sukoon.music"
+}
+
+enum class EndOfTrackResult {
+    Success,
+    NoActiveTrack,
+    TrackEndNotAvailable
 }
