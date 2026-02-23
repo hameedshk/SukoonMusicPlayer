@@ -482,10 +482,11 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
 
         // Fetch accurate liked status asynchronously for current song
+        // Only emit update if liked status differs from initial (prevents duplicate recompositions)
         if (currentSongBasic != null) {
             scope.launch {
                 val songWithLikedStatus = songRepository.getSongById(currentSongBasic.id)
-                if (songWithLikedStatus != null) {
+                if (songWithLikedStatus != null && songWithLikedStatus.isLiked != currentSongBasic.isLiked) {
                     _playbackState.update { currentState ->
                         // Only update if this is still the current song (avoid race conditions)
                         if (currentState.currentSong?.id == songWithLikedStatus.id) {

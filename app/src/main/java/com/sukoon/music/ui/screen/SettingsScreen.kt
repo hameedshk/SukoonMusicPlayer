@@ -320,8 +320,8 @@ fun SettingsScreen(
                             icon = Icons.Default.VisibilityOff,
                             title = stringResource(R.string.settings_screen_private_session_title),
                             // value = "Dont save your listening history",
-                            valuePlacement = ValuePlacement.Below,
-                            onClick = { viewModel.togglePrivateSession() },
+                            valuePlacement = ValuePlacement.Below,                            
+                            onClick = null,
                             trailingContent = {
                                 Switch(
                                     checked = userPreferences.isPrivateSessionEnabled,
@@ -503,11 +503,10 @@ fun SettingsScreen(
                         } else {
                             selectedTag
                         }
-                        // CRITICAL: Save preference, await completion, THEN apply and recreate
+                        // CRITICAL: Save preference, await completion, THEN apply (recreate is automatic)
                         coroutineScope.launch {
                             viewModel.setAppLanguageTagAndWait(languageTag)  // Suspends until saved
                             AppLocaleManager.applyLanguage(context, appliedTag)
-                            (context as? Activity)?.recreate()
                         }
                     } else {
                         // Still save if selection didn't change

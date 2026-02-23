@@ -46,6 +46,7 @@ import com.sukoon.music.data.analytics.AnalyticsTracker
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
+import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.ui.navigation.SukoonNavHost
@@ -63,6 +64,11 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+
+    companion object {
+        private var cachedUserPreferences: UserPreferences? = null
+        private var hasCompletedVersionCheck = false
+    }
 
     @Inject
     lateinit var preferencesManager: PreferencesManager
@@ -84,6 +90,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Set dark window background only on cold start to prevent white flash
+        // Skip it on warm start/Activity recreation to prevent black flash during language change
+        if (cachedUserPreferences == null) {
+            window.setBackgroundDrawableResource(android.R.color.black)
+            window.decorView.setBackgroundColor(ContextCompat.getColor(this, R.color.colorSurface))
+        }
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         enableEdgeToEdge(
@@ -109,7 +122,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            var isVersionCheckComplete by remember { mutableStateOf(false) }
+            // Initialize from companion cache to skip loading box on warm starts and Activity recreations
+            var isVersionCheckComplete by remember { mutableStateOf(hasCompletedVersionCheck) }
             var isUpdateRequired by remember { mutableStateOf(false) }
             var requiredVersionCode by remember { mutableStateOf(1) }
             var requiredVersionMessage by remember { mutableStateOf("") }
@@ -125,6 +139,7 @@ class MainActivity : ComponentActivity() {
                 requiredVersionMessage = minimumVersionConfig.message
                 isUpdateRequired = remoteConfigManager.isUpdateRequired(installedVersionCode)
                 isVersionCheckComplete = true
+                hasCompletedVersionCheck = true
 
                 if (isUpdateRequired) {
                     logMinVersionBlockShown(installedVersionCode, requiredVersionCode)
@@ -143,23 +158,43 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            val userPreferencesState by preferencesManager.userPreferencesFlow.collectAsStateWithLifecycle(
-                initialValue = null
-            )
+            // Detect if this is Activity recreation (warm start) vs cold start
+            val isWarmStart = remember { cachedUserPreferences != null }
 
-            if (userPreferencesState == null || !isVersionCheckComplete) {
+            // Initialize with cached value to prevent null on Activity recreation
+            var userPreferencesState by remember { mutableStateOf(cachedUserPreferences) }
+
+            // Single LaunchedEffect with conditional behavior to avoid Compose recomposition issues
+            LaunchedEffect(Unit) {
+                preferencesManager.userPreferencesFlow.collect { prefs ->
+                    cachedUserPreferences = prefs
+                    // Only update state on cold start to prevent recomposition on Activity recreation
+                    if (!isWarmStart) {
+                        userPreferencesState = prefs
+                    }
+                }
+            }
+
+            // Use the state directly - always has value on warm starts
+            val effectivePreferences = userPreferencesState
+
+            // Show loading box only on true cold start (first ever launch with no cache)
+            // Skip it if we have any cached prefs (warm start / Activity recreation / language change)
+            if (effectivePreferences == null && cachedUserPreferences == null) {
                 SukoonMusicPlayerTheme(theme = AppTheme.SYSTEM, dynamicColor = false) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(color = Color.Black),
+                            .background(color = Color(0xFF1E1E1E)),
                         contentAlignment = Alignment.Center
                     ) {}
                 }
                 return@setContent
             }
 
-            val userPreferences = userPreferencesState!!
+            // Always proceed to main UI if we have any preferences (current or cached)
+            // This prevents any loading box flash on warm starts and Activity recreations
+            val userPreferences = effectivePreferences ?: return@setContent
 
             val permission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 Manifest.permission.READ_MEDIA_AUDIO
@@ -193,8 +228,6 @@ class MainActivity : ComponentActivity() {
                 val backgroundColor = MaterialTheme.colorScheme.background
 
                 SideEffect {
-                    window.statusBarColor = backgroundColor.toArgb()
-
                     val controller = WindowInsetsControllerCompat(window, window.decorView)
                     controller.isAppearanceLightStatusBars = !isDarkTheme
 

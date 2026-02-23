@@ -1214,7 +1214,7 @@ private fun TrackMetadataSection(
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(
                     modifier = Modifier
@@ -1301,10 +1301,10 @@ private fun LikeButton(
     onLikeClick: () -> Unit,
     stateDescription: String
 ) {
-    var bouncing by remember(isLiked) { mutableStateOf(isLiked) }
+    var bouncing by remember(isLiked) { mutableStateOf(false) }
 
     val scale by animateFloatAsState(
-        targetValue = if (bouncing) 1.35f else 1.0f,
+        targetValue = if (bouncing) 1.2f else 1.0f,
         animationSpec = spring(
             dampingRatio = 0.35f,
             stiffness = 700f
@@ -1330,30 +1330,25 @@ private fun LikeButton(
         }
     }
 
-    Box(
-        modifier = Modifier.width(NowPlayingMetadataActionLaneWidth),
-        contentAlignment = Alignment.TopEnd
-    ) {
-        IconButton(
-            onClick = onLikeClick,
-            modifier = Modifier
-                .size(48.dp)
-                .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale
-                )
-                .semantics {
-                    role = Role.Button
-                    contentDescription = likeDescriptionText
-                }
-        ) {
-            Icon(
-                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = null,
-                tint = likeColor.copy(alpha = if (isLiked) 1f else 0.5f),
-                modifier = Modifier.size(24.dp)
+    IconButton(
+        onClick = onLikeClick,
+        modifier = Modifier
+            .size(48.dp)
+            .graphicsLayer(
+                scaleX = scale,
+                scaleY = scale
             )
-        }
+            .semantics {
+                role = Role.Button
+                contentDescription = likeDescriptionText
+            }
+    ) {
+        Icon(
+            imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+            contentDescription = null,
+            tint = likeColor.copy(alpha = if (isLiked) 1f else 0.5f),
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
 
