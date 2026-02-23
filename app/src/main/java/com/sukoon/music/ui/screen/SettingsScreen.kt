@@ -177,44 +177,15 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = SpacingLarge)
                 )
             }
-            // item {
-            //     SettingsGroupCard(
-            //         modifier = Modifier.padding(horizontal = SpacingLarge),
-            //         rows = listOf(
-            //             SettingsRowModel(
-            //                 icon = Icons.Default.CloudUpload,
-            //                 title = "Backup & restore",
-            //                 value = "Log in",
-            //                 onClick = { showComingSoonToast(context, "Backup & restore coming soon") }
-            //             ),
-            //             SettingsRowModel(
-            //                 icon = Icons.Default.LibraryMusic,
-            //                 title = "Playlists and songs",
-            //                 onClick = onNavigateToPlaylists
-            //             ),
-            //             SettingsRowModel(
-            //                 icon = Icons.Default.PlayArrow,
-            //                 title = "Playtime",
-            //                 onClick = { showComingSoonToast(context, "Playtime coming soon") }
-            //             )
-            //         )
-            //     )
-            // }
             item {
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
                     rows = listOf(
                         SettingsRowModel(
-                            icon = Icons.Default.Palette,
-                            title = stringResource(R.string.settings_screen_theme_title),
-                            value = getThemeDescription(context, userPreferences.theme),
-                            onClick = { showThemeDialog = true }
-                        ),                     
-                        SettingsRowModel(
-                            icon = Icons.Default.ColorLens,
-                            title = stringResource(R.string.settings_screen_accent_color_title),
-                            value = userPreferences.accentProfile.label,
-                            onClick = { showAccentDialog = true }
+                            icon = Icons.Default.Equalizer,
+                            title = stringResource(R.string.settings_screen_equalizer_title),
+                            value = stringResource(R.string.settings_screen_equalizer_description),
+                            onClick = onNavigateToEqualizer
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Timer,
@@ -222,6 +193,51 @@ fun SettingsScreen(
                             value = getSleepTimerLabel(context, userPreferences.sleepTimerTargetTimeMs),
                             onClick = { showSleepTimerDialog = true }
                         ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Speed,
+                            title = stringResource(R.string.settings_screen_gapless_playback_title),
+                            value = stringResource(R.string.settings_screen_gapless_playback_description),
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.toggleGaplessPlayback() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.gaplessPlaybackEnabled,
+                                    onCheckedChange = { viewModel.toggleGaplessPlayback() },
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.AutoAwesome,
+                            title = stringResource(R.string.label_crossfade_duration),
+                            value = getCrossfadeLabel(context, userPreferences.crossfadeDurationMs),
+                            onClick = { showCrossfadeDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Storage,
+                            title = stringResource(R.string.settings_screen_audio_buffer_title),
+                            value = stringResource(R.string.settings_screen_duration_ms_value, userPreferences.audioBufferMs),
+                            onClick = { showBufferDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.VisibilityOff,
+                            title = stringResource(R.string.settings_screen_private_session_title),
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = null,
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.isPrivateSessionEnabled,
+                                    onCheckedChange = { viewModel.togglePrivateSession() },
+                                )
+                            }
+                        )
+                    )
+                )
+            }
+            // 2. Go Premium
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.WorkspacePremium,
                             title = stringResource(R.string.settings_screen_remove_ads_title),
@@ -242,27 +258,86 @@ fun SettingsScreen(
                     )
                 )
             }
+            // 3. Music Library
             item {
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
                     rows = listOf(
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.VisibilityOff,
-                        //     title = "Hidden files",
-                        //     value = if (userPreferences.showAllAudioFiles) "Visible" else "Hidden",
-                        //     onClick = { showComingSoonToast(context, "Hidden files coming soon") }
-                        // ),
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.Delete,
-                        //     title = "Recently deleted",
-                        //     value = "0 files",
-                        //     onClick = onNavigateToRestorePlaylist
-                        // ),
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.PlayCircle,
-                        //     title = "Playback settings",
-                        //     onClick = { showComingSoonToast(context, "Playback settings coming soon") }
-                        // ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Refresh,
+                            title = stringResource(R.string.settings_screen_rescan_library_title),
+                            value = stringResource(R.string.settings_screen_rescan_library_description),
+                            onClick = {
+                                viewModel.resetScanState()
+                                showRescanDialog = true
+                            },
+                            showLoading = isScanning
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Search,
+                            title = stringResource(R.string.settings_screen_scan_on_startup_title),
+                            value = stringResource(R.string.settings_screen_scan_on_startup_description),
+                            onClick = { viewModel.toggleScanOnStartup() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.scanOnStartup,
+                                    onCheckedChange = { viewModel.toggleScanOnStartup() },
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.AudioFile,
+                            title = stringResource(R.string.settings_screen_show_all_audio_files_title),
+                            value = stringResource(R.string.settings_screen_show_all_audio_files_description),
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = { viewModel.toggleShowAllAudioFiles() },
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.showAllAudioFiles,
+                                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() },
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Timer,
+                            title = stringResource(R.string.label_minimum_audio_duration),
+                            value = stringResource(R.string.settings_screen_duration_seconds_value, userPreferences.minimumAudioDuration),
+                            onClick = { showMinDurationDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.FolderOff,
+                            title = stringResource(R.string.settings_screen_excluded_folders_title),
+                            value = stringResource(R.string.settings_screen_excluded_folders_value),
+                            onClick = onNavigateToExcludedFolders
+                        )
+                    )
+                )
+            }
+            // 4. Appearance
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Palette,
+                            title = stringResource(R.string.settings_screen_theme_title),
+                            value = getThemeDescription(context, userPreferences.theme),
+                            onClick = { showThemeDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.ColorLens,
+                            title = stringResource(R.string.settings_screen_accent_color_title),
+                            value = userPreferences.accentProfile.label,
+                            onClick = { showAccentDialog = true }
+                        )
+                    )
+                )
+            }
+            // 5. Notifications & Language
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
                         SettingsRowModel(
                             icon = Icons.Default.Notifications,
                             title = stringResource(R.string.settings_screen_notification_settings_title),
@@ -277,10 +352,16 @@ fun SettingsScreen(
                     )
                 )
             }
+            // 6. Help & About
             item {
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
                     rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Info,
+                            title = stringResource(R.string.settings_screen_about_title),
+                            onClick = onNavigateToAbout
+                        ),
                         SettingsRowModel(
                             icon = Icons.Default.Email,
                             title = stringResource(R.string.settings_screen_feedback_title),
@@ -293,11 +374,6 @@ fun SettingsScreen(
                             }
                         ),
                         SettingsRowModel(
-                            icon = Icons.Default.Info,
-                            title = stringResource(R.string.settings_screen_about_title),
-                            onClick = onNavigateToAbout
-                        ),
-                           SettingsRowModel(
                             icon = Icons.Default.Star,
                             title = stringResource(R.string.settings_screen_rate_us_title),
                             value = stringResource(R.string.settings_screen_feedback_google_play),
@@ -308,165 +384,10 @@ fun SettingsScreen(
                                     viewModel.triggerInAppReview(activity)
                                 }
                             }
-                        ) 
-                    )
-                )
-            }
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.VisibilityOff,
-                            title = stringResource(R.string.settings_screen_private_session_title),
-                            // value = "Dont save your listening history",
-                            valuePlacement = ValuePlacement.Below,                            
-                            onClick = null,
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.isPrivateSessionEnabled,
-                                    onCheckedChange = { viewModel.togglePrivateSession() },            
-                                )
-                            }
-                        ),
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.Notifications,
-                        //     title = stringResource(R.string.settings_screen_show_notification_controls_title),
-                        //     value = stringResource(R.string.settings_screen_show_notification_controls_description),
-                        //     valuePlacement = ValuePlacement.Below,
-                        //     onClick = { viewModel.setShowNotificationControls(!userPreferences.showNotificationControls) },
-                        //     trailingContent = {
-                        //         Switch(
-                        //             checked = userPreferences.showNotificationControls,
-                        //             onCheckedChange = { viewModel.setShowNotificationControls(it) },                                    
-                        //         )
-                        //     }
-                        // )
-                    )
-                )
-            }
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.HighQuality,
-                            title = stringResource(R.string.label_audio_quality),
-                            value = getAudioQualityDescription(context, userPreferences.audioQuality),
-                            onClick = { showAudioQualityDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Storage,
-                            title = stringResource(R.string.settings_screen_audio_buffer_title),
-                            value = stringResource(R.string.settings_screen_duration_ms_value, userPreferences.audioBufferMs),
-                            onClick = { showBufferDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Speed,
-                            title = stringResource(R.string.settings_screen_gapless_playback_title),
-                            value = stringResource(R.string.settings_screen_gapless_playback_description),
-                            valuePlacement = ValuePlacement.Below,
-                            onClick = { viewModel.toggleGaplessPlayback() },
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.gaplessPlaybackEnabled,
-                                    onCheckedChange = { viewModel.toggleGaplessPlayback() },                                    
-                                )
-                            }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.AutoAwesome,
-                            title = stringResource(R.string.label_crossfade_duration),
-                            value = getCrossfadeLabel(context, userPreferences.crossfadeDurationMs),
-                            onClick = { showCrossfadeDialog = true }
-                        ),
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.Settings,
-                        //     title = stringResource(R.string.settings_screen_audio_normalization_title),
-                        //     value = stringResource(R.string.settings_screen_audio_normalization_description),
-                        //     valuePlacement = ValuePlacement.Below,
-                        //     onClick = { viewModel.toggleAudioNormalization() },
-                        //     trailingContent = {
-                        //         Switch(
-                        //             checked = userPreferences.audioNormalizationEnabled,
-                        //             onCheckedChange = { viewModel.toggleAudioNormalization() },                                    
-                        //         )
-                        //     }
-                        // ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Equalizer,
-                            title = stringResource(R.string.settings_screen_equalizer_title),
-                            value = stringResource(R.string.settings_screen_equalizer_description),
-                            onClick = onNavigateToEqualizer
                         )
                     )
                 )
             }
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        // SettingsRowModel(
-                        //     icon = Icons.Default.PermMedia,
-                        //     title = stringResource(R.string.settings_screen_audio_permission_title),
-                        //     value = stringResource(R.string.settings_screen_permission_granted),
-                        //     onClick = {
-                        //         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        //             permissionLauncher.launch(Manifest.permission.READ_MEDIA_AUDIO)
-                        //         }
-                        //     }
-                        // ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Search,
-                            title = stringResource(R.string.settings_screen_scan_on_startup_title),
-                            value = stringResource(R.string.settings_screen_scan_on_startup_description),
-                            onClick = { viewModel.toggleScanOnStartup() },
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.scanOnStartup,
-                                    onCheckedChange = { viewModel.toggleScanOnStartup() },                                    
-                                )
-                            }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Timer,
-                            title = stringResource(R.string.label_minimum_audio_duration),
-                            value = stringResource(R.string.settings_screen_duration_seconds_value, userPreferences.minimumAudioDuration),
-                            onClick = { showMinDurationDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.AudioFile,
-                            title = stringResource(R.string.settings_screen_show_all_audio_files_title),
-                            value = stringResource(R.string.settings_screen_show_all_audio_files_description),
-                            valuePlacement = ValuePlacement.Below,
-                            onClick = { viewModel.toggleShowAllAudioFiles() },
-                            trailingContent = {
-                                Switch(
-                                    checked = userPreferences.showAllAudioFiles,
-                                    onCheckedChange = { viewModel.toggleShowAllAudioFiles() },                                    
-                                )
-                            }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.FolderOff,
-                            title = stringResource(R.string.settings_screen_excluded_folders_title),
-                            value = stringResource(R.string.settings_screen_excluded_folders_value),
-                            onClick = onNavigateToExcludedFolders
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Refresh,
-                            title = stringResource(R.string.settings_screen_rescan_library_title),
-                            value = stringResource(R.string.settings_screen_rescan_library_description),
-                            onClick = {
-                                viewModel.resetScanState()
-                                showRescanDialog = true
-                            },
-                            showLoading = isScanning
-                        )
-                    )
-                )
-            }
-        }
         // Dialogs
         if (showThemeDialog) {
             ThemeSelectionDialog(
