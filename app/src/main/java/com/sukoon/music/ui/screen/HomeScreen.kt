@@ -202,7 +202,7 @@ fun HomeScreen(
                 homeLabel,
                 Icons.Default.Home
             ),
-            HomeTabSpec(HomeTabKey.SONGS, appContext.getString(com.sukoon.music.R.string.home_tab_songs), Icons.Default.Add),
+            HomeTabSpec(HomeTabKey.SONGS, appContext.getString(com.sukoon.music.R.string.home_tab_songs), Icons.Default.MusicNote),
             HomeTabSpec(HomeTabKey.PLAYLISTS, appContext.getString(com.sukoon.music.R.string.home_tab_playlists), Icons.AutoMirrored.Filled.List),
             HomeTabSpec(HomeTabKey.FOLDERS, appContext.getString(com.sukoon.music.R.string.home_tab_folders), Icons.Default.Folder),
             HomeTabSpec(HomeTabKey.ALBUMS, appContext.getString(com.sukoon.music.R.string.home_tab_albums), Icons.Default.Album),

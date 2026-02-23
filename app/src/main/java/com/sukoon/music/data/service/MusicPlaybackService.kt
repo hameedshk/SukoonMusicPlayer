@@ -64,7 +64,10 @@ class MusicPlaybackService : MediaSessionService() {
     private var isForeground = false
 
     // Audio effects manager for equalizer
+    @Volatile
     private var audioEffectManager: com.sukoon.music.data.audio.AudioEffectManager? = null
+    private var equalizerFlowStarted = false
+    private val audioEffectLock = Any() // Lock for synchronizing audio effect initialization
 
     // Audio noisy receiver for headphone unplug detection
     private var audioNoisyReceiver: BroadcastReceiver? = null
@@ -293,29 +296,42 @@ class MusicPlaybackService : MediaSessionService() {
     /**
      * Initialize AudioEffectManager and observe settings from DataStore.
      * Called after ExoPlayer is ready and has valid audio session ID.
+     * Will be re-called when audio session ID becomes available if not available at first call.
+     *
+     * Thread-safe: Uses audioEffectLock to synchronize initialization and flow collection startup.
      */
     private fun initializeAudioEffects() {
         try {
-            // Get audio session ID from ExoPlayer
             val audioSessionId = player.audioSessionId
             if (audioSessionId == C.AUDIO_SESSION_ID_UNSET) {
-                DevLogger.w("MusicPlaybackService", "Audio session ID not available, skipping effects")
+                DevLogger.w("MusicPlaybackService", "Audio session ID not available yet, will retry on onAudioSessionIdChanged")
                 return
             }
 
-            // Create and initialize AudioEffectManager
-            audioEffectManager = com.sukoon.music.data.audio.AudioEffectManager(audioSessionId).apply {
-                val initialized = initialize()
-                if (!initialized) {
-                    DevLogger.e("MusicPlaybackService", "Failed to initialize audio effects")
-                    return
-                }
+            val manager = com.sukoon.music.data.audio.AudioEffectManager(audioSessionId)
+            if (!manager.initialize()) {
+                DevLogger.e("MusicPlaybackService", "Failed to initialize audio effects")
+                return
             }
 
-            // Observe equalizer settings and apply them
-            scope.launch {
-                preferencesManager.equalizerSettingsFlow.collect { settings ->
-                    audioEffectManager?.applySettings(settings)
+            // Synchronize setting the manager to prevent races with flow collector
+            synchronized(audioEffectLock) {
+                audioEffectManager = manager
+            }
+
+            // Start flow collection only once (survives session ID changes via audioEffectManager ref update)
+            // Protected by lock to prevent duplicate collectors
+            synchronized(audioEffectLock) {
+                if (!equalizerFlowStarted) {
+                    equalizerFlowStarted = true
+                    scope.launch {
+                        preferencesManager.equalizerSettingsFlow.collect { settings ->
+                            // Synchronize manager read to ensure we don't read a manager being released
+                            synchronized(audioEffectLock) {
+                                audioEffectManager?.applySettings(settings)
+                            }
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -678,6 +694,18 @@ class MusicPlaybackService : MediaSessionService() {
                 normalVolume = volume
             }
             DevLogger.d("MusicPlaybackService", "Volume changed: $volume (isDucked: $isDucked)")
+        }
+
+        override fun onAudioSessionIdChanged(audioSessionId: Int) {
+            if (audioSessionId != C.AUDIO_SESSION_ID_UNSET) {
+                DevLogger.d("MusicPlaybackService", "Audio session ID changed to $audioSessionId, re-initializing effects")
+                // Synchronize release to prevent flow collector from accessing released manager
+                synchronized(audioEffectLock) {
+                    audioEffectManager?.release()
+                    audioEffectManager = null
+                }
+                initializeAudioEffects()
+            }
         }
     }
 

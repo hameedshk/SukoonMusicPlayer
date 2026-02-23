@@ -81,7 +81,20 @@ class FeedbackRepositoryImpl @Inject constructor(
                 Result.success(Unit)
             }
         } catch (e: Exception) {
-            Result.failure(Exception(e.message ?: "Failed to submit feedback"))
+            val errorMessage = when {
+                e.message?.contains("quota", ignoreCase = true) == true ->
+                    "Storage limit exceeded. Please try again later."
+                e.message?.contains("permission", ignoreCase = true) == true ->
+                    "Permission denied. Please check app permissions."
+                e.message?.contains("not authorized", ignoreCase = true) == true ->
+                    "Not authorized to submit feedback. Please sign in."
+                e.message?.contains("network", ignoreCase = true) == true ->
+                    "Network error. Please check your connection and try again."
+                e.message?.contains("timed out", ignoreCase = true) == true ->
+                    "Request took too long. Please check your connection and try again."
+                else -> e.message ?: "Failed to submit feedback. Please try again."
+            }
+            Result.failure(Exception(errorMessage))
         }
     }
 
@@ -96,26 +109,57 @@ class FeedbackRepositoryImpl @Inject constructor(
             throw IllegalArgumentException("Only image screenshots are supported.")
         }
 
+        // Validate file accessibility before upload
         val sizeBytes = attachment.sizeBytes ?: querySizeBytes(uri)
-        if (sizeBytes != null && sizeBytes > MAX_ATTACHMENT_BYTES) {
+        if (sizeBytes == null || sizeBytes == 0L) {
+            throw IllegalArgumentException("Cannot access the selected image. Please try selecting it again.")
+        }
+        if (sizeBytes > MAX_ATTACHMENT_BYTES) {
             throw IllegalArgumentException("Screenshot is too large. Please use an image under 10 MB.")
+        }
+
+        // Verify file is readable before attempting upload
+        val isReadable = runCatching {
+            resolver.openInputStream(uri)?.use { it.read() >= 0 }
+        }.getOrNull() ?: false
+
+        if (!isReadable) {
+            throw IllegalArgumentException("Cannot read the selected image. The file may no longer be accessible. Please select it again.")
         }
 
         val extension = extensionForMimeType(mimeType)
         val fileName = attachment.fileName ?: queryDisplayName(uri) ?: "screenshot_${System.currentTimeMillis()}.$extension"
         val safeFileName = sanitizeFileName(fileName)
         val storagePath = "feedback/$userId/${System.currentTimeMillis()}_${UUID.randomUUID()}_$safeFileName"
-        val storageRef = storage.reference.child(storagePath)
+        val storageRef = try {
+            storage.reference.child(storagePath)
+        } catch (e: Exception) {
+            throw Exception("Firebase Storage not available. Please try again later.")
+        }
+
+        // Use putStream instead of putFile to read directly from ContentResolver
+        // This avoids issues with file:// URIs and private cache directories
+        val inputStream = resolver.openInputStream(uri) ?: throw Exception("Cannot read the image file. Please try selecting it again.")
 
         val uploadResult = withTimeoutOrNull(UPLOAD_TIMEOUT_MS) {
-            awaitTask(storageRef.putFile(uri))
+            try {
+                val metadata = com.google.firebase.storage.StorageMetadata.Builder()
+                    .setContentType(mimeType ?: "image/jpeg") // Fallback to JPEG if type unknown
+                    .build()
+                awaitTask(storageRef.putStream(inputStream, metadata))
+            } finally {
+                inputStream.close()
+            }
         } ?: throw Exception("Screenshot upload timed out. Please try again.")
 
         val downloadUri = fetchDownloadUrlWithRetry(storageRef)
+        if (downloadUri == null) {
+            throw Exception("Failed to process screenshot. Please try again.")
+        }
 
         return UploadedAttachment(
             path = storagePath,
-            downloadUrl = downloadUri?.toString(),
+            downloadUrl = downloadUri.toString(),
             fileName = safeFileName,
             mimeType = mimeType,
             sizeBytes = uploadResult.metadata?.sizeBytes ?: sizeBytes
@@ -124,7 +168,7 @@ class FeedbackRepositoryImpl @Inject constructor(
 
     internal suspend fun fetchDownloadUrlWithRetry(storageRef: StorageReference): Uri? {
         repeat(DOWNLOAD_URL_RETRY_COUNT) { attempt ->
-            val result = withTimeoutOrNull(UPLOAD_TIMEOUT_MS) {
+            val result = withTimeoutOrNull(DOWNLOAD_URL_TIMEOUT_MS) {
                 runCatching { awaitTask(storageRef.downloadUrl) }
             } ?: runCatching { throw Exception("Download URL request timed out.") }
             val downloadUri = result.getOrNull()
@@ -133,7 +177,10 @@ class FeedbackRepositoryImpl @Inject constructor(
             val message = result.exceptionOrNull()?.message.orEmpty()
             val shouldRetry = message.contains("Object does not exist at location", ignoreCase = true)
             if (!shouldRetry || attempt == DOWNLOAD_URL_RETRY_COUNT - 1) return null
-            delay((attempt + 1) * DOWNLOAD_URL_RETRY_DELAY_MS)
+
+            // Exponential backoff with cap: 1s, 2s, 4s, 8s, 10s
+            val delayMs = minOf((1L shl attempt) * 1000L, 10_000L)
+            delay(delayMs)
         }
         return null
     }
@@ -202,8 +249,8 @@ class FeedbackRepositoryImpl @Inject constructor(
     companion object {
         private const val FIRESTORE_TIMEOUT_MS = 15_000L
         private const val UPLOAD_TIMEOUT_MS = 25_000L
+        private const val DOWNLOAD_URL_TIMEOUT_MS = 5_000L
         private const val MAX_ATTACHMENT_BYTES = 10L * 1024L * 1024L
-        private const val DOWNLOAD_URL_RETRY_COUNT = 3
-        private const val DOWNLOAD_URL_RETRY_DELAY_MS = 400L
+        private const val DOWNLOAD_URL_RETRY_COUNT = 5
     }
 }

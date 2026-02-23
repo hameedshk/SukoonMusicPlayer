@@ -613,11 +613,22 @@ internal fun LastAddedSection(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_last_added),
-                style = MaterialTheme.typography.homeSectionHeader,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(SpacingSmall)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_last_added),
+                    style = MaterialTheme.typography.homeSectionHeader,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                 contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.library_screens_b_see_all),
