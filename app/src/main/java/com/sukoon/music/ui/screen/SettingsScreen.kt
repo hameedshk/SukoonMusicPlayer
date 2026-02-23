@@ -388,6 +388,7 @@ fun SettingsScreen(
                     )
                 )
             }
+        }
         // Dialogs
         if (showThemeDialog) {
             ThemeSelectionDialog(
@@ -934,6 +935,7 @@ private fun ThemeSelectionDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onThemeSelect(theme) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1043,6 +1045,7 @@ private fun AudioQualityDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onQualitySelect(quality) }
                             .padding(vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1201,6 +1204,7 @@ private fun AccentSelectionDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable { onProfileSelect(profile) }
                             .padding(vertical = 12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
