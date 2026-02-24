@@ -5,6 +5,7 @@ import android.content.Context
 import com.android.billingclient.api.*
 import com.sukoon.music.util.DevLogger
 import com.sukoon.music.R
+import com.sukoon.music.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.analytics.AnalyticsTracker
@@ -24,9 +25,11 @@ class BillingManager @Inject constructor(
 ) : PurchasesUpdatedListener {
 
     companion object {
-        // STATIC TEST → "android.test.purchased"
-        // PRODUCTION → "sukoon_premium_lifetime"
-        const val PREMIUM_PRODUCT_ID = "android.test.purchased"
+        // Product ID read from BuildConfig (configured via local.properties)
+        // DEVELOPMENT → "android.test.purchased" (Google's sandbox test SKU)
+        // PRODUCTION → Set PREMIUM_PRODUCT_ID in local.properties before building release APK
+        val PREMIUM_PRODUCT_ID: String
+            get() = BuildConfig.PREMIUM_PRODUCT_ID
     }
 
     private val appContext = context.applicationContext

@@ -82,6 +82,10 @@ android {
         // ⚠️ WARNING: Fill in production AdMob IDs in local.properties before release! ⚠️
         // Test ads will not generate revenue and may violate Play Store policies
         buildConfigField("Boolean", "USE_TEST_ADS", "$useTestAds")
+
+        // Billing Product ID (read from local.properties, defaults to test ID)
+        val premiumProductId = localProperties.getProperty("PREMIUM_PRODUCT_ID", "android.test.purchased")
+        buildConfigField("String", "PREMIUM_PRODUCT_ID", "\"$premiumProductId\"")
     }
 
 packaging {
