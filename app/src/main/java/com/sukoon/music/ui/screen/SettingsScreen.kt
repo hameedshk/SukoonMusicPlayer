@@ -869,8 +869,8 @@ private fun LanguageSelectionDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onLanguageSelect(null) }
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 12.dp)
+                        .clickable { onLanguageSelect(null) },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
@@ -884,8 +884,8 @@ private fun LanguageSelectionDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onLanguageSelect("en") }
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 12.dp)
+                        .clickable { onLanguageSelect("en") },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
@@ -899,8 +899,8 @@ private fun LanguageSelectionDialog(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onLanguageSelect("hi-IN") }
-                        .padding(vertical = 8.dp),
+                        .padding(vertical = 12.dp)
+                        .clickable { onLanguageSelect("hi-IN") },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     RadioButton(
@@ -935,8 +935,8 @@ private fun ThemeSelectionDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onThemeSelect(theme) }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 12.dp)
+                            .clickable { onThemeSelect(theme) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
@@ -1045,8 +1045,8 @@ private fun AudioQualityDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onQualitySelect(quality) }
-                            .padding(vertical = 8.dp),
+                            .padding(vertical = 12.dp)
+                            .clickable { onQualitySelect(quality) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
@@ -1204,8 +1204,8 @@ private fun AccentSelectionDialog(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onProfileSelect(profile) }
-                            .padding(vertical = 12.dp),
+                            .padding(vertical = 12.dp)
+                            .clickable { onProfileSelect(profile) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
@@ -1285,29 +1285,31 @@ private fun RescanDialog(
         text = {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
                 when {
                     isScanning -> {
                         // Scanning in progress
                         Text(stringResource(R.string.settings_screen_scanning_device_message))
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         when (scanState) {
                             is com.sukoon.music.domain.model.ScanState.Scanning -> {
                                 LinearProgressIndicator(
                                     modifier = Modifier.fillMaxWidth()
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
                                 Text(
                                     text = stringResource(R.string.settings_screen_found_files_count, scanState.scannedCount),
                                     style = MaterialTheme.typography.bodySmall
                                 )
                                 if (!scanState.message.isNullOrEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = scanState.message ?: "",
                                         style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(top = 8.dp)
+                                        maxLines = 1
                                     )
                                 }
                             }
@@ -1324,7 +1326,7 @@ private fun RescanDialog(
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = stringResource(R.string.settings_screen_found_songs_count, scanState.totalSongs),
                             style = MaterialTheme.typography.titleMedium,
@@ -1345,7 +1347,7 @@ private fun RescanDialog(
                             modifier = Modifier.size(48.dp),
                             tint = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = stringResource(R.string.settings_screen_scan_failed_title),
                             style = MaterialTheme.typography.titleMedium,

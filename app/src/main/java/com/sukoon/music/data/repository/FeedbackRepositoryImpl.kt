@@ -240,7 +240,7 @@ class FeedbackRepositoryImpl @Inject constructor(
 
     private data class UploadedAttachment(
         val path: String,
-        val downloadUrl: String?,
+        val downloadUrl: String,  // Always present: error thrown if fetch fails
         val fileName: String,
         val mimeType: String,
         val sizeBytes: Long?

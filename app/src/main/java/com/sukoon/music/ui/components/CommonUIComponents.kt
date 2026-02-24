@@ -1246,8 +1246,8 @@ internal fun SettingsGroupRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .then(clickableModifier)
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .then(clickableModifier),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -1280,7 +1280,15 @@ internal fun SettingsGroupRow(
             }
 
             when {
-                row.trailingContent != null -> row.trailingContent.invoke()
+                row.trailingContent != null -> {
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Box(
+                        modifier = Modifier.height(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        row.trailingContent.invoke()
+                    }
+                }
                 row.showLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),

@@ -5,7 +5,7 @@ import java.util.Date
 
 data class FeedbackSnapshot(
     val path: String = "",
-    val downloadUrl: String? = null,
+    val downloadUrl: String = "",  // Required: must be present when snapshot exists
     val fileName: String = "",
     val mimeType: String = "",
     val sizeBytes: Long? = null
