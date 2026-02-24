@@ -13,6 +13,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.sukoon.music.data.local.entity.SongEntity
+import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -151,10 +152,10 @@ class MediaStoreScanner @Inject constructor(
 
         // Selection criteria: Only music files by default, all audio files if showAllAudioFiles is true
         val selection = if (showAllAudioFiles) {
-            android.util.Log.d("MediaStoreScanner", "Scanning ALL audio files (including notifications, ringtones)")
+            DevLogger.d("MediaStoreScanner", "Scanning ALL audio files (including notifications, ringtones)")
             null  // No filter - include all audio files
         } else {
-            android.util.Log.d("MediaStoreScanner", "Scanning MUSIC files only (IS_MUSIC=1)")
+            DevLogger.d("MediaStoreScanner", "Scanning MUSIC files only (IS_MUSIC=1)")
             "${MediaStore.Audio.Media.IS_MUSIC} = 1"  // Only music files
         }
 
@@ -243,7 +244,7 @@ class MediaStoreScanner @Inject constructor(
                 scannedCount++
 
                 // Debug logging
-                android.util.Log.d("MediaStoreScanner", "Found: $title in $folderPath")
+                DevLogger.d("MediaStoreScanner", "Found: $title in $folderPath")
 
                 // Report progress
                 onProgress(scannedCount, title)
@@ -251,7 +252,7 @@ class MediaStoreScanner @Inject constructor(
         }
 
         // Log final count
-        android.util.Log.d("MediaStoreScanner", "Scan complete: Found ${songs.size} audio files")
+        DevLogger.d("MediaStoreScanner", "Scan complete: Found ${songs.size} audio files")
 
         return songs
     }

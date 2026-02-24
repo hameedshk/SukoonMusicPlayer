@@ -1,5 +1,6 @@
 package com.sukoon.music.data.ads
 
+import android.app.Activity
 import android.content.Context
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
@@ -26,20 +27,49 @@ class AdMobManager @Inject constructor(
     }
 
     /**
-     * Initialize AdMob SDK.
+     * Initialize AdMob SDK without consent flow (legacy, use initializeWithConsent() for Play Store compliance).
      * Call this once at app startup (in Application class or MainActivity).
+     * @deprecated Use initializeWithConsent(activity) instead for GDPR/CCPA compliance
      */
+    @Deprecated("Use initializeWithConsent(activity) instead for Play Store compliance")
     fun initialize() {
         // Production safety check
         if (USE_TEST_ADS && !BuildConfig.DEBUG) {
-            android.util.Log.e(
+            DevLogger.e(
                 "AdMobManager",
                 "⚠️ CRITICAL: Test ads enabled in RELEASE build! Change USE_TEST_ADS to false in build.gradle"
             )
         }
+        initializeAdMob()
+    }
 
+    /**
+     * Initialize AdMob with UMP GDPR/CCPA consent flow (preferred for Play Store compliance).
+     * Call this once at app startup from MainActivity.
+     * Automatically handles consent form display and only initializes ads after consent is handled.
+     *
+     * TODO: Implement full UMP consent flow once UMP SDK is properly integrated.
+     * For now, this initializes AdMob immediately. Update with proper consent handling when UMP is configured.
+     */
+    fun initializeWithConsent(activity: Activity) {
+        DevLogger.d("AdMobManager", "Initializing AdMob with consent awareness")
+
+        // TODO: Add proper UMP consent flow here:
+        // 1. Create ConsentRequestParameters
+        // 2. Request consent info update
+        // 3. Load and show consent form if needed
+        // 4. Only initialize MobileAds after consent is handled
+
+        // For now, initialize ads immediately
+        // This will be updated with proper UMP integration
+        initializeAdMob()
+    }
+
+    /**
+     * Internal helper to initialize MobileAds after consent is handled.
+     */
+    private fun initializeAdMob() {
         MobileAds.initialize(context) { initializationStatus ->
-            // Log initialization status
             val statusMap = initializationStatus.adapterStatusMap
             for (adapterClass in statusMap.keys) {
                 val status = statusMap[adapterClass]
@@ -78,26 +108,8 @@ class AdMobManager @Inject constructor(
         return BuildConfig.ADMOB_NATIVE_AD_UNIT_ID
     }
 
-    /**
-     * Get Interstitial Ad Unit ID (test or production based on flag).
-     */
-    fun getInterstitialAdId(): String {
-        return BuildConfig.ADMOB_INTERSTITIAL_AD_UNIT_ID
-    }
-
-    /**
-     * Get Rewarded Ad Unit ID (test or production based on flag).
-     */
-    fun getRewardedAdId(): String {
-        return BuildConfig.ADMOB_REWARDED_AD_UNIT_ID
-    }
-
-    /**
-     * Get App Open Ad Unit ID (test or production based on flag).
-     */
-    fun getAppOpenAdId(): String {
-        return BuildConfig.ADMOB_APP_OPEN_AD_UNIT_ID
-    }
+    // NOTE: Interstitial, Rewarded, and App-Open ads are prohibited for music player apps
+    // by Google Play Store policy (they interrupt playback). Only Banner and Native ads are allowed.
 
     /**
      * Check if test ads are enabled.

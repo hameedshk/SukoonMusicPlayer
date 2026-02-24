@@ -2,8 +2,8 @@ package com.sukoon.music.data.billing
 
 import android.app.Activity
 import android.content.Context
-import android.util.Log
 import com.android.billingclient.api.*
+import com.sukoon.music.util.DevLogger
 import com.sukoon.music.R
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.sukoon.music.data.preferences.PreferencesManager
@@ -52,17 +52,17 @@ class BillingManager @Inject constructor(
             billingClient.startConnection(object : BillingClientStateListener {
                 override fun onBillingSetupFinished(result: BillingResult) {
                     if (result.responseCode == BillingClient.BillingResponseCode.OK) {
-                        Log.d("BillingManager", "Billing connected")
+                        DevLogger.d("BillingManager", "Billing connected")
                         isConnected = true
                         queryExistingPurchases()
                     } else {
-                        Log.e("BillingManager", "Billing setup failed: ${result.debugMessage}")
+                        DevLogger.e("BillingManager", "Billing setup failed: ${result.debugMessage}")
                     }
                     cont.resume(Unit)
                 }
 
                 override fun onBillingServiceDisconnected() {
-                    Log.w("BillingManager", "Billing disconnected → retrying")
+                    DevLogger.w("BillingManager", "Billing disconnected → retrying")
                     isConnected = false
                     scope.launch { initialize() }
                 }
@@ -106,7 +106,7 @@ class BillingManager @Inject constructor(
                         )
                     } else {
                         // Static test fallback
-                        Log.w("BillingManager", "Static test mode: No ProductDetails returned")
+                        DevLogger.w("BillingManager", "Static test mode: No ProductDetails returned")
 
                         cont.resume(
                             UiProduct(
@@ -118,7 +118,7 @@ class BillingManager @Inject constructor(
                         )
                     }
                 } else {
-                    Log.e("BillingManager", "Product query failed: ${result.debugMessage}")
+                    DevLogger.e("BillingManager", "Product query failed: ${result.debugMessage}")
                     cont.resume(null)
                 }
             }
@@ -143,7 +143,7 @@ class BillingManager @Inject constructor(
 
         // DEBUG ONLY: Simulate purchase for testing without Google Play
         if (details == null && PREMIUM_PRODUCT_ID.startsWith("android.test")) {
-            Log.d("BillingManager", "Simulating purchase (test mode)")
+            DevLogger.d("BillingManager", "Simulating purchase (test mode)")
             _billingState.value = BillingState.Loading
             scope.launch {
                 delay(1000) // Simulate API delay

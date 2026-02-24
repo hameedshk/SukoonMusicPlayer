@@ -13,6 +13,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.FolderSortMode
 import com.sukoon.music.domain.model.UserPreferences
+import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -41,6 +42,8 @@ class PreferencesManager @Inject constructor(
 
         // Privacy
         private val KEY_PRIVATE_SESSION = booleanPreferencesKey("private_session_enabled")
+        private val KEY_ANALYTICS_ENABLED = booleanPreferencesKey("analytics_enabled")
+        private val KEY_AI_METADATA_CORRECTION_ENABLED = booleanPreferencesKey("ai_metadata_correction_enabled")
 
         // Appearance
         private val KEY_THEME = stringPreferencesKey("app_theme")
@@ -117,6 +120,8 @@ class PreferencesManager @Inject constructor(
             UserPreferences(
                 // Privacy
                 isPrivateSessionEnabled = preferences[KEY_PRIVATE_SESSION] ?: false,
+                analyticsEnabled = preferences[KEY_ANALYTICS_ENABLED] ?: true,
+                aiMetadataCorrectionEnabled = preferences[KEY_AI_METADATA_CORRECTION_ENABLED] ?: false,
                 // Appearance
                 theme = parseTheme(preferences[KEY_THEME]),
                 accentProfile = parseAccentProfile(preferences[KEY_ACCENT_PROFILE]),
@@ -162,6 +167,46 @@ class PreferencesManager @Inject constructor(
     suspend fun setPrivateSessionEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_PRIVATE_SESSION] = enabled
+        }
+    }
+
+    /**
+     * Observe Firebase Analytics opt-in/opt-out as a reactive Flow.
+     * Default is true (analytics enabled).
+     */
+    val analyticsEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[KEY_ANALYTICS_ENABLED] ?: true
+        }
+
+    /**
+     * Update Firebase Analytics setting.
+     *
+     * @param enabled True to enable anonymous usage analytics
+     */
+    suspend fun setAnalyticsEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_ANALYTICS_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Observe AI Metadata Correction opt-in/opt-out as a reactive Flow.
+     * Default is false (disabled until user opts in).
+     */
+    val aiMetadataCorrectionEnabledFlow: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[KEY_AI_METADATA_CORRECTION_ENABLED] ?: false
+        }
+
+    /**
+     * Update AI Metadata Correction setting.
+     *
+     * @param enabled True to enable AI-powered metadata correction via Gemini API
+     */
+    suspend fun setAiMetadataCorrectionEnabled(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_AI_METADATA_CORRECTION_ENABLED] = enabled
         }
     }
 
@@ -267,11 +312,11 @@ class PreferencesManager @Inject constructor(
      * @param enabled True to show playback controls in notification
      */
     suspend fun setShowNotificationControls(enabled: Boolean) {
-        android.util.Log.d("PreferencesManager", "setShowNotificationControls: writing $enabled to DataStore")
+        DevLogger.d("PreferencesManager", "setShowNotificationControls: writing $enabled to DataStore")
         context.dataStore.edit { preferences ->
             preferences[KEY_SHOW_NOTIFICATIONS] = enabled
         }
-        android.util.Log.d("PreferencesManager", "setShowNotificationControls: DataStore write completed for $enabled")
+        DevLogger.d("PreferencesManager", "setShowNotificationControls: DataStore write completed for $enabled")
     }
 
     /**

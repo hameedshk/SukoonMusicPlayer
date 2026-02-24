@@ -1,6 +1,7 @@
 package com.sukoon.music.util
 
 import android.util.Log
+import com.sukoon.music.BuildConfig
 
 /**
  * Global logging utility for development purposes.
@@ -10,9 +11,9 @@ object DevLogger {
 
     /**
      * Master switch for dev logging.
-     * Set to false in production builds to disable all logs.
+     * Automatically disabled in production builds (when BuildConfig.DEBUG = false).
      */
-    var isEnabled: Boolean = true // Change to false to disable globally
+    var isEnabled: Boolean = BuildConfig.DEBUG
 
     /**
      * Optional prefix for all log tags (e.g., "Sukoon_")

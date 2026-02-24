@@ -3,6 +3,7 @@ package com.sukoon.music.di
 import android.content.Context
 import androidx.media3.common.util.UnstableApi
 import androidx.room.Room
+import com.sukoon.music.BuildConfig
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.sukoon.music.data.local.SukoonDatabase
@@ -146,7 +147,8 @@ object AppModule {
     @Singleton
     fun provideOkHttpClient(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
+            level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+                    else HttpLoggingInterceptor.Level.NONE
         }
         val tlsSpec = ConnectionSpec.Builder(ConnectionSpec.MODERN_TLS)
             .tlsVersions(
@@ -158,11 +160,8 @@ object AppModule {
 
         return OkHttpClient.Builder()
             .connectionSpecs(
-                listOf(
-                    tlsSpec,
-                    ConnectionSpec.CLEARTEXT // safe fallback
-                )
-            )
+                listOf(tlsSpec)
+            )  // CLEARTEXT removed: not needed for HTTPS-only APIs (LRCLIB, Gemini)
             .addInterceptor(logging)
             .addInterceptor { chain ->
                 val request = chain.request().newBuilder()
@@ -294,9 +293,10 @@ object AppModule {
     @Singleton
     fun provideGeminiMetadataCorrector(
         geminiApi: com.sukoon.music.data.remote.GeminiApi,
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
     ): com.sukoon.music.data.metadata.GeminiMetadataCorrector {
-        return com.sukoon.music.data.metadata.GeminiMetadataCorrector(geminiApi, context)
+        return com.sukoon.music.data.metadata.GeminiMetadataCorrector(geminiApi, context, preferencesManager)
     }
 
     @Provides

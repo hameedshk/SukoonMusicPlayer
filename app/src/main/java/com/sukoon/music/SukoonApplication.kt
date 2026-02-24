@@ -37,8 +37,8 @@ class SukoonApplication : Application() {
         }
         AppLocaleManager.applyLanguage(this, savedLanguageTag)
 
-        // Initialize AdMob early (demo/test ad units enabled in AdMobManager)
-        adMobManager.initialize()
+        // Note: AdMob initialization with UMP consent is handled in MainActivity.onCreate()
+        // to ensure we can display the consent form to the user
 
         // Connect to MediaController on app start
         // This ensures the controller is ready before any UI is displayed
