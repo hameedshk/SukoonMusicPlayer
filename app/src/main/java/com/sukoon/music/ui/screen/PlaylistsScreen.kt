@@ -129,6 +129,13 @@ fun PlaylistsScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
+            SmartPlaylistsSection(
+                smartPlaylists = smartPlaylists,
+                onSmartPlaylistClick = onNavigateToSmartPlaylist
+            )
+        }
+
+        item {
             PlaylistActionsSection(
                 onCreateClick = {
                     createDialogInitialName = ""
@@ -193,13 +200,6 @@ fun PlaylistsScreen(
                     }
                 )
             }
-        }
-
-        item {
-            SmartPlaylistsSection(
-                smartPlaylists = smartPlaylists,
-                onSmartPlaylistClick = onNavigateToSmartPlaylist
-            )
         }
     }
 

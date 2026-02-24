@@ -507,6 +507,7 @@ if ($LASTEXITCODE -eq 0) {
 #adb start-server
 #adb kill-server
 #adb connect 192.168.0.140:45679
+#.\smart_run.ps1 -FullBuild $True
 #logs check 
 #adb logcat --pid=$(adb shell pidof -s com.sukoon.music) | Select-String "ContinueListeningCard"
 #.\smart_run.ps1 -Logcat -LogTag "FeedbackRepositoryImpl","Firestore"

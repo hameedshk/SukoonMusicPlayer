@@ -1293,7 +1293,8 @@ internal fun SettingsGroupRow(
                 color = valueColor,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 56.dp, vertical = 2.dp)
+                    .padding(horizontal = 56.dp, vertical = 0.dp)
+                    .padding(top = 2.dp)
             )
         }
         if (showDivider) {

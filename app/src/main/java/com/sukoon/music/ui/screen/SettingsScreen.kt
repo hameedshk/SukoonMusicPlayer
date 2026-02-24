@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -237,26 +238,62 @@ fun SettingsScreen(
 item(key = "go_premium") {
     SettingsGroupCard(
         modifier = Modifier.padding(horizontal = SpacingLarge),
+        isAccentBorder = true,
         rows = listOf(
             SettingsRowModel(
-                icon = Icons.Default.WorkspacePremium,
+                icon = Icons.Default.Star,
                 title = stringResource(R.string.settings_screen_remove_ads_title),
-                value = if (isPremium) {
-                    stringResource(R.string.settings_screen_premium_active)
-                } else {
-                    stringResource(R.string.settings_screen_discount_48_off)
-                },
-                valueColor = if (isPremium)
-                    MaterialTheme.colorScheme.primary
-                else
-                    accentTokens.active,
-                onClick = {
-                    if (!isPremium) {
+                value = stringResource(R.string.settings_screen_premium_benefit_support_development),
+                valuePlacement = ValuePlacement.Below,
+                onClick = if (!isPremium) {
+                    {
                         analyticsTracker?.logEvent(
                             name = "remove_ads_tap",
                             params = mapOf("source" to "settings")
                         )
                         showPremiumDialog = true
+                    }
+                } else null,
+                trailingContent = {
+                    if (isPremium) {
+                        // Premium Active State
+                        Row(
+                            modifier = Modifier.width(120.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = stringResource(R.string.settings_premium_active),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        // Non-Premium State - Price Display
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_premium_price),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = accentTokens.active,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+                            )
+                        }
                     }
                 }
             )
@@ -1302,24 +1339,32 @@ private fun RescanDialog(
                         when (scanState) {
                             is com.sukoon.music.domain.model.ScanState.Scanning -> {
                                 LinearProgressIndicator(
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(4.dp)
                                 )
-                                Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
                                 Text(
                                     text = stringResource(R.string.settings_screen_found_files_count, scanState.scannedCount),
-                                    style = MaterialTheme.typography.bodySmall
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary
                                 )
                                 if (!scanState.message.isNullOrEmpty()) {
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
                                         text = scanState.message ?: "",
                                         style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                                         maxLines = 1
                                     )
                                 }
                             }
                             else -> {
-                                CircularProgressIndicator()
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(48.dp),
+                                    strokeWidth = 4.dp
+                                )
                             }
                         }
                     }
@@ -1328,20 +1373,22 @@ private fun RescanDialog(
                         Icon(
                             imageVector = Icons.Default.CheckCircle,
                             contentDescription = null,
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier.size(56.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.settings_screen_found_songs_count, scanState.totalSongs),
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.primary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = stringResource(R.string.settings_screen_library_updated_successfully),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
                         )
                     }
                     scanState is com.sukoon.music.domain.model.ScanState.Error -> {
@@ -1349,25 +1396,38 @@ private fun RescanDialog(
                         Icon(
                             imageVector = Icons.Default.Error,
                             contentDescription = null,
-                            modifier = Modifier.size(48.dp),
+                            modifier = Modifier.size(56.dp),
                             tint = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         Text(
                             text = stringResource(R.string.settings_screen_scan_failed_title),
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.error
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = scanState.error,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
                         )
                     }
                     else -> {
                         // Initial state - pre-scan
-                        Text(stringResource(R.string.settings_screen_rescan_initial_message))
+                        Icon(
+                            imageVector = Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = stringResource(R.string.settings_screen_rescan_initial_message),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     }
                 }
             }
@@ -1392,14 +1452,25 @@ private fun RescanDialog(
                          scanState is com.sukoon.music.domain.model.ScanState.Success ||
                          scanState is com.sukoon.music.domain.model.ScanState.Error
             ) {
-                Text(
-                    when {
-                        isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning -> stringResource(R.string.settings_screen_scanning_button)
-                        scanState is com.sukoon.music.domain.model.ScanState.Success -> stringResource(R.string.settings_screen_done_button)
-                        scanState is com.sukoon.music.domain.model.ScanState.Error -> stringResource(R.string.settings_screen_done_button)
-                        else -> stringResource(R.string.settings_screen_start_scan_button)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
                     }
-                )
+                    Text(
+                        when {
+                            isScanning && scanState is com.sukoon.music.domain.model.ScanState.Scanning -> stringResource(R.string.settings_screen_scanning_button)
+                            scanState is com.sukoon.music.domain.model.ScanState.Success -> stringResource(R.string.settings_screen_done_button)
+                            scanState is com.sukoon.music.domain.model.ScanState.Error -> stringResource(R.string.settings_screen_done_button)
+                            else -> stringResource(R.string.settings_screen_start_scan_button)
+                        }
+                    )
+                }
             }
         },
         dismissButton = {
