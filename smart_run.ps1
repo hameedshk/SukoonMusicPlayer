@@ -102,13 +102,19 @@ function Get-Device-Status {
 }
 
 function Get-WorkingTreeSnapshot {
-git ls-files --cached --others --exclude-standard |
-        Sort-Object |
-        ForEach-Object {
-            $file = $_
-            $hash = git hash-object $file
-            "$hash $file"
-        }
+    # Collect all tracked + untracked files in one call
+    $files = git ls-files --cached --others --exclude-standard | Sort-Object
+
+    if (-not $files) { return @() }
+
+    # Batch hash all files in one git process — no per-file subprocess
+    $hashes = $files | git hash-object --stdin-paths
+
+    $result = @()
+    for ($i = 0; $i -lt $files.Count; $i++) {
+        $result += "$($hashes[$i]) $($files[$i])"
+    }
+	   return $result
 }
 
 
@@ -132,8 +138,7 @@ function Get-ChangedFilesSinceLastRun {
 
     $old = Get-Content $STATE_FILES_FILE
     $new = Get-WorkingTreeSnapshot
-	$oldFiles = $oldMap.Keys
-	$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
+	
 
 foreach ($f in $oldFiles) {
     if ($f -notin $newFiles) {
@@ -146,6 +151,8 @@ foreach ($f in $oldFiles) {
         $hash, $file = $line -split ' ', 2
         $oldMap[$file] = $hash
     }	
+	$oldFiles = $oldMap.Keys
+	$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
     $changed = @()
 
     foreach ($line in $new) {
