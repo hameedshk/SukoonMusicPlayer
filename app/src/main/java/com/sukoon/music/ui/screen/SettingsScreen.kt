@@ -234,30 +234,35 @@ fun SettingsScreen(
                 )
             }
             // 2. Go Premium
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.WorkspacePremium,
-                            title = stringResource(R.string.settings_screen_remove_ads_title),
-                            value = if (isPremium) {
-                                stringResource(R.string.settings_screen_premium_active)
-                            } else {
-                                stringResource(R.string.settings_screen_discount_48_off)
-                            },
-                            valueColor = accentTokens.active,
-                            onClick = {
-                                analyticsTracker?.logEvent(
-                                    name = "remove_ads_tap",
-                                    params = mapOf("source" to "settings")
-                                )
-                                showPremiumDialog = true
-                            }
+item(key = "go_premium") {
+    SettingsGroupCard(
+        modifier = Modifier.padding(horizontal = SpacingLarge),
+        rows = listOf(
+            SettingsRowModel(
+                icon = Icons.Default.WorkspacePremium,
+                title = stringResource(R.string.settings_screen_remove_ads_title),
+                value = if (isPremium) {
+                    stringResource(R.string.settings_screen_premium_active)
+                } else {
+                    stringResource(R.string.settings_screen_discount_48_off)
+                },
+                valueColor = if (isPremium)
+                    MaterialTheme.colorScheme.primary
+                else
+                    accentTokens.active,
+                onClick = {
+                    if (!isPremium) {
+                        analyticsTracker?.logEvent(
+                            name = "remove_ads_tap",
+                            params = mapOf("source" to "settings")
                         )
-                    )
-                )
-            }
+                        showPremiumDialog = true
+                    }
+                }
+            )
+        )
+    )
+}
             // 3. Music Library
             item {
                 SettingsGroupCard(

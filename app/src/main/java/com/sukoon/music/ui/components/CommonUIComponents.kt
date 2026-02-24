@@ -955,27 +955,14 @@ fun RecentlyPlayedScrollSection(
         modifier = modifier.fillMaxWidth()
     ) {
         // Section header - consistent with other sections
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = RecentlyPlayedHorizontalPadding),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(SpacingSmall)
-        ) {
-            Icon(
-                imageVector = Icons.Default.History,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(24.dp)
-            )
-            Text(
-                text = "Recently played",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
+        Text(
+            text = "Recently played",
+            style = MaterialTheme.typography.titleMedium.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = RecentlyPlayedHorizontalPadding)
+        )
 
         Spacer(modifier = Modifier.height(SpacingMedium))
 
@@ -1246,8 +1233,8 @@ internal fun SettingsGroupRow(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp)
-                .then(clickableModifier),
+                .then(clickableModifier)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -1280,15 +1267,7 @@ internal fun SettingsGroupRow(
             }
 
             when {
-                row.trailingContent != null -> {
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Box(
-                        modifier = Modifier.height(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        row.trailingContent.invoke()
-                    }
-                }
+                row.trailingContent != null -> row.trailingContent.invoke()
                 row.showLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),

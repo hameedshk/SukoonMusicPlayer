@@ -102,31 +102,13 @@ function Get-Device-Status {
 }
 
 function Get-WorkingTreeSnapshot {
-$snapshot = @()
-
-    # --- Tracked files (real working tree content hash) ---
-    $tracked = git ls-files
-    foreach ($file in $tracked) {
-        if (Test-Path $file) {
+git ls-files --cached --others --exclude-standard |
+        Sort-Object |
+        ForEach-Object {
+            $file = $_
             $hash = git hash-object $file
-            $snapshot += "$hash $file"
+            "$hash $file"
         }
-        else {
-            # file deleted
-            $snapshot += "DELETED $file"
-        }
-    }
-
-    # --- Untracked files ---
-    $untracked = git ls-files --others --exclude-standard
-    foreach ($file in $untracked) {
-        if (Test-Path $file) {
-            $hash = git hash-object $file
-            $snapshot += "NEW $file"
-        }
-    }
-
-    return $snapshot
 }
 
 
@@ -149,7 +131,8 @@ function Get-ChangedFilesSinceLastRun {
     }
 
     $old = Get-Content $STATE_FILES_FILE
-    $new = Get-WorkingTreeSnapshot	
+    $new = Get-WorkingTreeSnapshot
+	$oldFiles = $oldMap.Keys
 	$newFiles = $new | ForEach-Object { ($_ -split ' ',2)[1] }
 
 foreach ($f in $oldFiles) {
@@ -162,8 +145,7 @@ foreach ($f in $oldFiles) {
     foreach ($line in $old) {
         $hash, $file = $line -split ' ', 2
         $oldMap[$file] = $hash
-    }
-	$oldFiles = $oldMap.Keys
+    }	
     $changed = @()
 
     foreach ($line in $new) {

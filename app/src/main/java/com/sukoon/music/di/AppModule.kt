@@ -439,11 +439,10 @@ object AppModule {
     @Singleton
     fun provideFeedbackRepository(
         firestore: FirebaseFirestore,
-        storage: FirebaseStorage,
         @ApplicationContext context: Context,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
     ): FeedbackRepository {
-        return FeedbackRepositoryImpl(firestore, storage, context, preferencesManager)
+        return FeedbackRepositoryImpl(firestore, context, preferencesManager)
     }
 }
 
