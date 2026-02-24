@@ -152,13 +152,13 @@ fun PlaylistsScreen(
         }
 
         if (playlists.isNotEmpty()) {
-    item {
-        PlaylistSortHeader(
-            playlistCount = playlists.size,
-            subtitle = playlistSubtitle,
-            onSortClick = { showSortDialog = true }
-        )
-    }
+            item {
+                PlaylistSortHeader(
+                    playlistCount = playlists.size,
+                    subtitle = playlistSubtitle,
+                    onSortClick = { showSortDialog = true }
+                )
+            }
             item {
                 PlaylistSearchBar(
                     query = searchQuery,

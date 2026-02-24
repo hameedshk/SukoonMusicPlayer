@@ -309,6 +309,7 @@ internal fun TabPills(
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
             .padding(vertical = 8.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(SpacingMedium), // 11dp breathing room
@@ -1195,13 +1196,18 @@ internal data class SettingsRowModel(
 @Composable
 internal fun SettingsGroupCard(
     modifier: Modifier = Modifier,
-    rows: List<SettingsRowModel>
+    rows: List<SettingsRowModel>,
+    isAccentBorder: Boolean = false
 ) {
     val accentTokens = accent()
     Card(
         modifier = modifier.border(
             width = 1.dp,
-            color = accentTokens.primary.copy(alpha = 0.24f),
+            color = if (isAccentBorder) {
+                accentTokens.primary.copy(alpha = 0.5f)
+            } else {
+                accentTokens.primary.copy(alpha = 0.24f)
+            },
             shape = RoundedCornerShape(20.dp)
         ),
         shape = RoundedCornerShape(20.dp),
