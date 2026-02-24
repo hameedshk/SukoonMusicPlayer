@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -1201,20 +1202,37 @@ internal fun SettingsGroupCard(
 ) {
     val accentTokens = accent()
     Card(
-        modifier = modifier.border(
-            width = 1.dp,
-            color = if (isAccentBorder) {
-                accentTokens.primary.copy(alpha = 0.5f)
-            } else {
-                accentTokens.primary.copy(alpha = 0.24f)
+        modifier = modifier
+            .border(
+                width = if (isAccentBorder) 2.dp else 1.dp,
+                color = if (isAccentBorder) {
+                    accentTokens.primary.copy(alpha = 0.7f)
+                } else {
+                    accentTokens.primary.copy(alpha = 0.24f)
+                },
+                shape = RoundedCornerShape(20.dp)
+            )
+            .let {
+                if (isAccentBorder) {
+                    it.then(
+                        Modifier.shadow(
+                            elevation = 16.dp,
+                            shape = RoundedCornerShape(20.dp),
+                            ambientColor = accentTokens.primary.copy(alpha = 0.4f),
+                            spotColor = accentTokens.primary.copy(alpha = 0.6f)
+                        )
+                    )
+                } else {
+                    it
+                }
             },
-            shape = RoundedCornerShape(20.dp)
-        ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationMedium)
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isAccentBorder) 12.dp else CardElevationMedium
+        )
     ) {
         Column {
             rows.forEachIndexed { index, row ->
