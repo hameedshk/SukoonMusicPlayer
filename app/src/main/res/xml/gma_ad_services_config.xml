@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AdServicesConfig xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Ad Services configuration for Google Play Services Ads -->
+    <!-- This file is required for Google Mobile Ads SDK 24.0.0+ -->
+</AdServicesConfig>

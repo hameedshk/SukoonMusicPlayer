@@ -187,16 +187,15 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // AdMob
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
+    implementation("com.google.android.gms:play-services-ads:24.0.0")
     // User Messaging Platform (GDPR/CCPA consent)
     implementation("com.google.android.ump:user-messaging-platform:3.1.0")
 
-    //firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")
 
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")

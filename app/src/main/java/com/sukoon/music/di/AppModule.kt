@@ -5,7 +5,6 @@ import androidx.media3.common.util.UnstableApi
 import androidx.room.Room
 import com.sukoon.music.BuildConfig
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import com.sukoon.music.data.local.SukoonDatabase
 import com.sukoon.music.data.local.dao.EqualizerPresetDao
 import com.sukoon.music.data.local.dao.GenreCoverDao
@@ -427,12 +426,6 @@ object AppModule {
                 // Settings already configured, skip
             }
         }
-    }
-
-    @Provides
-    @Singleton
-    fun provideFirebaseStorage(): FirebaseStorage {
-        return FirebaseStorage.getInstance()
     }
 
     @Provides
