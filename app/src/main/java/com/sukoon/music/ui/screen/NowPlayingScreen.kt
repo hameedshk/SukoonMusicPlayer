@@ -1,6 +1,9 @@
+@file:OptIn(ExperimentalFoundationApi::class)
+
 package com.sukoon.music.ui.screen
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -303,7 +306,7 @@ private fun spacingForHeight(maxHeight: Dp): NowPlayingSpacingSpec {
  * - Lyrics and queue tabs
  * - Smooth animations
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun NowPlayingScreen(
     onBackClick: () -> Unit,

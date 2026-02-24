@@ -5,6 +5,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -67,6 +68,7 @@ import kotlinx.coroutines.launch
 
 private const val ALPHABET_SCROLL_THRESHOLD = 150
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 @Suppress("UNUSED_PARAMETER")
 fun SongsScreen(
