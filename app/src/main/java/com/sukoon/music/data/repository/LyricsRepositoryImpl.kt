@@ -1,6 +1,6 @@
 package com.sukoon.music.data.repository
 
-import android.util.Log
+import com.sukoon.music.util.DevLogger
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.lyrics.LrcParser
@@ -53,35 +53,35 @@ class LyricsRepositoryImpl @Inject constructor(
         album: String?,
         duration: Int
     ): Flow<LyricsState> = flow {
-        Log.d(TAG, "=== LYRICS FETCH START ===")
-        Log.d(TAG, "Track ID: $trackId")
-        Log.d(TAG, "Artist: $artist")
-        Log.d(TAG, "Title: $title")
-        Log.d(TAG, "Album: $album")
-        Log.d(TAG, "Duration: ${duration}s")
-        Log.d(TAG, "Audio URI: $audioUri")
+        DevLogger.d(TAG, "=== LYRICS FETCH START ===")
+        DevLogger.d(TAG, "Track ID: $trackId")
+        DevLogger.d(TAG, "Artist: $artist")
+        DevLogger.d(TAG, "Title: $title")
+        DevLogger.d(TAG, "Album: $album")
+        DevLogger.d(TAG, "Duration: ${duration}s")
+        DevLogger.d(TAG, "Audio URI: $audioUri")
 
         emit(LyricsState.Loading)
 
         try {
             // Step 1: Check cache first
-            Log.d(TAG, "Step 1: Checking cache...")
+            DevLogger.d(TAG, "Step 1: Checking cache...")
             val cached = lyricsDao.getLyricsByTrackId(trackId)
             if (cached != null) {
-                Log.d(TAG, "✓ Found cached lyrics (source: ${cached.source})")
+                DevLogger.d(TAG, "✓ Found cached lyrics (source: ${cached.source})")
                 val lyrics = cached.toDomainModel()
                 val parsedLines = LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)
-                Log.d(TAG, "✓ Parsed ${parsedLines.size} lyric lines")
+                DevLogger.d(TAG, "✓ Parsed ${parsedLines.size} lyric lines")
                 emit(LyricsState.Success(lyrics, parsedLines))
                 return@flow
             }
-            Log.d(TAG, "✗ No cached lyrics found")
+            DevLogger.d(TAG, "✗ No cached lyrics found")
 
             // Step 2: Try local .lrc file (highest priority offline source)
-            Log.d(TAG, "Step 2: Scanning for local .lrc file...")
+            DevLogger.d(TAG, "Step 2: Scanning for local .lrc file...")
             val localLrcContent = offlineLyricsScanner.findLrcFile(audioUri, title, artist)
             if (localLrcContent != null) {
-                Log.d(TAG, "✓ Found local .lrc file")
+                DevLogger.d(TAG, "✓ Found local .lrc file")
                 val entity = LyricsEntity(
                     trackId = trackId,
                     syncedLyrics = localLrcContent,
@@ -94,17 +94,17 @@ class LyricsRepositoryImpl @Inject constructor(
 
                 val lyrics = entity.toDomainModel()
                 val parsedLines = LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)
-                Log.d(TAG, "✓ Cached local lyrics, parsed ${parsedLines.size} lines")
+                DevLogger.d(TAG, "✓ Cached local lyrics, parsed ${parsedLines.size} lines")
                 emit(LyricsState.Success(lyrics, parsedLines))
                 return@flow
             }
-            Log.d(TAG, "✗ No local .lrc file found")
+            DevLogger.d(TAG, "✗ No local .lrc file found")
 
             // Step 3: Try embedded lyrics from ID3 tags
-            Log.d(TAG, "Step 3: Extracting ID3 lyrics...")
+            DevLogger.d(TAG, "Step 3: Extracting ID3 lyrics...")
             val (embeddedSynced, embeddedPlain) = id3LyricsExtractor.extractLyrics(audioUri)
             if (embeddedSynced != null || embeddedPlain != null) {
-                Log.d(TAG, "✓ Found embedded lyrics (synced: ${embeddedSynced != null}, plain: ${embeddedPlain != null})")
+                DevLogger.d(TAG, "✓ Found embedded lyrics (synced: ${embeddedSynced != null}, plain: ${embeddedPlain != null})")
                 val entity = LyricsEntity(
                     trackId = trackId,
                     syncedLyrics = embeddedSynced,
@@ -117,15 +117,15 @@ class LyricsRepositoryImpl @Inject constructor(
 
                 val lyrics = entity.toDomainModel()
                 val parsedLines = LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)
-                Log.d(TAG, "✓ Cached embedded lyrics, parsed ${parsedLines.size} lines")
+                DevLogger.d(TAG, "✓ Cached embedded lyrics, parsed ${parsedLines.size} lines")
                 emit(LyricsState.Success(lyrics, parsedLines))
                 return@flow
             }
-            Log.d(TAG, "✗ No embedded lyrics found")
+            DevLogger.d(TAG, "✗ No embedded lyrics found")
 
             // Step 4: Fetch from LRCLIB - try precise lookup first
-            Log.d(TAG, "Step 4: Fetching from LRCLIB API...")
-            Log.d(TAG, "API Request: artist='$artist', track='$title', album='$album', duration=${duration}s")
+            DevLogger.d(TAG, "Step 4: Fetching from LRCLIB API...")
+            DevLogger.d(TAG, "API Request: artist='$artist', track='$title', album='$album', duration=${duration}s")
 
 
             val cleanArtist = artist.trim().takeIf { it.isNotBlank() }
@@ -134,7 +134,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
             // Validation: Title is mandatory for any lookup
             if (cleanTitle.isNullOrBlank()) {
-                Log.w(TAG, "Cannot fetch lyrics: title is blank after normalization (original: '$title')")
+                DevLogger.w(TAG, "Cannot fetch lyrics: title is blank after normalization (original: '$title')")
                 emit(LyricsState.NotFound)
                 return@flow
             }
@@ -142,21 +142,21 @@ class LyricsRepositoryImpl @Inject constructor(
             val lyricsResponse = try {
                 // Try precise lookup if we have artist metadata
                 if (!cleanArtist.isNullOrBlank()) {
-                    Log.d(TAG, "Trying precise lookup with artist='$cleanArtist', title='$cleanTitle'")
+                    DevLogger.d(TAG, "Trying precise lookup with artist='$cleanArtist', title='$cleanTitle'")
                     val response = lyricsApi.getLyrics(
                         artistName = cleanArtist,
                         trackName = cleanTitle,
                         albumName = null,
                         duration = null
                     )
-                    Log.d(TAG, "✓ LRCLIB API success - precise lookup for artist='$cleanArtist', title='$cleanTitle' ")
+                    DevLogger.d(TAG, "✓ LRCLIB API success - precise lookup for artist='$cleanArtist', title='$cleanTitle' ")
                     response
                 } else {
-                    Log.d(TAG, "Artist missing/invalid, going straight to search fallback")
+                    DevLogger.d(TAG, "Artist missing/invalid, going straight to search fallback")
                     null // Skip to search fallback
                 }
             } catch (e: HttpException) {
-                Log.d(TAG, "✗ LRCLIB precise lookup failed: ${e.code()} ${e.message()}")
+                DevLogger.d(TAG, "✗ LRCLIB precise lookup failed: ${e.code()} ${e.message()}")
                 if (safeDuration != null) {
                     // Retry without duration
                     lyricsApi.getLyrics(
@@ -168,7 +168,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 }
                /* if (e.code() == 404) {
                     // Step 5: Fallback to search if not found
-                    Log.d(TAG, "Step 5: Trying LRCLIB search fallback...")
+                    DevLogger.d(TAG, "Step 5: Trying LRCLIB search fallback...")
                     try {
                         // Try with normalized values first, then fallback to original if needed
                         val searchQuery = when {
@@ -176,50 +176,50 @@ class LyricsRepositoryImpl @Inject constructor(
                             cleanTitle != null -> cleanTitle
                             else -> "$artist $title"
                         }
-                        Log.d(TAG, "Search query: '$searchQuery'")
+                        DevLogger.d(TAG, "Search query: '$searchQuery'")
                         val searchResults = lyricsApi.searchLyrics(searchQuery)
-                        Log.d(TAG, "✓ LRCLIB search returned ${searchResults.size} results")
+                        DevLogger.d(TAG, "✓ LRCLIB search returned ${searchResults.size} results")
                         searchResults.firstOrNull()
                     } catch (searchError: Exception) {
-                        Log.e(TAG, "✗ LRCLIB search failed", searchError)
+                        DevLogger.e(TAG, "✗ LRCLIB search failed", searchError)
                         null
                     }
                 }*/ else {
-                    Log.e(TAG, "✗ LRCLIB API error", e)
+                    DevLogger.e(TAG, "✗ LRCLIB API error", e)
                     throw e
                 }
             } catch (e: IOException) {
-                Log.e(TAG, "✗ IOException fetching lyrics: ${e.message}", e)
+                DevLogger.e(TAG, "✗ IOException fetching lyrics: ${e.message}", e)
                 // Treat IO errors (connection drops, timeouts) as "not found" rather than fatal errors
                 // This prevents showing error UI for transient network issues
                 when (e) {
-                    is SocketTimeoutException -> Log.d(TAG, "Request timed out - treating as not found")
-                    is UnknownHostException -> Log.d(TAG, "No internet connection - treating as not found")
-                    else -> Log.d(TAG, "Network issue (${e.javaClass.simpleName}) - treating as not found")
+                    is SocketTimeoutException -> DevLogger.d(TAG, "Request timed out - treating as not found")
+                    is UnknownHostException -> DevLogger.d(TAG, "No internet connection - treating as not found")
+                    else -> DevLogger.d(TAG, "Network issue (${e.javaClass.simpleName}) - treating as not found")
                 }
                 null // Continue to "not found" handling below
             } catch (e: Exception) {
-                Log.e(TAG, "✗ Unexpected error fetching lyrics", e)
+                DevLogger.e(TAG, "✗ Unexpected error fetching lyrics", e)
                 throw e
             }
 
             // If no response yet, try search API as last resort
             val finalLyricsResponse = if (lyricsResponse == null) {
-                Log.d(TAG, "Precise lookup returned null, trying search API as final fallback...")
+                DevLogger.d(TAG, "Precise lookup returned null, trying search API as final fallback...")
                 try {
                     val searchQuery = if (!cleanArtist.isNullOrBlank()) {
                         "$cleanArtist $cleanTitle"
                     } else {
                         cleanTitle
                     }
-                    Log.d(TAG, "Final search query: '$searchQuery'")
+                    DevLogger.d(TAG, "Final search query: '$searchQuery'")
                     val searchResults = lyricsApi.searchLyrics(searchQuery)
-                    Log.d(TAG, "✓ Final search returned ${searchResults.size} results")
+                    DevLogger.d(TAG, "✓ Final search returned ${searchResults.size} results")
                     searchResults.firstOrNull{
                         !it.syncedLyrics.isNullOrBlank() || !it.plainLyrics.isNullOrBlank()
                     }
                 } catch (searchError: Exception) {
-                    Log.e(TAG, "✗ Final search failed", searchError)
+                    DevLogger.e(TAG, "✗ Final search failed", searchError)
                     null
                 }
             } else {
@@ -228,7 +228,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
             // Step 6: Gemini metadata correction (if enabled and API key configured)
             val geminiCorrectedResponse = if (finalLyricsResponse == null) {
-                Log.d(TAG, "Attempting Gemini metadata correction")
+                DevLogger.d(TAG, "Attempting Gemini metadata correction")
 
                 val correctedMetadata = geminiMetadataCorrector.correctMetadata(
                     originalArtist = artist,
@@ -237,7 +237,7 @@ class LyricsRepositoryImpl @Inject constructor(
                 )
 
                 if (correctedMetadata != null) {
-                    Log.d(TAG, "Retrying LRCLIB with corrected metadata")
+                    DevLogger.d(TAG, "Retrying LRCLIB with corrected metadata")
 
                     // Normalize corrected metadata (same as original flow)
                     val normalizedArtist = normalize(correctedMetadata.artist) ?: ""
@@ -255,16 +255,16 @@ class LyricsRepositoryImpl @Inject constructor(
 
                         // Success - return for caching
                         if (retryResponse.syncedLyrics != null || retryResponse.plainLyrics != null) {
-                            Log.d(TAG, "✓ LRCLIB retry with corrected metadata succeeded")
+                            DevLogger.d(TAG, "✓ LRCLIB retry with corrected metadata succeeded")
                             retryResponse
                         } else {
                             null
                         }
                     } catch (e: HttpException) {
-                        Log.d(TAG, "✗ LRCLIB retry with corrected metadata failed: ${e.code()}")
+                        DevLogger.d(TAG, "✗ LRCLIB retry with corrected metadata failed: ${e.code()}")
                         null
                     } catch (e: IOException) {
-                        Log.d(TAG, "✗ LRCLIB retry network error: ${e.message}")
+                        DevLogger.d(TAG, "✗ LRCLIB retry network error: ${e.message}")
                         null
                     }
                 } else {
@@ -275,7 +275,7 @@ class LyricsRepositoryImpl @Inject constructor(
             }
 
             if (geminiCorrectedResponse == null) {
-                Log.d(TAG, "✗ No lyrics found from any source")
+                DevLogger.d(TAG, "✗ No lyrics found from any source")
                 emit(LyricsState.NotFound)
                 return@flow
             }
@@ -285,15 +285,15 @@ class LyricsRepositoryImpl @Inject constructor(
                            !geminiCorrectedResponse.plainLyrics.isNullOrBlank()
 
             if (!hasLyrics) {
-                Log.d(TAG, "✗ API returned response but lyrics fields are empty")
+                DevLogger.d(TAG, "✗ API returned response but lyrics fields are empty")
                 emit(LyricsState.NotFound)
                 return@flow
             }
 
-            Log.d(TAG, "✓ API returned valid lyrics (synced: ${!geminiCorrectedResponse.syncedLyrics.isNullOrBlank()}, plain: ${!geminiCorrectedResponse.plainLyrics.isNullOrBlank()})")
+            DevLogger.d(TAG, "✓ API returned valid lyrics (synced: ${!geminiCorrectedResponse.syncedLyrics.isNullOrBlank()}, plain: ${!geminiCorrectedResponse.plainLyrics.isNullOrBlank()})")
 
             // Step 7: Cache the result from online source
-            Log.d(TAG, "Step 7: Caching online lyrics...")
+            DevLogger.d(TAG, "Step 7: Caching online lyrics...")
             val entity = LyricsEntity(
                 trackId = trackId,
                 syncedLyrics = geminiCorrectedResponse.syncedLyrics,
@@ -303,23 +303,23 @@ class LyricsRepositoryImpl @Inject constructor(
                 lastFetched = System.currentTimeMillis()
             )
             lyricsDao.insertLyrics(entity)
-            Log.d(TAG, "✓ Cached online lyrics")
+            DevLogger.d(TAG, "✓ Cached online lyrics")
 
             // Step 7: Parse and emit
             val lyrics = entity.toDomainModel()
             val parsedLines = LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)
-            Log.d(TAG, "✓ Parsed ${parsedLines.size} lines from online lyrics")
+            DevLogger.d(TAG, "✓ Parsed ${parsedLines.size} lines from online lyrics")
 
             if (lyrics.syncedLyrics.isNullOrBlank() && lyrics.plainLyrics.isNullOrBlank()) {
-                Log.d(TAG, "✗ Online lyrics were empty")
+                DevLogger.d(TAG, "✗ Online lyrics were empty")
                 emit(LyricsState.NotFound)
             } else {
-                Log.d(TAG, "✓ SUCCESS - Emitting lyrics (synced: ${!lyrics.syncedLyrics.isNullOrBlank()}, plain: ${!lyrics.plainLyrics.isNullOrBlank()})")
+                DevLogger.d(TAG, "✓ SUCCESS - Emitting lyrics (synced: ${!lyrics.syncedLyrics.isNullOrBlank()}, plain: ${!lyrics.plainLyrics.isNullOrBlank()})")
                 emit(LyricsState.Success(lyrics, parsedLines))
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "✗ FATAL ERROR in lyrics fetch", e)
+            DevLogger.e(TAG, "✗ FATAL ERROR in lyrics fetch", e)
             emit(LyricsState.Error("Failed to fetch lyrics: ${e.message}"))
         }
     }.flowOn(Dispatchers.IO)

@@ -1,19 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
--->
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Data extraction rules for Sukoon Music Player (API 31+) -->
+<!-- Prevents sensitive personal data from being backed up to Google Cloud and restored on device transfer -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Exclude Room database (contains personal listening history, playlists, search history) -->
+        <exclude domain="database" path="sukoon_database" />
+
+        <!-- Exclude DataStore preferences (contains anonymous UUID, private session state) -->
+        <exclude domain="file" path="datastore/" />
+
+        <!-- Allow UI preferences to be backed up (theme, language, EQ settings are non-sensitive) -->
     </cloud-backup>
-    <!--
+
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Allow device-to-device transfer of non-sensitive preferences (theme, language) -->
+        <!-- But exclude the database to prevent history resurrection on new device -->
+        <exclude domain="database" path="sukoon_database" />
+
+        <!-- Also exclude sensitive preference state during device transfer -->
+        <exclude domain="file" path="datastore/" />
     </device-transfer>
-    -->
 </data-extraction-rules>

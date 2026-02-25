@@ -231,6 +231,32 @@ fun SettingsScreen(
                                     onCheckedChange = { viewModel.togglePrivateSession() },
                                 )
                             }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.Info,
+                            title = "Share Usage Data",
+                            value = "Help improve Sukoon by sharing anonymous analytics",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = null,
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.analyticsEnabled,
+                                    onCheckedChange = { viewModel.toggleAnalyticsEnabled() },
+                                )
+                            }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.AutoAwesome,
+                            title = "AI Metadata Correction (Optional)",
+                            value = "Sends song artist/title/album to Google Gemini AI to fix typos. Requires internet. You can disable anytime.",
+                            valuePlacement = ValuePlacement.Below,
+                            onClick = null,
+                            trailingContent = {
+                                Switch(
+                                    checked = userPreferences.aiMetadataCorrectionEnabled,
+                                    onCheckedChange = { viewModel.toggleAiMetadataCorrection() },
+                                )
+                            }
                         )
                     )
                 )

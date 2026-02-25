@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="external_files" path="." />
-    <root-path name="root" path="." />
+    <!-- Only share files from the app's external cache directory (non-sensitive) -->
+    <external-cache-path name="external_cache" path="." />
+    <!-- Only share files from the app's internal files directory (non-sensitive) -->
+    <files-path name="internal_files" path="." />
+    <!-- NOTE: Removed overly broad root-path (CWE-22 path traversal vulnerability) -->
+    <!-- Never expose filesystem root or arbitrary paths via FileProvider -->
 </paths>

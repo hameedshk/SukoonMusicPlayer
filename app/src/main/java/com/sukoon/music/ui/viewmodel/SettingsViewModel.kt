@@ -193,6 +193,26 @@ class SettingsViewModel @Inject constructor(
     }
 
     /**
+     * Toggle Firebase Analytics opt-in/opt-out.
+     */
+    fun toggleAnalyticsEnabled() {
+        viewModelScope.launch {
+            val currentValue = userPreferences.value.analyticsEnabled
+            settingsRepository.setAnalyticsEnabled(!currentValue)
+        }
+    }
+
+    /**
+     * Toggle AI Metadata Correction opt-in/opt-out.
+     */
+    fun toggleAiMetadataCorrection() {
+        viewModelScope.launch {
+            val currentValue = userPreferences.value.aiMetadataCorrectionEnabled
+            settingsRepository.setAiMetadataCorrectionEnabled(!currentValue)
+        }
+    }
+
+    /**
      * Update app theme.
      */
     fun setTheme(theme: AppTheme) {

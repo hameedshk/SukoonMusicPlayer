@@ -1,8 +1,9 @@
 package com.sukoon.music.data.metadata
 
 import android.content.Context
-import android.util.Log
 import com.sukoon.music.BuildConfig
+import com.sukoon.music.util.DevLogger
+import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.remote.GeminiApi
 import com.sukoon.music.data.remote.dto.Content
 import com.sukoon.music.data.remote.dto.CorrectedMetadata
@@ -11,6 +12,7 @@ import com.sukoon.music.data.remote.dto.GeminiResponse
 import com.sukoon.music.data.remote.dto.GenerationConfig
 import com.sukoon.music.data.remote.dto.Part
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
@@ -19,10 +21,12 @@ import javax.inject.Inject
 /**
  * Corrects music metadata using Gemini AI.
  * CRITICAL: Only corrects metadata (artist/title/album) - NEVER generates lyrics.
+ * PRIVACY: User must opt-in to AI metadata correction; requires internet connection.
  */
 class GeminiMetadataCorrector @Inject constructor(
     private val geminiApi: GeminiApi,
-    private val context: Context
+    private val context: Context,
+    private val preferencesManager: PreferencesManager
 ) {
     private val tag = "GeminiMetadataCorrector"
 
@@ -35,9 +39,16 @@ class GeminiMetadataCorrector @Inject constructor(
         originalTitle: String,
         originalAlbum: String?
     ): CorrectedMetadata? {
-        // Check if Gemini feature is enabled globally
+        // PRIVACY: Check if user has opted in to AI metadata correction
+        val userPrefs = preferencesManager.userPreferencesFlow.first()
+        if (!userPrefs.aiMetadataCorrectionEnabled) {
+            DevLogger.d(tag, "AI metadata correction disabled by user")
+            return null
+        }
+
+        // Check if Gemini feature is enabled globally in BuildConfig
         if (!BuildConfig.ENABLE_GEMINI_METADATA_CORRECTION) {
-            Log.d(tag, "Gemini metadata correction is disabled via BuildConfig")
+            DevLogger.d(tag, "Gemini metadata correction is disabled via BuildConfig")
             return null
         }
 
@@ -46,7 +57,7 @@ class GeminiMetadataCorrector @Inject constructor(
 
         // Validate API key
         if (apiKey.isNullOrBlank()) {
-            Log.d(tag, "Gemini API key not configured in local.properties")
+            DevLogger.d(tag, "Gemini API key not configured in local.properties")
             return null
         }
 
@@ -65,7 +76,7 @@ class GeminiMetadataCorrector @Inject constructor(
         )
 
         return try {
-            Log.d(tag, "Requesting metadata correction for: $originalArtist - $originalTitle")
+            DevLogger.d(tag, "Requesting metadata correction for: $originalArtist - $originalTitle")
 
             val response = withContext(Dispatchers.IO) {
                 geminiApi.generateContent(
@@ -79,13 +90,13 @@ class GeminiMetadataCorrector @Inject constructor(
             parseAndValidate(response, originalArtist, originalTitle, originalAlbum)
 
         } catch (e: HttpException) {
-            Log.e(tag, "Gemini HTTP error: ${e.code()} - ${e.message()}")
+            DevLogger.e(tag, "Gemini HTTP error: ${e.code()} - ${e.message()}")
             null
         } catch (e: IOException) {
-            Log.e(tag, "Gemini network error: ${e.message}")
+            DevLogger.e(tag, "Gemini network error: ${e.message}")
             null
         } catch (e: Exception) {
-            Log.e(tag, "Gemini unexpected error: ${e.message}")
+            DevLogger.e(tag, "Gemini unexpected error: ${e.message}")
             null
         }
     }
@@ -137,10 +148,10 @@ class GeminiMetadataCorrector @Inject constructor(
             ?.text
 
         if (text.isNullOrBlank()) {
-            Log.d(tag, "Gemini returned empty response")
+            DevLogger.d(tag, "Gemini returned empty response")
             return null
         }
-        Log.d(tag, "RAW Gemini response:\n$text")
+        DevLogger.d(tag, "RAW Gemini response:\n$text")
 
         val correctedArtist = extractField("ARTIST", text)
         val correctedTitle = extractField("TITLE", text)
@@ -150,7 +161,7 @@ class GeminiMetadataCorrector @Inject constructor(
 
         // Validation: Must have artist and title
         if (correctedArtist.isNullOrBlank() || correctedTitle.isNullOrBlank()) {
-            Log.d(tag, "Gemini response missing required fields")
+            DevLogger.d(tag, "Gemini response missing required fields")
             return null
         }
 
@@ -158,17 +169,17 @@ class GeminiMetadataCorrector @Inject constructor(
         if (correctedArtist == originalArtist &&
             correctedTitle == originalTitle &&
             correctedAlbum == originalAlbum) {
-            Log.d(tag, "Gemini returned identical metadata")
+            DevLogger.d(tag, "Gemini returned identical metadata")
             return null
         }
 
         // Validation: Check for lyrics generation (forbidden)
         if (text.contains("[0") || text.contains(":") && text.length > 200) {
-            Log.w(tag, "Gemini appears to have generated lyrics - rejecting")
+            DevLogger.w(tag, "Gemini appears to have generated lyrics - rejecting")
             return null
         }
 
-        Log.d(tag, "Metadata corrected: $correctedArtist - $correctedTitle")
+        DevLogger.d(tag, "Metadata corrected: $correctedArtist - $correctedTitle")
         return CorrectedMetadata(
             artist = correctedArtist,
             title = correctedTitle,

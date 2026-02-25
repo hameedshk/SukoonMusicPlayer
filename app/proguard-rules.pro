@@ -1,21 +1,31 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Sukoon Music Player ProGuard Configuration
+# Preserves classes and members used via reflection by R8
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Room database entities — prevent R8 from renaming fields
+-keep class com.sukoon.music.data.local.entity.** { *; }
+-keep class com.sukoon.music.data.local.dao.** { *; }
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Retrofit / Gson model classes
+-keep class com.sukoon.music.data.remote.model.** { *; }
+-keep class com.sukoon.music.data.remote.dto.** { *; }
+-keepclassmembers class com.sukoon.music.data.remote.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Hilt — keep generated components and entry points
+-keep class dagger.hilt.** { *; }
+-keep class * extends dagger.hilt.android.HiltAndroidApp { *; }
+-keepclasseswithmembernames class * { @dagger.hilt.* <methods>; }
+-keep class * implements dagger.hilt.internal.GeneratedComponent { *; }
+
+# Firebase Firestore model classes (used for feedback)
+-keep class com.sukoon.music.data.feedback.** { *; }
+-keepclassmembers class com.sukoon.music.data.feedback.** { *; }
+
+# Firebase Analytics and Config (reflection-heavy)
+-keep class com.google.firebase.analytics.** { *; }
+
+# Preserve source file names and line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# Keep enum values() and valueOf() methods (used by reflection)
+-keepclassmembers enum * { *; }

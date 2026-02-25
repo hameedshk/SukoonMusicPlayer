@@ -112,21 +112,27 @@ class OfflineLyricsScanner @Inject constructor(
     }
 
     /**
-     * Get file path from content:// URI using ContentResolver.
-     * This is a best-effort approach for scoped storage.
+     * Get file name from content:// URI using ContentResolver.
+     * Uses DISPLAY_NAME instead of deprecated DATA field to comply with scoped storage.
      */
     private fun getPathFromContentUri(uri: Uri): String? {
         return try {
-            context.contentResolver.query(uri, arrayOf(android.provider.MediaStore.Audio.Media.DATA), null, null, null)?.use { cursor ->
+            context.contentResolver.query(
+                uri,
+                arrayOf(android.provider.MediaStore.Audio.Media.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
                 if (cursor.moveToFirst()) {
-                    val columnIndex = cursor.getColumnIndex(android.provider.MediaStore.Audio.Media.DATA)
+                    val columnIndex = cursor.getColumnIndex(android.provider.MediaStore.Audio.Media.DISPLAY_NAME)
                     if (columnIndex != -1) {
                         cursor.getString(columnIndex)
                     } else null
                 } else null
             }
         } catch (e: Exception) {
-            DevLogger.e(TAG, "Error getting path from content URI", e)
+            DevLogger.e(TAG, "Error getting file name from content URI", e)
             null
         }
     }

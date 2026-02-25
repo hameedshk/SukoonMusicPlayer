@@ -12,6 +12,18 @@ data class UserPreferences(
      */
     val isPrivateSessionEnabled: Boolean = false,
 
+    /**
+     * Firebase Analytics opt-in/opt-out.
+     * When enabled, anonymous usage analytics are shared to help improve the app.
+     */
+    val analyticsEnabled: Boolean = true,
+
+    /**
+     * AI Metadata Correction opt-in/opt-out.
+     * When enabled, song metadata (artist/title/album) is sent to Google Gemini AI to fix typos.
+     */
+    val aiMetadataCorrectionEnabled: Boolean = false,
+
     // --- Appearance ---
     /**
      * Theme preference.

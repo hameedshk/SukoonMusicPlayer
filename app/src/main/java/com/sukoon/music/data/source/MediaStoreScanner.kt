@@ -4,15 +4,14 @@ import android.Manifest
 import android.content.ContentResolver
 import android.content.ContentUris
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
-import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.sukoon.music.data.local.entity.SongEntity
+import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
@@ -72,24 +71,11 @@ class MediaStoreScanner @Inject constructor(
      */
     private suspend fun triggerFullStorageScan() {
         suspendCancellableCoroutine<Unit> { continuation ->
-            // Get external storage root directory
-            val externalStorageRoot = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                Environment.getExternalStorageDirectory()
-            } else {
-                @Suppress("DEPRECATION")
-                Environment.getExternalStorageDirectory()
-            }
-
-            if (!externalStorageRoot.exists() || !externalStorageRoot.isDirectory) {
-                continuation.resume(Unit)
-                return@suspendCancellableCoroutine
-            }
-
-            // Single root scan catches all subdirectories recursively
+            // Scan entire storage root to catch all audio files recursively
             // MediaScanner will automatically traverse all folders and index audio files
             MediaScannerConnection.scanFile(
                 context,
-                arrayOf(externalStorageRoot.absolutePath),  // Scan entire storage from root
+                null,  // null = scan entire storage tree
                 null,  // All MIME types (includes audio)
             ) { _, _ ->
                 if (continuation.isActive) {
@@ -132,13 +118,14 @@ class MediaStoreScanner @Inject constructor(
         val contentResolver: ContentResolver = context.contentResolver
 
         // MediaStore projection (columns to retrieve)
+        @Suppress("DEPRECATION")  // DATA is deprecated but necessary for file path; no direct replacement in API
         val projection = mutableListOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.DURATION,
-            MediaStore.Audio.Media.DATA,  // File path
+            MediaStore.Audio.Media.DATA,  // File path (deprecated but necessary for Android 10 scoped storage compatibility)
             MediaStore.Audio.Media.ALBUM_ID,
             MediaStore.Audio.Media.DATE_ADDED,
             MediaStore.Audio.Media.SIZE,
@@ -151,10 +138,10 @@ class MediaStoreScanner @Inject constructor(
 
         // Selection criteria: Only music files by default, all audio files if showAllAudioFiles is true
         val selection = if (showAllAudioFiles) {
-            android.util.Log.d("MediaStoreScanner", "Scanning ALL audio files (including notifications, ringtones)")
+            DevLogger.d("MediaStoreScanner", "Scanning ALL audio files (including notifications, ringtones)")
             null  // No filter - include all audio files
         } else {
-            android.util.Log.d("MediaStoreScanner", "Scanning MUSIC files only (IS_MUSIC=1)")
+            DevLogger.d("MediaStoreScanner", "Scanning MUSIC files only (IS_MUSIC=1)")
             "${MediaStore.Audio.Media.IS_MUSIC} = 1"  // Only music files
         }
 
@@ -243,7 +230,7 @@ class MediaStoreScanner @Inject constructor(
                 scannedCount++
 
                 // Debug logging
-                android.util.Log.d("MediaStoreScanner", "Found: $title in $folderPath")
+                DevLogger.d("MediaStoreScanner", "Found: $title in $folderPath")
 
                 // Report progress
                 onProgress(scannedCount, title)
@@ -251,7 +238,7 @@ class MediaStoreScanner @Inject constructor(
         }
 
         // Log final count
-        android.util.Log.d("MediaStoreScanner", "Scan complete: Found ${songs.size} audio files")
+        DevLogger.d("MediaStoreScanner", "Scan complete: Found ${songs.size} audio files")
 
         return songs
     }
@@ -302,11 +289,22 @@ class MediaStoreScanner @Inject constructor(
      * This triggers Android's MediaScanner to re-index the deleted file,
      * ensuring MediaStore stays in sync with the physical storage.
      *
+     * Uses MediaScannerConnection.scanFile() instead of deprecated ACTION_MEDIA_SCANNER_SCAN_FILE broadcast.
+     *
      * @param songUri The content URI of the deleted song
      */
     fun notifyMediaStoreChanged(songUri: String) {
-        context.sendBroadcast(Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
-            data = Uri.parse(songUri)
-        })
+        try {
+            val uri = Uri.parse(songUri)
+            val path = uri.path ?: return
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf(path),
+                null,
+                null
+            )
+        } catch (e: Exception) {
+            DevLogger.e("MediaStoreScanner", "Error notifying MediaStore of changes", e)
+        }
     }
 }

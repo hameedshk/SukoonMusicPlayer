@@ -58,24 +58,34 @@ android {
         )
 
         // AdMob test IDs (safe for development and QA)
+        // NOTE: Only Banner and Native ads are allowed per Google Play policy for music players
         val admobTestAppId = "ca-app-pub-3940256099942544~3347511713"
         val admobTestBannerAdUnitId = "ca-app-pub-3940256099942544/6300978111"
-        val admobTestInterstitialAdUnitId = "ca-app-pub-3940256099942544/1033173712"
-        val admobTestRewardedAdUnitId = "ca-app-pub-3940256099942544/5224354917"
         val admobTestNativeAdUnitId = "ca-app-pub-3940256099942544/2247696110"
-        val admobTestAppOpenAdUnitId = "ca-app-pub-3940256099942544/9257395921"
 
-        manifestPlaceholders["admobAppId"] = admobTestAppId
-        buildConfigField("String", "ADMOB_APP_ID", "\"$admobTestAppId\"")
-        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobTestBannerAdUnitId\"")
-        buildConfigField("String", "ADMOB_INTERSTITIAL_AD_UNIT_ID", "\"$admobTestInterstitialAdUnitId\"")
-        buildConfigField("String", "ADMOB_REWARDED_AD_UNIT_ID", "\"$admobTestRewardedAdUnitId\"")
-        buildConfigField("String", "ADMOB_NATIVE_AD_UNIT_ID", "\"$admobTestNativeAdUnitId\"")
-        buildConfigField("String", "ADMOB_APP_OPEN_AD_UNIT_ID", "\"$admobTestAppOpenAdUnitId\"")
+        // Production AdMob IDs from local.properties (user must fill in before release)
+        val admobProdAppId = localProperties.getProperty("ADMOB_APP_ID", "").trim()
+        val admobProdBannerAdUnitId = localProperties.getProperty("ADMOB_BANNER_ID", "").trim()
+        val admobProdNativeAdUnitId = localProperties.getProperty("ADMOB_NATIVE_ID", "").trim()
 
-        // ⚠️ WARNING: Set to FALSE before production release! ⚠️
+        // Use production IDs if configured; otherwise use test IDs
+        val useTestAds = admobProdAppId.isEmpty() || admobProdAppId.startsWith("ca-app-pub-3940")
+        val admobAppId = if (useTestAds) admobTestAppId else admobProdAppId
+        val admobBannerAdUnitId = if (useTestAds) admobTestBannerAdUnitId else admobProdBannerAdUnitId
+        val admobNativeAdUnitId = if (useTestAds) admobTestNativeAdUnitId else admobProdNativeAdUnitId
+
+        manifestPlaceholders["admobAppId"] = admobAppId
+        buildConfigField("String", "ADMOB_APP_ID", "\"$admobAppId\"")
+        buildConfigField("String", "ADMOB_BANNER_AD_UNIT_ID", "\"$admobBannerAdUnitId\"")
+        buildConfigField("String", "ADMOB_NATIVE_AD_UNIT_ID", "\"$admobNativeAdUnitId\"")
+
+        // ⚠️ WARNING: Fill in production AdMob IDs in local.properties before release! ⚠️
         // Test ads will not generate revenue and may violate Play Store policies
-        buildConfigField("Boolean", "USE_TEST_ADS", "true")
+        buildConfigField("Boolean", "USE_TEST_ADS", "$useTestAds")
+
+        // Billing Product ID (read from local.properties, defaults to test ID)
+        val premiumProductId = localProperties.getProperty("PREMIUM_PRODUCT_ID", "android.test.purchased")
+        buildConfigField("String", "PREMIUM_PRODUCT_ID", "\"$premiumProductId\"")
     }
 
 packaging {
@@ -86,10 +96,10 @@ packaging {
 
     signingConfigs {
         create("release") {
-            storeFile = file("C:/Users/ksham/Desktop/release-key.jks")
-            storePassword = "abc@123"
-            keyAlias = "release"
-            keyPassword = "abc@123"
+            storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE", ""))
+            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
+            keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "release")
+            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
         }
     }
 
@@ -181,14 +191,15 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
     // AdMob
-    implementation("com.google.android.gms:play-services-ads:23.5.0")
+    implementation("com.google.android.gms:play-services-ads:24.0.0")
+    // User Messaging Platform (GDPR/CCPA consent)
+    implementation("com.google.android.ump:user-messaging-platform:3.1.0")
 
-    //firebase
-    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics-ktx")
     implementation("com.google.firebase:firebase-config-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
-    implementation("com.google.firebase:firebase-storage-ktx")
 
     // Google Play Billing Library (for in-app purchases)
     implementation("com.android.billingclient:billing:7.0.0")

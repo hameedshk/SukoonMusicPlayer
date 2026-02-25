@@ -28,6 +28,20 @@ interface SettingsRepository {
     suspend fun setPrivateSessionEnabled(enabled: Boolean)
 
     /**
+     * Update Firebase Analytics opt-in/opt-out.
+     *
+     * @param enabled True to enable analytics sharing
+     */
+    suspend fun setAnalyticsEnabled(enabled: Boolean)
+
+    /**
+     * Update AI Metadata Correction opt-in/opt-out.
+     *
+     * @param enabled True to enable AI metadata correction
+     */
+    suspend fun setAiMetadataCorrectionEnabled(enabled: Boolean)
+
+    /**
      * Update app theme.
      *
      * @param theme Theme preference (LIGHT, DARK, SYSTEM)

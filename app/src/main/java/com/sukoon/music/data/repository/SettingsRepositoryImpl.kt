@@ -40,6 +40,14 @@ class SettingsRepositoryImpl @Inject constructor(
         preferencesManager.setPrivateSessionEnabled(enabled)
     }
 
+    override suspend fun setAnalyticsEnabled(enabled: Boolean) {
+        preferencesManager.setAnalyticsEnabled(enabled)
+    }
+
+    override suspend fun setAiMetadataCorrectionEnabled(enabled: Boolean) {
+        preferencesManager.setAiMetadataCorrectionEnabled(enabled)
+    }
+
     override suspend fun setTheme(theme: AppTheme) {
         preferencesManager.setTheme(theme)
     }
