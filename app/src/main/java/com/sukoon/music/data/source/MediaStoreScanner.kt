@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.MediaStore
 import androidx.core.content.ContextCompat
 import com.sukoon.music.data.local.entity.SongEntity
@@ -71,13 +72,22 @@ class MediaStoreScanner @Inject constructor(
      */
     private suspend fun triggerFullStorageScan() {
         suspendCancellableCoroutine<Unit> { continuation ->
-            // Scan entire storage root to catch all audio files recursively
-            // MediaScanner will automatically traverse all folders and index audio files
-            MediaScannerConnection.scanFile(
-                context,
-                null,  // null = scan entire storage tree
-                null,  // All MIME types (includes audio)
-            ) { _, _ ->
+            try {
+                // Scan entire storage root to catch all audio files recursively
+                // MediaScanner will automatically traverse all folders and index audio files
+                // Note: Must pass a valid String[] array; passing null causes NullPointerException
+                val storageRoot = Environment.getExternalStorageDirectory().path
+                MediaScannerConnection.scanFile(
+                    context,
+                    arrayOf(storageRoot),  // Scan external storage root directory
+                    null,  // All MIME types (includes audio)
+                ) { _, _ ->
+                    if (continuation.isActive) {
+                        continuation.resume(Unit)
+                    }
+                }
+            } catch (e: Exception) {
+                DevLogger.e("MediaStoreScanner", "Error during full storage scan", e)
                 if (continuation.isActive) {
                     continuation.resume(Unit)
                 }

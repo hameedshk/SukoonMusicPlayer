@@ -90,9 +90,9 @@ object AppModule {
             SukoonDatabase.MIGRATION_15_16,
             SukoonDatabase.MIGRATION_16_17
         )
-        // Only allow destructive migration from pre-launch versions (1-5) to prevent data loss in production
-        // Any user on version 6+ will have explicit migration paths; if somehow a gap exists, it's a critical error
-        .fallbackToDestructiveMigrationFrom(1, 2, 3, 4, 5)
+        // Only allow destructive migration from pre-launch version 1 (no migration path exists for 1→2)
+        // Versions 2+ have explicit migration paths via .addMigrations() above
+        .fallbackToDestructiveMigrationFrom(1)
         .build()
     }
 
