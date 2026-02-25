@@ -95,18 +95,22 @@ packaging {
 }
 
     signingConfigs {
-        create("release") {
-            storeFile = file(localProperties.getProperty("RELEASE_STORE_FILE", ""))
-            storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
-            keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "release")
-            keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+        val releaseStoreFile = localProperties.getProperty("RELEASE_STORE_FILE", "")
+        if (releaseStoreFile.isNotEmpty()) {
+            create("release") {
+                storeFile = file(releaseStoreFile)
+                storePassword = localProperties.getProperty("RELEASE_STORE_PASSWORD", "")
+                keyAlias = localProperties.getProperty("RELEASE_KEY_ALIAS", "release")
+                keyPassword = localProperties.getProperty("RELEASE_KEY_PASSWORD", "")
+            }
         }
     }
 
     buildTypes {
-
- getByName("release") {
-            signingConfig = signingConfigs.getByName("release")
+        getByName("release") {
+            if (signingConfigs.getNames().contains("release")) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
 
