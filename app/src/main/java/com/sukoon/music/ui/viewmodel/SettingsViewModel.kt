@@ -441,8 +441,12 @@ class SettingsViewModel @Inject constructor(
 
     /**
      * Load storage usage statistics.
+     * Prevents concurrent loads to avoid race conditions.
      */
     fun loadStorageStats() {
+        // Guard against concurrent loads
+        if (_isLoadingStats.value) return
+
         viewModelScope.launch {
             _isLoadingStats.value = true
             try {
@@ -466,6 +470,8 @@ class SettingsViewModel @Inject constructor(
             try {
                 settingsRepository.clearImageCache()
                 loadStorageStats() // Refresh stats after clearing
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Failed to clear image cache", e)
             } finally {
                 _isClearingCache.value = false
             }
@@ -482,6 +488,8 @@ class SettingsViewModel @Inject constructor(
             try {
                 songRepository.clearDatabase()
                 loadStorageStats() // Refresh stats after clearing
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Failed to clear database", e)
             } finally {
                 _isClearingData.value = false
             }
@@ -493,7 +501,11 @@ class SettingsViewModel @Inject constructor(
      */
     fun clearRecentlyPlayed() {
         viewModelScope.launch {
-            songRepository.clearRecentlyPlayed()
+            try {
+                songRepository.clearRecentlyPlayed()
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Failed to clear recently played history", e)
+            }
         }
     }
 
@@ -509,6 +521,8 @@ class SettingsViewModel @Inject constructor(
             try {
                 settingsRepository.clearAllData()
                 loadStorageStats() // Refresh stats after clearing
+            } catch (e: Exception) {
+                android.util.Log.e("SettingsViewModel", "Failed to logout and clear all data", e)
             } finally {
                 _isClearingData.value = false
             }
@@ -518,7 +532,7 @@ class SettingsViewModel @Inject constructor(
     /**
      * Get app version from BuildConfig.
      */
-    fun getAppVersion(): String = "1.0.0" // TODO: Get from BuildConfig
+    fun getAppVersion(): String = com.sukoon.music.BuildConfig.VERSION_NAME
 
     /**
      * Get package name.

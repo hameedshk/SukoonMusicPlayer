@@ -19,6 +19,10 @@
     <string name="settings_screen_feedback_google_play">Share your feedback on Google Play</string>
     <string name="settings_screen_about_title">About</string>
     <string name="settings_screen_private_session_title">Private Session</string>
+    <string name="settings_screen_analytics_title">Share Usage Data</string>
+    <string name="settings_screen_analytics_description">Help improve Sukoon by sharing anonymous analytics</string>
+    <string name="settings_screen_ai_metadata_title">AI Metadata Correction (Optional)</string>
+    <string name="settings_screen_ai_metadata_description">Sends song artist/title/album to Google Gemini AI to fix typos. Requires internet. You can disable anytime.</string>
     <string name="settings_screen_show_notification_controls_title">Show Notification Controls</string>
     <string name="settings_screen_show_notification_controls_description">Display playback controls in notification</string>
     <string name="settings_screen_audio_buffer_title">Audio Buffer</string>
@@ -54,6 +58,8 @@
     <string name="settings_screen_minimum_duration_hint">Useful for hiding ringtones, notification sounds, and short voice notes.</string>
     <string name="settings_screen_state_off">Off</string>
     <string name="settings_screen_state_on">On</string>
+    <string name="settings_screen_sleep_timer_off">Off</string>
+    <string name="settings_screen_sleep_timer_in_minutes">Sleep in %1$d min</string>
     <string name="settings_screen_theme_light_short">Light</string>
     <string name="settings_screen_theme_dark_short">Dark</string>
     <string name="settings_screen_theme_amoled_black">AMOLED Black</string>

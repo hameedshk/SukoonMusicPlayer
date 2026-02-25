@@ -116,6 +116,8 @@ fun SettingsScreen(
                 appContext,
                 AnalyticsEntryPoint::class.java
             ).analyticsTracker()
+        }.onFailure { error ->
+            android.util.Log.e("SettingsScreen", "Failed to initialize analytics tracker", error)
         }.getOrNull()
     }
     val coroutineScope = rememberCoroutineScope()
@@ -131,6 +133,7 @@ fun SettingsScreen(
     var showMinDurationDialog by remember { mutableStateOf(false) }
     var showRescanDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showNotificationSettingsDialog by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var isSleepTimerActionInProgress by remember { mutableStateOf(false) }
     var showPremiumDialog by rememberSaveable(openPremiumDialog) { mutableStateOf(openPremiumDialog) }
@@ -234,8 +237,8 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Info,
-                            title = "Share Usage Data",
-                            value = "Help improve Sukoon by sharing anonymous analytics",
+                            title = stringResource(R.string.settings_screen_analytics_title),
+                            value = stringResource(R.string.settings_screen_analytics_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = null,
                             trailingContent = {
@@ -247,8 +250,8 @@ fun SettingsScreen(
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.AutoAwesome,
-                            title = "AI Metadata Correction (Optional)",
-                            value = "Sends song artist/title/album to Google Gemini AI to fix typos. Requires internet. You can disable anytime.",
+                            title = stringResource(R.string.settings_screen_ai_metadata_title),
+                            value = stringResource(R.string.settings_screen_ai_metadata_description),
                             valuePlacement = ValuePlacement.Below,
                             onClick = null,
                             trailingContent = {
@@ -411,7 +414,7 @@ item(key = "go_premium") {
                         SettingsRowModel(
                             icon = Icons.Default.Notifications,
                             title = stringResource(R.string.settings_screen_notification_settings_title),
-                            onClick = { showComingSoonToast(context, context.getString(R.string.settings_screen_notification_settings_coming_soon)) }
+                            onClick = { showNotificationSettingsDialog = true }
                         ),
                         SettingsRowModel(
                             icon = Icons.Default.Language,
@@ -422,7 +425,35 @@ item(key = "go_premium") {
                     )
                 )
             }
-            // 6. Help & About
+            // 6. Storage & Cache
+            item {
+                SettingsGroupCard(
+                    modifier = Modifier.padding(horizontal = SpacingLarge),
+                    rows = listOf(
+                        SettingsRowModel(
+                            icon = Icons.Default.Delete,
+                            title = stringResource(R.string.settings_screen_clear_cache_title),
+                            value = stringResource(R.string.settings_screen_clear_cache_message),
+                            showLoading = isClearingCache,
+                            onClick = { showClearCacheDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.DeleteSweep,
+                            title = stringResource(R.string.settings_screen_clear_database_title),
+                            value = stringResource(R.string.settings_screen_clear_database_message),
+                            showLoading = isClearingData,
+                            onClick = { showClearDatabaseDialog = true }
+                        ),
+                        SettingsRowModel(
+                            icon = Icons.Default.History,
+                            title = stringResource(R.string.settings_screen_clear_recently_played_title),
+                            value = stringResource(R.string.settings_screen_clear_recently_played_message),
+                            onClick = { showClearHistoryDialog = true }
+                        )
+                    )
+                )
+            }
+            // 7. Help & About
             item {
                 SettingsGroupCard(
                     modifier = Modifier.padding(horizontal = SpacingLarge),
@@ -509,6 +540,16 @@ item(key = "go_premium") {
             )
         }
 
+        if (showNotificationSettingsDialog) {
+            NotificationSettingsDialog(
+                showNotificationControls = userPreferences.showNotificationControls,
+                onDismiss = { showNotificationSettingsDialog = false },
+                onToggleNotificationControls = { enabled ->
+                    viewModel.setShowNotificationControls(enabled)
+                }
+            )
+        }
+
         if (showSleepTimerDialog) {
             SleepTimerDialog(
                 onTimerSelected = { minutes ->
@@ -529,7 +570,11 @@ item(key = "go_premium") {
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-                        isSleepTimerActionInProgress = false
+                        // Reset flag after a delay to allow async operation to complete
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(500)
+                            isSleepTimerActionInProgress = false
+                        }
                     }
                 },
                 onEndOfTrackSelected = {
@@ -553,12 +598,16 @@ item(key = "go_premium") {
                             }
                         }
                         showSleepTimerDialog = false
-                        isSleepTimerActionInProgress = false
+                        // Reset flag after a delay to allow async operation to complete
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(500)
+                            isSleepTimerActionInProgress = false
+                        }
                     }
                 },
                 onDismiss = {
                     showSleepTimerDialog = false
-                    isSleepTimerActionInProgress = false
+                    // Don't reset flag here; let it reset via delay in the selection handlers
                 }
             )
         }
@@ -752,160 +801,20 @@ private fun MinimumDurationDialog(
     )
 }
 
-@Composable
-private fun SettingsSectionHeader(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.sectionHeader,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
-        )
-    }
-}
-
-@Composable
-private fun SettingsItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    isDestructive: Boolean = false,
-    showLoading: Boolean = false
-) {
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = if (isDestructive) {
-                    MaterialTheme.colorScheme.error
-                } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                }
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.listItemTitle,
-                    color = if (isDestructive) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onBackground
-                    }
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.listItemSubtitle,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
-
-            if (showLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsSwitchItem(
-    icon: ImageVector,
-    title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surface
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.listItemTitle,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.listItemSubtitle,
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
-                )
-            }
-
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange
-            )
-        }
-    }
-}
-
-
 private fun showComingSoonToast(context: Context, message: String) {
     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
 }
 
-private fun getSleepTimerLabel(context: Context, targetMs: Long): String =
-    if (targetMs <= System.currentTimeMillis()) {
-        context.getString(R.string.settings_screen_state_off)
+private fun getSleepTimerLabel(context: Context, targetMs: Long): String {
+    val currentMs = System.currentTimeMillis()
+    return if (targetMs <= currentMs) {
+        context.getString(R.string.settings_screen_sleep_timer_off)
     } else {
-        context.getString(R.string.settings_screen_state_on)
+        val remainingMs = targetMs - currentMs
+        val remainingMinutes = (remainingMs / 1000 / 60).toInt()
+        context.getString(R.string.settings_screen_sleep_timer_in_minutes, remainingMinutes)
     }
+}
 
 private fun getCrossfadeLabel(context: Context, durationMs: Int): String =
     if (durationMs <= 0) {
@@ -979,6 +888,21 @@ private fun LanguageSelectionDialog(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = stringResource(R.string.settings_screen_language_hindi))
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                        .clickable { onLanguageSelect("pt-BR") },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    RadioButton(
+                        selected = selectedTag == "pt-BR",
+                        onClick = { onLanguageSelect("pt-BR") }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(text = stringResource(R.string.settings_screen_language_portuguese_brazil))
                 }
             }
         },
@@ -1650,6 +1574,56 @@ private fun PremiumBenefit(text: String) {
         Spacer(modifier = Modifier.width(8.dp))
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
+}
+
+@Composable
+private fun NotificationSettingsDialog(
+    showNotificationControls: Boolean,
+    onDismiss: () -> Unit,
+    onToggleNotificationControls: (Boolean) -> Unit
+) {
+    GradientAlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_screen_notification_settings_title)) },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.settings_screen_show_notification_controls_title),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_screen_show_notification_controls_description),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Switch(
+                        checked = showNotificationControls,
+                        onCheckedChange = onToggleNotificationControls
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.common_close))
+            }
+        }
+    )
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF121212)
