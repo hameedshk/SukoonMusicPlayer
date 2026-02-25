@@ -34,3 +34,6 @@ monkey_log.txt
 
 # Git worktrees
 .worktrees/
+
+# Firebase configuration (credentials - never commit)
+app/google-services.json
