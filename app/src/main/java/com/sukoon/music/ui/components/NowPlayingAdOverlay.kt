@@ -44,11 +44,12 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.nativead.NativeAd
 import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.data.config.AdPlacement
+import com.sukoon.music.data.config.RemoteConfigManager
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.util.AdAnalytics
 import com.sukoon.music.util.DevLogger
-import com.sukoon.music.util.RemoteConfigManager
 import kotlinx.coroutines.delay
 
 /**
@@ -69,8 +70,10 @@ import kotlinx.coroutines.delay
  *
  * @param adMobManager AdMob configuration manager
  * @param preferencesManager Preferences manager for premium check
+ * @param remoteConfigManager Remote Config manager for ad placement settings
  * @param playbackState Current playback state from MediaController
  * @param modifier Optional modifier
+ * @param isPremiumUser Whether the user has premium subscription
  */
 @Composable
 fun NowPlayingAdOverlay(
@@ -78,14 +81,15 @@ fun NowPlayingAdOverlay(
     preferencesManager: PreferencesManager,
     remoteConfigManager: RemoteConfigManager,
     playbackState: PlaybackState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPremiumUser: Boolean = false
 ) {
-    val isPremium by preferencesManager.isPremiumUserFlow().collectAsStateWithLifecycle(initialValue = false)
-    val showAds by remoteConfigManager.nowPlayingAdsEnabled.collectAsStateWithLifecycle(initialValue = true)
+    // Check if ads should be shown before rendering
+    val configState = remoteConfigManager.state.collectAsStateWithLifecycle()
+    val shouldShowAds = configState.value.shouldShowAds(isPremiumUser, AdPlacement.NOW_PLAYING)
 
-    // Premium users or globally disabled ads don't see now playing overlay ads
-    if (isPremium || !showAds) {
-        return
+    if (!shouldShowAds) {
+        return  // Don't render ad if Remote Config disables it
     }
 
     val context = LocalContext.current
