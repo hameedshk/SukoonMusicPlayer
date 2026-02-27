@@ -411,9 +411,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideAdMobManager(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        remoteConfigManager: com.sukoon.music.data.config.RemoteConfigManager
     ): com.sukoon.music.data.ads.AdMobManager {
-        val adMobManager = com.sukoon.music.data.ads.AdMobManager(context)
+        val adMobManager = com.sukoon.music.data.ads.AdMobManager(context, remoteConfigManager)
         adMobManager.initialize()
         return adMobManager
     }

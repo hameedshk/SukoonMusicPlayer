@@ -5,6 +5,8 @@ import android.content.Context
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
 import com.sukoon.music.BuildConfig
+import com.sukoon.music.data.config.AdPlacement
+import com.sukoon.music.data.config.RemoteConfigManager
 import com.sukoon.music.util.DevLogger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -19,7 +21,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class AdMobManager @Inject constructor(
-    private val context: Context
+    private val context: Context,
+    private val remoteConfigManager: RemoteConfigManager
 ) {
 
     companion object {
@@ -98,14 +101,21 @@ class AdMobManager @Inject constructor(
      * Get Banner Ad Unit ID (test or production based on flag).
      */
     fun getBannerAdId(): String {
-        return BuildConfig.ADMOB_BANNER_AD_UNIT_ID
+        return remoteConfigManager.getBannerAdUnitId()
     }
 
     /**
      * Get Native Ad Unit ID (test or production based on flag).
      */
     fun getNativeAdId(): String {
-        return BuildConfig.ADMOB_NATIVE_AD_UNIT_ID
+        return remoteConfigManager.getNativeAdUnitId()
+    }
+
+    /**
+     * Check if ads should be shown for the given user tier and placement.
+     */
+    fun shouldShowAds(isPremiumUser: Boolean, placement: AdPlacement): Boolean {
+        return remoteConfigManager.shouldShowAds(isPremiumUser, placement)
     }
 
     // NOTE: Interstitial, Rewarded, and App-Open ads are prohibited for music player apps
