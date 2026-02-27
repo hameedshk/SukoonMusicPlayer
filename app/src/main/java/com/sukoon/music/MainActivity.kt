@@ -39,6 +39,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.sukoon.music.data.ads.AdMobManager
@@ -91,6 +92,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // Initialize Remote Config asynchronously
+        lifecycleScope.launch {
+            remoteConfigManager.initialize()
+        }
 
         // Set dark window background only on cold start to prevent white flash
         // Skip it on warm start/Activity recreation to prevent black flash during language change
