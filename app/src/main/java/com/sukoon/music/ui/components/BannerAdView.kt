@@ -7,10 +7,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.sukoon.music.data.ads.AdMobManager
+import com.sukoon.music.data.config.AdPlacement
+import com.sukoon.music.data.config.RemoteConfigManager
 import com.sukoon.music.ui.theme.*
 
 /**
@@ -28,9 +31,19 @@ import com.sukoon.music.ui.theme.*
 fun BannerAdView(
     adMobManager: AdMobManager,
     modifier: Modifier = Modifier,
-    adSize: AdSize = AdSize.BANNER
+    adSize: AdSize = AdSize.BANNER,
+    remoteConfigManager: RemoteConfigManager,
+    isPremiumUser: Boolean = false
 ) {
     val context = LocalContext.current
+
+    // Check if ads should be shown before rendering
+    val configState = remoteConfigManager.state.collectAsStateWithLifecycle()
+    val shouldShowAds = configState.value.shouldShowAds(isPremiumUser, AdPlacement.HOME_SCREEN)
+
+    if (!shouldShowAds) {
+        return  // Don't render ad if Remote Config disables it
+    }
 
     val adView = remember {
         AdView(context).apply {
@@ -63,7 +76,9 @@ fun BannerAdView(
 @Composable
 fun AdaptiveBannerAdView(
     adMobManager: AdMobManager,
-    modifier: Modifier = Modifier
+    remoteConfigManager: RemoteConfigManager,
+    modifier: Modifier = Modifier,
+    isPremiumUser: Boolean = false
 ) {
     val context = LocalContext.current
 
@@ -79,6 +94,8 @@ fun AdaptiveBannerAdView(
     BannerAdView(
         adMobManager = adMobManager,
         adSize = adSize,
-        modifier = modifier
+        modifier = modifier,
+        remoteConfigManager = remoteConfigManager,
+        isPremiumUser = isPremiumUser
     )
 }
