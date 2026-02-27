@@ -38,6 +38,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
+import com.sukoon.music.data.premium.PremiumManager
 import androidx.compose.material.icons.automirrored.filled.Sort
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
@@ -62,6 +64,8 @@ fun SearchScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()

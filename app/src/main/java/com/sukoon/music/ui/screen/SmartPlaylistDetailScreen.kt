@@ -25,7 +25,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
@@ -47,6 +49,8 @@ fun SmartPlaylistDetailScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToArtistDetail: (Long) -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: SmartPlaylistViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {

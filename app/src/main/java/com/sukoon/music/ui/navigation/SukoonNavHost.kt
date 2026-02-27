@@ -218,7 +218,9 @@ fun SukoonNavHost(
                 },
                 onBackClick = {
                     navController.navigateUp()
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -243,7 +245,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtistDetail = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -270,7 +274,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -288,7 +294,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -303,7 +311,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -371,6 +381,14 @@ fun SukoonNavHost(
             )
         }
 
+        composable(
+            route = "audio_editor/{songId}",
+            arguments = listOf(navArgument("songId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val songId = backStackEntry.arguments?.getLong("songId") ?: return@composable
+            AudioEditorScreen(songId = songId, onBack = { navController.popBackStack() })
+        }
+
         // Albums Screen - All albums
         composable(route = Routes.Albums.route) {
             AlbumsScreen(
@@ -408,7 +426,8 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                premiumManager = premiumManager
             )
         }
 
@@ -430,7 +449,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Routes.NowPlaying.route)
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -442,7 +463,9 @@ fun SukoonNavHost(
                 },
                 onBackClick = {
                     navController.navigateUp()
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -467,7 +490,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -491,7 +516,9 @@ fun SukoonNavHost(
                 },
                 onBackClick = {
                     navController.navigateUp()
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -522,7 +549,9 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                navController = navController,
+                premiumManager = premiumManager
             )
         }
 
@@ -539,6 +568,8 @@ fun SukoonNavHost(
             FolderDetailScreen(
                 folderId = -1L,
                 folderPath = folderPath,
+                navController = navController,
+                premiumManager = premiumManager,
                 onBackClick = {
                     navController.navigateUp()
                 },

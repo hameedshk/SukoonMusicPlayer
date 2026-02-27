@@ -15,6 +15,7 @@ import com.sukoon.music.data.local.dao.RecentlyPlayedAlbumDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SearchHistoryDao
+import com.sukoon.music.data.local.dao.SongAudioSettingsDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.local.entity.DeletedPlaylistEntity
 import com.sukoon.music.data.local.entity.EqualizerPresetEntity
@@ -29,6 +30,7 @@ import com.sukoon.music.data.local.entity.RecentlyPlayedAlbumEntity
 import com.sukoon.music.data.local.entity.RecentlyPlayedArtistEntity
 import com.sukoon.music.data.local.entity.RecentlyPlayedEntity
 import com.sukoon.music.data.local.entity.SearchHistoryEntity
+import com.sukoon.music.data.local.entity.SongAudioSettingsEntity
 import com.sukoon.music.data.local.entity.SongEntity
 
 @Database(
@@ -46,9 +48,10 @@ import com.sukoon.music.data.local.entity.SongEntity
         QueueEntity::class,
         QueueItemEntity::class,
         GenreCoverEntity::class,
-        ListeningStatsEntity::class
+        ListeningStatsEntity::class,
+        SongAudioSettingsEntity::class
     ],
-    version = 17,
+    version = 18,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
@@ -64,6 +67,7 @@ abstract class SukoonDatabase : RoomDatabase() {
     abstract fun queueDao(): QueueDao
     abstract fun genreCoverDao(): GenreCoverDao
     abstract fun listeningStatsDao(): ListeningStatsDao
+    abstract fun songAudioSettingsDao(): SongAudioSettingsDao
 
     companion object {
         const val DATABASE_NAME = "sukoon_music_db"
@@ -441,6 +445,36 @@ abstract class SukoonDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_playlist_song_cross_ref_songId " +
                     "ON playlist_song_cross_ref(songId)"
                 )
+            }
+        }
+
+        /**
+         * Migration from version 17 to 18.
+         * Adds song_audio_settings table for per-song audio effects and playback settings.
+         * Enables premium users to apply non-destructive per-song EQ, effects, pitch, speed, and trim.
+         */
+        val MIGRATION_17_18 = object : Migration(17, 18) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS song_audio_settings (
+                        songId INTEGER PRIMARY KEY NOT NULL,
+                        isEnabled INTEGER NOT NULL DEFAULT 1,
+                        trimStartMs INTEGER NOT NULL DEFAULT 0,
+                        trimEndMs INTEGER NOT NULL DEFAULT -1,
+                        eqEnabled INTEGER NOT NULL DEFAULT 0,
+                        band60Hz INTEGER NOT NULL DEFAULT 0,
+                        band230Hz INTEGER NOT NULL DEFAULT 0,
+                        band910Hz INTEGER NOT NULL DEFAULT 0,
+                        band3600Hz INTEGER NOT NULL DEFAULT 0,
+                        band14000Hz INTEGER NOT NULL DEFAULT 0,
+                        bassBoost INTEGER NOT NULL DEFAULT 0,
+                        virtualizerStrength INTEGER NOT NULL DEFAULT 0,
+                        reverbPreset INTEGER NOT NULL DEFAULT 0,
+                        pitch REAL NOT NULL DEFAULT 1.0,
+                        speed REAL NOT NULL DEFAULT 1.0,
+                        updatedAt INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
             }
         }
     }

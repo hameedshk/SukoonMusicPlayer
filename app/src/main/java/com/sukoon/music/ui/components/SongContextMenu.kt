@@ -217,6 +217,7 @@ fun SongContextMenu(
                         }
                     },
                     onClick = {
+                        android.util.Log.d("SongContextMenu", "Edit Audio clicked for song: ${song.title}")
                         menuHandler.handleEditAudio(song)
                         onDismiss()
                     }

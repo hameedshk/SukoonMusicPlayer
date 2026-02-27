@@ -605,4 +605,28 @@
     <string name="feedback_chooser_title">Send Feedback</string>
     <string name="feedback_clipboard_label">Support Email</string>
     <string name="feedback_email_copied_toast">Support email copied to clipboard: %1$s</string>
+
+    <!-- Audio Editor Screen -->
+    <string name="audio_editor_title">Edit Audio</string>
+    <string name="audio_editor_trim_section">Trim</string>
+    <string name="audio_editor_eq_section">Equalizer</string>
+    <string name="audio_editor_effects_section">Effects</string>
+    <string name="audio_editor_playback_section">Playback</string>
+    <string name="audio_editor_bass_boost">Bass Boost</string>
+    <string name="audio_editor_stereo_width">Stereo Width</string>
+    <string name="audio_editor_reverb">Reverb</string>
+    <string name="audio_editor_reverb_none">None</string>
+    <string name="audio_editor_reverb_small_room">Small Room</string>
+    <string name="audio_editor_reverb_medium_room">Medium Room</string>
+    <string name="audio_editor_reverb_large_room">Large Room</string>
+    <string name="audio_editor_reverb_hall">Hall</string>
+    <string name="audio_editor_reverb_plate">Plate</string>
+    <string name="audio_editor_pitch">Pitch</string>
+    <string name="audio_editor_speed">Speed</string>
+    <string name="audio_editor_master_toggle">Per-Song Effects</string>
+    <string name="audio_editor_reset">Reset</string>
+    <string name="audio_editor_apply">Apply</string>
+    <string name="audio_editor_save_preset">Save as Preset</string>
+    <string name="audio_editor_trim_start">Start</string>
+    <string name="audio_editor_trim_end">End</string>
 </resources>

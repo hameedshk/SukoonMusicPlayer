@@ -2,8 +2,10 @@ package com.sukoon.music.data.audio
 
 import android.media.audiofx.BassBoost
 import android.media.audiofx.Equalizer
+import android.media.audiofx.PresetReverb
 import android.media.audiofx.Virtualizer
 import com.sukoon.music.domain.model.EqualizerSettings
+import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +35,7 @@ class AudioEffectManager(private val audioSessionId: Int) {
     private var equalizer: Equalizer? = null
     private var bassBoost: BassBoost? = null
     private var virtualizer: Virtualizer? = null
+    private var presetReverb: PresetReverb? = null
 
     // Current settings state
     private val _currentSettings = MutableStateFlow(EqualizerSettings.DEFAULT)
@@ -69,6 +72,12 @@ class AudioEffectManager(private val audioSessionId: Int) {
             virtualizer = Virtualizer(0, audioSessionId).apply {
                 enabled = false
                 DevLogger.d(TAG, "Virtualizer initialized")
+            }
+
+            // Create PresetReverb
+            presetReverb = PresetReverb(0, audioSessionId).apply {
+                enabled = false
+                DevLogger.d(TAG, "PresetReverb initialized")
             }
 
             true
@@ -108,6 +117,68 @@ class AudioEffectManager(private val audioSessionId: Int) {
             }
         } catch (e: Exception) {
             DevLogger.e(TAG, "Failed to apply settings", e)
+        }
+    }
+
+    /**
+     * Apply per-song audio settings (EQ, reverb, effects).
+     * Called when a new song starts playing to apply its saved audio settings.
+     *
+     * @param settings Per-song audio settings
+     */
+    fun applyPerSongSettings(settings: SongAudioSettings) {
+        try {
+            DevLogger.d(TAG, "Applying per-song settings for song ${settings.songId}")
+
+            if (!settings.isEnabled) {
+                resetToDefaults()
+                return
+            }
+
+            // Apply EQ if enabled
+            if (settings.eqEnabled) {
+                val eqSettings = EqualizerSettings(
+                    isEnabled = true,
+                    bandLevels = listOf(
+                        settings.band60Hz,
+                        settings.band230Hz,
+                        settings.band910Hz,
+                        settings.band3600Hz,
+                        settings.band14000Hz
+                    ),
+                    bassBoost = settings.bassBoost,
+                    virtualizerStrength = settings.virtualizerStrength
+                )
+                applySettings(eqSettings)
+            }
+
+            // Apply reverb preset
+            if (settings.reverbPreset != PresetReverb.PRESET_NONE.toShort()) {
+                presetReverb?.let {
+                    it.preset = settings.reverbPreset
+                    it.enabled = true
+                    DevLogger.d(TAG, "Applied reverb preset: ${settings.reverbPreset}")
+                }
+            }
+        } catch (e: Exception) {
+            DevLogger.e(TAG, "Failed to apply per-song settings", e)
+        }
+    }
+
+    /**
+     * Reset all audio effects to defaults (disabled state).
+     * Called when switching songs or when per-song settings are disabled.
+     */
+    fun resetToDefaults() {
+        try {
+            DevLogger.d(TAG, "Resetting audio effects to defaults")
+            equalizer?.enabled = false
+            bassBoost?.enabled = false
+            virtualizer?.enabled = false
+            presetReverb?.enabled = false
+            presetReverb?.preset = PresetReverb.PRESET_NONE
+        } catch (e: Exception) {
+            DevLogger.e(TAG, "Failed to reset audio effects", e)
         }
     }
 
@@ -183,9 +254,11 @@ class AudioEffectManager(private val audioSessionId: Int) {
             equalizer?.release()
             bassBoost?.release()
             virtualizer?.release()
+            presetReverb?.release()
             equalizer = null
             bassBoost = null
             virtualizer = null
+            presetReverb = null
         } catch (e: Exception) {
             DevLogger.e(TAG, "Failed to release audio effects", e)
         }

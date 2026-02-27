@@ -27,8 +27,11 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
+import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.domain.model.Folder
 import com.sukoon.music.domain.model.FolderItem
 import com.sukoon.music.domain.model.Playlist
@@ -60,6 +63,8 @@ fun FolderDetailScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: FolderDetailViewModel = hiltViewModel()
 ) {
     // Load folder data (hierarchical or flat mode)
@@ -76,12 +81,14 @@ fun FolderDetailScreen(
     val folderItems by viewModel.folderItems.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val parentFolderPath by viewModel.parentFolderPath.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
 
     // Dialog states
     var songForInfo by remember { mutableStateOf<Song?>(null) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val shareHandler = rememberShareHandler()
@@ -100,6 +107,13 @@ fun FolderDetailScreen(
             songForInfo = song
         },
         onShowDeleteConfirmation = { song -> songToDelete = song },
+        onShowEditAudio = { song ->
+            if (isPremium) {
+                navController?.navigate("audio_editor/${song.id}")
+            } else {
+                showPremiumDialog = true
+            }
+        },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)
         },
@@ -242,6 +256,20 @@ fun FolderDetailScreen(
                 }
             },
             onDismiss = { songToDelete = null }
+        )
+    }
+
+    // Premium Dialog
+    if (showPremiumDialog) {
+        AlertDialog(
+            onDismissRequest = { showPremiumDialog = false },
+            title = { Text("Premium Feature") },
+            text = { Text("Edit Audio is a premium feature. Upgrade to premium to unlock this feature.") },
+            confirmButton = {
+                Button(onClick = { showPremiumDialog = false }) {
+                    Text("OK")
+                }
+            }
         )
     }
 }

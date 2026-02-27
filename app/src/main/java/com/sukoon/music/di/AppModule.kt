@@ -16,8 +16,10 @@ import com.sukoon.music.data.local.dao.RecentlyPlayedAlbumDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedArtistDao
 import com.sukoon.music.data.local.dao.RecentlyPlayedDao
 import com.sukoon.music.data.local.dao.SearchHistoryDao
+import com.sukoon.music.data.local.dao.SongAudioSettingsDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.remote.LyricsApi
+import com.sukoon.music.data.repository.AudioEditorRepositoryImpl
 import com.sukoon.music.data.repository.AudioEffectRepositoryImpl
 import com.sukoon.music.data.repository.FeedbackRepositoryImpl
 import com.sukoon.music.data.repository.PlaybackRepositoryImpl
@@ -26,6 +28,7 @@ import com.sukoon.music.data.repository.SearchHistoryRepositoryImpl
 import com.sukoon.music.data.repository.SongRepositoryImpl
 import com.sukoon.music.data.service.AlbumArtLoader
 import com.sukoon.music.data.source.MediaStoreScanner
+import com.sukoon.music.domain.repository.AudioEditorRepository
 import com.sukoon.music.domain.repository.AudioEffectRepository
 import com.sukoon.music.domain.repository.FeedbackRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
@@ -88,7 +91,8 @@ object AppModule {
             SukoonDatabase.MIGRATION_13_14,
             SukoonDatabase.MIGRATION_14_15,
             SukoonDatabase.MIGRATION_15_16,
-            SukoonDatabase.MIGRATION_16_17
+            SukoonDatabase.MIGRATION_16_17,
+            SukoonDatabase.MIGRATION_17_18
         )
         // Only allow destructive migration from pre-launch version 1 (no migration path exists for 1→2)
         // Versions 2+ have explicit migration paths via .addMigrations() above
@@ -143,6 +147,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideListeningStatsDao(database: SukoonDatabase) = database.listeningStatsDao()
+
+    @Provides
+    @Singleton
+    fun provideSongAudioSettingsDao(database: SukoonDatabase) = database.songAudioSettingsDao()
 
     @Provides
     @Singleton
@@ -354,6 +362,14 @@ object AppModule {
         equalizerPresetDao: EqualizerPresetDao
     ): AudioEffectRepository {
         return AudioEffectRepositoryImpl(preferencesManager, equalizerPresetDao)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAudioEditorRepository(
+        songAudioSettingsDao: SongAudioSettingsDao
+    ): AudioEditorRepository {
+        return AudioEditorRepositoryImpl(songAudioSettingsDao)
     }
 
     @Provides

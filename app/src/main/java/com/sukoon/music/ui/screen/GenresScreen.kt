@@ -65,7 +65,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.ui.components.AddToPlaylistDialog
 import com.sukoon.music.ui.components.AlphabetScrollBar
@@ -89,6 +91,8 @@ fun GenresScreen(
     onNavigateToGenre: (Long) -> Unit,
     onBackClick: () -> Unit,
     onNavigateToGenreSelection: () -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: GenresViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {

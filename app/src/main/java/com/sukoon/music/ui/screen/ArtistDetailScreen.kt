@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.activity.ComponentActivity
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -57,6 +58,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -72,9 +74,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.AddToPlaylistDialog
@@ -96,6 +100,8 @@ import com.sukoon.music.ui.viewmodel.ArtistDetailViewModel
 import com.sukoon.music.ui.viewmodel.ArtistSongSortMode
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -104,6 +110,8 @@ fun ArtistDetailScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: ArtistDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -114,6 +122,7 @@ fun ArtistDetailScreen(
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
 
     var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
@@ -124,8 +133,10 @@ fun ArtistDetailScreen(
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val tag = "ArtistDetailScreen"
+    val coroutineScope = rememberCoroutineScope()
 
     val preferencesManager = remember(context) {
         runCatching {
@@ -160,6 +171,13 @@ fun ArtistDetailScreen(
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
+        },
+        onShowEditAudio = { song ->
+            if (isPremium) {
+                navController?.navigate("audio_editor/${song.id}")
+            } else {
+                showPremiumDialog = true
+            }
         },
         onToggleLike = { id, isLiked -> viewModel.toggleLike(id, isLiked) },
         onShare = shareHandler
@@ -442,6 +460,27 @@ fun ArtistDetailScreen(
             onModeSelect = { mode ->
                 viewModel.setSortMode(mode)
                 showSortDialog = false
+            }
+        )
+    }
+
+    if (showPremiumDialog) {
+        PremiumDialog(
+            priceText = androidx.compose.ui.res.stringResource(R.string.settings_screen_premium_price_text),
+            onDismiss = {
+                showPremiumDialog = false
+                premiumManager?.resetBillingState()
+            },
+            onPurchase = {
+                val activity = context as? ComponentActivity
+                if (activity != null && premiumManager != null) {
+                    coroutineScope.launch { premiumManager.purchasePremium(activity) }
+                }
+            },
+            onRestore = {
+                if (premiumManager != null) {
+                    coroutineScope.launch { premiumManager.restorePurchases() }
+                }
             }
         )
     }

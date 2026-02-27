@@ -150,11 +150,6 @@ class MainActivity : ComponentActivity() {
                     logMinVersionBlockShown(installedVersionCode, requiredVersionCode)
                 }
 
-                if (BuildConfig.DEBUG) {
-                    // Uncomment ONE line to test specific state:
-                    // preferencesManager.setIsPremiumUser(true)   // Test as PREMIUM
-                    // preferencesManager.setIsPremiumUser(false)  // Test as NON-PREMIUM
-                }
 
                 preferencesManager.incrementAppLaunchCount()
 

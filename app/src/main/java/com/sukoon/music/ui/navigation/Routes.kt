@@ -101,6 +101,14 @@ sealed class Routes(val route: String) {
     data object Equalizer : Routes("equalizer")
 
     /**
+     * Audio Editor screen - Per-song trim/effects/playback settings.
+     * Requires songId parameter.
+     */
+    data object AudioEditor : Routes("audio_editor/{songId}") {
+        fun createRoute(songId: Long) = "audio_editor/$songId"
+    }
+
+    /**
      * Albums screen - Shows all albums grouped from song library.
      */
     data object Albums : Routes("albums")

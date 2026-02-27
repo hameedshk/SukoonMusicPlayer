@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -40,14 +41,18 @@ import androidx.activity.result.contract.ActivityResultContracts
 import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 /**
  * Playlist Detail Screen - Shows songs in a specific playlist.
@@ -60,6 +65,8 @@ fun PlaylistDetailScreen(
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
     onBackClick: () -> Unit,
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: PlaylistViewModel = hiltViewModel()
 ) {
     // Load playlist data
@@ -124,6 +131,8 @@ fun PlaylistDetailScreen(
                 },
                 onNavigateToAlbum = onNavigateToAlbum,
                 onNavigateToArtist = onNavigateToArtist,
+                navController = navController,
+                premiumManager = premiumManager,
                 modifier = Modifier.padding(paddingValues),
                 viewModel = viewModel
             )
@@ -160,6 +169,8 @@ private fun PlaylistDetailContent(
     onRemoveSong: (Song) -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     modifier: Modifier = Modifier,
     viewModel: PlaylistViewModel
 ) {
@@ -170,7 +181,10 @@ private fun PlaylistDetailContent(
     var songForInfo by remember { mutableStateOf<Song?>(null) }
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
 
     // Delete result launcher
     val deleteLauncher = rememberLauncherForActivityResult(
@@ -198,6 +212,13 @@ private fun PlaylistDetailContent(
             showAddToPlaylistDialog = true
         },
         onShowSongInfo = { song -> songForInfo = song },
+        onShowEditAudio = { song ->
+            if (isPremium) {
+                navController?.navigate("audio_editor/${song.id}")
+            } else {
+                showPremiumDialog = true
+            }
+        },
         onShowDeleteConfirmation = { song ->
             if (!isDeleting) songToDelete = song
         },
@@ -318,6 +339,27 @@ private fun PlaylistDetailContent(
             onDismiss = {
                 showAddToPlaylistDialog = false
                 songToAddToPlaylist = null
+            }
+        )
+    }
+
+    if (showPremiumDialog) {
+        PremiumDialog(
+            priceText = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.settings_screen_premium_price_text),
+            onDismiss = {
+                showPremiumDialog = false
+                premiumManager?.resetBillingState()
+            },
+            onPurchase = {
+                val activity = context as? ComponentActivity
+                if (activity != null && premiumManager != null) {
+                    coroutineScope.launch { premiumManager.purchasePremium(activity) }
+                }
+            },
+            onRestore = {
+                if (premiumManager != null) {
+                    coroutineScope.launch { premiumManager.restorePurchases() }
+                }
             }
         )
     }

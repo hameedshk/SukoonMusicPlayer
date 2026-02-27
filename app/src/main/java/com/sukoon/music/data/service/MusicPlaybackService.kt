@@ -58,6 +58,9 @@ class MusicPlaybackService : MediaSessionService() {
     lateinit var preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
 
     @Inject
+    lateinit var songAudioSettingsDao: com.sukoon.music.data.local.dao.SongAudioSettingsDao
+
+    @Inject
     @ApplicationScope
     lateinit var scope: CoroutineScope
     private var notificationManager: PlayerNotificationManager? = null
@@ -710,7 +713,7 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     /**
-     * Player listener to trigger crossfade animation on media item transitions.
+     * Player listener to trigger crossfade animation and apply per-song settings on media item transitions.
      */
     private val crossfadeListener = object : Player.Listener {
         override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
@@ -718,6 +721,28 @@ class MusicPlaybackService : MediaSessionService() {
             // Skip only on explicit playlist changes or unknown reasons
             if (reason in 0..2) {
                 crossfadeManager?.applyCrossfade(currentCrossfadeDurationMs)
+            }
+
+            // Load and apply per-song audio settings
+            serviceScope.launch {
+                try {
+                    val songId = mediaItem?.mediaId?.toLongOrNull() ?: return@launch
+                    val perSongSettings = songAudioSettingsDao.getSettings(songId)
+                    if (perSongSettings != null && perSongSettings.isEnabled) {
+                        audioEffectManager?.applyPerSongSettings(perSongSettings.toDomain())
+                        player.playbackParameters = androidx.media3.common.PlaybackParameters(
+                            perSongSettings.speed,
+                            perSongSettings.pitch
+                        )
+                        DevLogger.d("MusicPlaybackService", "Applied per-song settings for song $songId")
+                    } else {
+                        // Revert to global EQ
+                        audioEffectManager?.resetToDefaults()
+                        player.playbackParameters = androidx.media3.common.PlaybackParameters(1.0f, 1.0f)
+                    }
+                } catch (e: Exception) {
+                    DevLogger.e("MusicPlaybackService", "Failed to apply per-song settings", e)
+                }
             }
         }
     }
@@ -1112,4 +1137,28 @@ class MusicPlaybackService : MediaSessionService() {
 
         super.onDestroy()
     }
+}
+
+/**
+ * Extension function to convert SongAudioSettingsEntity to domain model.
+ */
+private fun com.sukoon.music.data.local.entity.SongAudioSettingsEntity.toDomain(): com.sukoon.music.domain.model.SongAudioSettings {
+    return com.sukoon.music.domain.model.SongAudioSettings(
+        songId = songId,
+        isEnabled = isEnabled,
+        trimStartMs = trimStartMs,
+        trimEndMs = trimEndMs,
+        eqEnabled = eqEnabled,
+        band60Hz = band60Hz,
+        band230Hz = band230Hz,
+        band910Hz = band910Hz,
+        band3600Hz = band3600Hz,
+        band14000Hz = band14000Hz,
+        bassBoost = bassBoost,
+        virtualizerStrength = virtualizerStrength,
+        reverbPreset = reverbPreset,
+        pitch = pitch,
+        speed = speed,
+        updatedAt = updatedAt
+    )
 }

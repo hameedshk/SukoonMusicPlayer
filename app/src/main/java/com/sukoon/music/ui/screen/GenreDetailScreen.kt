@@ -69,8 +69,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavController
 import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
+import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.domain.model.Genre
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.AddToPlaylistDialog
@@ -102,6 +105,8 @@ fun GenreDetailScreen(
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    navController: NavController? = null,
+    premiumManager: PremiumManager? = null,
     viewModel: GenreDetailViewModel = hiltViewModel(),
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -116,6 +121,7 @@ fun GenreDetailScreen(
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
 
     var songToDelete by remember { mutableStateOf<Song?>(null) }
     var showSongInfo by remember { mutableStateOf<Song?>(null) }
@@ -125,6 +131,7 @@ fun GenreDetailScreen(
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val tag = "GenreDetailScreen"
@@ -181,6 +188,13 @@ fun GenreDetailScreen(
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
+        },
+        onShowEditAudio = { song ->
+            if (isPremium) {
+                navController?.navigate("audio_editor/${song.id}")
+            } else {
+                showPremiumDialog = true
+            }
         },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
@@ -447,6 +461,20 @@ fun GenreDetailScreen(
             onModeSelect = { mode ->
                 viewModel.setSortMode(mode)
                 showSortDialog = false
+            }
+        )
+    }
+
+    // Premium Dialog
+    if (showPremiumDialog) {
+        AlertDialog(
+            onDismissRequest = { showPremiumDialog = false },
+            title = { Text("Premium Feature") },
+            text = { Text("Edit Audio is a premium feature. Upgrade to premium to unlock this feature.") },
+            confirmButton = {
+                Button(onClick = { showPremiumDialog = false }) {
+                    Text("OK")
+                }
             }
         )
     }

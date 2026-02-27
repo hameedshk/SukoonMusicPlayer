@@ -1,5 +1,6 @@
 package com.sukoon.music.ui.screen
 
+import androidx.activity.ComponentActivity
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,6 +37,7 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Song
@@ -60,6 +62,8 @@ import com.sukoon.music.ui.util.buildAlbumHeaderModel
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.viewmodel.AlbumDetailViewModel
 import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 /**
  * Album Detail Screen - Shows songs in a specific album.
@@ -72,6 +76,7 @@ fun AlbumDetailScreen(
     navController: NavController,
     onNavigateToNowPlaying: () -> Unit,
     onNavigateToArtist: (Long) -> Unit = {},
+    premiumManager: PremiumManager? = null,
     viewModel: AlbumDetailViewModel = hiltViewModel()
 ) {
     // Load album data
@@ -85,6 +90,7 @@ fun AlbumDetailScreen(
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val isSelectionMode by viewModel.isSelectionMode.collectAsStateWithLifecycle()
     val selectedSongIds by viewModel.selectedSongIds.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
 
     var showSortDialog by remember { mutableStateOf(false) }
     var songForInfo by remember { mutableStateOf<Song?>(null) }
@@ -94,8 +100,10 @@ fun AlbumDetailScreen(
     var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
+    var showPremiumDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val tag = "AlbumDetailScreen"
+    val coroutineScope = rememberCoroutineScope()
     val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
@@ -167,6 +175,13 @@ fun AlbumDetailScreen(
         },
         onShowDeleteConfirmation = { song ->
             songPendingDeletion = song
+        },
+        onShowEditAudio = { song ->
+            if (isPremium) {
+                navController.navigate("audio_editor/${song.id}")
+            } else {
+                showPremiumDialog = true
+            }
         },
         onToggleLike = { songId, isLiked ->
             viewModel.toggleLike(songId, isLiked)
@@ -399,6 +414,27 @@ fun AlbumDetailScreen(
                 }
             },
             onDismiss = { songPendingDeletion = null }
+        )
+    }
+
+    if (showPremiumDialog) {
+        PremiumDialog(
+            priceText = androidx.compose.ui.res.stringResource(R.string.settings_screen_premium_price_text),
+            onDismiss = {
+                showPremiumDialog = false
+                premiumManager?.resetBillingState()
+            },
+            onPurchase = {
+                val activity = context as? ComponentActivity
+                if (activity != null && premiumManager != null) {
+                    coroutineScope.launch { premiumManager.purchasePremium(activity) }
+                }
+            },
+            onRestore = {
+                if (premiumManager != null) {
+                    coroutineScope.launch { premiumManager.restorePurchases() }
+                }
+            }
         )
     }
 }
