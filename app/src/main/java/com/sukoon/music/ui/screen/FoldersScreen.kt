@@ -96,6 +96,7 @@ fun FoldersScreen(
 
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
     val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
 
     var folderToDelete by remember { mutableStateOf<Long?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
@@ -215,7 +216,7 @@ fun FoldersScreen(
                     },
                     onShowDeleteConfirmation = { song -> songToDelete = song },
                     onShowEditAudio = { song ->
-                        if (isPremium) {
+                        if (isPremiumState.value) {
                             navController?.navigate("audio_editor/${song.id}")
                         } else {
                             navController?.navigate(Routes.Settings.createRoute(openPremiumDialog = true))

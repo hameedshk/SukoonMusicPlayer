@@ -36,6 +36,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -99,6 +100,7 @@ fun SongsScreen(
     val showInfoForSong by songsViewModel.showInfoForSong.collectAsStateWithLifecycle()
     val deleteError by songsViewModel.deleteError.collectAsStateWithLifecycle()
     val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
     val context = LocalContext.current
 
     DisposableEffect(Unit) {
@@ -157,7 +159,7 @@ fun SongsScreen(
         onShowSongInfo = { song -> songsViewModel.showSongInfo(song) },
         onShowDeleteConfirmation = { song -> songsViewModel.showDeleteConfirmation(song) },
         onShowEditAudio = { song ->
-            if (isPremium) {
+            if (isPremiumState.value) {
                 navController?.navigate("audio_editor/${song.id}")
             } else {
                 if (navController != null) {

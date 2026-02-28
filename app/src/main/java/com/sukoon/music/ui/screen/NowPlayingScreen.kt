@@ -313,6 +313,7 @@ fun NowPlayingScreen(
     onNavigateToQueue: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToEqualizer: () -> Unit = {},
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
@@ -430,6 +431,7 @@ fun NowPlayingScreen(
                         onNavigateToQueue = onNavigateToQueue,
                         onNavigateToAlbum = onNavigateToAlbum,
                         onNavigateToArtist = onNavigateToArtist,
+                        onNavigateToEqualizer = onNavigateToEqualizer,
                         viewModel = viewModel
                     )
                 } else {
@@ -537,6 +539,7 @@ private fun NowPlayingContent(
     onNavigateToQueue: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
+    onNavigateToEqualizer: () -> Unit = {},
     viewModel: HomeViewModel,
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -793,6 +796,7 @@ private fun NowPlayingContent(
                         onQueueClick = { showQueueModal = true },
                         onAddToPlaylistClick = { showPlaylistDialog = true },
                         onTimerClick = { showSleepTimerDialog = true },
+                        onEqualizerClick = onNavigateToEqualizer,
                         isTimerActive = isSleepTimerActive,
                         horizontalPadding = spacingSpec.secondaryHorizontalPadding,
                         verticalPadding = spacingSpec.secondaryVerticalPadding
@@ -1867,6 +1871,7 @@ private fun SecondaryActionsSection(
     onQueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
     onTimerClick: () -> Unit,
+    onEqualizerClick: () -> Unit,
     isTimerActive: Boolean,
     horizontalPadding: Dp = 20.dp,
     verticalPadding: Dp = 6.dp
@@ -1956,6 +1961,22 @@ private fun SecondaryActionsSection(
                 imageVector = Icons.Default.Timer,
                 contentDescription = stringResource(R.string.dialog_sleep_timer_title),
                 tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
+
+        // 6. Equalizer
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onEqualizerClick()
+            },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Equalizer,
+                contentDescription = stringResource(R.string.label_equalizer),
+                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                 modifier = Modifier.size(24.dp)
             )
         }

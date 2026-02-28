@@ -185,7 +185,7 @@ fun EqualizerScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(260.dp),
+                    .height(340.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // dB scale column

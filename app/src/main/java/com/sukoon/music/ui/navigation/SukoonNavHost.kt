@@ -139,6 +139,11 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
+                },
+                onNavigateToEqualizer = {
+                    navController.navigate(Routes.Equalizer.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
