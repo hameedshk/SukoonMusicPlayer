@@ -320,6 +320,7 @@ class MusicPlaybackService : MediaSessionService() {
             // Synchronize setting the manager to prevent races with flow collector
             synchronized(audioEffectLock) {
                 audioEffectManager = manager
+                DevLogger.d("MusicPlaybackService", "AudioEffectManager initialized successfully with session ID: $audioSessionId")
             }
 
             // Start flow collection only once (survives session ID changes via audioEffectManager ref update)
@@ -331,7 +332,13 @@ class MusicPlaybackService : MediaSessionService() {
                         preferencesManager.equalizerSettingsFlow.collect { settings ->
                             // Synchronize manager read to ensure we don't read a manager being released
                             synchronized(audioEffectLock) {
-                                audioEffectManager?.applySettings(settings)
+                                val manager = audioEffectManager
+                                if (manager != null) {
+                                    manager.applySettings(settings)
+                                    DevLogger.d("MusicPlaybackService", "EQ settings applied: enabled=${settings.isEnabled}")
+                                } else {
+                                    DevLogger.w("MusicPlaybackService", "Cannot apply EQ settings: audioEffectManager is null")
+                                }
                             }
                         }
                     }
@@ -706,6 +713,8 @@ class MusicPlaybackService : MediaSessionService() {
                 synchronized(audioEffectLock) {
                     audioEffectManager?.release()
                     audioEffectManager = null
+                    // Reset flag to allow flow collector to restart with new manager
+                    equalizerFlowStarted = false
                 }
                 initializeAudioEffects()
             }
