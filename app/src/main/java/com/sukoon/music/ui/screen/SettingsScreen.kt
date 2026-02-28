@@ -117,7 +117,7 @@ fun SettingsScreen(
                 AnalyticsEntryPoint::class.java
             ).analyticsTracker()
         }.onFailure { error ->
-            android.util.Log.e("SettingsScreen", "Failed to initialize analytics tracker", error)
+            com.sukoon.music.util.DevLogger.e("SettingsScreen", "Failed to initialize analytics tracker", error)
         }.getOrNull()
     }
     val coroutineScope = rememberCoroutineScope()

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.support.v4.media.MediaBrowserCompat
 import android.support.v4.media.MediaDescriptionCompat
 import androidx.media.MediaBrowserServiceCompat
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaSession
 import com.sukoon.music.data.browsertree.BrowseTree
 import com.sukoon.music.util.DevLogger
@@ -21,6 +22,7 @@ import javax.inject.Inject
  * MediaBrowserService for Android Auto integration.
  * Provides app discovery and playback control for Android Auto.
  */
+@UnstableApi
 @AndroidEntryPoint
 class AndroidAutoMediaBrowserService : MediaBrowserServiceCompat() {
 

@@ -3,11 +3,13 @@ package com.sukoon.music.data.browsertree
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.Album
 import com.sukoon.music.domain.model.Artist
 import com.sukoon.music.domain.model.Playlist
 
+@UnstableApi
 fun Song.toMediaItem(): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(title)
@@ -26,6 +28,7 @@ fun Song.toMediaItem(): MediaItem {
         .build()
 }
 
+@UnstableApi
 fun Album.toMediaItem(withUri: Boolean = false): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(title)
@@ -42,6 +45,7 @@ fun Album.toMediaItem(withUri: Boolean = false): MediaItem {
         .build()
 }
 
+@UnstableApi
 fun Artist.toMediaItem(): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(name)
@@ -56,6 +60,7 @@ fun Artist.toMediaItem(): MediaItem {
         .build()
 }
 
+@UnstableApi
 fun Playlist.toMediaItem(): MediaItem {
     val metadata = MediaMetadata.Builder()
         .setTitle(name)

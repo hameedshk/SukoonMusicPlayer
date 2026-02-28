@@ -65,7 +65,7 @@ class RemoteConfigManager @Inject constructor(
             // Setup real-time listener for config updates
             setupConfigUpdateListener()
 
-            DevLogger.d(tag, "RemoteConfig initialized successfully")
+            DevLogger.i(tag, "RemoteConfig initialized")
         } catch (e: Exception) {
             DevLogger.e(tag, "Failed to initialize RemoteConfig", e)
             // Continue with cached values or defaults
@@ -78,7 +78,6 @@ class RemoteConfigManager @Inject constructor(
     private suspend fun fetchAndCacheConfig() {
         try {
             remoteConfig.fetchAndActivate().await()
-            DevLogger.d(tag, "Remote Config fetched and activated")
             updateState()
             saveConfigToCache()
         } catch (e: Exception) {
@@ -98,10 +97,8 @@ class RemoteConfigManager @Inject constructor(
                 adsEnabledForPremiumUsers = prefs[ADS_ENABLED_PREMIUM] ?: false,
                 adsPlacementHomeScreen = prefs[ADS_PLACEMENT_HOME] ?: true,
                 adsPlacementNowPlaying = prefs[ADS_PLACEMENT_NOWPLAY] ?: false,
-                bannerAdUnitId = prefs[BANNER_AD_UNIT]
-                    ?: "ca-app-pub-3940256099942544/6300978111",
-                nativeAdUnitId = prefs[NATIVE_AD_UNIT]
-                    ?: "ca-app-pub-3940256099942544/2247696110",
+                bannerAdUnitId = prefs[BANNER_AD_UNIT] ?: "",
+                nativeAdUnitId = prefs[NATIVE_AD_UNIT] ?: "",
                 lastFetchTimestamp = prefs[LAST_FETCH_TIME] ?: 0
             )
             _state.value = newState
@@ -124,7 +121,7 @@ class RemoteConfigManager @Inject constructor(
             lastFetchTimestamp = System.currentTimeMillis()
         )
         _state.value = newState
-        DevLogger.d(tag, "Remote Config state updated: $newState")
+        DevLogger.i(tag, "Remote Config state updated")
     }
 
     /**
@@ -142,7 +139,6 @@ class RemoteConfigManager @Inject constructor(
                 prefs[NATIVE_AD_UNIT] = current.nativeAdUnitId
                 prefs[LAST_FETCH_TIME] = current.lastFetchTimestamp
             }
-            DevLogger.d(tag, "Remote Config cached to DataStore")
         } catch (e: Exception) {
             DevLogger.e(tag, "Failed to save config to cache", e)
         }
@@ -156,7 +152,6 @@ class RemoteConfigManager @Inject constructor(
         try {
             // This requires Firebase Remote Config with real-time updates support
             // Currently using fetch + activate pattern which is compatible with all versions
-            DevLogger.d(tag, "Real-time config listener not configured (using periodic fetch instead)")
         } catch (e: Exception) {
             DevLogger.e(tag, "Error setting up config listener", e)
         }
@@ -164,6 +159,8 @@ class RemoteConfigManager @Inject constructor(
 
     /**
      * Get default Remote Config values (used on first install or if Firebase is down).
+     * WARNING: Ad unit IDs MUST be configured via Firebase Remote Config in production.
+     * Empty defaults force configuration before ads can run, preventing accidental test ad deployment.
      */
     private fun getDefaultConfigMap(): Map<String, Any> {
         return mapOf(
@@ -171,8 +168,8 @@ class RemoteConfigManager @Inject constructor(
             "ads_enabled_premium_users" to false,
             "ads_placement_home_screen" to true,
             "ads_placement_now_playing" to false,
-            "ads_banner_unit_id" to "ca-app-pub-3940256099942544/6300978111",
-            "ads_native_unit_id" to "ca-app-pub-3940256099942544/2247696110"
+            "ads_banner_unit_id" to "",
+            "ads_native_unit_id" to ""
         )
     }
 

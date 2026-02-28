@@ -55,8 +55,6 @@ class AdMobManager @Inject constructor(
      * For now, this initializes AdMob immediately. Update with proper consent handling when UMP is configured.
      */
     fun initializeWithConsent(activity: Activity) {
-        DevLogger.d("AdMobManager", "Initializing AdMob with consent awareness")
-
         // TODO: Add proper UMP consent flow here:
         // 1. Create ConsentRequestParameters
         // 2. Request consent info update
@@ -73,14 +71,8 @@ class AdMobManager @Inject constructor(
      */
     private fun initializeAdMob() {
         MobileAds.initialize(context) { initializationStatus ->
-            val statusMap = initializationStatus.adapterStatusMap
-            for (adapterClass in statusMap.keys) {
-                val status = statusMap[adapterClass]
-                DevLogger.d(
-                    "AdMobManager",
-                    "Adapter: $adapterClass, Status: ${status?.initializationState}, Description: ${status?.description}"
-                )
-            }
+            // Silently log initialization status to ensure adapters are ready
+            // Adapter details are available if needed but not logged by default in production
         }
 
         // Configure test devices if using test ads

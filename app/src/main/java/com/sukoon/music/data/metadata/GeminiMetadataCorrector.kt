@@ -106,6 +106,20 @@ class GeminiMetadataCorrector @Inject constructor(
         title: String,
         album: String?
     ): String {
+        // Escape JSON special characters in metadata strings
+        fun escapeJsonString(value: String): String {
+            return value
+                .replace("\\", "\\\\")  // Backslash must be escaped first
+                .replace("\"", "\\\"")   // Escape quotes
+                .replace("\n", "\\n")    // Escape newlines
+                .replace("\r", "\\r")    // Escape carriage returns
+                .replace("\t", "\\t")    // Escape tabs
+        }
+
+        val escapedArtist = escapeJsonString(artist)
+        val escapedTitle = escapeJsonString(title)
+        val albumJson = album?.let { "\"${escapeJsonString(it)}\"" } ?: "null"
+
         return """
         Task: Normalize music metadata.
 
@@ -127,9 +141,9 @@ class GeminiMetadataCorrector @Inject constructor(
 
         Original metadata:
         {
-          "artist": "$artist",
-          "title": "$title",
-          "album": ${album?.let { "\"$it\"" } ?: "null"}
+          "artist": "$escapedArtist",
+          "title": "$escapedTitle",
+          "album": $albumJson
         }
     """.trimIndent()
     }
@@ -151,7 +165,6 @@ class GeminiMetadataCorrector @Inject constructor(
             DevLogger.d(tag, "Gemini returned empty response")
             return null
         }
-        DevLogger.d(tag, "RAW Gemini response:\n$text")
 
         val correctedArtist = extractField("ARTIST", text)
         val correctedTitle = extractField("TITLE", text)
@@ -174,7 +187,8 @@ class GeminiMetadataCorrector @Inject constructor(
         }
 
         // Validation: Check for lyrics generation (forbidden)
-        if (text.contains("[0") || text.contains(":") && text.length > 200) {
+        // Only flag as lyrics if BOTH conditions are true: contains LRC timestamp marker AND is very long
+        if (text.contains("[0") && text.length > 200) {
             DevLogger.w(tag, "Gemini appears to have generated lyrics - rejecting")
             return null
         }
@@ -192,5 +206,5 @@ private fun extractField(label: String, text: String): String? {
     val regex = Regex(
         pattern = "(?im)^\\s*\\*{0,2}$label\\*{0,2}\\s*[:\\-]\\s*(.+?)\\s*$"
     )
-    return regex.find(text)?.groupValues?.get(1)?.trim()
+    return regex.find(text)?.groupValues?.getOrNull(1)?.trim()
 }

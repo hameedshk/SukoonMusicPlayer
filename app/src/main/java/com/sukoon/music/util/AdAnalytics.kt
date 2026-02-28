@@ -24,7 +24,6 @@ object AdAnalytics {
             param("placement", placement.take(100))
             param("screen", screen.take(100))
         }
-        DevLogger.d(TAG, "Ad impression: $placement on $screen")
     }
 
     /**
@@ -37,7 +36,6 @@ object AdAnalytics {
         firebase.logEvent("ad_clicked") {
             param("placement", placement.take(100))
         }
-        DevLogger.d(TAG, "Ad clicked: $placement")
     }
 
     /**
@@ -52,7 +50,7 @@ object AdAnalytics {
             param("placement", placement.take(100))
             param("error_code", errorCode.toLong())
         }
-        DevLogger.d(TAG, "Ad failed: $placement (code: $errorCode)")
+        DevLogger.w(TAG, "Ad failed to load: $placement (code: $errorCode)")
     }
 
     /**
@@ -65,6 +63,5 @@ object AdAnalytics {
         firebase.logEvent("now_playing_ad_dismissed") {
             param("auto_dismiss", if (autoDismiss) 1L else 0L)
         }
-        DevLogger.d(TAG, "Now Playing ad dismissed (auto: $autoDismiss)")
     }
 }

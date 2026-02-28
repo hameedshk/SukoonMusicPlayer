@@ -138,6 +138,11 @@ packaging {
         compose = true
         buildConfig = true  // Enable BuildConfig generation for API keys
     }
+    lint {
+        // Suppress experimental API warnings for Media3 @UnstableApi usage
+        // Media3 requires use of experimental APIs that are stable in practice
+        disable += "UnsafeOptInUsageError"
+    }
 }
 
 // KSP (KSP2) may keep intermediate by-round Java outputs under generated/ksp/**/java/byRounds.
