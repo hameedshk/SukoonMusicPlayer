@@ -72,6 +72,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.data.premium.PremiumManager
 import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.domain.model.Genre
@@ -131,7 +132,6 @@ fun GenreDetailScreen(
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val tag = "GenreDetailScreen"
@@ -193,7 +193,7 @@ fun GenreDetailScreen(
             if (isPremium) {
                 navController?.navigate("audio_editor/${song.id}")
             } else {
-                showPremiumDialog = true
+                navController?.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
             }
         },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
@@ -461,20 +461,6 @@ fun GenreDetailScreen(
             onModeSelect = { mode ->
                 viewModel.setSortMode(mode)
                 showSortDialog = false
-            }
-        )
-    }
-
-    // Premium Dialog
-    if (showPremiumDialog) {
-        AlertDialog(
-            onDismissRequest = { showPremiumDialog = false },
-            title = { Text("Premium Feature") },
-            text = { Text("Edit Audio is a premium feature. Upgrade to premium to unlock this feature.") },
-            confirmButton = {
-                Button(onClick = { showPremiumDialog = false }) {
-                    Text("OK")
-                }
             }
         )
     }

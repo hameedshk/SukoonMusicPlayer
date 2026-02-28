@@ -1,6 +1,5 @@
 package com.sukoon.music.ui.screen
 
-import androidx.activity.ComponentActivity
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -36,6 +35,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.data.mediastore.DeleteHelper
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.AppTheme
@@ -100,10 +100,8 @@ fun AlbumDetailScreen(
     var showPlaylistDialogForSelection by remember { mutableStateOf(false) }
     var songsPendingPlaylistAdd by remember { mutableStateOf<List<Song>>(emptyList()) }
     var songsPendingDeletion by remember { mutableStateOf(false) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val tag = "AlbumDetailScreen"
-    val coroutineScope = rememberCoroutineScope()
     val playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
     val playlists by playlistViewModel.playlists.collectAsStateWithLifecycle()
 
@@ -180,7 +178,7 @@ fun AlbumDetailScreen(
             if (isPremium) {
                 navController.navigate("audio_editor/${song.id}")
             } else {
-                showPremiumDialog = true
+                navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
             }
         },
         onToggleLike = { songId, isLiked ->
@@ -414,27 +412,6 @@ fun AlbumDetailScreen(
                 }
             },
             onDismiss = { songPendingDeletion = null }
-        )
-    }
-
-    if (showPremiumDialog) {
-        PremiumDialog(
-            priceText = androidx.compose.ui.res.stringResource(R.string.settings_screen_premium_price_text),
-            onDismiss = {
-                showPremiumDialog = false
-                premiumManager?.resetBillingState()
-            },
-            onPurchase = {
-                val activity = context as? ComponentActivity
-                if (activity != null && premiumManager != null) {
-                    coroutineScope.launch { premiumManager.purchasePremium(activity) }
-                }
-            },
-            onRestore = {
-                if (premiumManager != null) {
-                    coroutineScope.launch { premiumManager.restorePurchases() }
-                }
-            }
         )
     }
 }

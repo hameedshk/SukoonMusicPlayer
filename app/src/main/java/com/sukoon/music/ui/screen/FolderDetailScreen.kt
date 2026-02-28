@@ -30,6 +30,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.data.premium.PremiumManager
 import kotlinx.coroutines.flow.flowOf
 import com.sukoon.music.domain.model.Folder
@@ -88,7 +89,6 @@ fun FolderDetailScreen(
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
     val shareHandler = rememberShareHandler()
@@ -111,7 +111,7 @@ fun FolderDetailScreen(
             if (isPremium) {
                 navController?.navigate("audio_editor/${song.id}")
             } else {
-                showPremiumDialog = true
+                navController?.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
             }
         },
         onToggleLike = { songId, isLiked ->
@@ -256,20 +256,6 @@ fun FolderDetailScreen(
                 }
             },
             onDismiss = { songToDelete = null }
-        )
-    }
-
-    // Premium Dialog
-    if (showPremiumDialog) {
-        AlertDialog(
-            onDismissRequest = { showPremiumDialog = false },
-            title = { Text("Premium Feature") },
-            text = { Text("Edit Audio is a premium feature. Upgrade to premium to unlock this feature.") },
-            confirmButton = {
-                Button(onClick = { showPremiumDialog = false }) {
-                    Text("OK")
-                }
-            }
         )
     }
 }

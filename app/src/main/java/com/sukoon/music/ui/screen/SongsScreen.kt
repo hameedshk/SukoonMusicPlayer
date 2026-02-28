@@ -1,6 +1,5 @@
 package com.sukoon.music.ui.screen
 
-import androidx.activity.ComponentActivity
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
@@ -49,6 +48,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.sukoon.music.R
 import com.sukoon.music.data.mediastore.DeleteHelper
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.AddToPlaylistDialog
@@ -79,6 +79,7 @@ fun SongsScreen(
     onBackClick: () -> Unit,
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
     navController: NavController? = null,
     premiumManager: PremiumManager? = null,
     homeViewModel: HomeViewModel = hiltViewModel(),
@@ -142,7 +143,6 @@ fun SongsScreen(
 
     var songToAddToPlaylist by remember { mutableStateOf<Song?>(null) }
     var showAddToPlaylistDialog by remember { mutableStateOf(false) }
-    var showPremiumDialog by remember { mutableStateOf(false) }
     val scrollState = rememberLazyListState()
     val scope = rememberCoroutineScope()
 
@@ -160,7 +160,11 @@ fun SongsScreen(
             if (isPremium) {
                 navController?.navigate("audio_editor/${song.id}")
             } else {
-                showPremiumDialog = true
+                if (navController != null) {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                } else {
+                    onNavigateToPremium()
+                }
             }
         },
         onToggleLike = { songId, isLiked -> homeViewModel.toggleLike(songId, isLiked) },
@@ -327,27 +331,6 @@ fun SongsScreen(
             onDismiss = {
                 showAddToPlaylistDialog = false
                 songToAddToPlaylist = null
-            }
-        )
-    }
-
-    if (showPremiumDialog) {
-        PremiumDialog(
-            priceText = stringResource(R.string.settings_screen_premium_price_text),
-            onDismiss = {
-                showPremiumDialog = false
-                premiumManager?.resetBillingState()
-            },
-            onPurchase = {
-                val activity = context as? ComponentActivity
-                if (activity != null && premiumManager != null) {
-                    scope.launch { premiumManager.purchasePremium(activity) }
-                }
-            },
-            onRestore = {
-                if (premiumManager != null) {
-                    scope.launch { premiumManager.restorePurchases() }
-                }
             }
         )
     }

@@ -312,6 +312,9 @@ fun SukoonNavHost(
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
                 },
+                onNavigateToPremium = {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                },
                 navController = navController,
                 premiumManager = premiumManager
             )

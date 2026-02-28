@@ -56,31 +56,55 @@ class AudioEffectManager(private val audioSessionId: Int) {
             DevLogger.d(TAG, "Initializing audio effects with session ID: $audioSessionId")
 
             // Create Equalizer (5-band)
-            equalizer = Equalizer(0, audioSessionId).apply {
-                enabled = false // Start disabled, enabled by user
-                _isEqualizerSupported.value = true
-                DevLogger.d(TAG, "Equalizer initialized: ${numberOfBands} bands")
+            try {
+                equalizer = Equalizer(0, audioSessionId).apply {
+                    enabled = false // Start disabled, enabled by user
+                    _isEqualizerSupported.value = true
+                    DevLogger.d(TAG, "Equalizer initialized: ${numberOfBands} bands")
+                }
+            } catch (e: Exception) {
+                DevLogger.e(TAG, "Failed to initialize Equalizer", e)
+                _isEqualizerSupported.value = false
             }
 
             // Create Bass Boost
-            bassBoost = BassBoost(0, audioSessionId).apply {
-                enabled = false
-                DevLogger.d(TAG, "Bass Boost initialized")
+            try {
+                bassBoost = BassBoost(0, audioSessionId).apply {
+                    enabled = false
+                    DevLogger.d(TAG, "Bass Boost initialized: strength range 0-1000")
+                }
+            } catch (e: Exception) {
+                DevLogger.e(TAG, "Failed to initialize Bass Boost", e)
             }
 
             // Create Virtualizer
-            virtualizer = Virtualizer(0, audioSessionId).apply {
-                enabled = false
-                DevLogger.d(TAG, "Virtualizer initialized")
+            try {
+                virtualizer = Virtualizer(0, audioSessionId).apply {
+                    enabled = false
+                    DevLogger.d(TAG, "Virtualizer initialized: strength range 0-1000")
+                }
+            } catch (e: Exception) {
+                DevLogger.e(TAG, "Failed to initialize Virtualizer", e)
             }
 
             // Create PresetReverb
-            presetReverb = PresetReverb(0, audioSessionId).apply {
-                enabled = false
-                DevLogger.d(TAG, "PresetReverb initialized")
+            try {
+                presetReverb = PresetReverb(0, audioSessionId).apply {
+                    enabled = false
+                    DevLogger.d(TAG, "PresetReverb initialized")
+                }
+            } catch (e: Exception) {
+                DevLogger.e(TAG, "Failed to initialize PresetReverb", e)
             }
 
-            true
+            // Success if at least Equalizer is initialized
+            val success = equalizer != null
+            if (success) {
+                DevLogger.d(TAG, "Audio effects initialized successfully")
+            } else {
+                DevLogger.e(TAG, "Audio effects initialization failed: no effects available")
+            }
+            success
         } catch (e: Exception) {
             DevLogger.e(TAG, "Failed to initialize audio effects", e)
             _isEqualizerSupported.value = false
@@ -163,6 +187,22 @@ class AudioEffectManager(private val audioSessionId: Int) {
         } catch (e: Exception) {
             DevLogger.e(TAG, "Failed to apply per-song settings", e)
         }
+    }
+
+    /**
+     * Verify that effects are properly attached and enabled.
+     * Useful for debugging why effects don't apply.
+     */
+    fun getEffectStatus(): String {
+        return """
+            |=== Audio Effect Status ===
+            |Equalizer: ${if (equalizer != null) "initialized (enabled=${equalizer?.enabled})" else "NULL"}
+            |BassBoost: ${if (bassBoost != null) "initialized (enabled=${bassBoost?.enabled})" else "NULL"}
+            |Virtualizer: ${if (virtualizer != null) "initialized (enabled=${virtualizer?.enabled})" else "NULL"}
+            |PresetReverb: ${if (presetReverb != null) "initialized (enabled=${presetReverb?.enabled})" else "NULL"}
+            |Current Settings: ${_currentSettings.value}
+            |========================
+        """.trimMargin()
     }
 
     /**

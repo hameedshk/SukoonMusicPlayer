@@ -329,13 +329,29 @@ class MusicPlaybackService : MediaSessionService() {
                 if (!equalizerFlowStarted) {
                     equalizerFlowStarted = true
                     scope.launch {
+                        // Load and apply current settings immediately (for real-time responsiveness)
+                        try {
+                            val currentSettings = preferencesManager.equalizerSettingsFlow.first()
+                            synchronized(audioEffectLock) {
+                                val mgr = audioEffectManager
+                                if (mgr != null) {
+                                    mgr.applySettings(currentSettings)
+                                    DevLogger.d("MusicPlaybackService", "Initial EQ settings applied: enabled=${currentSettings.isEnabled}")
+                                }
+                            }
+                        } catch (e: Exception) {
+                            DevLogger.e("MusicPlaybackService", "Failed to apply initial EQ settings", e)
+                        }
+
+                        // Observe subsequent changes from flow
                         preferencesManager.equalizerSettingsFlow.collect { settings ->
                             // Synchronize manager read to ensure we don't read a manager being released
                             synchronized(audioEffectLock) {
                                 val manager = audioEffectManager
                                 if (manager != null) {
                                     manager.applySettings(settings)
-                                    DevLogger.d("MusicPlaybackService", "EQ settings applied: enabled=${settings.isEnabled}")
+                                    DevLogger.d("MusicPlaybackService", "EQ settings applied: enabled=${settings.isEnabled}, bandLevels=${settings.bandLevels}")
+                                    DevLogger.d("MusicPlaybackService", manager.getEffectStatus())
                                 } else {
                                     DevLogger.w("MusicPlaybackService", "Cannot apply EQ settings: audioEffectManager is null")
                                 }

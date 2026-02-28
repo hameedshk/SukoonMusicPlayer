@@ -181,6 +181,18 @@ fun HomeScreen(
         }
     }
 
+    val premiumManager = remember(appContext) {
+        runCatching {
+            EntryPointAccessors.fromApplication(
+                appContext,
+                com.sukoon.music.ui.navigation.PremiumManagerEntryPoint::class.java
+            ).premiumManager()
+        }.getOrElse { error ->
+            Log.w(tag, "Failed to resolve PremiumManager entry point", error)
+            null
+        }
+    }
+
     val displayUsername = username.trim()
 
     // Use ViewModel's tab state (persisted to DataStore, survives app restart)
@@ -462,8 +474,10 @@ fun HomeScreen(
                                     onBackClick = { },
                                     onNavigateToAlbum = onNavigateToAlbumDetail,
                                     onNavigateToArtist = onNavigateToArtistDetail,
+                                    premiumManager = premiumManager,
                                     homeViewModel = viewModel,
-                                    playlistViewModel = playlistViewModel
+                                    playlistViewModel = playlistViewModel,
+                                    onNavigateToPremium = onNavigateToPremium
                                 )
                             }
                             HomeTabKey.ALBUMS -> {
