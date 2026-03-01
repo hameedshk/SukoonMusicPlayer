@@ -406,9 +406,9 @@ class HomeViewModel @Inject constructor(
         lyricsFetchJob?.cancel()
         Log.d(TAG, "Previous job cancelled (if any)")
 
-        // Validate song data before fetching
-        if (song.title.isBlank() || song.artist.isBlank()) {
-            Log.w(TAG, "Invalid song data - title or artist is blank")
+        // Title is required; artist can be blank because repository supports title-only fallback.
+        if (song.title.isBlank()) {
+            Log.w(TAG, "Invalid song data - title is blank")
             _lyricsState.value = LyricsState.NotFound
             return
         }

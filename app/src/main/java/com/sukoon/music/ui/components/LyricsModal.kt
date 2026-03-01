@@ -44,7 +44,8 @@ fun LyricsModalSheet(
     accentColor: Color,
     lyricsState: LyricsState,
     onDismiss: () -> Unit,
-    onOffsetAdjust: (Long) -> Unit
+    onOffsetAdjust: (Long) -> Unit,
+    onRetry: () -> Unit = {}
 ) {
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
@@ -125,7 +126,8 @@ fun LyricsModalSheet(
                     lyricsState = lyricsState,
                     currentPosition = currentPosition,
                     accentColor = accentColor,
-                    onOffsetAdjust = onOffsetAdjust
+                    onOffsetAdjust = onOffsetAdjust,
+                    onRetry = onRetry
                 )
             }
         }
@@ -140,7 +142,8 @@ private fun LyricsModalContent(
     lyricsState: LyricsState,
     currentPosition: Long,
     accentColor: Color,
-    onOffsetAdjust: (Long) -> Unit
+    onOffsetAdjust: (Long) -> Unit,
+    onRetry: () -> Unit
 ) {
     when (lyricsState) {
         is LyricsState.Loading -> {
@@ -181,16 +184,16 @@ private fun LyricsModalContent(
                 }
             } else {
                 // No lyrics available
-                LyricsNotFoundState()
+                LyricsNotFoundState(onRetry = onRetry)
             }
         }
 
         is LyricsState.Error -> {
-            LyricsErrorState(message = lyricsState.message)
+            LyricsErrorState(message = lyricsState.message, onRetry = onRetry)
         }
 
         is LyricsState.NotFound -> {
-            LyricsNotFoundState()
+            LyricsNotFoundState(onRetry = onRetry)
         }
     }
 }
@@ -230,7 +233,7 @@ private fun LyricsLoadingState(accentColor: Color) {
  * Error state for lyrics modal.
  */
 @Composable
-private fun LyricsErrorState(message: String) {
+private fun LyricsErrorState(message: String, onRetry: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -258,6 +261,10 @@ private fun LyricsErrorState(message: String) {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
+        Spacer(modifier = Modifier.height(20.dp))
+        Button(onClick = onRetry) {
+            Text(text = stringResource(R.string.lyrics_modal_retry))
+        }
     }
 }
 
@@ -265,7 +272,7 @@ private fun LyricsErrorState(message: String) {
  * Not found state for lyrics modal.
  */
 @Composable
-private fun LyricsNotFoundState() {
+private fun LyricsNotFoundState(onRetry: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -299,6 +306,10 @@ private fun LyricsNotFoundState() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(horizontal = 32.dp)
         )
+        Spacer(modifier = Modifier.height(20.dp))
+        OutlinedButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.lyrics_modal_retry))
+        }
     }
 }
 

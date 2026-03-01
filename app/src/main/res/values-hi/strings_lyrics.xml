@@ -9,6 +9,7 @@
     <string name="lyrics_modal_not_found_title">कोई गीत उपलब्ध नहीं</string>
     <string name="lyrics_modal_not_found_subtitle">इस ट्रैक के लिए गीत नहीं मिले</string>
     <string name="lyrics_modal_not_found_hint">ऑफ़लाइन .lrc फाइलें या एम्बेड किए गए टैग की जांच करने का प्रयास करें</string>
+    <string name="lyrics_modal_retry">फिर से कोशिश करें</string>
     <string name="lyrics_modal_sync_adjustment">सिंक समायोजन</string>
     <string name="lyrics_modal_sync_offset_value">%1$s%2$dms</string>
     <string name="lyrics_modal_too_fast">बहुत तेज़</string>

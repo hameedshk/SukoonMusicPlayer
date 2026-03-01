@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -411,52 +414,52 @@ item(key = "go_premium") {
                 )
             }
             // 5. Notifications & Language
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.Notifications,
-                            title = stringResource(R.string.settings_screen_notification_settings_title),
-                            onClick = { showNotificationSettingsDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.Language,
-                            title = stringResource(R.string.settings_screen_language_title),
-                            value = getLanguageDescription(context, appLanguageTag),
-                            onClick = { showLanguageDialog = true }
-                        )
-                    )
-                )
-            }
+            // item {
+            //     SettingsGroupCard(
+            //         modifier = Modifier.padding(horizontal = SpacingLarge),
+            //         rows = listOf(
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.Notifications,
+            //                 title = stringResource(R.string.settings_screen_notification_settings_title),
+            //                 onClick = { showNotificationSettingsDialog = true }
+            //             ),
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.Language,
+            //                 title = stringResource(R.string.settings_screen_language_title),
+            //                 value = getLanguageDescription(context, appLanguageTag),
+            //                 onClick = { showLanguageDialog = true }
+            //             )
+            //         )
+            //     )
+            // }
             // 6. Storage & Cache
-            item {
-                SettingsGroupCard(
-                    modifier = Modifier.padding(horizontal = SpacingLarge),
-                    rows = listOf(
-                        SettingsRowModel(
-                            icon = Icons.Default.Delete,
-                            title = stringResource(R.string.settings_screen_clear_cache_title),
-                            value = stringResource(R.string.settings_screen_clear_cache_message),
-                            showLoading = isClearingCache,
-                            onClick = { showClearCacheDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.DeleteSweep,
-                            title = stringResource(R.string.settings_screen_clear_database_title),
-                            value = stringResource(R.string.settings_screen_clear_database_message),
-                            showLoading = isClearingData,
-                            onClick = { showClearDatabaseDialog = true }
-                        ),
-                        SettingsRowModel(
-                            icon = Icons.Default.History,
-                            title = stringResource(R.string.settings_screen_clear_recently_played_title),
-                            value = stringResource(R.string.settings_screen_clear_recently_played_message),
-                            onClick = { showClearHistoryDialog = true }
-                        )
-                    )
-                )
-            }
+            // item {
+            //     SettingsGroupCard(
+            //         modifier = Modifier.padding(horizontal = SpacingLarge),
+            //         rows = listOf(
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.Delete,
+            //                 title = stringResource(R.string.settings_screen_clear_cache_title),
+            //                 value = stringResource(R.string.settings_screen_clear_cache_message),
+            //                 showLoading = isClearingCache,
+            //                 onClick = { showClearCacheDialog = true }
+            //             ),
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.DeleteSweep,
+            //                 title = stringResource(R.string.settings_screen_clear_database_title),
+            //                 value = stringResource(R.string.settings_screen_clear_database_message),
+            //                 showLoading = isClearingData,
+            //                 onClick = { showClearDatabaseDialog = true }
+            //             ),
+            //             SettingsRowModel(
+            //                 icon = Icons.Default.History,
+            //                 title = stringResource(R.string.settings_screen_clear_recently_played_title),
+            //                 value = stringResource(R.string.settings_screen_clear_recently_played_message),
+            //                 onClick = { showClearHistoryDialog = true }
+            //             )
+            //         )
+            //     )
+            // }
             // 7. Help & About
             item {
                 SettingsGroupCard(
@@ -941,18 +944,22 @@ private fun ThemeSelectionDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.label_choose_theme)) },
         text = {
-            Column {
+            Column(modifier = Modifier.selectableGroup()) {
                 AppTheme.entries.forEach { theme ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 12.dp)
-                            .clickable { onThemeSelect(theme) },
+                            .selectable(
+                                selected = theme == currentTheme,
+                                onClick = { onThemeSelect(theme) },
+                                role = Role.RadioButton
+                            ),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(
                             selected = theme == currentTheme,
-                            onClick = { onThemeSelect(theme) }
+                            onClick = null
                         )
                         Spacer(Modifier.width(8.dp))
                         Column {

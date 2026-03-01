@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
@@ -38,6 +39,7 @@ import android.util.Log
 import coil.compose.SubcomposeAsyncImage
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.sukoon.music.R
+import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.model.HomeTabKey
 import com.sukoon.music.ui.model.HomeTabSpec
 import androidx.compose.ui.unit.Dp
@@ -174,6 +176,7 @@ internal fun RedesignedTopBar(
     onGlobalSearchClick: () -> Unit,
     onSettingsClick: () -> Unit,
     onLogoClick: () -> Unit = {},
+    currentTheme: AppTheme = AppTheme.SYSTEM,
     sessionState: com.sukoon.music.domain.model.PlaybackSessionState = com.sukoon.music.domain.model.PlaybackSessionState()
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -190,7 +193,7 @@ internal fun RedesignedTopBar(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Logo - fixed size (40dp) with press feedback and click pulse animation
+                // Logo - fixed size (52dp) with press feedback and click pulse animation
                 val logoInteractionSource = remember { MutableInteractionSource() }
                 var isLogoPressed by remember { mutableStateOf(false) }
                 LaunchedEffect(logoInteractionSource) {
@@ -226,12 +229,21 @@ internal fun RedesignedTopBar(
                 )
 
                 val logoScale = pressScale * clickPulseScale
+                val logoResId = when (currentTheme) {
+                    AppTheme.LIGHT -> R.drawable.app_logo_light
+                    AppTheme.DARK, AppTheme.AMOLED -> R.drawable.app_logo_dark
+                    AppTheme.SYSTEM -> if (isSystemInDarkTheme()) {
+                        R.drawable.app_logo_dark
+                    } else {
+                        R.drawable.app_logo_light
+                    }
+                }
 
                 Image(
-                    painter = painterResource(id = R.drawable.app_logo),
+                    painter = painterResource(id = logoResId),
                     contentDescription = "Sukoon Music Logo",
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(52.dp)
                         .clip(CircleShape)
                         .scale(logoScale)
                         .clickable(

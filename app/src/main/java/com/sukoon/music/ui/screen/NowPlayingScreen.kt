@@ -817,6 +817,7 @@ private fun NowPlayingContent(
                         playbackState = playbackState,
                         accentColor = accentColor,
                         onLyricsClick = { showLyricsModal = true },
+                        lyricsEnabled = lyricsState is LyricsState.Success,
                         onShareClick = { shareHandler(song) },
                         onQueueClick = { showQueueModal = true },
                         onAddToPlaylistClick = { showPlaylistDialog = true },
@@ -944,7 +945,8 @@ private fun NowPlayingContent(
             currentPosition = currentPosition,
             accentColor = accentColor,
             onDismiss = { showLyricsModal = false },
-            onSeekTo = { position -> onSeekTo(position) }
+            onSeekTo = { position -> onSeekTo(position) },
+            onRetry = { viewModel.fetchLyrics(song) }
         )
     }
 }
@@ -1898,6 +1900,7 @@ private fun SecondaryActionsSection(
     playbackState: PlaybackState,
     accentColor: Color,
     onLyricsClick: () -> Unit,
+    lyricsEnabled: Boolean,
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
@@ -1972,6 +1975,7 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onLyricsClick()
                 },
+                enabled = lyricsEnabled,
                 modifier = Modifier
                     .size(48.dp)
                     .semantics {
@@ -1982,7 +1986,11 @@ private fun SecondaryActionsSection(
                 Icon(
                     imageVector = Icons.Default.Lyrics,
                     contentDescription = null,
-                    tint = accentColor.copy(alpha = 0.8f),
+                    tint = if (lyricsEnabled) {
+                        accentColor.copy(alpha = 0.8f)
+                    } else {
+                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
+                    },
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -2125,7 +2133,8 @@ private fun LyricsModalSheet(
     currentPosition: Long,
     accentColor: Color,
     onDismiss: () -> Unit,
-    onSeekTo: (Long) -> Unit
+    onSeekTo: (Long) -> Unit,
+    onRetry: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -2193,6 +2202,7 @@ private fun LyricsModalSheet(
                 currentPosition = currentPosition,
                 accentColor = accentColor,
                 onSeekTo = onSeekTo,
+                onRetry = onRetry,
                 lyricsLineSpacing = spacingSpec.lyricsLineSpacing,
                 lyricsContentVerticalPadding = spacingSpec.lyricsContentVerticalPadding,
                 modifier = Modifier.weight(1f)
@@ -2215,6 +2225,7 @@ private fun SpotifyStyleSyncedLyrics(
     currentPosition: Long,
     accentColor: Color,
     onSeekTo: (Long) -> Unit,
+    onRetry: () -> Unit,
     lyricsLineSpacing: Dp = NowPlayingLyricsLineSpacing,
     lyricsContentVerticalPadding: Dp = 60.dp,
     modifier: Modifier = Modifier
@@ -2260,7 +2271,7 @@ private fun SpotifyStyleSyncedLyrics(
                     modifier = modifier
                 )
             } else {
-                NoLyricsAvailable(modifier = modifier)
+                NoLyricsAvailable(modifier = modifier, onRetry = onRetry)
             }
         }
 
@@ -2285,11 +2296,15 @@ private fun SpotifyStyleSyncedLyrics(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     textAlign = TextAlign.Center
                 )
+                Spacer(modifier = Modifier.height(20.dp))
+                Button(onClick = onRetry) {
+                    Text(text = stringResource(R.string.lyrics_modal_retry))
+                }
             }
         }
 
         is LyricsState.NotFound -> {
-            NoLyricsAvailable(modifier = modifier)
+            NoLyricsAvailable(modifier = modifier, onRetry = onRetry)
         }
     }
 }
@@ -2422,7 +2437,10 @@ private fun PlainLyricsView(
  * NoLyricsAvailable - Empty state for missing lyrics
  */
 @Composable
-private fun NoLyricsAvailable(modifier: Modifier = Modifier) {
+private fun NoLyricsAvailable(
+    modifier: Modifier = Modifier,
+    onRetry: () -> Unit
+) {
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -2443,6 +2461,10 @@ private fun NoLyricsAvailable(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
+        Spacer(modifier = Modifier.height(20.dp))
+        OutlinedButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.lyrics_modal_retry))
+        }
     }
 }
 

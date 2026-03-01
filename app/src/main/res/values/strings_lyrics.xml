@@ -9,6 +9,7 @@
     <string name="lyrics_modal_not_found_title">No lyrics available</string>
     <string name="lyrics_modal_not_found_subtitle">Lyrics not found for this track</string>
     <string name="lyrics_modal_not_found_hint">Try checking offline .lrc files or embedded tags</string>
+    <string name="lyrics_modal_retry">Retry</string>
     <string name="lyrics_modal_sync_adjustment">Sync Adjustment</string>
     <string name="lyrics_modal_sync_offset_value">%1$s%2$dms</string>
     <string name="lyrics_modal_too_fast">Too Fast</string>

@@ -122,7 +122,8 @@ fun SukoonNavHost(
                 onNavigateToGenreSelection = {
                     navController.navigate(Routes.GenreSelection.route)
                 },
-                username = userPreferences?.username ?: ""
+                username = userPreferences?.username ?: "",
+                appTheme = userPreferences?.theme ?: com.sukoon.music.domain.model.AppTheme.SYSTEM
             )
         }
 

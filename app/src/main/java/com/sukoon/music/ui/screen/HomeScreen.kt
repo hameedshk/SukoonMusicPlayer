@@ -131,6 +131,7 @@ fun HomeScreen(
     onNavigateToAlbumDetail: (Long) -> Unit = {},
     onNavigateToGenreDetail: (Long) -> Unit = {},
     username: String = "",
+    appTheme: AppTheme = AppTheme.SYSTEM,
     viewModel: HomeViewModel = hiltViewModel(),
     playlistViewModel: com.sukoon.music.ui.viewmodel.PlaylistViewModel = hiltViewModel()
 ) {
@@ -375,6 +376,7 @@ fun HomeScreen(
                             onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
+                            currentTheme = appTheme,
                             sessionState = sessionState
                         )
                     }

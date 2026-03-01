@@ -2,7 +2,6 @@ package com.sukoon.music.data.metadata
 
 import android.content.Context
 import com.sukoon.music.BuildConfig
-import com.sukoon.music.util.DevLogger
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.remote.GeminiApi
 import com.sukoon.music.data.remote.dto.Content
@@ -11,9 +10,11 @@ import com.sukoon.music.data.remote.dto.GeminiRequest
 import com.sukoon.music.data.remote.dto.GeminiResponse
 import com.sukoon.music.data.remote.dto.GenerationConfig
 import com.sukoon.music.data.remote.dto.Part
+import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import retrofit2.HttpException
 import java.io.IOException
 import javax.inject.Inject
@@ -69,8 +70,8 @@ class GeminiMetadataCorrector @Inject constructor(
                 Content(parts = listOf(Part(text = prompt)))
             ),
             generationConfig = GenerationConfig(
-                temperature = 0.1f,           // Balanced for complete responses
-                maxOutputTokens = 1000,        // Sufficient for 3 fields
+                temperature = 0.1f,
+                maxOutputTokens = 1000,
                 topP = 0.8f
             )
         )
@@ -106,14 +107,13 @@ class GeminiMetadataCorrector @Inject constructor(
         title: String,
         album: String?
     ): String {
-        // Escape JSON special characters in metadata strings
         fun escapeJsonString(value: String): String {
             return value
-                .replace("\\", "\\\\")  // Backslash must be escaped first
-                .replace("\"", "\\\"")   // Escape quotes
-                .replace("\n", "\\n")    // Escape newlines
-                .replace("\r", "\\r")    // Escape carriage returns
-                .replace("\t", "\\t")    // Escape tabs
+                .replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t")
         }
 
         val escapedArtist = escapeJsonString(artist)
@@ -166,30 +166,31 @@ class GeminiMetadataCorrector @Inject constructor(
             return null
         }
 
-        val correctedArtist = extractField("ARTIST", text)
-        val correctedTitle = extractField("TITLE", text)
-        val correctedAlbum = extractField("ALBUM", text)
-            ?.takeIf { !it.equals("UNKNOWN", true) }
+        // Validation: Check for lyrics generation (forbidden)
+        if (text.contains("[0") && text.length > 200) {
+            DevLogger.w(tag, "Gemini appears to have generated lyrics - rejecting")
+            return null
+        }
 
+        val parsed = parseFromJson(text) ?: parseFromLabeledText(text)
+        if (parsed == null) {
+            DevLogger.d(tag, "Gemini response could not be parsed")
+            return null
+        }
 
-        // Validation: Must have artist and title
-        if (correctedArtist.isNullOrBlank() || correctedTitle.isNullOrBlank()) {
+        val correctedArtist = parsed.artist.trim()
+        val correctedTitle = parsed.title.trim()
+        val correctedAlbum = parsed.album?.trim()?.takeIf { it.isNotBlank() }
+
+        if (correctedArtist.isBlank() || correctedTitle.isBlank()) {
             DevLogger.d(tag, "Gemini response missing required fields")
             return null
         }
 
-        // Validation: Must be different from original (otherwise no point)
-        if (correctedArtist == originalArtist &&
-            correctedTitle == originalTitle &&
-            correctedAlbum == originalAlbum) {
+        if (correctedArtist == originalArtist.trim() &&
+            correctedTitle == originalTitle.trim() &&
+            correctedAlbum == originalAlbum?.trim()) {
             DevLogger.d(tag, "Gemini returned identical metadata")
-            return null
-        }
-
-        // Validation: Check for lyrics generation (forbidden)
-        // Only flag as lyrics if BOTH conditions are true: contains LRC timestamp marker AND is very long
-        if (text.contains("[0") && text.length > 200) {
-            DevLogger.w(tag, "Gemini appears to have generated lyrics - rejecting")
             return null
         }
 
@@ -199,6 +200,61 @@ class GeminiMetadataCorrector @Inject constructor(
             title = correctedTitle,
             album = correctedAlbum
         )
+    }
+
+    private fun parseFromJson(rawText: String): CorrectedMetadata? {
+        val jsonPayload = extractJsonObject(rawText) ?: return null
+        return try {
+            val json = JSONObject(jsonPayload)
+            val artist = json.optString("artist", "").trim()
+            val title = json.optString("title", "").trim()
+            val album = if (json.has("album") && !json.isNull("album")) {
+                json.optString("album", "").trim().takeIf { it.isNotBlank() }
+            } else {
+                null
+            }
+
+            if (artist.isBlank() || title.isBlank()) {
+                null
+            } else {
+                CorrectedMetadata(artist = artist, title = title, album = album)
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun parseFromLabeledText(text: String): CorrectedMetadata? {
+        val artist = extractField("ARTIST", text)?.trim().orEmpty()
+        val title = extractField("TITLE", text)?.trim().orEmpty()
+        val album = extractField("ALBUM", text)
+            ?.trim()
+            ?.takeIf { !it.equals("UNKNOWN", ignoreCase = true) && it.isNotBlank() }
+
+        if (artist.isBlank() || title.isBlank()) {
+            return null
+        }
+
+        return CorrectedMetadata(artist = artist, title = title, album = album)
+    }
+
+    private fun extractJsonObject(text: String): String? {
+        val cleaned = text
+            .replace("```json", "", ignoreCase = true)
+            .replace("```", "")
+            .trim()
+
+        if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
+            return cleaned
+        }
+
+        val start = cleaned.indexOf('{')
+        val end = cleaned.lastIndexOf('}')
+        if (start == -1 || end == -1 || end <= start) {
+            return null
+        }
+
+        return cleaned.substring(start, end + 1)
     }
 }
 

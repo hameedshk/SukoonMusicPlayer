@@ -177,10 +177,8 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 preferencesManager.userPreferencesFlow.collect { prefs ->
                     cachedUserPreferences = prefs
-                    // Only update state on cold start to prevent recomposition on Activity recreation
-                    if (!isWarmStart) {
-                        userPreferencesState = prefs
-                    }
+                    // Always propagate preference updates (e.g., theme/language changes) to Compose state.
+                    userPreferencesState = prefs
                 }
             }
 
