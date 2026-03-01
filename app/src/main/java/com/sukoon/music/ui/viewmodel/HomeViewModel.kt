@@ -256,6 +256,10 @@ class HomeViewModel @Inject constructor(
     // Track lyrics fetch job to prevent race conditions
     private var lyricsFetchJob: Job? = null
 
+    // One-shot lyrics action events (save/import/clear)
+    private val _lyricsActionEvents = MutableSharedFlow<String>(extraBufferCapacity = 1)
+    val lyricsActionEvents: SharedFlow<String> = _lyricsActionEvents.asSharedFlow()
+
     // Listening Stats State
     private val _listeningStats = MutableStateFlow<ListeningStatsSnapshot?>(null)
     val listeningStats: StateFlow<ListeningStatsSnapshot?> = _listeningStats.asStateFlow()
@@ -457,6 +461,46 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             lyricsRepository.clearLyrics(trackId)
             _lyricsState.value = LyricsState.NotFound
+        }
+    }
+
+    fun saveManualLyrics(song: Song, syncedLyrics: String?, plainLyrics: String?) {
+        viewModelScope.launch {
+            try {
+                lyricsRepository.saveManualLyrics(
+                    trackId = song.id,
+                    syncedLyrics = syncedLyrics,
+                    plainLyrics = plainLyrics
+                )
+                _lyricsActionEvents.emit("Lyrics saved")
+                fetchLyrics(song)
+            } catch (e: Exception) {
+                _lyricsActionEvents.emit("Failed to save lyrics: ${e.message ?: "Unknown error"}")
+            }
+        }
+    }
+
+    fun importLyricsFromUri(song: Song, fileUri: String) {
+        viewModelScope.launch {
+            val result = lyricsRepository.importLyricsForTrack(song.id, fileUri)
+            result.onSuccess {
+                _lyricsActionEvents.emit("Lyrics imported")
+                fetchLyrics(song)
+            }.onFailure { error ->
+                _lyricsActionEvents.emit("Import failed: ${error.message ?: "Invalid file"}")
+            }
+        }
+    }
+
+    fun clearManualLyrics(song: Song) {
+        viewModelScope.launch {
+            try {
+                lyricsRepository.clearManualLyrics(song.id)
+                _lyricsActionEvents.emit("Manual lyrics cleared")
+                fetchLyrics(song)
+            } catch (e: Exception) {
+                _lyricsActionEvents.emit("Failed to clear manual lyrics")
+            }
         }
     }
 

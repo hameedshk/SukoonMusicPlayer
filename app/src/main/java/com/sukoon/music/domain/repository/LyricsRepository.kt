@@ -41,4 +41,23 @@ interface LyricsRepository {
      * Clear cached lyrics for a track (force refresh).
      */
     suspend fun clearLyrics(trackId: Long)
+
+    /**
+     * Save user-provided lyrics for a track. Manual lyrics always take priority.
+     */
+    suspend fun saveManualLyrics(
+        trackId: Long,
+        syncedLyrics: String?,
+        plainLyrics: String?
+    )
+
+    /**
+     * Remove manually saved lyrics for a track.
+     */
+    suspend fun clearManualLyrics(trackId: Long)
+
+    /**
+     * Import lyrics from a local file Uri (supports .lrc and .txt).
+     */
+    suspend fun importLyricsForTrack(trackId: Long, fileUri: String): Result<Unit>
 }

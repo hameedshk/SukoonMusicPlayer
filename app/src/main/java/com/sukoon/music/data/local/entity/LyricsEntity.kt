@@ -15,7 +15,9 @@ data class LyricsEntity(
     @PrimaryKey val trackId: Long,           // MediaStore audio ID
     val syncedLyrics: String?,               // LRC format: [mm:ss.xx]Lyric line
     val plainLyrics: String?,                // Plain text lyrics
-    val syncOffset: Long = 0,                // Manual offset correction in ms (±500ms tolerance)
-    val source: String = "UNKNOWN",          // LyricsSource enum value (stored as string)
+    val syncOffset: Long = 0,                // Manual offset correction in ms
+    val source: String = "UNKNOWN",         // LyricsSource enum value (stored as string)
+    val isManual: Boolean = false,           // User-created/imported lyrics have highest priority
+    val manualUpdatedAt: Long? = null,       // Timestamp for manual edits/imports
     val lastFetched: Long = System.currentTimeMillis()
 )

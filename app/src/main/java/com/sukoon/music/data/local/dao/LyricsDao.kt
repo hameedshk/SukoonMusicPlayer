@@ -14,6 +14,9 @@ interface LyricsDao {
     @Query("UPDATE lyrics SET syncOffset = :syncOffset WHERE trackId = :trackId")
     suspend fun updateSyncOffset(trackId: Long, syncOffset: Long)
 
+    @Query("DELETE FROM lyrics WHERE trackId = :trackId")
+    suspend fun deleteLyricsByTrackId(trackId: Long)
+
     @Delete
     suspend fun deleteLyrics(lyrics: LyricsEntity)
 }

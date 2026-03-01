@@ -552,8 +552,15 @@
     <string name="song_context_playlist_label">Playlist</string>
     <string name="song_context_go_to_album">Go to Album</string>
     <string name="song_context_go_to_artist">Go to Artist</string>
+    <string name="song_context_update_lyrics">Update Lyrics</string>
     <string name="song_context_edit_audio">Edit Audio</string>
     <string name="song_context_premium_badge">PREMIUM</string>
+    <string name="lyrics_action_edit">Edit</string>
+    <string name="lyrics_action_import">Import</string>
+    <string name="lyrics_action_clear_manual">Clear Manual</string>
+    <string name="lyrics_editor_title">Manual Lyrics</string>
+    <string name="lyrics_editor_synced_label">Synced (LRC)</string>
+    <string name="lyrics_editor_plain_label">Plain</string>
 
     <!-- Song info dialog -->
     <string name="song_info_title">Song information</string>

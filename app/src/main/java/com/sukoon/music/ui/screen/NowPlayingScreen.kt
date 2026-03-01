@@ -584,6 +584,9 @@ private fun NowPlayingContent(
     var showPlaylistDialog by remember { mutableStateOf(false) }
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var showSongContextMenu by remember { mutableStateOf(false) }
+    var showManualLyricsEditor by remember { mutableStateOf(false) }
+    var manualSyncedDraft by remember { mutableStateOf("") }
+    var manualPlainDraft by remember { mutableStateOf("") }
     var showInfoForSong by remember { mutableStateOf<Song?>(null) }
     var songToDelete by remember { mutableStateOf<Song?>(null) }
 
@@ -599,6 +602,15 @@ private fun NowPlayingContent(
             Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
+    }
+
+    // Lyrics import picker (.lrc/.txt)
+    val lyricsImportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.importLyricsFromUri(song, uri.toString())
+        }
     }
 
     // Share handler
@@ -618,12 +630,21 @@ private fun NowPlayingContent(
                 onNavigateToPremium()
             }
         },
+        onShowUpdateLyrics = {
+            showLyricsModal = true
+        },
         onToggleLike = { id, isLiked -> viewModel.toggleLike(id, isLiked) },
         onShare = shareHandler
     )
 
     // Lyrics state
     val lyricsState by viewModel.lyricsState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.lyricsActionEvents.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     // Fetch lyrics when song changes
     LaunchedEffect(song.id) {
@@ -817,7 +838,6 @@ private fun NowPlayingContent(
                         playbackState = playbackState,
                         accentColor = accentColor,
                         onLyricsClick = { showLyricsModal = true },
-                        lyricsEnabled = lyricsState is LyricsState.Success,
                         onShareClick = { shareHandler(song) },
                         onQueueClick = { showQueueModal = true },
                         onAddToPlaylistClick = { showPlaylistDialog = true },
@@ -946,7 +966,35 @@ private fun NowPlayingContent(
             accentColor = accentColor,
             onDismiss = { showLyricsModal = false },
             onSeekTo = { position -> onSeekTo(position) },
-            onRetry = { viewModel.fetchLyrics(song) }
+            onRetry = { viewModel.fetchLyrics(song) },
+            onEditManual = {
+                val successState = lyricsState as? LyricsState.Success
+                manualSyncedDraft = successState?.lyrics?.syncedLyrics.orEmpty()
+                manualPlainDraft = successState?.lyrics?.plainLyrics.orEmpty()
+                showManualLyricsEditor = true
+            },
+            onImportManual = {
+                lyricsImportLauncher.launch(arrayOf("text/plain"))
+            },
+            onClearManual = { viewModel.clearManualLyrics(song) }
+        )
+    }
+
+    if (showManualLyricsEditor) {
+        ManualLyricsEditorDialog(
+            syncedLyrics = manualSyncedDraft,
+            plainLyrics = manualPlainDraft,
+            onSyncedChange = { manualSyncedDraft = it },
+            onPlainChange = { manualPlainDraft = it },
+            onDismiss = { showManualLyricsEditor = false },
+            onSave = {
+                viewModel.saveManualLyrics(
+                    song = song,
+                    syncedLyrics = manualSyncedDraft,
+                    plainLyrics = manualPlainDraft
+                )
+                showManualLyricsEditor = false
+            }
         )
     }
 }
@@ -1900,7 +1948,6 @@ private fun SecondaryActionsSection(
     playbackState: PlaybackState,
     accentColor: Color,
     onLyricsClick: () -> Unit,
-    lyricsEnabled: Boolean,
     onShareClick: () -> Unit,
     onQueueClick: () -> Unit,
     onAddToPlaylistClick: () -> Unit,
@@ -1975,7 +2022,6 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onLyricsClick()
                 },
-                enabled = lyricsEnabled,
                 modifier = Modifier
                     .size(48.dp)
                     .semantics {
@@ -1986,11 +2032,7 @@ private fun SecondaryActionsSection(
                 Icon(
                     imageVector = Icons.Default.Lyrics,
                     contentDescription = null,
-                    tint = if (lyricsEnabled) {
-                        accentColor.copy(alpha = 0.8f)
-                    } else {
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
-                    },
+                    tint = accentColor.copy(alpha = 0.8f),
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -2134,7 +2176,10 @@ private fun LyricsModalSheet(
     accentColor: Color,
     onDismiss: () -> Unit,
     onSeekTo: (Long) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    onEditManual: () -> Unit,
+    onImportManual: () -> Unit,
+    onClearManual: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
@@ -2162,7 +2207,10 @@ private fun LyricsModalSheet(
                 .padding(bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Header: Song info
+            val isManualSource =
+                (lyricsState as? LyricsState.Success)?.lyrics?.source == com.sukoon.music.domain.model.LyricsSource.MANUAL
+
+            // Header: Song info + manual actions
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -2191,6 +2239,24 @@ private fun LyricsModalSheet(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedButton(onClick = onEditManual) {
+                        Text(text = stringResource(R.string.lyrics_action_edit))
+                    }
+                    OutlinedButton(onClick = onImportManual) {
+                        Text(text = stringResource(R.string.lyrics_action_import))
+                    }
+                    if (isManualSource) {
+                        TextButton(onClick = onClearManual) {
+                            Text(text = stringResource(R.string.lyrics_action_clear_manual))
+                        }
+                    }
+                }
             }
 
             // Divider
@@ -2466,6 +2532,57 @@ private fun NoLyricsAvailable(
             Text(text = stringResource(R.string.lyrics_modal_retry))
         }
     }
+}
+
+@Composable
+private fun ManualLyricsEditorDialog(
+    syncedLyrics: String,
+    plainLyrics: String,
+    onSyncedChange: (String) -> Unit,
+    onPlainChange: (String) -> Unit,
+    onDismiss: () -> Unit,
+    onSave: () -> Unit
+) {
+    val canSave = syncedLyrics.isNotBlank() || plainLyrics.isNotBlank()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(text = stringResource(R.string.lyrics_editor_title))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = syncedLyrics,
+                    onValueChange = onSyncedChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.lyrics_editor_synced_label)) },
+                    placeholder = { Text("[00:10.00] line") },
+                    minLines = 3,
+                    maxLines = 6
+                )
+                OutlinedTextField(
+                    value = plainLyrics,
+                    onValueChange = onPlainChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.lyrics_editor_plain_label)) },
+                    placeholder = { Text("Line 1") },
+                    minLines = 3,
+                    maxLines = 8
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onSave, enabled = canSave) {
+                Text(text = stringResource(R.string.common_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = stringResource(R.string.common_cancel))
+            }
+        }
+    )
 }
 
 /**

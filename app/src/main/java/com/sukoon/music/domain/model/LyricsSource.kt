@@ -24,6 +24,11 @@ enum class LyricsSource {
     ONLINE,
 
     /**
+     * Lyrics fetched from a free no-auth fallback provider.
+     */
+    ONLINE_FALLBACK_FREE,
+
+    /**
      * Lyrics manually imported/pasted by the user.
      * Allows custom lyrics or corrections.
      */

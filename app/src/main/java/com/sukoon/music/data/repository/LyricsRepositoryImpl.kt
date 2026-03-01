@@ -1,10 +1,14 @@
 package com.sukoon.music.data.repository
 
+import android.content.Context
+import android.net.Uri
+import android.provider.OpenableColumns
 import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.data.metadata.GeminiMetadataCorrector
 import com.sukoon.music.data.remote.LyricsApi
+import com.sukoon.music.data.remote.SecondaryLyricsApi
 import com.sukoon.music.data.remote.dto.LyricsResponse
 import com.sukoon.music.domain.model.Lyrics
 import com.sukoon.music.domain.model.LyricsSource
@@ -22,25 +26,28 @@ import java.io.InterruptedIOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
+import kotlin.math.abs
 import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
  * Implementation of LyricsRepository following clean architecture.
  *
- * Offline-First Strategy:
- * 1. Check Room cache first
- * 2. Try local .lrc file in same directory as audio file
- * 3. Try embedded lyrics from audio file ID3 tags
- * 4. Fetch from LRCLIB with precise lookup + search fallback
- * 5. Retry once for transient network issues
- * 6. Try Gemini metadata correction and retry lookup
- * 7. Cache successful results
+ * Offline-First + Manual Priority Strategy:
+ * 1. Manual cache
+ * 2. Regular cache
+ * 3. Local .lrc file
+ * 4. Embedded metadata lyrics
+ * 5. LRCLIB (precise + search)
+ * 6. Gemini-corrected LRCLIB retry
+ * 7. Free no-auth fallback provider
  */
 @Singleton
 class LyricsRepositoryImpl @Inject constructor(
+    private val context: Context,
     private val lyricsDao: LyricsDao,
     private val lyricsApi: LyricsApi,
+    private val secondaryLyricsApi: SecondaryLyricsApi,
     private val offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
     private val id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
     private val geminiMetadataCorrector: GeminiMetadataCorrector
@@ -49,6 +56,7 @@ class LyricsRepositoryImpl @Inject constructor(
     companion object {
         private const val TAG = "LyricsRepository"
         private const val RETRY_BACKOFF_MS = 350L
+        private const val MIN_LYRICS_LENGTH = 20
     }
 
     override fun getLyrics(
@@ -63,8 +71,16 @@ class LyricsRepositoryImpl @Inject constructor(
         emit(LyricsState.Loading)
 
         try {
-            // 1) Cache
+            // 1) Manual cache first
             val cached = lyricsDao.getLyricsByTrackId(trackId)
+            if (cached?.isManual == true) {
+                DevLogger.d(TAG, "lyrics_stage=manual_hit trackId=$trackId")
+                val lyrics = cached.toDomainModel()
+                emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
+                return@flow
+            }
+
+            // 2) Regular cache
             if (cached != null) {
                 DevLogger.d(TAG, "lyrics_stage=cache_hit trackId=$trackId source=${cached.source}")
                 val lyrics = cached.toDomainModel()
@@ -73,7 +89,7 @@ class LyricsRepositoryImpl @Inject constructor(
             }
             DevLogger.d(TAG, "lyrics_stage=cache_miss trackId=$trackId")
 
-            // 2) Local .lrc
+            // 3) Local .lrc
             val localLrc = offlineLyricsScanner.findLrcFile(audioUri, title, artist)
             if (!localLrc.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=local_hit trackId=$trackId")
@@ -83,16 +99,18 @@ class LyricsRepositoryImpl @Inject constructor(
                     plainLyrics = null,
                     syncOffset = 0,
                     source = LyricsSource.LOCAL_FILE.name,
+                    isManual = false,
+                    manualUpdatedAt = null,
                     lastFetched = System.currentTimeMillis()
                 )
-                lyricsDao.insertLyrics(entity)
-                val lyrics = entity.toDomainModel()
+                val cachedEntity = cacheAutoLyrics(entity)
+                val lyrics = cachedEntity.toDomainModel()
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
             DevLogger.d(TAG, "lyrics_stage=local_miss trackId=$trackId")
 
-            // 3) Embedded tags
+            // 4) Embedded tags
             val (embeddedSynced, embeddedPlain) = id3LyricsExtractor.extractLyrics(audioUri)
             if (!embeddedSynced.isNullOrBlank() || !embeddedPlain.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=embedded_hit trackId=$trackId")
@@ -102,10 +120,12 @@ class LyricsRepositoryImpl @Inject constructor(
                     plainLyrics = embeddedPlain,
                     syncOffset = 0,
                     source = LyricsSource.EMBEDDED.name,
+                    isManual = false,
+                    manualUpdatedAt = null,
                     lastFetched = System.currentTimeMillis()
                 )
-                lyricsDao.insertLyrics(entity)
-                val lyrics = entity.toDomainModel()
+                val cachedEntity = cacheAutoLyrics(entity)
+                val lyrics = cachedEntity.toDomainModel()
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
@@ -122,15 +142,16 @@ class LyricsRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            // 4-5) Remote lookup + search + retry
-            var finalResponse = fetchOnlineLyrics(
+            // 5) LRCLIB lookup + search
+            var finalResponse = fetchOnlineLyricsFromLrclib(
                 artistName = normalizedArtist,
                 trackName = normalizedTitle,
                 albumName = normalizedAlbum,
                 duration = safeDuration
             )
+            var source = LyricsSource.ONLINE
 
-            // 6) Gemini metadata correction retry
+            // 6) Gemini-corrected LRCLIB retry
             if (!hasUsableLyrics(finalResponse)) {
                 finalResponse = tryGeminiCorrectedLookup(
                     originalArtist = artist,
@@ -138,6 +159,20 @@ class LyricsRepositoryImpl @Inject constructor(
                     originalAlbum = album,
                     duration = safeDuration
                 )
+                if (hasUsableLyrics(finalResponse)) {
+                    source = LyricsSource.ONLINE
+                }
+            }
+
+            // 7) Free fallback provider
+            if (!hasUsableLyrics(finalResponse)) {
+                finalResponse = trySecondaryProvider(
+                    artistName = normalizedArtist,
+                    trackName = normalizedTitle
+                )
+                if (hasUsableLyrics(finalResponse)) {
+                    source = LyricsSource.ONLINE_FALLBACK_FREE
+                }
             }
 
             if (!hasUsableLyrics(finalResponse)) {
@@ -146,19 +181,20 @@ class LyricsRepositoryImpl @Inject constructor(
                 return@flow
             }
 
-            // 7) Cache + emit
             val entity = LyricsEntity(
                 trackId = trackId,
                 syncedLyrics = finalResponse?.syncedLyrics,
                 plainLyrics = finalResponse?.plainLyrics,
                 syncOffset = 0,
-                source = LyricsSource.ONLINE.name,
+                source = source.name,
+                isManual = false,
+                manualUpdatedAt = null,
                 lastFetched = System.currentTimeMillis()
             )
-            lyricsDao.insertLyrics(entity)
-            DevLogger.d(TAG, "lyrics_stage=online_cached trackId=$trackId")
+            val cachedEntity = cacheAutoLyrics(entity)
+            DevLogger.d(TAG, "lyrics_stage=online_cached trackId=$trackId source=${cachedEntity.source}")
 
-            val lyrics = entity.toDomainModel()
+            val lyrics = cachedEntity.toDomainModel()
             emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
         } catch (e: Exception) {
             DevLogger.e(TAG, "lyrics_stage=fatal_error trackId=$trackId", e)
@@ -171,13 +207,60 @@ class LyricsRepositoryImpl @Inject constructor(
     }
 
     override suspend fun clearLyrics(trackId: Long) {
-        val lyrics = lyricsDao.getLyricsByTrackId(trackId)
-        if (lyrics != null) {
-            lyricsDao.deleteLyrics(lyrics)
+        lyricsDao.deleteLyricsByTrackId(trackId)
+    }
+
+    override suspend fun saveManualLyrics(trackId: Long, syncedLyrics: String?, plainLyrics: String?) {
+        val synced = syncedLyrics?.trim()?.takeIf { it.isNotBlank() }
+        val plain = plainLyrics?.trim()?.takeIf { it.isNotBlank() }
+
+        require(!(synced == null && plain == null)) { "Lyrics cannot be empty" }
+
+        val existing = lyricsDao.getLyricsByTrackId(trackId)
+        val now = System.currentTimeMillis()
+        val entity = LyricsEntity(
+            trackId = trackId,
+            syncedLyrics = synced,
+            plainLyrics = plain,
+            syncOffset = existing?.syncOffset ?: 0L,
+            source = LyricsSource.MANUAL.name,
+            isManual = true,
+            manualUpdatedAt = now,
+            lastFetched = now
+        )
+        lyricsDao.insertLyrics(entity)
+        DevLogger.d(TAG, "lyrics_stage=manual_save_success trackId=$trackId")
+    }
+
+    override suspend fun clearManualLyrics(trackId: Long) {
+        val existing = lyricsDao.getLyricsByTrackId(trackId)
+        if (existing?.isManual == true) {
+            lyricsDao.deleteLyricsByTrackId(trackId)
+            DevLogger.d(TAG, "lyrics_stage=manual_clear_success trackId=$trackId")
         }
     }
 
-    private suspend fun fetchOnlineLyrics(
+    override suspend fun importLyricsForTrack(trackId: Long, fileUri: String): Result<Unit> {
+        return runCatching {
+            val uri = Uri.parse(fileUri)
+            val text = readTextFromUri(uri).trim()
+            require(text.isNotBlank()) { "Imported file is empty" }
+
+            val fileName = getDisplayName(uri).orEmpty()
+            val isLrcFile = fileName.endsWith(".lrc", ignoreCase = true) || seemsLrc(text)
+
+            if (isLrcFile) {
+                saveManualLyrics(trackId = trackId, syncedLyrics = text, plainLyrics = null)
+            } else {
+                saveManualLyrics(trackId = trackId, syncedLyrics = null, plainLyrics = text)
+            }
+            DevLogger.d(TAG, "lyrics_stage=manual_import_success trackId=$trackId file='$fileName'")
+        }.onFailure { e ->
+            DevLogger.e(TAG, "lyrics_stage=manual_import_failed trackId=$trackId", e)
+        }
+    }
+
+    private suspend fun fetchOnlineLyricsFromLrclib(
         artistName: String?,
         trackName: String,
         albumName: String?,
@@ -186,7 +269,7 @@ class LyricsRepositoryImpl @Inject constructor(
         var attempt = 1
         while (attempt <= 2) {
             try {
-                return fetchOnlineLyricsSingleAttempt(
+                return fetchFromLrclibSingleAttempt(
                     artistName = artistName,
                     trackName = trackName,
                     albumName = albumName,
@@ -208,7 +291,7 @@ class LyricsRepositoryImpl @Inject constructor(
         return null
     }
 
-    private suspend fun fetchOnlineLyricsSingleAttempt(
+    private suspend fun fetchFromLrclibSingleAttempt(
         artistName: String?,
         trackName: String,
         albumName: String?,
@@ -220,13 +303,19 @@ class LyricsRepositoryImpl @Inject constructor(
             albumName = albumName,
             duration = duration
         )
-        if (hasUsableLyrics(precise)) {
+        if (hasUsableLyrics(precise) && hasMinimumContent(precise)) {
             return precise
         }
 
         val searchQuery = if (!artistName.isNullOrBlank()) "$artistName $trackName" else trackName
         val searchResults = trySearchLookup(searchQuery)
-        val searchHit = searchResults.firstOrNull { hasUsableLyrics(it) }
+        val searchHit = selectBestSearchCandidate(
+            candidates = searchResults,
+            queryArtist = artistName,
+            queryTitle = trackName,
+            queryDuration = duration
+        )
+
         if (searchHit != null) {
             DevLogger.d(TAG, "lyrics_stage=remote_search_hit query='$searchQuery'")
         } else {
@@ -307,7 +396,7 @@ class LyricsRepositoryImpl @Inject constructor(
             return null
         }
 
-        val correctedResponse = fetchOnlineLyrics(
+        val correctedResponse = fetchOnlineLyricsFromLrclib(
             artistName = correctedArtist,
             trackName = correctedTitle,
             albumName = correctedAlbum,
@@ -323,6 +412,137 @@ class LyricsRepositoryImpl @Inject constructor(
         return correctedResponse
     }
 
+    private suspend fun trySecondaryProvider(
+        artistName: String?,
+        trackName: String
+    ): LyricsResponse? {
+        if (artistName.isNullOrBlank() || trackName.isBlank()) {
+            DevLogger.d(TAG, "lyrics_stage=secondary_provider_skip_missing_metadata")
+            return null
+        }
+
+        return try {
+            DevLogger.d(TAG, "lyrics_stage=secondary_provider_try artist='$artistName' track='$trackName'")
+            val response = secondaryLyricsApi.getLyrics(artist = artistName, title = trackName)
+            val plain = response.lyrics?.trim().takeIf { !it.isNullOrBlank() }
+
+            if (plain.isNullOrBlank() || plain.length < MIN_LYRICS_LENGTH) {
+                DevLogger.d(TAG, "lyrics_stage=secondary_provider_miss")
+                null
+            } else {
+                DevLogger.d(TAG, "lyrics_stage=secondary_provider_hit")
+                LyricsResponse(
+                    trackName = trackName,
+                    artistName = artistName,
+                    plainLyrics = plain,
+                    syncedLyrics = null
+                )
+            }
+        } catch (e: HttpException) {
+            DevLogger.d(TAG, "lyrics_stage=secondary_provider_http code=${e.code()}")
+            null
+        } catch (e: IOException) {
+            DevLogger.d(TAG, "lyrics_stage=secondary_provider_io ${e.javaClass.simpleName}")
+            null
+        } catch (e: Exception) {
+            DevLogger.e(TAG, "lyrics_stage=secondary_provider_unexpected", e)
+            null
+        }
+    }
+
+    private fun selectBestSearchCandidate(
+        candidates: List<LyricsResponse>,
+        queryArtist: String?,
+        queryTitle: String,
+        queryDuration: Int?
+    ): LyricsResponse? {
+        val scored = candidates
+            .filter { hasUsableLyrics(it) && hasMinimumContent(it) }
+            .map { candidate -> candidate to candidateMatchScore(candidate, queryArtist, queryTitle, queryDuration) }
+
+        scored.forEach { (candidate, score) ->
+            if (score < minimumScoreThreshold(queryArtist)) {
+                DevLogger.d(
+                    TAG,
+                    "lyrics_stage=candidate_rejected_low_confidence artist='${candidate.artistName}' title='${candidate.trackName}' score=$score"
+                )
+            }
+        }
+
+        return scored
+            .filter { (_, score) -> score >= minimumScoreThreshold(queryArtist) }
+            .maxByOrNull { (_, score) -> score }
+            ?.first
+    }
+
+    private fun candidateMatchScore(
+        candidate: LyricsResponse,
+        queryArtist: String?,
+        queryTitle: String,
+        queryDuration: Int?
+    ): Int {
+        var score = 0
+
+        val candidateTitle = normalizeForMatch(candidate.trackName)
+        val targetTitle = normalizeForMatch(queryTitle)
+        if (candidateTitle.isNotBlank() && targetTitle.isNotBlank()) {
+            if (candidateTitle.contains(targetTitle) || targetTitle.contains(candidateTitle)) {
+                score += 3
+            } else if (tokenOverlapRatio(candidateTitle, targetTitle) >= 0.5f) {
+                score += 2
+            }
+        }
+
+        val targetArtist = normalizeForMatch(queryArtist)
+        val candidateArtist = normalizeForMatch(candidate.artistName)
+        if (targetArtist.isNotBlank() && candidateArtist.isNotBlank()) {
+            if (candidateArtist.contains(targetArtist) || targetArtist.contains(candidateArtist)) {
+                score += 3
+            } else if (tokenOverlapRatio(candidateArtist, targetArtist) >= 0.4f) {
+                score += 2
+            } else {
+                score -= 2
+            }
+        }
+
+        if (queryDuration != null && candidate.duration != null) {
+            val delta = abs(queryDuration - candidate.duration)
+            when {
+                delta <= 8 -> score += 1
+                delta > 25 -> score -= 1
+            }
+        }
+
+        return score
+    }
+
+    private fun minimumScoreThreshold(queryArtist: String?): Int {
+        return if (queryArtist.isNullOrBlank()) 2 else 3
+    }
+
+    private fun tokenOverlapRatio(a: String, b: String): Float {
+        val aTokens = a.split(" ").filter { it.isNotBlank() }.toSet()
+        val bTokens = b.split(" ").filter { it.isNotBlank() }.toSet()
+        if (aTokens.isEmpty() || bTokens.isEmpty()) return 0f
+        val overlap = aTokens.intersect(bTokens).size.toFloat()
+        return overlap / minOf(aTokens.size, bTokens.size)
+    }
+
+    private fun normalizeForMatch(text: String?): String {
+        return text
+            ?.lowercase()
+            ?.replace(Regex("[^a-z0-9\\s]"), " ")
+            ?.replace(Regex("\\s+"), " ")
+            ?.trim()
+            .orEmpty()
+    }
+
+    private fun hasMinimumContent(response: LyricsResponse?): Boolean {
+        if (response == null) return false
+        val totalLength = (response.syncedLyrics?.length ?: 0) + (response.plainLyrics?.length ?: 0)
+        return totalLength >= MIN_LYRICS_LENGTH
+    }
+
     private fun isTransientNetworkError(error: IOException): Boolean {
         return error is SocketTimeoutException ||
             error is UnknownHostException ||
@@ -333,6 +553,44 @@ class LyricsRepositoryImpl @Inject constructor(
     private fun hasUsableLyrics(response: LyricsResponse?): Boolean {
         if (response == null) return false
         return !response.syncedLyrics.isNullOrBlank() || !response.plainLyrics.isNullOrBlank()
+    }
+
+    private suspend fun cacheAutoLyrics(entity: LyricsEntity): LyricsEntity {
+        val existing = lyricsDao.getLyricsByTrackId(entity.trackId)
+        if (existing?.isManual == true) {
+            DevLogger.d(TAG, "lyrics_stage=manual_override_preserved trackId=${entity.trackId}")
+            return existing
+        }
+        lyricsDao.insertLyrics(entity)
+        return entity
+    }
+
+    private fun readTextFromUri(uri: Uri): String {
+        return context.contentResolver.openInputStream(uri)
+            ?.bufferedReader()
+            ?.use { it.readText() }
+            ?: throw IllegalStateException("Unable to open file")
+    }
+
+    private fun getDisplayName(uri: Uri): String? {
+        return try {
+            context.contentResolver.query(
+                uri,
+                arrayOf(OpenableColumns.DISPLAY_NAME),
+                null,
+                null,
+                null
+            )?.use { cursor ->
+                val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                if (index != -1 && cursor.moveToFirst()) cursor.getString(index) else null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun seemsLrc(text: String): Boolean {
+        return Regex("""\\[\\d{1,2}:\\d{2}(?:\\.\\d{1,2})?\\]""").containsMatchIn(text)
     }
 
     /**

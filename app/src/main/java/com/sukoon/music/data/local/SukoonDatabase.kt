@@ -51,7 +51,7 @@ import com.sukoon.music.data.local.entity.SongEntity
         ListeningStatsEntity::class,
         SongAudioSettingsEntity::class
     ],
-    version = 18,
+    version = 19,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
@@ -475,6 +475,21 @@ abstract class SukoonDatabase : RoomDatabase() {
                         updatedAt INTEGER NOT NULL DEFAULT 0
                     )
                 """)
+            }
+        }
+
+        /**
+         * Migration from version 18 to 19.
+         * Adds manual lyrics tracking columns to lyrics table.
+         */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    "ALTER TABLE lyrics ADD COLUMN isManual INTEGER NOT NULL DEFAULT 0"
+                )
+                database.execSQL(
+                    "ALTER TABLE lyrics ADD COLUMN manualUpdatedAt INTEGER"
+                )
             }
         }
     }

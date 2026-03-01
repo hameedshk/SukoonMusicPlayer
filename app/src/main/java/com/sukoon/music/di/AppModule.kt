@@ -19,6 +19,7 @@ import com.sukoon.music.data.local.dao.SearchHistoryDao
 import com.sukoon.music.data.local.dao.SongAudioSettingsDao
 import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.remote.LyricsApi
+import com.sukoon.music.data.remote.SecondaryLyricsApi
 import com.sukoon.music.data.repository.AudioEditorRepositoryImpl
 import com.sukoon.music.data.repository.AudioEffectRepositoryImpl
 import com.sukoon.music.data.repository.FeedbackRepositoryImpl
@@ -92,7 +93,8 @@ object AppModule {
             SukoonDatabase.MIGRATION_14_15,
             SukoonDatabase.MIGRATION_15_16,
             SukoonDatabase.MIGRATION_16_17,
-            SukoonDatabase.MIGRATION_17_18
+            SukoonDatabase.MIGRATION_17_18,
+            SukoonDatabase.MIGRATION_18_19
         )
         // Only allow destructive migration from pre-launch version 1 (no migration path exists for 1→2)
         // Versions 2+ have explicit migration paths via .addMigrations() above
@@ -195,6 +197,17 @@ object AppModule {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(LyricsApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideSecondaryLyricsApi(okHttpClient: OkHttpClient): SecondaryLyricsApi {
+        return Retrofit.Builder()
+            .baseUrl(SecondaryLyricsApi.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(SecondaryLyricsApi::class.java)
     }
 
     @Provides
@@ -323,15 +336,19 @@ object AppModule {
     @Provides
     @Singleton
     fun provideLyricsRepository(
+        @ApplicationContext context: Context,
         lyricsDao: LyricsDao,
         lyricsApi: LyricsApi,
+        secondaryLyricsApi: SecondaryLyricsApi,
         offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
         id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
         geminiMetadataCorrector: com.sukoon.music.data.metadata.GeminiMetadataCorrector
     ): com.sukoon.music.domain.repository.LyricsRepository {
         return com.sukoon.music.data.repository.LyricsRepositoryImpl(
+            context,
             lyricsDao,
             lyricsApi,
+            secondaryLyricsApi,
             offlineLyricsScanner,
             id3LyricsExtractor,
             geminiMetadataCorrector

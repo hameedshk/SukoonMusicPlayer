@@ -201,6 +201,14 @@ fun SongContextMenu(
             item {
                 // Group C: System
                 OptionItem(
+                    icon = Icons.Default.Lyrics,
+                    text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_update_lyrics),
+                    onClick = {
+                        menuHandler.handleUpdateLyrics(song)
+                        onDismiss()
+                    }
+                )
+                OptionItem(
                     icon = Icons.Default.Edit,
                     text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.song_context_edit_audio),
                     trailing = {
