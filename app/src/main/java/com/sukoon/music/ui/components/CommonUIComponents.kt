@@ -17,7 +17,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Image
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -310,7 +309,6 @@ internal fun TabPills(
         state = lazyListState,
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
             .padding(vertical = 8.dp)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(SpacingMedium), // 11dp breathing room
@@ -1197,42 +1195,20 @@ internal data class SettingsRowModel(
 @Composable
 internal fun SettingsGroupCard(
     modifier: Modifier = Modifier,
-    rows: List<SettingsRowModel>,
-    isAccentBorder: Boolean = false
+    rows: List<SettingsRowModel>
 ) {
     val accentTokens = accent()
     Card(
-        modifier = modifier
-            .border(
-                width = if (isAccentBorder) 2.dp else 1.dp,
-                color = if (isAccentBorder) {
-                    accentTokens.primary.copy(alpha = 0.7f)
-                } else {
-                    accentTokens.primary.copy(alpha = 0.24f)
-                },
-                shape = RoundedCornerShape(20.dp)
-            )
-            .let {
-                if (isAccentBorder) {
-                    it.then(
-                        Modifier.shadow(
-                            elevation = 16.dp,
-                            shape = RoundedCornerShape(20.dp),
-                            ambientColor = accentTokens.primary.copy(alpha = 0.4f),
-                            spotColor = accentTokens.primary.copy(alpha = 0.6f)
-                        )
-                    )
-                } else {
-                    it
-                }
-            },
+        modifier = modifier.border(
+            width = 1.dp,
+            color = accentTokens.primary.copy(alpha = 0.24f),
+            shape = RoundedCornerShape(20.dp)
+        ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isAccentBorder) 12.dp else CardElevationMedium
-        )
+        elevation = CardDefaults.cardElevation(defaultElevation = CardElevationMedium)
     ) {
         Column {
             rows.forEachIndexed { index, row ->
@@ -1317,8 +1293,7 @@ internal fun SettingsGroupRow(
                 color = valueColor,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 56.dp, vertical = 0.dp)
-                    .padding(top = 2.dp)
+                    .padding(horizontal = 56.dp, vertical = 2.dp)
             )
         }
         if (showDivider) {

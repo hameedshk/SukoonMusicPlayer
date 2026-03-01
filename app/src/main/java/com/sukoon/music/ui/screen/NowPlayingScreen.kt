@@ -1901,21 +1901,21 @@ private fun SecondaryActionsSection(
             )
         }
 
-        // 2. Lyrics Button (with accent color to highlight premium feature)
-        // PressableIconButton(
-        //     onClick = {
-        //         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-        //         onLyricsClick()
-        //     },
-        //     modifier = Modifier.size(48.dp)
-        // ) {
-        //     Icon(
-        //         imageVector = Icons.Default.Lyrics,
-        //         contentDescription = stringResource(R.string.now_playing_lyrics),
-        //         tint = accentColor.copy(alpha = 0.8f),
-        //         modifier = Modifier.size(24.dp)
-        //     )
-        // }
+        2. Lyrics Button (with accent color to highlight premium feature)
+        PressableIconButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onLyricsClick()
+            },
+            modifier = Modifier.size(48.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Lyrics,
+                contentDescription = stringResource(R.string.now_playing_lyrics),
+                tint = accentColor.copy(alpha = 0.8f),
+                modifier = Modifier.size(24.dp)
+            )
+        }
 
         // 3. Share Button
         PressableIconButton(
