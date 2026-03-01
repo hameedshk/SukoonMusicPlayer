@@ -23,9 +23,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -61,6 +63,8 @@ import com.sukoon.music.util.DevLogger
 import com.sukoon.music.util.RemoteConfigManager
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 internal fun shouldShowGlobalMiniPlayer(currentRoute: String?): Boolean {
@@ -354,6 +358,19 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     // Force reconnect on app start (re-attach listener if service restarted)
                     homeViewModel.playbackRepository.connect()
+                }
+
+                val latestRepository by rememberUpdatedState(homeViewModel.playbackRepository)
+                val latestIsPlaying by rememberUpdatedState(playbackState.isPlaying)
+                LaunchedEffect(lifecycleOwner) {
+                    lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                        while (isActive) {
+                            if (latestIsPlaying) {
+                                latestRepository.refreshPlaybackState(forcePositionResync = true)
+                            }
+                            delay(750)
+                        }
+                    }
                 }
 
                 LaunchedEffect(isPremium) {

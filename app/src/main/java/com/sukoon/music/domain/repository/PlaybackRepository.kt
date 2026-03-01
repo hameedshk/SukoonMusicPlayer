@@ -148,7 +148,7 @@ interface PlaybackRepository {
      * Force refresh playback state from MediaController.
      * Call when UI becomes visible to get accurate current position.
      */
-    fun refreshPlaybackState()
+    fun refreshPlaybackState(forcePositionResync: Boolean = false)
 
     /**
      * Save current playback state to preferences for recovery after app close.

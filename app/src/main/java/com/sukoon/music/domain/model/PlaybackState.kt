@@ -14,6 +14,7 @@ data class PlaybackState(
     val repeatMode: RepeatMode = RepeatMode.OFF,
     val shuffleEnabled: Boolean = false,
     val error: String? = null,
+    val lastUpdateSource: PlaybackUpdateSource = PlaybackUpdateSource.UNKNOWN,
 
     /**
      * The current playback queue.
@@ -58,6 +59,18 @@ data class PlaybackState(
      */
     val pausedByNoisyAudio: Boolean = false
 )
+
+/**
+ * Identifies the pipeline stage that most recently refreshed [PlaybackState].
+ */
+enum class PlaybackUpdateSource {
+    PLAYER_LISTENER,
+    NOTIFICATION,
+    ACTIVITY_RESUME,
+    PERIODIC_UI_TICK,
+    SERVICE_RECOVERY,
+    UNKNOWN
+}
 
 /**
  * Repeat mode for playback.

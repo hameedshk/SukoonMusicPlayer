@@ -116,6 +116,8 @@ class MusicPlaybackService : MediaSessionService() {
 
     // Notification visibility state (user preference)
     private var isNotificationVisible = true
+    private val repositoryRefreshLock = Any()
+    private var lastRepositoryRefreshAtMs: Long = 0L
 
     // Crossfade manager for smooth track transitions
     private var crossfadeManager: com.sukoon.music.data.audio.CrossfadeManager? = null
@@ -243,16 +245,7 @@ class MusicPlaybackService : MediaSessionService() {
                     notification: Notification,
                     ongoing: Boolean
                 ) {
-                    // Trigger repository to sync latest state
-                    scope.launch {
-                        try {
-                            val repo = com.sukoon.music.di.HiltHolder.getPlaybackRepository()
-                            repo?.refreshPlaybackState()
-                            DevLogger.d("MusicPlaybackService", "Playback state refreshed from notification")
-                        } catch (e: Exception) {
-                            DevLogger.e("MusicPlaybackService", "Failed to refresh playback state", e)
-                        }
-                    }
+                    requestRepositoryRefresh(source = "notification_posted")
 
                     // Start foreground if notification should be visible
                     if (isNotificationVisible && !isForeground) {
@@ -715,11 +708,13 @@ class MusicPlaybackService : MediaSessionService() {
                 }
             }
             lastPlayWhenReady = playWhenReady
+            requestRepositoryRefresh(source = "player_play_when_ready")
         }
 
         override fun onPlayerErrorChanged(error: PlaybackException?) {
             error?.let {
                 DevLogger.e("MusicPlaybackService", "Playback error: ${it.message}", it)
+                requestRepositoryRefresh(source = "player_error", minIntervalMs = 0L)
             }
         }
 
@@ -810,6 +805,7 @@ class MusicPlaybackService : MediaSessionService() {
                                 // Mark pause reason as headphone unplug - DO NOT resume on this
                                 currentPauseReason = PauseReason.AUDIO_BECOMING_NOISY
                                 wasPlayingBeforeFocusLoss = false
+                                requestRepositoryRefresh(source = "audio_becoming_noisy", minIntervalMs = 0L)
                             }
                         }
                     } else if (!pauseOnAudioNoisy) {
@@ -879,6 +875,32 @@ class MusicPlaybackService : MediaSessionService() {
                 false
             } else {
                 throw e
+            }
+        }
+    }
+
+    private fun requestRepositoryRefresh(
+        source: String,
+        minIntervalMs: Long = 200L
+    ) {
+        val now = System.currentTimeMillis()
+        val shouldRefresh = synchronized(repositoryRefreshLock) {
+            if (now - lastRepositoryRefreshAtMs < minIntervalMs) {
+                false
+            } else {
+                lastRepositoryRefreshAtMs = now
+                true
+            }
+        }
+        if (!shouldRefresh) return
+
+        scope.launch {
+            try {
+                val repo = com.sukoon.music.di.HiltHolder.getPlaybackRepository()
+                repo?.refreshPlaybackState(forcePositionResync = true)
+                DevLogger.d("MusicPlaybackService", "Playback state refreshed from $source")
+            } catch (e: Exception) {
+                DevLogger.e("MusicPlaybackService", "Failed to refresh playback state from $source", e)
             }
         }
     }

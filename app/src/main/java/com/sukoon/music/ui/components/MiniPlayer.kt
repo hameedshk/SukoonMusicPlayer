@@ -57,6 +57,7 @@ import com.sukoon.music.ui.theme.LocalIsAmoled
 import com.sukoon.music.ui.util.hasUsableAlbumArt
 import com.sukoon.music.ui.util.rememberAlbumPalette
 import com.sukoon.music.ui.util.resolveNowPlayingAccentColors
+import kotlin.math.abs
 
 /**
  * Shimmer effect modifier for loading states.
@@ -143,6 +144,12 @@ private fun MiniPlayerProgressBar(
 
     // Keep ticker state scoped to the progress bar so row content is not recomposed every 100ms.
     var positionOffset by remember(playbackState.currentSong?.id) { mutableLongStateOf(0L) }
+    var lastBasePositionMs by remember(playbackState.currentSong?.id) {
+        mutableLongStateOf(playbackState.currentPosition.coerceAtLeast(0L))
+    }
+    var lastDurationMs by remember(playbackState.currentSong?.id) {
+        mutableLongStateOf(playbackState.duration.coerceAtLeast(0L))
+    }
     val currentPosition by remember(playbackState.currentPosition, positionOffset, playbackState.duration) {
         derivedStateOf {
             val rawPosition = playbackState.currentPosition + positionOffset
@@ -154,8 +161,37 @@ private fun MiniPlayerProgressBar(
         }
     }
 
+    LaunchedEffect(
+        playbackState.currentSong?.id,
+        playbackState.currentPosition,
+        playbackState.duration,
+        playbackState.isPlaying,
+        playbackState.isLoading,
+        playbackState.error
+    ) {
+        val basePosition = playbackState.currentPosition.coerceAtLeast(0L)
+        val duration = playbackState.duration.coerceAtLeast(0L)
+        val baselineJumped = abs(basePosition - lastBasePositionMs) > 1500L
+        val durationChanged = duration != lastDurationMs
+        val shouldResetOffset =
+            baselineJumped || durationChanged || !playbackState.isPlaying ||
+                playbackState.isLoading || playbackState.error != null
+
+        if (shouldResetOffset) {
+            positionOffset = 0L
+        }
+
+        lastBasePositionMs = basePosition
+        lastDurationMs = duration
+    }
+
     // Position ticker - updates every 100ms only when playing
-    LaunchedEffect(playbackState.isPlaying, playbackState.currentSong?.id) {
+    LaunchedEffect(
+        playbackState.isPlaying,
+        playbackState.isLoading,
+        playbackState.error,
+        playbackState.currentSong?.id
+    ) {
         // Always reset offset when song changes
         positionOffset = 0L
         if (!playbackStateSnapshot.isPlaying) return@LaunchedEffect

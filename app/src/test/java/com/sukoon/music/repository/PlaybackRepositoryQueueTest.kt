@@ -12,7 +12,6 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -52,7 +51,8 @@ class PlaybackRepositoryQueueTest {
             queueRepository = mockk(relaxed = true),
             listeningStatsRepository = mockk(relaxed = true),
             songAudioSettingsDao = songAudioSettingsDao,
-            sessionController = mockk(relaxed = true)
+            sessionController = mockk(relaxed = true),
+            customCommandBridge = mockk(relaxed = true)
         )
 
         // Inject mock mediaController using reflection since it's private

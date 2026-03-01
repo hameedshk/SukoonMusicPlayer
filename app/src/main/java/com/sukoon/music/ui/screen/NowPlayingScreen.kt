@@ -326,7 +326,8 @@ fun NowPlayingScreen(
     onNavigateToAudioEditor: (Long) -> Unit = {},
     onNavigateToPremium: () -> Unit = {},
     premiumManager: PremiumManager? = null,
-    viewModel: HomeViewModel = hiltViewModel()
+    viewModel: HomeViewModel = hiltViewModel(),
+    playlistViewModel: PlaylistViewModel? = null
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
@@ -364,6 +365,7 @@ fun NowPlayingScreen(
     val motionDirective = playbackState.toMotionDirective(isVisible = true)
     val motionPhase by rememberPlaybackMotionClock(motionDirective)
     val collapseThresholdPx = with(LocalDensity.current) { 96.dp.toPx() }
+    val effectivePlaylistViewModel = playlistViewModel ?: hiltViewModel<PlaylistViewModel>()
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -449,7 +451,8 @@ fun NowPlayingScreen(
                         onNavigateToAudioEditor = onNavigateToAudioEditor,
                         onNavigateToPremium = onNavigateToPremium,
                         isPremium = isPremiumState.value,
-                        viewModel = viewModel
+                        viewModel = viewModel,
+                        playlistViewModel = effectivePlaylistViewModel
                     )
                 } else {
                     EmptyNowPlayingState()
@@ -561,7 +564,7 @@ private fun NowPlayingContent(
     onNavigateToPremium: () -> Unit = {},
     isPremium: Boolean = false,
     viewModel: HomeViewModel,
-    playlistViewModel: PlaylistViewModel = hiltViewModel()
+    playlistViewModel: PlaylistViewModel
 ) {
     val song = playbackState.currentSong ?: return
 
@@ -2636,7 +2639,8 @@ private fun NowPlayingScreenPreview() {
             onNavigateToQueue = {},
             onNavigateToAlbum = {},
             onNavigateToArtist = {},
-            viewModel = hiltViewModel()
+            viewModel = hiltViewModel(),
+            playlistViewModel = hiltViewModel()
         )
     }
 }

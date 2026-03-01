@@ -20,6 +20,7 @@ import com.sukoon.music.data.local.entity.SongAudioSettingsEntity
 import com.google.common.util.concurrent.MoreExecutors
 import com.sukoon.music.data.service.MusicPlaybackService
 import com.sukoon.music.di.ApplicationScope
+import com.sukoon.music.domain.model.PlaybackUpdateSource
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
@@ -42,6 +43,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.coroutineContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -85,8 +87,9 @@ class PlaybackRepositoryImpl @Inject constructor(
     // Connection State Tracking
     private var isConnected = false
 
-    // Mutex for thread-safe listener state updates
-    private val listenerMutex = Mutex()
+    // Thread safety locks
+    private val stateUpdateMutex = Mutex()
+    private val connectionLock = Any()
 
     // Listening Stats Tracking - track actual playback duration per song
     private var currentSongId: Long? = null
@@ -106,20 +109,14 @@ class PlaybackRepositoryImpl @Inject constructor(
                 pausedByAudioFocusLoss = false
                 pausedByNoisyAudio = false
             }
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                    savePlaybackStateForRecovery()
-                }
-            }
+            requestStateRefresh(
+                source = PlaybackUpdateSource.PLAYER_LISTENER,
+                persistRecoveryState = true
+            )
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
@@ -157,7 +154,7 @@ class PlaybackRepositoryImpl @Inject constructor(
             }
 
             scope.launch {
-                listenerMutex.withLock {
+                stateUpdateMutex.withLock {
                     // Update tracking for current song (within mutex to prevent race conditions)
                     mediaItem?.mediaId?.toLongOrNull()?.let { songId ->
                         currentSongId = songId
@@ -165,34 +162,22 @@ class PlaybackRepositoryImpl @Inject constructor(
                         currentSongStartTimeMs = System.currentTimeMillis()
                     }
 
-                    updatePlaybackState()
+                    updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
                     savePlaybackStateForRecovery()
                 }
             }
         }
 
         override fun onRepeatModeChanged(repeatMode: Int) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
 
         override fun onShuffleModeEnabledChanged(shuffleEnabled: Boolean) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
 
         override fun onPlayerErrorChanged(error: PlaybackException?) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
 
         override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
@@ -217,20 +202,14 @@ class PlaybackRepositoryImpl @Inject constructor(
                     }
                 }
             }
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
 
         override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                    savePlaybackStateForRecovery()
-                }
-            }
+            requestStateRefresh(
+                source = PlaybackUpdateSource.PLAYER_LISTENER,
+                persistRecoveryState = true
+            )
         }
 
         override fun onPositionDiscontinuity(
@@ -238,74 +217,121 @@ class PlaybackRepositoryImpl @Inject constructor(
             newPosition: Player.PositionInfo,
             reason: Int
         ) {
-            scope.launch {
-                listenerMutex.withLock {
-                    updatePlaybackState()
-                }
-            }
+            requestStateRefresh(source = PlaybackUpdateSource.PLAYER_LISTENER)
         }
     }
 
     // Lifecycle Methods
 
-    override suspend fun connect() {
-        // If already connected and controller is valid, return
-        if (isConnected && mediaController != null) return
-
-        // Clean up stale connection before reconnecting
-        if (mediaController != null) {
-            try {
-                mediaController?.removeListener(playerListener)
-                mediaController?.release()
-            } catch (e: Exception) {
-                DevLogger.e("PlaybackRepository", "Error cleaning up stale controller", e)
-            }
-            mediaController = null
+    private fun releaseCurrentControllerLocked() {
+        try {
+            mediaController?.removeListener(playerListener)
+            mediaController?.release()
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Error releasing MediaController", e)
         }
+        mediaController = null
+    }
 
-        connectionJob = scope.launch {
-            try {
-                val sessionToken = SessionToken(
-                    context,
-                    ComponentName(context, MusicPlaybackService::class.java)
+    private fun requestStateRefresh(
+        source: PlaybackUpdateSource,
+        persistRecoveryState: Boolean = false,
+        forcePositionResync: Boolean = false
+    ) {
+        scope.launch {
+            stateUpdateMutex.withLock {
+                updatePlaybackState(
+                    source = source,
+                    forcePositionResync = forcePositionResync
                 )
+                if (persistRecoveryState) {
+                    savePlaybackStateForRecovery()
+                }
+            }
+        }
+    }
 
-                val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
-
-                mediaController = suspendCancellableCoroutine { continuation ->
-                    controllerFuture.addListener({
-                        try {
-                            val controller = controllerFuture.get()
-                            continuation.resume(controller)
-                        } catch (e: Exception) {
-                            continuation.resumeWithException(e)
-                        }
-                    }, MoreExecutors.directExecutor())
-
-                    continuation.invokeOnCancellation {
-                        controllerFuture.cancel(true)
+    override suspend fun connect() {
+        val jobToJoin: Job? = synchronized(connectionLock) {
+            if (isConnected && mediaController != null) {
+                null
+            } else {
+                connectionJob?.takeIf { it.isActive } ?: run {
+                    if (mediaController != null) {
+                        releaseCurrentControllerLocked()
                     }
-                }
 
-                // Register listener after successful connection
-                mediaController?.addListener(playerListener)
-                isConnected = true
-                updatePlaybackState()
+                    val connectJob = scope.launch {
+                        val thisJob = coroutineContext[Job]
+                        try {
+                            val sessionToken = SessionToken(
+                                context,
+                                ComponentName(context, MusicPlaybackService::class.java)
+                            )
 
-                // Restore last queue on app launch if queue is empty
-                if (mediaController?.mediaItemCount == 0) {
-                    restoreLastQueue()
+                            val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
+
+                            val connectedController = suspendCancellableCoroutine<MediaController> { continuation ->
+                                controllerFuture.addListener({
+                                    try {
+                                        continuation.resume(controllerFuture.get())
+                                    } catch (e: Exception) {
+                                        continuation.resumeWithException(e)
+                                    }
+                                }, MoreExecutors.directExecutor())
+
+                                continuation.invokeOnCancellation {
+                                    controllerFuture.cancel(true)
+                                }
+                            }
+
+                            synchronized(connectionLock) {
+                                if (mediaController != null && mediaController !== connectedController) {
+                                    releaseCurrentControllerLocked()
+                                }
+                                mediaController = connectedController
+                                mediaController?.addListener(playerListener)
+                                isConnected = true
+                            }
+
+                            stateUpdateMutex.withLock {
+                                updatePlaybackState(source = PlaybackUpdateSource.SERVICE_RECOVERY)
+                            }
+
+                            // Restore last queue on app launch if queue is empty
+                            if (connectedController.mediaItemCount == 0) {
+                                restoreLastQueue()
+                            }
+                        } catch (e: Exception) {
+                            synchronized(connectionLock) {
+                                isConnected = false
+                                releaseCurrentControllerLocked()
+                            }
+                            stateUpdateMutex.withLock {
+                                _playbackState.update {
+                                    it.copy(
+                                        error = "Failed to connect to playback service: ${e.message}",
+                                        lastUpdateSource = PlaybackUpdateSource.SERVICE_RECOVERY
+                                    )
+                                }
+                            }
+                            DevLogger.e("PlaybackRepository", "Connection failed", e)
+                        } finally {
+                            synchronized(connectionLock) {
+                                if (connectionJob === thisJob) {
+                                    connectionJob = null
+                                }
+                            }
+                        }
+                    }
+
+                    connectionJob = connectJob
+                    connectJob
                 }
-            } catch (e: Exception) {
-                isConnected = false
-                _playbackState.update {
-                    it.copy(error = "Failed to connect to playback service: ${e.message}")
-                }
-                DevLogger.e("PlaybackRepository", "Connection failed", e)
             }
         }
 
-        connectionJob?.join()
+        jobToJoin?.join()
     }
 
     /**
@@ -380,13 +406,20 @@ class PlaybackRepositoryImpl @Inject constructor(
 
                 currentSavedQueueId = currentQueue.queue.id
                 lastSavedQueue = currentQueue.songs
-                updatePlaybackState()
+                stateUpdateMutex.withLock {
+                    updatePlaybackState(source = PlaybackUpdateSource.SERVICE_RECOVERY)
+                }
 
                 DevLogger.d("PlaybackRepository", "Queue restored: ${currentQueue.songs.size} songs")
             } catch (e: Exception) {
                 DevLogger.e("PlaybackRepository", "Failed to restore queue", e)
-                _playbackState.update {
-                    it.copy(error = "Failed to restore playback: ${e.message}")
+                stateUpdateMutex.withLock {
+                    _playbackState.update {
+                        it.copy(
+                            error = "Failed to restore playback: ${e.message}",
+                            lastUpdateSource = PlaybackUpdateSource.SERVICE_RECOVERY
+                        )
+                    }
                 }
             }
         }
@@ -421,21 +454,20 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override fun disconnect() {
-        try {
-            mediaController?.removeListener(playerListener)
-            mediaController?.release()
-        } catch (e: Exception) {
-            DevLogger.e("PlaybackRepository", "Error disconnecting", e)
+        synchronized(connectionLock) {
+            connectionJob?.cancel()
+            connectionJob = null
+            releaseCurrentControllerLocked()
+            isConnected = false
         }
-        mediaController = null
-        isConnected = false
-        connectionJob?.cancel()
-        connectionJob = null
     }
 
     // State Synchronization
 
-    private fun updatePlaybackState() {
+    private fun updatePlaybackState(
+        source: PlaybackUpdateSource = PlaybackUpdateSource.UNKNOWN,
+        forcePositionResync: Boolean = false
+    ) {
         val controller = mediaController ?: return
 
         // Extract queue from MediaController
@@ -465,8 +497,15 @@ class PlaybackRepositoryImpl @Inject constructor(
         val currentSongBasic = currentMediaItem?.toSong()
 
         _playbackState.update { currentState ->
-            val duration = controller.duration.takeIf { it != C.TIME_UNSET } ?: 0L
-            val currentPosition = controller.currentPosition.coerceIn(0L, duration)
+            val duration = controller.duration
+                .takeIf { it != C.TIME_UNSET && it > 0L }
+                ?: 0L
+            val rawPosition = controller.currentPosition.coerceAtLeast(0L)
+            val currentPosition = if (duration > 0L) {
+                rawPosition.coerceAtMost(duration)
+            } else {
+                rawPosition
+            }
 
             currentState.copy(
                 isPlaying = controller.isPlaying,
@@ -485,11 +524,16 @@ class PlaybackRepositoryImpl @Inject constructor(
                 currentQueueId = currentSavedQueueId,
                 currentQueueName = currentSourceName ?: if (currentSavedQueueId != null) "Current Queue" else null,
                 queueTimestamp = System.currentTimeMillis(),
+                lastUpdateSource = source,
 
                 // Audio focus state
                 pausedByAudioFocusLoss = pausedByAudioFocusLoss,
                 pausedByNoisyAudio = pausedByNoisyAudio
             )
+        }
+
+        if (forcePositionResync) {
+            DevLogger.d("PlaybackRepository", "Forced position resync from ${source.name}")
         }
 
         // Fetch accurate liked status asynchronously for current song
@@ -498,12 +542,17 @@ class PlaybackRepositoryImpl @Inject constructor(
             scope.launch {
                 val songWithLikedStatus = songRepository.getSongById(currentSongBasic.id)
                 if (songWithLikedStatus != null && songWithLikedStatus.isLiked != currentSongBasic.isLiked) {
-                    _playbackState.update { currentState ->
-                        // Only update if this is still the current song (avoid race conditions)
-                        if (currentState.currentSong?.id == songWithLikedStatus.id) {
-                            currentState.copy(currentSong = songWithLikedStatus)
-                        } else {
-                            currentState
+                    stateUpdateMutex.withLock {
+                        _playbackState.update { currentState ->
+                            // Only update if this is still the current song (avoid race conditions)
+                            if (currentState.currentSong?.id == songWithLikedStatus.id) {
+                                currentState.copy(
+                                    currentSong = songWithLikedStatus,
+                                    lastUpdateSource = source
+                                )
+                            } else {
+                                currentState
+                            }
                         }
                     }
                 }
@@ -572,8 +621,13 @@ class PlaybackRepositoryImpl @Inject constructor(
         try {
             controller.seekTo(validPosition)
         } catch (e: Exception) {
-            _playbackState.update {
-                it.copy(error = "Seek failed: ${e.message}")
+            stateUpdateMutex.withLock {
+                _playbackState.update {
+                    it.copy(
+                        error = "Seek failed: ${e.message}",
+                        lastUpdateSource = PlaybackUpdateSource.UNKNOWN
+                    )
+                }
             }
             DevLogger.e("PlaybackRepository", "Error seeking to $validPosition", e)
         }
@@ -602,8 +656,13 @@ class PlaybackRepositoryImpl @Inject constructor(
                 controller.prepare()
                 controller.play()
             } catch (e: Exception) {
-                _playbackState.update {
-                    it.copy(error = "Failed to play song: ${e.message}")
+                stateUpdateMutex.withLock {
+                    _playbackState.update {
+                        it.copy(
+                            error = "Failed to play song: ${e.message}",
+                            lastUpdateSource = PlaybackUpdateSource.UNKNOWN
+                        )
+                    }
                 }
                 DevLogger.e("PlaybackRepository", "Error playing song: ${song.title}", e)
             }
@@ -635,8 +694,13 @@ class PlaybackRepositoryImpl @Inject constructor(
                 controller.prepare()
                 controller.play()
             } catch (e: Exception) {
-                _playbackState.update {
-                    it.copy(error = "Failed to play queue: ${e.message}")
+                stateUpdateMutex.withLock {
+                    _playbackState.update {
+                        it.copy(
+                            error = "Failed to play queue: ${e.message}",
+                            lastUpdateSource = PlaybackUpdateSource.UNKNOWN
+                        )
+                    }
                 }
                 DevLogger.e("PlaybackRepository", "Error playing queue", e)
             }
@@ -714,8 +778,13 @@ class PlaybackRepositoryImpl @Inject constructor(
         try {
             controller.seekToDefaultPosition(validIndex)
         } catch (e: Exception) {
-            _playbackState.update {
-                it.copy(error = "Failed to seek to index $validIndex: ${e.message}")
+            stateUpdateMutex.withLock {
+                _playbackState.update {
+                    it.copy(
+                        error = "Failed to seek to index $validIndex: ${e.message}",
+                        lastUpdateSource = PlaybackUpdateSource.UNKNOWN
+                    )
+                }
             }
             DevLogger.e("PlaybackRepository", "Error seeking to queue index", e)
         }
@@ -739,18 +808,44 @@ class PlaybackRepositoryImpl @Inject constructor(
         val currentSongId = _playbackState.value.currentSong?.id ?: return
         val freshSong = songRepository.getSongById(currentSongId) ?: return
 
-        _playbackState.update { currentState ->
-            // Only update if this is still the current song
-            if (currentState.currentSong?.id == currentSongId) {
-                currentState.copy(currentSong = freshSong)
-            } else {
-                currentState
+        stateUpdateMutex.withLock {
+            _playbackState.update { currentState ->
+                // Only update if this is still the current song
+                if (currentState.currentSong?.id == currentSongId) {
+                    currentState.copy(
+                        currentSong = freshSong,
+                        lastUpdateSource = PlaybackUpdateSource.UNKNOWN
+                    )
+                } else {
+                    currentState
+                }
             }
         }
     }
 
-    override fun refreshPlaybackState() {
-        updatePlaybackState()
+    override fun refreshPlaybackState(forcePositionResync: Boolean) {
+        val source = if (forcePositionResync) {
+            PlaybackUpdateSource.PERIODIC_UI_TICK
+        } else {
+            PlaybackUpdateSource.ACTIVITY_RESUME
+        }
+
+        if (stateUpdateMutex.tryLock()) {
+            try {
+                updatePlaybackState(
+                    source = source,
+                    forcePositionResync = forcePositionResync
+                )
+            } finally {
+                stateUpdateMutex.unlock()
+            }
+            return
+        }
+
+        requestStateRefresh(
+            source = source,
+            forcePositionResync = forcePositionResync
+        )
     }
 
     override suspend fun savePlaybackState() {
@@ -790,7 +885,9 @@ class PlaybackRepositoryImpl @Inject constructor(
             replaceCurrentItemWithSettings(controller, settings)
         }
         sendPerSongSettingsCommand(controller, settings)
-        updatePlaybackState()
+        stateUpdateMutex.withLock {
+            updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+        }
     }
 
     override suspend fun applyCurrentSongSettingsImmediately(songId: Long, settings: SongAudioSettings) {
@@ -800,7 +897,9 @@ class PlaybackRepositoryImpl @Inject constructor(
 
         replaceCurrentItemWithSettings(controller, settings)
         sendPerSongSettingsCommand(controller, settings)
-        updatePlaybackState()
+        stateUpdateMutex.withLock {
+            updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+        }
     }
 
     private suspend fun replaceCurrentItemWithSettings(
