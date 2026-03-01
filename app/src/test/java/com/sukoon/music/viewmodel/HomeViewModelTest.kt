@@ -9,6 +9,7 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.ScanState
 import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.domain.repository.ListeningStatsRepository
+import com.sukoon.music.domain.repository.ListeningStatsSnapshot
 import com.sukoon.music.domain.repository.LyricsRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.domain.repository.SettingsRepository
@@ -89,6 +90,7 @@ class HomeViewModelTest {
         coEvery { settingsRepository.getLastScanTime() } returns System.currentTimeMillis()
 
         coEvery { listeningStatsRepository.cleanupOldStats() } returns Unit
+        every { listeningStatsRepository.observeWeeklySnapshot() } returns flowOf(null)
         coEvery { listeningStatsRepository.getTotalListeningTime7Days() } returns 0
         coEvery { listeningStatsRepository.getTopArtist7Days() } returns null
         coEvery { listeningStatsRepository.getPeakTimeOfDay7Days() } returns null
@@ -153,6 +155,26 @@ class HomeViewModelTest {
         val result = event.await()
         assertTrue(result is HomeViewModel.ManualScanResult.Error)
         assertEquals("Scan already in progress.", (result as HomeViewModel.ManualScanResult.Error).message)
+    }
+
+    @Test
+    fun `listening stats state updates from repository flow`() = runTest {
+        val statsFlow = MutableStateFlow<ListeningStatsSnapshot?>(null)
+        every { listeningStatsRepository.observeWeeklySnapshot() } returns statsFlow
+
+        val viewModel = createViewModel()
+        advanceUntilIdle()
+        assertEquals(null, viewModel.listeningStats.value)
+
+        val snapshot = ListeningStatsSnapshot(
+            totalListeningTimeMinutes = 140,
+            topArtist = "Artist A",
+            peakTimeOfDay = "night"
+        )
+        statsFlow.value = snapshot
+        advanceUntilIdle()
+
+        assertEquals(snapshot, viewModel.listeningStats.value)
     }
 
     private fun createViewModel(): HomeViewModel {

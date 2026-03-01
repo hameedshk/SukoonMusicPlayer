@@ -94,7 +94,8 @@ object AppModule {
             SukoonDatabase.MIGRATION_15_16,
             SukoonDatabase.MIGRATION_16_17,
             SukoonDatabase.MIGRATION_17_18,
-            SukoonDatabase.MIGRATION_18_19
+            SukoonDatabase.MIGRATION_18_19,
+            SukoonDatabase.MIGRATION_19_20
         )
         // Only allow destructive migration from pre-launch version 1 (no migration path exists for 1→2)
         // Versions 2+ have explicit migration paths via .addMigrations() above

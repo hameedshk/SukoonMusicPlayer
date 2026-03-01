@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -24,8 +25,10 @@ fun ModernSearchBar(
     onClearClick: () -> Unit,
     onBackClick: () -> Unit,
     onSearchAction: () -> Unit,
+    onVoiceClick: () -> Unit = {},
     modifier: Modifier = Modifier,
-    placeholderText: String? = null
+    placeholderText: String? = null,
+    showVoiceButton: Boolean = true
 ) {
     val resolvedPlaceholderText =
         placeholderText ?: androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_ui_search_placeholder)
@@ -93,13 +96,21 @@ fun ModernSearchBar(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-            } else {
+            } else if (showVoiceButton) {
+                IconButton(onClick = onVoiceClick) {
                     Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        modifier = Modifier.padding(end = 16.dp)
+                        imageVector = Icons.Default.Mic,
+                        contentDescription = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.common_voice_search),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    modifier = Modifier.padding(end = 16.dp)
+                )
             }
         }
     }

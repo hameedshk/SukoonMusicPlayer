@@ -20,6 +20,8 @@ import com.sukoon.music.data.local.dao.SongDao
 import com.sukoon.music.data.local.entity.DeletedPlaylistEntity
 import com.sukoon.music.data.local.entity.EqualizerPresetEntity
 import com.sukoon.music.data.local.entity.GenreCoverEntity
+import com.sukoon.music.data.local.entity.ListeningStatsArtistDailyEntity
+import com.sukoon.music.data.local.entity.ListeningStatsBucketDailyEntity
 import com.sukoon.music.data.local.entity.ListeningStatsEntity
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.local.entity.PlaylistEntity
@@ -49,9 +51,11 @@ import com.sukoon.music.data.local.entity.SongEntity
         QueueItemEntity::class,
         GenreCoverEntity::class,
         ListeningStatsEntity::class,
+        ListeningStatsArtistDailyEntity::class,
+        ListeningStatsBucketDailyEntity::class,
         SongAudioSettingsEntity::class
     ],
-    version = 19,
+    version = 20,
     exportSchema = false
 )
 abstract class SukoonDatabase : RoomDatabase() {
@@ -490,6 +494,58 @@ abstract class SukoonDatabase : RoomDatabase() {
                 database.execSQL(
                     "ALTER TABLE lyrics ADD COLUMN manualUpdatedAt INTEGER"
                 )
+            }
+        }
+
+        /**
+         * Migration from version 19 to 20.
+         * Adds per-day artist/bucket aggregate tables and resets legacy listening_stats rows.
+         */
+        val MIGRATION_19_20 = object : Migration(19, 20) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS listening_stats_artist_daily (
+                        dateMs INTEGER NOT NULL,
+                        artistName TEXT NOT NULL,
+                        totalDurationMs INTEGER NOT NULL,
+                        playCount INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(dateMs, artistName)
+                    )
+                    """
+                )
+                database.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS listening_stats_bucket_daily (
+                        dateMs INTEGER NOT NULL,
+                        bucket TEXT NOT NULL,
+                        totalDurationMs INTEGER NOT NULL,
+                        playCount INTEGER NOT NULL,
+                        updatedAt INTEGER NOT NULL,
+                        PRIMARY KEY(dateMs, bucket)
+                    )
+                    """
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_listening_stats_artist_daily_dateMs " +
+                        "ON listening_stats_artist_daily(dateMs)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_listening_stats_artist_daily_artistName " +
+                        "ON listening_stats_artist_daily(artistName)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_listening_stats_bucket_daily_dateMs " +
+                        "ON listening_stats_bucket_daily(dateMs)"
+                )
+                database.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_listening_stats_bucket_daily_bucket " +
+                        "ON listening_stats_bucket_daily(bucket)"
+                )
+
+                // Reset legacy aggregates that were computed with inaccurate logic.
+                database.execSQL("DELETE FROM listening_stats")
             }
         }
     }

@@ -203,6 +203,7 @@
     <string name="common_restore_purchase">Restore Purchase</string>
     <string name="common_more">More</string>
     <string name="common_search">Search</string>
+    <string name="common_voice_search">Voice search</string>
     <string name="common_select">Select</string>
     <string name="common_select_all">Select all</string>
     <string name="common_deselect_all">Deselect all</string>
@@ -237,6 +238,8 @@
     <string name="toast_timer_cancelled">Timer cancelled</string>
     <string name="toast_timer_set_end_of_track">Timer set for end of track</string>
     <string name="toast_track_end_not_available">Track end not available</string>
+    <string name="toast_voice_search_not_available">Voice search is not available on this device</string>
+    <string name="toast_voice_search_failed">Could not start voice search</string>
 
     <!-- Permission dialogs -->
     <string name="permission_required_title">Permission Required</string>

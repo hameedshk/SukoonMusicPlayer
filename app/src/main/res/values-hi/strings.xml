@@ -110,4 +110,7 @@
     <string name="common_restore_purchase">खरीद को पुनर्स्थापित करें</string>
     <string name="home_continue_listening">सुनना जारी रखें</string>
     <string name="listening_stats_title">आपका सप्ताह</string>
+    <string name="common_voice_search">आवाज़ से खोजें</string>
+    <string name="toast_voice_search_not_available">इस डिवाइस पर वॉइस सर्च उपलब्ध नहीं है</string>
+    <string name="toast_voice_search_failed">वॉइस सर्च शुरू नहीं हो सका</string>
 </resources>

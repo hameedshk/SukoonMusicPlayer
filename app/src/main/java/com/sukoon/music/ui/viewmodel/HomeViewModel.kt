@@ -89,9 +89,9 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        // Load listening stats on HomeScreen open (lazy computation)
+        // Observe listening stats on HomeScreen open (lazy + reactive updates)
         viewModelScope.launch {
-            loadListeningStats()
+            observeListeningStats()
         }
 
         // Conditional startup scan: check preference and dedup by time
@@ -101,29 +101,18 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Load today's listening stats for the card.
-     * Cleanup old data in background.
+     * Observe weekly listening stats for the card and keep UI in sync with DB updates.
      */
-    private suspend fun loadListeningStats() {
+    private suspend fun observeListeningStats() {
         try {
-            // Clean up old data (older than 7 days)
+            // Clean up old data before subscribing.
             listeningStatsRepository.cleanupOldStats()
 
-            // Get today's or most recent stats
-            val totalTime = listeningStatsRepository.getTotalListeningTime7Days()
-            val topArtist = listeningStatsRepository.getTopArtist7Days()
-            val timeOfDay = listeningStatsRepository.getPeakTimeOfDay7Days()
-
-            // Show card if user has at least 30 minutes of listening time
-            if (totalTime >= 30) {
-                _listeningStats.value = ListeningStatsSnapshot(
-                    totalListeningTimeMinutes = totalTime,
-                    topArtist = topArtist,
-                    peakTimeOfDay = timeOfDay ?: "unknown"
-                )
+            listeningStatsRepository.observeWeeklySnapshot().collect { snapshot ->
+                _listeningStats.value = snapshot
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading listening stats", e)
+            Log.e(TAG, "Error observing listening stats", e)
         }
     }
 
@@ -165,6 +154,13 @@ class HomeViewModel @Inject constructor(
     fun onHomeVisible() {
         homeEntryTimestampMs = System.currentTimeMillis()
         hasLoggedHomeFirstPlayback = false
+        viewModelScope.launch {
+            try {
+                listeningStatsRepository.cleanupOldStats()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error refreshing listening stats window", e)
+            }
+        }
     }
 
     fun onHomeResumeTap() {

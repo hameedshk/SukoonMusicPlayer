@@ -1,5 +1,9 @@
 package com.sukoon.music.ui.screen
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.speech.RecognizerIntent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.WindowInsets
@@ -35,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import android.widget.Toast
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
@@ -55,6 +58,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
 import com.sukoon.music.ui.theme.*
+import com.sukoon.music.ui.search.VoiceSearchIntentFactory
 import kotlinx.coroutines.flow.flowOf
 
 /**
@@ -96,13 +100,29 @@ fun SearchScreen(
     val deleteLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartIntentSenderForResult()
     ) { result ->
-        if (result.resultCode == android.app.Activity.RESULT_OK) {
+        if (result.resultCode == Activity.RESULT_OK) {
             Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_song_deleted_successfully), Toast.LENGTH_SHORT).show()
         } else {
             Toast.makeText(context, context.getString(com.sukoon.music.R.string.toast_delete_cancelled), Toast.LENGTH_SHORT).show()
         }
         songToDelete = null
         isDeleting = false
+    }
+
+    val voiceSearchLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@rememberLauncherForActivityResult
+
+        val spokenText = result.data
+            ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+            ?.firstOrNull()
+            ?.trim()
+            .orEmpty()
+
+        if (spokenText.isNotEmpty()) {
+            viewModel.updateSearchQuery(spokenText)
+        }
     }
 
     val menuHandler = rememberSongMenuHandler(
@@ -153,7 +173,33 @@ fun SearchScreen(
                     onQueryChange = { viewModel.updateSearchQuery(it) },
                     onClearClick = { viewModel.updateSearchQuery("") },
                     onBackClick = onBackClick,
-                    onSearchAction = { viewModel.saveSearchToHistory() }
+                    onSearchAction = { viewModel.saveSearchToHistory() },
+                    onVoiceClick = {
+                        val voiceIntent = VoiceSearchIntentFactory.create(context)
+                        if (voiceIntent == null) {
+                            Toast.makeText(
+                                context,
+                                context.getString(com.sukoon.music.R.string.toast_voice_search_not_available),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        } else {
+                            try {
+                                voiceSearchLauncher.launch(voiceIntent)
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(com.sukoon.music.R.string.toast_voice_search_not_available),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            } catch (_: Exception) {
+                                Toast.makeText(
+                                    context,
+                                    context.getString(com.sukoon.music.R.string.toast_voice_search_failed),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
                 )
             }
         },

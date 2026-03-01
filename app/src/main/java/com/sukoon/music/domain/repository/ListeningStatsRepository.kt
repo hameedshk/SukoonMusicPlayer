@@ -18,6 +18,12 @@ interface ListeningStatsRepository {
     fun getLast7DaysStats(): Flow<List<ListeningStatsSnapshot>>
 
     /**
+     * Observe a single aggregated 7-day snapshot for the "Your Week" card.
+     * Returns null when there is not enough listening data to show the card.
+     */
+    fun observeWeeklySnapshot(): Flow<ListeningStatsSnapshot?>
+
+    /**
      * Get total listening time (in minutes) for the last 7 days.
      * Computed lazily when HomeScreen loads.
      */
