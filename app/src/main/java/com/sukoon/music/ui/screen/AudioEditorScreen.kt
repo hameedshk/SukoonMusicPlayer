@@ -23,6 +23,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -53,6 +55,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -61,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.sukoon.music.R
+import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.ui.components.AlbumArtWithFallback
@@ -82,6 +86,7 @@ fun AudioEditorScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val waveformData by viewModel.waveformData.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
     val songs by homeViewModel.songs.collectAsStateWithLifecycle()
     val song = remember(songs, songId) { songs.firstOrNull { it.id == songId } }
     val accentColor = MaterialTheme.colorScheme.primary
@@ -89,6 +94,13 @@ fun AudioEditorScreen(
 
     LaunchedEffect(song?.uri) {
         song?.uri?.let(viewModel::computeWaveform)
+    }
+
+    // Start playback preview for the edited song when entering the screen.
+    LaunchedEffect(song?.id) {
+        if (song != null && playbackState.currentSong?.id != song.id) {
+            homeViewModel.playSong(song)
+        }
     }
 
     Scaffold(
@@ -153,6 +165,22 @@ fun AudioEditorScreen(
                     onEnabledChange = { enabled ->
                         viewModel.updateSettings(settings.copy(isEnabled = enabled))
                     }
+                )
+            }
+
+            item {
+                AudioPreviewCard(
+                    song = song,
+                    playbackState = playbackState,
+                    onTogglePlayback = {
+                        if (song == null) return@AudioPreviewCard
+                        if (playbackState.currentSong?.id != song.id) {
+                            homeViewModel.playSong(song)
+                        } else {
+                            homeViewModel.playPause()
+                        }
+                    },
+                    onSeek = homeViewModel::seekTo
                 )
             }
 
@@ -277,6 +305,121 @@ private fun SongHeaderCard(
                     checked = settings.isEnabled,
                     onCheckedChange = onEnabledChange,
                     enabled = enabled
+                )
+            }
+        }
+    }
+}
+
+@Composable
+internal fun AudioPreviewCard(
+    song: Song?,
+    playbackState: PlaybackState,
+    onTogglePlayback: () -> Unit,
+    onSeek: (Long) -> Unit
+) {
+    val isEditingSongPlaying = playbackState.currentSong?.id == song?.id
+    val durationMs = when {
+        isEditingSongPlaying && playbackState.duration > 0L -> playbackState.duration
+        else -> song?.duration ?: 0L
+    }.coerceAtLeast(0L)
+    val resolvedDurationMs = durationMs.coerceAtLeast(1L)
+    val currentPositionMs = if (isEditingSongPlaying) {
+        playbackState.currentPosition.coerceIn(0L, resolvedDurationMs)
+    } else {
+        0L
+    }
+    var isSeeking by remember(song?.id, isEditingSongPlaying) { mutableStateOf(false) }
+    var sliderPosition by remember(song?.id, isEditingSongPlaying) {
+        mutableStateOf(currentPositionMs.toFloat())
+    }
+    val sliderValue = if (isSeeking) sliderPosition else currentPositionMs.toFloat()
+    val canPreview = song != null
+    val canSeek = canPreview && isEditingSongPlaying && durationMs > 0L
+    val isPlaying = isEditingSongPlaying && playbackState.isPlaying
+
+    LaunchedEffect(currentPositionMs, isSeeking) {
+        if (!isSeeking) {
+            sliderPosition = currentPositionMs.toFloat()
+        }
+    }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("audio_editor_preview_card"),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.audio_editor_preview_title),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = song?.title ?: stringResource(R.string.audio_editor_preview_unavailable),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+                IconButton(
+                    onClick = onTogglePlayback,
+                    enabled = canPreview,
+                    modifier = Modifier.testTag("audio_editor_preview_play_pause")
+                ) {
+                    Icon(
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                        contentDescription = stringResource(
+                            if (isPlaying) R.string.now_playing_pause else R.string.common_play
+                        )
+                    )
+                }
+            }
+
+            Slider(
+                value = sliderValue.coerceIn(0f, resolvedDurationMs.toFloat()),
+                onValueChange = { newValue ->
+                    isSeeking = true
+                    sliderPosition = newValue.coerceIn(0f, resolvedDurationMs.toFloat())
+                },
+                onValueChangeFinished = {
+                    if (canSeek) {
+                        onSeek(sliderPosition.roundToInt().toLong())
+                    }
+                    isSeeking = false
+                },
+                valueRange = 0f..resolvedDurationMs.toFloat(),
+                enabled = canSeek,
+                modifier = Modifier.testTag("audio_editor_preview_seek")
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = formatMs(sliderValue.roundToInt().toLong()),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = formatMs(durationMs),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

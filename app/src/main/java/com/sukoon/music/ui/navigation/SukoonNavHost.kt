@@ -390,7 +390,7 @@ fun SukoonNavHost(
         }
 
         composable(
-            route = "audio_editor/{songId}",
+            route = Routes.AudioEditor.route,
             arguments = listOf(navArgument("songId") { type = NavType.LongType })
         ) { backStackEntry ->
             val songId = backStackEntry.arguments?.getLong("songId") ?: return@composable

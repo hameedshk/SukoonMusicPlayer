@@ -64,6 +64,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.launch
 
+internal fun shouldShowGlobalMiniPlayer(currentRoute: String?): Boolean {
+    return currentRoute != Routes.NowPlaying.route &&
+        currentRoute != Routes.FeedbackReport.route &&
+        currentRoute != Routes.AudioEditor.route
+}
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
 
@@ -359,9 +365,7 @@ class MainActivity : ComponentActivity() {
                     analyticsTracker.setUserProperty("is_premium", isPremium.toString())
                 }
 
-                val isOnFeedbackReportScreen = currentRoute == Routes.FeedbackReport.route
-                val isOnNowPlayingScreen = currentRoute == Routes.NowPlaying.route
-                val shouldShowMiniPlayer = !isOnNowPlayingScreen && !isOnFeedbackReportScreen
+                val shouldShowMiniPlayer = shouldShowGlobalMiniPlayer(currentRoute)
                 val bottomPadding = if (playbackState.currentSong != null && shouldShowMiniPlayer) {
                     (MiniPlayerHeight.value + SpacingMedium.value).dp
                 } else {

@@ -629,4 +629,6 @@
     <string name="audio_editor_save_preset">Save as Preset</string>
     <string name="audio_editor_trim_start">Start</string>
     <string name="audio_editor_trim_end">End</string>
+    <string name="audio_editor_preview_title">Preview</string>
+    <string name="audio_editor_preview_unavailable">Song unavailable for preview</string>
 </resources>
