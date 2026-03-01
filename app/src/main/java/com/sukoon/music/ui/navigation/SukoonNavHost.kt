@@ -147,7 +147,14 @@ fun SukoonNavHost(
                     navController.navigate(Routes.Equalizer.route) {
                         launchSingleTop = true
                     }
-                }
+                },
+                onNavigateToAudioEditor = { songId ->
+                    navController.navigate(Routes.AudioEditor.createRoute(songId))
+                },
+                onNavigateToPremium = {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                },
+                premiumManager = premiumManager
             )
         }
 
@@ -640,7 +647,14 @@ fun SukoonNavHost(
                 },
                 onNavigateToArtist = { artistId ->
                     navController.navigate(Routes.ArtistDetail.createRoute(artistId))
-                }
+                },
+                onNavigateToAudioEditor = { songId ->
+                    navController.navigate(Routes.AudioEditor.createRoute(songId))
+                },
+                onNavigateToPremium = {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                },
+                premiumManager = premiumManager
             )
         }
     }

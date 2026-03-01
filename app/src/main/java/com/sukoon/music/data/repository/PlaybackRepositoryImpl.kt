@@ -3,13 +3,17 @@ package com.sukoon.music.data.repository
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.os.Bundle
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import androidx.media3.session.SessionToken
 import com.sukoon.music.data.local.dao.SongAudioSettingsDao
 import com.sukoon.music.data.local.entity.SongAudioSettingsEntity
@@ -19,7 +23,10 @@ import com.sukoon.music.di.ApplicationScope
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.data.playback.PerSongSettingsCommand
+import com.sukoon.music.data.playback.PlaybackCustomCommandBridge
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -53,7 +60,8 @@ class PlaybackRepositoryImpl @Inject constructor(
     private val queueRepository: com.sukoon.music.domain.repository.QueueRepository,
     private val listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
     private val songAudioSettingsDao: SongAudioSettingsDao,
-    private val sessionController: com.sukoon.music.domain.usecase.SessionController
+    private val sessionController: com.sukoon.music.domain.usecase.SessionController,
+    private val customCommandBridge: PlaybackCustomCommandBridge
 ) : PlaybackRepository {
 
     // State Management
@@ -766,27 +774,82 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun reapplyCurrentSongSettings(songId: Long) {
+        val persisted = songAudioSettingsDao.getSettings(songId)?.toDomain()
+            ?: SongAudioSettings(songId = songId)
+        applyCurrentSongSettingsImmediately(songId, persisted)
+    }
+
+    override suspend fun previewCurrentSongSettings(songId: Long, settings: SongAudioSettings) {
         val controller = mediaController ?: return
         val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
         if (currentSongId != songId) return
 
+        val desiredClipping = settings.toClippingConfigurationOrNull()
+        val clippingUnchanged = controller.currentMediaItem.hasEquivalentClipping(desiredClipping)
+        if (!clippingUnchanged) {
+            replaceCurrentItemWithSettings(controller, settings)
+        }
+        sendPerSongSettingsCommand(controller, settings)
+        updatePlaybackState()
+    }
+
+    override suspend fun applyCurrentSongSettingsImmediately(songId: Long, settings: SongAudioSettings) {
+        val controller = mediaController ?: return
+        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        if (currentSongId != songId) return
+
+        replaceCurrentItemWithSettings(controller, settings)
+        sendPerSongSettingsCommand(controller, settings)
+        updatePlaybackState()
+    }
+
+    private suspend fun replaceCurrentItemWithSettings(
+        controller: MediaController,
+        settings: SongAudioSettings
+    ) {
         val currentIndex = controller.currentMediaItemIndex
         if (currentIndex < 0) return
 
-        val currentSong = _playbackState.value.currentSong ?: controller.currentMediaItem?.toSong() ?: return
-        val updatedCurrentItem = currentSong.toMediaItemWithSettings()
+        val currentSong = (
+            _playbackState.value.currentSong?.takeIf { it.id == settings.songId }
+                ?: controller.currentMediaItem?.toSong()
+            ) ?: return
+        if (currentSong.id != settings.songId) return
+
+        val updatedCurrentItem = currentSong.toMediaItemWithSettings(overrideSettings = settings)
         val currentPosition = controller.currentPosition.coerceAtLeast(0L)
         val shouldResume = controller.isPlaying
+        val targetPosition = settings.adjustedPositionForClipping(currentPosition)
 
         val mediaItems = mutableListOf<MediaItem>()
         for (index in 0 until controller.mediaItemCount) {
             mediaItems.add(if (index == currentIndex) updatedCurrentItem else controller.getMediaItemAt(index))
         }
 
-        controller.setMediaItems(mediaItems, currentIndex, currentPosition)
+        controller.setMediaItems(mediaItems, currentIndex, targetPosition)
         controller.prepare()
         if (shouldResume) controller.play()
-        updatePlaybackState()
+    }
+
+    private fun sendPerSongSettingsCommand(controller: MediaController, settings: SongAudioSettings) {
+        controller.playbackParameters = if (settings.isEnabled) {
+            PlaybackParameters(settings.speed, settings.pitch)
+        } else {
+            PlaybackParameters(1.0f, 1.0f)
+        }
+
+        val args = PerSongSettingsCommand.toBundle(settings)
+        val bridgeResult = customCommandBridge.dispatch(PerSongSettingsCommand.ACTION_APPLY, args)
+        if (bridgeResult == SessionResult.RESULT_SUCCESS) return
+
+        try {
+            controller.sendCustomCommand(
+                SessionCommand(PerSongSettingsCommand.ACTION_APPLY, Bundle.EMPTY),
+                args
+            )
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Failed to send per-song settings command", e)
+        }
     }
 
     // Mapper Extensions
@@ -794,14 +857,16 @@ class PlaybackRepositoryImpl @Inject constructor(
     /**
      * Convert Song domain model to Media3 MediaItem.
      */
-    private suspend fun Song.toMediaItemWithSettings(): MediaItem {
+    private suspend fun Song.toMediaItemWithSettings(
+        overrideSettings: SongAudioSettings? = null
+    ): MediaItem {
         // Validate URI is not empty
         if (uri.isBlank()) {
             throw IllegalArgumentException("Song URI cannot be empty for song: $title (ID: $id)")
         }
 
-        val settings = songAudioSettingsDao.getSettings(id)
-        val clippingConfig = settings?.toClippingConfigurationOrNull()
+        val clippingConfig = overrideSettings?.toClippingConfigurationOrNull()
+            ?: songAudioSettingsDao.getSettings(id)?.toClippingConfigurationOrNull()
         val builder = MediaItem.Builder()
             .setMediaId(id.toString())
             .setUri(uri)
@@ -825,6 +890,30 @@ class PlaybackRepositoryImpl @Inject constructor(
         return mediaItems
     }
 
+    private fun SongAudioSettings.adjustedPositionForClipping(currentPosition: Long): Long {
+        if (!isEnabled) return currentPosition
+        val startMs = trimStartMs.coerceAtLeast(0L)
+        val endMs = trimEndMs.takeIf { it > startMs }
+        var position = currentPosition.coerceAtLeast(0L).coerceAtLeast(startMs)
+        if (endMs != null) {
+            position = position.coerceAtMost((endMs - 1L).coerceAtLeast(startMs))
+        }
+        return position
+    }
+
+    private fun MediaItem?.hasEquivalentClipping(
+        desired: MediaItem.ClippingConfiguration?
+    ): Boolean {
+        val current = this?.clippingConfiguration
+        if (desired == null) {
+            return current == null ||
+                (current.startPositionMs <= 0L && current.endPositionMs == C.TIME_END_OF_SOURCE)
+        }
+        return current != null &&
+            current.startPositionMs == desired.startPositionMs &&
+            current.endPositionMs == desired.endPositionMs
+    }
+
     private fun SongAudioSettingsEntity.toClippingConfigurationOrNull(): MediaItem.ClippingConfiguration? {
         if (!isEnabled) return null
 
@@ -838,6 +927,42 @@ class PlaybackRepositoryImpl @Inject constructor(
             clippingBuilder.setEndPositionMs(endMs)
         }
         return clippingBuilder.build()
+    }
+
+    private fun SongAudioSettings.toClippingConfigurationOrNull(): MediaItem.ClippingConfiguration? {
+        if (!isEnabled) return null
+
+        val startMs = trimStartMs.coerceAtLeast(0L)
+        val endMs = trimEndMs.takeIf { it > startMs }
+        if (startMs <= 0L && endMs == null) return null
+
+        val clippingBuilder = MediaItem.ClippingConfiguration.Builder()
+            .setStartPositionMs(startMs)
+        if (endMs != null) {
+            clippingBuilder.setEndPositionMs(endMs)
+        }
+        return clippingBuilder.build()
+    }
+
+    private fun SongAudioSettingsEntity.toDomain(): SongAudioSettings {
+        return SongAudioSettings(
+            songId = songId,
+            isEnabled = isEnabled,
+            trimStartMs = trimStartMs,
+            trimEndMs = trimEndMs,
+            eqEnabled = eqEnabled,
+            band60Hz = band60Hz,
+            band230Hz = band230Hz,
+            band910Hz = band910Hz,
+            band3600Hz = band3600Hz,
+            band14000Hz = band14000Hz,
+            bassBoost = bassBoost,
+            virtualizerStrength = virtualizerStrength,
+            reverbPreset = reverbPreset,
+            pitch = pitch,
+            speed = speed,
+            updatedAt = updatedAt
+        )
     }
 
     /**

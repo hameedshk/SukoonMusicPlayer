@@ -88,7 +88,10 @@ fun AudioEditorScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
     val songs by homeViewModel.songs.collectAsStateWithLifecycle()
-    val song = remember(songs, songId) { songs.firstOrNull { it.id == songId } }
+    val song = remember(songs, playbackState.currentSong, songId) {
+        songs.firstOrNull { it.id == songId }
+            ?: playbackState.currentSong?.takeIf { it.id == songId }
+    }
     val accentColor = MaterialTheme.colorScheme.primary
     val coroutineScope = rememberCoroutineScope()
 

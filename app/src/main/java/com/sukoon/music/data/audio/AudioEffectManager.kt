@@ -159,21 +159,24 @@ class AudioEffectManager(private val audioSessionId: Int) {
                 return
             }
 
-            // Apply EQ if enabled
+            // Always update effect enabled flags and scalar effects.
+            bassBoost?.enabled = true
+            virtualizer?.enabled = true
+            bassBoost?.setStrength(settings.bassBoost.toShort())
+            virtualizer?.setStrength(settings.virtualizerStrength.toShort())
+
+            // Apply EQ bands only when per-song EQ is enabled.
+            equalizer?.enabled = settings.eqEnabled
             if (settings.eqEnabled) {
-                val eqSettings = EqualizerSettings(
-                    isEnabled = true,
-                    bandLevels = listOf(
+                applyEqualizerBands(
+                    listOf(
                         settings.band60Hz,
                         settings.band230Hz,
                         settings.band910Hz,
                         settings.band3600Hz,
                         settings.band14000Hz
-                    ),
-                    bassBoost = settings.bassBoost,
-                    virtualizerStrength = settings.virtualizerStrength
+                    )
                 )
-                applySettings(eqSettings)
             }
 
             // Apply reverb preset
@@ -183,6 +186,9 @@ class AudioEffectManager(private val audioSessionId: Int) {
                     it.enabled = true
                     DevLogger.d(TAG, "Applied reverb preset: ${settings.reverbPreset}")
                 }
+            } else {
+                presetReverb?.enabled = false
+                presetReverb?.preset = PresetReverb.PRESET_NONE
             }
         } catch (e: Exception) {
             DevLogger.e(TAG, "Failed to apply per-song settings", e)

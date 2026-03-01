@@ -215,7 +215,8 @@ object AppModule {
         queueRepository: QueueRepository,
         listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
         songAudioSettingsDao: SongAudioSettingsDao,
-        sessionController: com.sukoon.music.domain.usecase.SessionController
+        sessionController: com.sukoon.music.domain.usecase.SessionController,
+        customCommandBridge: com.sukoon.music.data.playback.PlaybackCustomCommandBridge
     ): PlaybackRepository {
         return PlaybackRepositoryImpl(
             context,
@@ -225,7 +226,8 @@ object AppModule {
             queueRepository,
             listeningStatsRepository,
             songAudioSettingsDao,
-            sessionController
+            sessionController,
+            customCommandBridge
         )
     }
 

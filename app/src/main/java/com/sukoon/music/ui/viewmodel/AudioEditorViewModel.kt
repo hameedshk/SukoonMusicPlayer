@@ -9,6 +9,7 @@ import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +49,7 @@ class AudioEditorViewModel @Inject constructor(
     // Loading state
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+    private var previewJob: Job? = null
 
     init {
         loadSettings()
@@ -78,7 +80,10 @@ class AudioEditorViewModel @Inject constructor(
      */
     fun updateSettings(updated: SongAudioSettings) {
         _settings.value = updated
-        // Live preview is handled by the service observing via room listeners or manual trigger
+        previewJob?.cancel()
+        previewJob = viewModelScope.launch(Dispatchers.IO) {
+            playbackRepository.previewCurrentSongSettings(updated.songId, updated)
+        }
     }
 
     /**
@@ -87,14 +92,12 @@ class AudioEditorViewModel @Inject constructor(
     fun saveAndExit(onExit: () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                previewJob?.cancel()
                 val settingsToSave = _settings.value.copy(
                     updatedAt = System.currentTimeMillis()
                 )
                 audioEditorRepository.saveSettings(settingsToSave)
-
-                if (playbackRepository.playbackState.value.currentSong?.id == songId) {
-                    playbackRepository.reapplyCurrentSongSettings(songId)
-                }
+                playbackRepository.reapplyCurrentSongSettings(songId)
 
                 DevLogger.d(TAG, "Saved audio settings for song $songId")
                 withContext(Dispatchers.Main) {
@@ -112,8 +115,11 @@ class AudioEditorViewModel @Inject constructor(
     fun resetSettings() {
         viewModelScope.launch(Dispatchers.IO) {
             try {
+                previewJob?.cancel()
                 audioEditorRepository.deleteSettings(songId)
-                _settings.value = SongAudioSettings(songId = songId)
+                val reset = SongAudioSettings(songId = songId)
+                _settings.value = reset
+                playbackRepository.applyCurrentSongSettingsImmediately(songId, reset)
                 DevLogger.d(TAG, "Reset audio settings for song $songId")
             } catch (e: Exception) {
                 DevLogger.e(TAG, "Failed to reset audio settings", e)

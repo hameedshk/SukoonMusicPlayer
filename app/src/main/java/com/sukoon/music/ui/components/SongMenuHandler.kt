@@ -155,6 +155,11 @@ fun rememberSongMenuHandler(
         onNavigateToArtistBySong,
         onShowPlaylistSelector,
         onShowDeleteConfirmation,
+        onShowEditTags,
+        onShowChangeCover,
+        onShowSetRingtone,
+        onShowEditAudio,
+        onShowUpdateLyrics,
         onShowSongInfo,
         onToggleLike,
         onShare

@@ -29,6 +29,7 @@ import androidx.navigation.NavController
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.ui.components.*
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -36,6 +37,7 @@ import com.sukoon.music.ui.viewmodel.LikedSongsViewModel
 import com.sukoon.music.ui.viewmodel.LikedSongsSortMode
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Enhanced Liked Songs Screen - Shows all user-favorited songs with filtering and sorting.
@@ -47,6 +49,8 @@ fun LikedSongsScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
     navController: NavController? = null,
     premiumManager: PremiumManager? = null,
     viewModel: LikedSongsViewModel = hiltViewModel(),
@@ -59,6 +63,8 @@ fun LikedSongsScreen(
     val availableArtists by viewModel.availableArtists.collectAsStateWithLifecycle()
     val availableAlbums by viewModel.availableAlbums.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
 
     var showSortMenu by remember { mutableStateOf(false) }
     var showArtistMenu by remember { mutableStateOf(false) }
@@ -76,6 +82,21 @@ fun LikedSongsScreen(
         onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { song -> showSongInfo = song },
         onShowPlaylistSelector = { song -> showPlaylistSelector = song },
+        onShowEditAudio = { song ->
+            if (isPremiumState.value) {
+                if (navController != null) {
+                    navController.navigate(Routes.AudioEditor.createRoute(song.id))
+                } else {
+                    onNavigateToAudioEditor(song.id)
+                }
+            } else {
+                if (navController != null) {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                } else {
+                    onNavigateToPremium()
+                }
+            }
+        },
         onToggleLike = { songId, isLiked -> viewModel.toggleLike(songId, isLiked) },
         onShare = shareHandler
     )

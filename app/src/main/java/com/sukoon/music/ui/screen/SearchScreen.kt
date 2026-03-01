@@ -40,6 +40,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.sukoon.music.data.premium.PremiumManager
+import com.sukoon.music.ui.navigation.Routes
 import androidx.compose.material.icons.automirrored.filled.Sort
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.data.mediastore.DeleteHelper
@@ -54,6 +55,7 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SearchViewModel
 import com.sukoon.music.ui.theme.*
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Enhanced Search Screen - Search and filter local music library with history and sorting.
@@ -64,6 +66,8 @@ fun SearchScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
     navController: NavController? = null,
     premiumManager: PremiumManager? = null,
     viewModel: SearchViewModel = hiltViewModel()
@@ -74,6 +78,8 @@ fun SearchScreen(
     val showLikedOnly by viewModel.showLikedOnly.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
 
 
     var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
@@ -115,6 +121,21 @@ fun SearchScreen(
         onShowPlaylistSelector = { song ->
             songToAddToPlaylist = song
             showAddToPlaylistDialog = true
+        },
+        onShowEditAudio = { song ->
+            if (isPremiumState.value) {
+                if (navController != null) {
+                    navController.navigate(Routes.AudioEditor.createRoute(song.id))
+                } else {
+                    onNavigateToAudioEditor(song.id)
+                }
+            } else {
+                if (navController != null) {
+                    navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+                } else {
+                    onNavigateToPremium()
+                }
+            }
         }
     )
 

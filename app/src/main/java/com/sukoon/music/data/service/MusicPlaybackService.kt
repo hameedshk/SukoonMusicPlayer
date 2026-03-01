@@ -12,6 +12,7 @@ import android.content.IntentFilter
 import android.media.AudioDeviceInfo
 import android.graphics.Bitmap
 import android.media.AudioManager
+import android.os.Bundle
 import android.os.Build
 import androidx.core.app.NotificationCompat
 import androidx.media3.common.AudioAttributes
@@ -40,6 +41,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 import androidx.media3.common.PlaybackException
+import androidx.media3.session.SessionResult
+import com.sukoon.music.data.playback.PerSongSettingsCommand
+import com.sukoon.music.data.playback.PlaybackCustomCommandBridge
+import com.sukoon.music.domain.model.SongAudioSettings
 
 @UnstableApi
 @AndroidEntryPoint
@@ -59,6 +64,9 @@ class MusicPlaybackService : MediaSessionService() {
 
     @Inject
     lateinit var songAudioSettingsDao: com.sukoon.music.data.local.dao.SongAudioSettingsDao
+
+    @Inject
+    lateinit var customCommandBridge: PlaybackCustomCommandBridge
 
     @Inject
     @ApplicationScope
@@ -152,6 +160,7 @@ class MusicPlaybackService : MediaSessionService() {
                 addSession(mediaSession)
                 sessionRegistered = true
             }
+            customCommandBridge.setHandler(::handleCustomCommand)
 
             registerAudioNoisyReceiver()
             observeResumeOnAudioFocusSetting()
@@ -1124,6 +1133,7 @@ class MusicPlaybackService : MediaSessionService() {
     }
 
     override fun onDestroy() {
+        customCommandBridge.setHandler(null)
         unregisterAudioNoisyReceiver()
 
         // Abandon audio focus
@@ -1161,6 +1171,43 @@ class MusicPlaybackService : MediaSessionService() {
         serviceScope.cancel()
 
         super.onDestroy()
+    }
+
+    private fun handleCustomCommand(action: String, args: Bundle): Int? {
+        if (action != PerSongSettingsCommand.ACTION_APPLY) {
+            return null
+        }
+
+        val settings = PerSongSettingsCommand.fromBundle(args)
+            ?: return SessionResult.RESULT_ERROR_BAD_VALUE
+
+        serviceScope.launch {
+            applyImmediatePerSongPreview(settings)
+        }
+        return SessionResult.RESULT_SUCCESS
+    }
+
+    private fun applyImmediatePerSongPreview(settings: SongAudioSettings) {
+        val currentSongId = player.currentMediaItem?.mediaId?.toLongOrNull()
+        if (currentSongId == null || currentSongId != settings.songId) return
+
+        try {
+            synchronized(audioEffectLock) {
+                if (settings.isEnabled) {
+                    audioEffectManager?.applyPerSongSettings(settings)
+                } else {
+                    audioEffectManager?.resetToDefaults()
+                }
+            }
+
+            player.playbackParameters = if (settings.isEnabled) {
+                androidx.media3.common.PlaybackParameters(settings.speed, settings.pitch)
+            } else {
+                androidx.media3.common.PlaybackParameters(1.0f, 1.0f)
+            }
+        } catch (e: Exception) {
+            DevLogger.e("MusicPlaybackService", "Failed to apply immediate per-song preview", e)
+        }
     }
 }
 

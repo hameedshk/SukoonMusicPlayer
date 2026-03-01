@@ -3,6 +3,7 @@ package com.sukoon.music.domain.repository
 import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.RepeatMode
 import com.sukoon.music.domain.model.Song
+import com.sukoon.music.domain.model.SongAudioSettings
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -160,6 +161,18 @@ interface PlaybackRepository {
      * No-op when the provided song is not currently active.
      */
     suspend fun reapplyCurrentSongSettings(songId: Long)
+
+    /**
+     * Apply in-memory per-song settings for live preview when the song is currently active.
+     * Does not persist settings.
+     */
+    suspend fun previewCurrentSongSettings(songId: Long, settings: SongAudioSettings)
+
+    /**
+     * Immediately apply provided per-song settings to the currently active song.
+     * Intended for editor apply/reset actions.
+     */
+    suspend fun applyCurrentSongSettingsImmediately(songId: Long, settings: SongAudioSettings)
 
     // Lifecycle
 

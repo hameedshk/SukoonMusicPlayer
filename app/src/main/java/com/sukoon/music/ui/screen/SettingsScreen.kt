@@ -273,7 +273,6 @@ fun SettingsScreen(
 item(key = "go_premium") {
     SettingsGroupCard(
         modifier = Modifier.padding(horizontal = SpacingLarge),
-        isAccentBorder = true,
         rows = listOf(
             SettingsRowModel(
                 icon = Icons.Default.Star,

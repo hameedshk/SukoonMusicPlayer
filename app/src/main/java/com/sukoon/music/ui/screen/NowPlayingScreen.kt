@@ -90,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import coil.request.ImageRequest
 import coil.size.Precision
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.domain.model.LyricLine
 import com.sukoon.music.domain.model.LyricsState
@@ -122,6 +123,7 @@ import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
 import kotlin.math.abs
 import kotlin.math.sin
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * NowPlaying Screen Spacing Constants
@@ -183,6 +185,12 @@ private val NowPlayingSkipButtonSize = 52.dp
 private val NowPlayingSkipButtonIconSize = 32.dp
 private val NowPlayingToggleButtonSize = 48.dp
 private val NowPlayingToggleButtonIconSize = 22.dp
+
+// Secondary Menu Capsule
+private val NowPlayingSecondaryMenuShape = RoundedCornerShape(percent = 50)
+private val NowPlayingSecondaryMenuShadow = 4.dp
+private val NowPlayingSecondaryMenuInnerHorizontalPadding = 8.dp
+private val NowPlayingSecondaryMenuInnerVerticalPadding = 4.dp
 
 // Animations
 private val NowPlayingSongCrossfadeDuration = 800
@@ -314,9 +322,14 @@ fun NowPlayingScreen(
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
     onNavigateToEqualizer: () -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
+    premiumManager: PremiumManager? = null,
     viewModel: HomeViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
 
     // Refresh playback state when screen becomes visible to get accurate position
     LaunchedEffect(Unit) {
@@ -432,6 +445,9 @@ fun NowPlayingScreen(
                         onNavigateToAlbum = onNavigateToAlbum,
                         onNavigateToArtist = onNavigateToArtist,
                         onNavigateToEqualizer = onNavigateToEqualizer,
+                        onNavigateToAudioEditor = onNavigateToAudioEditor,
+                        onNavigateToPremium = onNavigateToPremium,
+                        isPremium = isPremiumState.value,
                         viewModel = viewModel
                     )
                 } else {
@@ -540,6 +556,9 @@ private fun NowPlayingContent(
     onNavigateToAlbum: (Long) -> Unit,
     onNavigateToArtist: (Long) -> Unit,
     onNavigateToEqualizer: () -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
+    isPremium: Boolean = false,
     viewModel: HomeViewModel,
     playlistViewModel: PlaylistViewModel = hiltViewModel()
 ) {
@@ -591,6 +610,13 @@ private fun NowPlayingContent(
         onNavigateToArtist = onNavigateToArtist,
         onShowSongInfo = { s -> showInfoForSong = s },
         onShowDeleteConfirmation = { s -> songToDelete = s },
+        onShowEditAudio = { songToEdit ->
+            if (isPremium) {
+                onNavigateToAudioEditor(songToEdit.id)
+            } else {
+                onNavigateToPremium()
+            }
+        },
         onToggleLike = { id, isLiked -> viewModel.toggleLike(id, isLiked) },
         onShare = shareHandler
     )
@@ -1857,8 +1883,8 @@ private fun PlaybackControlsSection(
 }
 
 /**
- * E. SecondaryActionsSection - Secondary actions (Lyrics | Share | Queue)
- * 3-button row with 24dp icons, 48dp touch targets, 60% alpha default
+ * E. SecondaryActionsSection - Secondary actions capsule
+ * 6-icon row with 24dp icons, 48dp touch targets, and soft-glass capsule wrapper.
  * Lyrics button opens modal bottom sheet
  */
 @Composable
@@ -1877,108 +1903,129 @@ private fun SecondaryActionsSection(
     verticalPadding: Dp = 6.dp
 ) {
     val haptic = LocalHapticFeedback.current
+    val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
+    val capsuleBorderColor = if (isDarkTheme) {
+        Color.White.copy(alpha = 0.10f)
+    } else {
+        Color.Black.copy(alpha = 0.05f)
+    }
+    val capsuleBackgroundColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.58f)
 
-    Row(
+    Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = verticalPadding, horizontal = horizontalPadding),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        contentAlignment = Alignment.Center
     ) {
-        // 1. Add to Playlist
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onAddToPlaylistClick()
-            },
-            modifier = Modifier.size(48.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .shadow(NowPlayingSecondaryMenuShadow, NowPlayingSecondaryMenuShape)
+                .clip(NowPlayingSecondaryMenuShape)
+                .background(capsuleBackgroundColor)
+                .border(0.5.dp, capsuleBorderColor, NowPlayingSecondaryMenuShape)
+                .padding(
+                    horizontal = NowPlayingSecondaryMenuInnerHorizontalPadding,
+                    vertical = NowPlayingSecondaryMenuInnerVerticalPadding
+                ),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(
-                imageVector = Icons.Default.PlaylistAdd,
-                contentDescription = stringResource(R.string.common_add_to_playlist),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            // 1. Add to Playlist
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onAddToPlaylistClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlaylistAdd,
+                    contentDescription = stringResource(R.string.common_add_to_playlist),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        2. Lyrics Button (with accent color to highlight premium feature)
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onLyricsClick()
-            },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Lyrics,
-                contentDescription = stringResource(R.string.now_playing_lyrics),
-                tint = accentColor.copy(alpha = 0.8f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            // 2. Lyrics Button (with accent color to highlight premium feature)
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLyricsClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Lyrics,
+                    contentDescription = stringResource(R.string.now_playing_lyrics),
+                    tint = accentColor.copy(alpha = 0.8f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        // 3. Share Button
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onShareClick()
-            },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Share,
-                contentDescription = stringResource(R.string.now_playing_share),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            // 3. Share Button
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onShareClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Share,
+                    contentDescription = stringResource(R.string.now_playing_share),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        // 4. Queue Button
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onQueueClick()
-            },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Default.QueueMusic,
-                contentDescription = stringResource(R.string.now_playing_queue),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            // 4. Queue Button
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onQueueClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Default.QueueMusic,
+                    contentDescription = stringResource(R.string.now_playing_queue),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        // 5. Sleep Timer
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onTimerClick()
-            },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Timer,
-                contentDescription = stringResource(R.string.dialog_sleep_timer_title),
-                tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                modifier = Modifier.size(24.dp)
-            )
-        }
+            // 5. Sleep Timer
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onTimerClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = stringResource(R.string.dialog_sleep_timer_title),
+                    tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
 
-        // 6. Equalizer
-        PressableIconButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onEqualizerClick()
-            },
-            modifier = Modifier.size(48.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Equalizer,
-                contentDescription = stringResource(R.string.label_equalizer),
-                tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
-                modifier = Modifier.size(24.dp)
-            )
+            // 6. Equalizer
+            PressableIconButton(
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onEqualizerClick()
+                },
+                modifier = Modifier.size(48.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Equalizer,
+                    contentDescription = stringResource(R.string.label_equalizer),
+                    tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

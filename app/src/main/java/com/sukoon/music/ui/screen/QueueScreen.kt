@@ -34,6 +34,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.SubcomposeAsyncImage
 import com.sukoon.music.R
+import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.domain.model.Queue
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
@@ -43,6 +44,7 @@ import com.sukoon.music.ui.theme.*
 import androidx.compose.ui.platform.LocalDensity
 import kotlin.math.roundToInt
 import kotlin.math.abs
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Queue Screen - Shows current playback queue with reordering and saved queues.
@@ -54,11 +56,16 @@ fun QueueScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
+    onNavigateToPremium: () -> Unit = {},
+    premiumManager: PremiumManager? = null,
     viewModel: QueueViewModel = hiltViewModel()
 ) {
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
     val savedQueues by viewModel.savedQueues.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
 
     var showSaveQueueDialog by remember { mutableStateOf(false) }
     var selectedTab by remember { mutableStateOf(0) }
@@ -81,7 +88,14 @@ fun QueueScreen(
     val menuHandler = rememberSongMenuHandler(
         playbackRepository = viewModel.playbackRepository,
         onNavigateToAlbum = onNavigateToAlbum,
-        onNavigateToArtist = onNavigateToArtist
+        onNavigateToArtist = onNavigateToArtist,
+        onShowEditAudio = { song ->
+            if (isPremiumState.value) {
+                onNavigateToAudioEditor(song.id)
+            } else {
+                onNavigateToPremium()
+            }
+        }
     )
 
     // Show snackbar for messages
