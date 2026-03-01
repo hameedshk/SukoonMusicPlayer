@@ -3,9 +3,12 @@ package com.sukoon.music.ui.viewmodel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.sukoon.music.data.audio.EditedAudioExporter
+import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.domain.repository.AudioEditorRepository
 import com.sukoon.music.domain.repository.PlaybackRepository
+import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +33,8 @@ import javax.inject.Inject
 class AudioEditorViewModel @Inject constructor(
     private val audioEditorRepository: AudioEditorRepository,
     private val playbackRepository: PlaybackRepository,
+    private val songRepository: SongRepository,
+    private val editedAudioExporter: EditedAudioExporter,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -50,6 +55,8 @@ class AudioEditorViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
     private var previewJob: Job? = null
+    private val _exportState = MutableStateFlow<AudioExportState>(AudioExportState.Idle)
+    val exportState: StateFlow<AudioExportState> = _exportState.asStateFlow()
 
     init {
         loadSettings()
@@ -159,4 +166,45 @@ class AudioEditorViewModel @Inject constructor(
             ((Math.sin(angle) + 1) / 2).toFloat()
         }
     }
+
+    fun exportEditedCopy(song: Song?) {
+        if (song == null) {
+            _exportState.value = AudioExportState.Error("Song unavailable for export.")
+            return
+        }
+        if (_exportState.value is AudioExportState.Exporting) return
+
+        val settings = _settings.value.copy(songId = song.id)
+        viewModelScope.launch(Dispatchers.IO) {
+            _exportState.value = AudioExportState.Exporting
+            val result = editedAudioExporter.exportEditedCopy(song, settings)
+            result.onSuccess { export ->
+                // Keep app library up to date so exported track appears without manual rescan.
+                songRepository.scanLocalMusic()
+                _exportState.value = AudioExportState.Success(
+                    displayName = export.displayName,
+                    partialApplied = export.partialApplied
+                )
+            }.onFailure { error ->
+                DevLogger.e(TAG, "Failed to export edited copy", error)
+                _exportState.value = AudioExportState.Error(
+                    message = error.message ?: "Export failed."
+                )
+            }
+        }
+    }
+
+    fun clearExportState() {
+        _exportState.value = AudioExportState.Idle
+    }
+}
+
+sealed interface AudioExportState {
+    data object Idle : AudioExportState
+    data object Exporting : AudioExportState
+    data class Success(
+        val displayName: String,
+        val partialApplied: Boolean
+    ) : AudioExportState
+    data class Error(val message: String) : AudioExportState
 }

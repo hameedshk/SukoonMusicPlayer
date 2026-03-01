@@ -34,8 +34,11 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.RangeSlider
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -55,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -68,6 +72,7 @@ import com.sukoon.music.domain.model.PlaybackState
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.ui.components.AlbumArtWithFallback
+import com.sukoon.music.ui.viewmodel.AudioExportState
 import com.sukoon.music.ui.viewmodel.AudioEditorViewModel
 import com.sukoon.music.ui.viewmodel.HomeViewModel
 import kotlinx.coroutines.launch
@@ -86,6 +91,7 @@ fun AudioEditorScreen(
     val settings by viewModel.settings.collectAsStateWithLifecycle()
     val waveformData by viewModel.waveformData.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+    val exportState by viewModel.exportState.collectAsStateWithLifecycle()
     val playbackState by homeViewModel.playbackState.collectAsStateWithLifecycle()
     val songs by homeViewModel.songs.collectAsStateWithLifecycle()
     val song = remember(songs, playbackState.currentSong, songId) {
@@ -94,6 +100,9 @@ fun AudioEditorScreen(
     }
     val accentColor = MaterialTheme.colorScheme.primary
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val isExporting = exportState is AudioExportState.Exporting
 
     LaunchedEffect(song?.uri) {
         song?.uri?.let(viewModel::computeWaveform)
@@ -106,7 +115,35 @@ fun AudioEditorScreen(
         }
     }
 
+    LaunchedEffect(exportState) {
+        when (val state = exportState) {
+            is AudioExportState.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.audio_editor_export_success, state.displayName)
+                )
+                if (state.partialApplied) {
+                    snackbarHostState.showSnackbar(
+                        message = context.getString(R.string.audio_editor_export_partial_notice)
+                    )
+                }
+                viewModel.clearExportState()
+            }
+
+            is AudioExportState.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = context.getString(R.string.audio_editor_export_error, state.message)
+                )
+                viewModel.clearExportState()
+            }
+
+            else -> Unit
+        }
+    }
+
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.audio_editor_title)) },
@@ -135,17 +172,34 @@ fun AudioEditorScreen(
                     .background(MaterialTheme.colorScheme.surface)
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
-                Button(
-                    onClick = {
-                        viewModel.saveAndExit {
-                            coroutineScope.launch {
-                                onBack()
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedButton(
+                        onClick = { viewModel.exportEditedCopy(song) },
+                        enabled = song != null && !isLoading && !isExporting,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = if (isExporting) {
+                                stringResource(R.string.audio_editor_exporting)
+                            } else {
+                                stringResource(R.string.audio_editor_export)
                             }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(R.string.audio_editor_apply))
+                        )
+                    }
+
+                    Button(
+                        onClick = {
+                            viewModel.saveAndExit {
+                                coroutineScope.launch {
+                                    onBack()
+                                }
+                            }
+                        },
+                        enabled = !isExporting,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(stringResource(R.string.audio_editor_apply))
+                    }
                 }
             }
         }

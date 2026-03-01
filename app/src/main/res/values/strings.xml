@@ -626,6 +626,11 @@
     <string name="audio_editor_master_toggle">Per-Song Effects</string>
     <string name="audio_editor_reset">Reset</string>
     <string name="audio_editor_apply">Apply</string>
+    <string name="audio_editor_export">Export Copy</string>
+    <string name="audio_editor_exporting">Exporting...</string>
+    <string name="audio_editor_export_success">Edited copy saved: %1$s</string>
+    <string name="audio_editor_export_error">Export failed: %1$s</string>
+    <string name="audio_editor_export_partial_notice">Exported trim only. EQ/effects/speed/pitch are not baked yet.</string>
     <string name="audio_editor_save_preset">Save as Preset</string>
     <string name="audio_editor_trim_start">Start</string>
     <string name="audio_editor_trim_end">End</string>

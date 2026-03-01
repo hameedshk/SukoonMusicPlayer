@@ -196,6 +196,7 @@ private val NowPlayingSecondaryMenuInnerVerticalPadding = 4.dp
 private val NowPlayingSongCrossfadeDuration = 800
 private val NowPlayingLikeBounceDuration = 300
 private val NowPlayingScreenEntryDuration = 500
+private const val NowPlayingSectionVisibilityDuration = 350
 
 private enum class NowPlayingHeightBucket {
     COMPACT,
@@ -473,14 +474,14 @@ private fun TopUtilityBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(44.dp)
+            .height(48.dp)
             .padding(horizontal = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(
             onClick = onBackClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.ExpandMore,
@@ -504,7 +505,7 @@ private fun TopUtilityBar(
                         letterSpacing = 0.5.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.5f)
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.62f)
                 )
                 Text(
                     text = queueName,
@@ -523,7 +524,7 @@ private fun TopUtilityBar(
 
         IconButton(
             onClick = onMoreClick,
-            modifier = Modifier.size(44.dp)
+            modifier = Modifier.size(48.dp)
         ) {
             Icon(
                 imageVector = Icons.Default.MoreVert,
@@ -661,6 +662,16 @@ private fun NowPlayingContent(
         animationSpec = tween(durationMillis = 400, easing = FastOutSlowInEasing),
         label = "screen_entry"
     )
+    val sectionEnterTransition = fadeIn(
+        animationSpec = tween(durationMillis = NowPlayingSectionVisibilityDuration, easing = FastOutSlowInEasing)
+    ) + slideInVertically(
+        animationSpec = tween(durationMillis = NowPlayingSectionVisibilityDuration, easing = FastOutSlowInEasing)
+    )
+    val sectionExitTransition = fadeOut(
+        animationSpec = tween(durationMillis = NowPlayingSectionVisibilityDuration, easing = FastOutSlowInEasing)
+    ) + slideOutVertically(
+        animationSpec = tween(durationMillis = NowPlayingSectionVisibilityDuration, easing = FastOutSlowInEasing)
+    )
 
     Box(
         modifier = Modifier
@@ -725,12 +736,8 @@ private fun NowPlayingContent(
                 // C. Track Metadata with animation (calm, subordinate)
                 AnimatedVisibility(
                     visible = !isImmersiveMode,
-                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    ),
-                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    )
+                    enter = sectionEnterTransition,
+                    exit = sectionExitTransition
                 ) {
                     TrackMetadataSection(
                         song = song,
@@ -754,12 +761,8 @@ private fun NowPlayingContent(
                 // Control Layer - Directly on background (no container)
                 AnimatedVisibility(
                     visible = !isImmersiveMode,
-                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    ),
-                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    )
+                    enter = sectionEnterTransition,
+                    exit = sectionExitTransition
                 ) {
                     Column(
                         modifier = Modifier.padding(vertical = 0.dp, horizontal = spacingSpec.controlsHorizontalPadding)
@@ -806,12 +809,8 @@ private fun NowPlayingContent(
                 // E. Secondary Actions Section (Lyrics, Like, Share, Queue)
                 AnimatedVisibility(
                     visible = !isImmersiveMode,
-                    enter = fadeIn(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideInVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    ),
-                    exit = fadeOut(animationSpec = tween(500, easing = FastOutSlowInEasing)) + slideOutVertically(
-                        animationSpec = tween(500, easing = FastOutSlowInEasing)
-                    )
+                    enter = sectionEnterTransition,
+                    exit = sectionExitTransition
                 ) {
                     SecondaryActionsSection(
                         song = song,
@@ -1221,6 +1220,8 @@ private fun TrackMetadataSection(
     artistToAlbumSpacing: Dp = 2.dp
 ) {
     val likeStateDescription = if (song.isLiked) stringResource(R.string.now_playing_liked) else stringResource(R.string.now_playing_not_liked)
+    val artistActionDescription = "${stringResource(R.string.song_info_label_artist)}: ${song.artist}"
+    val albumActionDescription = "${stringResource(R.string.common_ui_library_albums)}: ${song.album}"
 
     // Crossfade on song change
     AnimatedContent(
@@ -1281,15 +1282,17 @@ private fun TrackMetadataSection(
                                 fontSize = NowPlayingArtistFontSize,
                                 fontWeight = FontWeight.Normal
                             ),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.75f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.82f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Start,
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null, // No ripple for cleaner look
                                 onClick = onArtistClick
-                            )
+                            ).semantics {
+                                role = Role.Button
+                                contentDescription = artistActionDescription
+                            }
                         )
                     }
 
@@ -1301,15 +1304,17 @@ private fun TrackMetadataSection(
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.Normal
                             ),
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.72f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             textAlign = TextAlign.Start,
                             modifier = Modifier.clickable(
                                 interactionSource = remember { MutableInteractionSource() },
-                                indication = null,
                                 onClick = onAlbumClick
-                            )
+                            ).semantics {
+                                role = Role.Button
+                                contentDescription = albumActionDescription
+                            }
                         )
                     }
                 }
@@ -1903,6 +1908,15 @@ private fun SecondaryActionsSection(
     verticalPadding: Dp = 6.dp
 ) {
     val haptic = LocalHapticFeedback.current
+    val addToPlaylistDesc = stringResource(R.string.common_add_to_playlist)
+    val lyricsDesc = stringResource(R.string.now_playing_lyrics)
+    val shareDesc = stringResource(R.string.now_playing_share)
+    val queueDesc = stringResource(R.string.now_playing_queue)
+    val timerDesc = stringResource(R.string.dialog_sleep_timer_title)
+    val equalizerDesc = stringResource(R.string.label_equalizer)
+    val timerStateDesc = stringResource(
+        if (isTimerActive) R.string.settings_screen_state_on else R.string.settings_screen_state_off
+    )
     val isDarkTheme = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val capsuleBorderColor = if (isDarkTheme) {
         Color.White.copy(alpha = 0.10f)
@@ -1937,11 +1951,16 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onAddToPlaylistClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = addToPlaylistDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.PlaylistAdd,
-                    contentDescription = stringResource(R.string.common_add_to_playlist),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -1953,11 +1972,16 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onLyricsClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = lyricsDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.Lyrics,
-                    contentDescription = stringResource(R.string.now_playing_lyrics),
+                    contentDescription = null,
                     tint = accentColor.copy(alpha = 0.8f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -1969,11 +1993,16 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onShareClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = shareDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.Share,
-                    contentDescription = stringResource(R.string.now_playing_share),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -1985,11 +2014,16 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onQueueClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = queueDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Default.QueueMusic,
-                    contentDescription = stringResource(R.string.now_playing_queue),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -2001,11 +2035,17 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onTimerClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = timerDesc
+                        stateDescription = timerStateDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.Timer,
-                    contentDescription = stringResource(R.string.dialog_sleep_timer_title),
+                    contentDescription = null,
                     tint = if (isTimerActive) accentColor else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     modifier = Modifier.size(24.dp)
                 )
@@ -2017,11 +2057,16 @@ private fun SecondaryActionsSection(
                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onEqualizerClick()
                 },
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics {
+                        role = Role.Button
+                        contentDescription = equalizerDesc
+                    }
             ) {
                 Icon(
                     imageVector = Icons.Default.Equalizer,
-                    contentDescription = stringResource(R.string.label_equalizer),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.65f),
                     modifier = Modifier.size(24.dp)
                 )
