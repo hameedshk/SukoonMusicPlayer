@@ -214,9 +214,19 @@ object AppModule {
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
         queueRepository: QueueRepository,
         listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
+        songAudioSettingsDao: SongAudioSettingsDao,
         sessionController: com.sukoon.music.domain.usecase.SessionController
     ): PlaybackRepository {
-        return PlaybackRepositoryImpl(context, scope, songRepository, preferencesManager, queueRepository, listeningStatsRepository, sessionController)
+        return PlaybackRepositoryImpl(
+            context,
+            scope,
+            songRepository,
+            preferencesManager,
+            queueRepository,
+            listeningStatsRepository,
+            songAudioSettingsDao,
+            sessionController
+        )
     }
 
     @Provides

@@ -50,7 +50,6 @@ import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.ui.components.MiniPlayer
 import com.sukoon.music.ui.navigation.Routes
-import com.sukoon.music.ui.permissions.requestPostNotificationsPermission
 import com.sukoon.music.ui.navigation.SukoonNavHost
 import com.sukoon.music.ui.screen.MinimumRequiredVersionScreen
 import com.sukoon.music.ui.theme.MiniPlayerHeight
@@ -148,8 +147,6 @@ class MainActivity : ComponentActivity() {
                 remoteConfigManager.initialize()
                 // Initialize AdMob with UMP GDPR/CCPA consent flow (Play Store compliant)
                 adMobManager.initializeWithConsent(this@MainActivity)
-                // Request POST_NOTIFICATIONS permission on Android 13+ for playback notification
-                requestPostNotificationsPermission(this@MainActivity)
 
                 val minimumVersionConfig = remoteConfigManager.getMinimumRequiredVersionConfig()
                 requiredVersionCode = minimumVersionConfig.minVersionCode

@@ -155,6 +155,12 @@ interface PlaybackRepository {
      */
     suspend fun savePlaybackState()
 
+    /**
+     * Rebuild and re-apply the currently playing media item with latest per-song settings.
+     * No-op when the provided song is not currently active.
+     */
+    suspend fun reapplyCurrentSongSettings(songId: Long)
+
     // Lifecycle
 
     /**

@@ -32,11 +32,13 @@ import com.sukoon.music.domain.model.SmartPlaylist
 import com.sukoon.music.domain.model.SmartPlaylistType
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.ui.components.*
+import com.sukoon.music.ui.navigation.Routes
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
 import com.sukoon.music.ui.viewmodel.SmartPlaylistViewModel
 import com.sukoon.music.ui.viewmodel.PlaylistViewModel
 import com.sukoon.music.ui.theme.*
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Smart Playlist Detail Screen - Shows songs in a smart playlist.
@@ -68,6 +70,8 @@ fun SmartPlaylistDetailScreen(
 
     val songs by viewModel.currentSmartPlaylistSongs.collectAsStateWithLifecycle()
     val playbackState by viewModel.playbackState.collectAsStateWithLifecycle()
+    val isPremium by (premiumManager?.isPremiumUser ?: flowOf(false)).collectAsStateWithLifecycle(false)
+    val isPremiumState = rememberUpdatedState(isPremium)
     val context = LocalContext.current
     var songToDelete by rememberSaveable { mutableStateOf<Song?>(null) }
     var isDeleting by remember { mutableStateOf(false) }
@@ -104,7 +108,14 @@ fun SmartPlaylistDetailScreen(
         onShowDeleteConfirmation = { song ->
             if (!isDeleting) songToDelete = song
         },
-        onShowSongInfo = { song -> showInfoForSong = song }
+        onShowSongInfo = { song -> showInfoForSong = song },
+        onShowEditAudio = { song ->
+            if (isPremiumState.value) {
+                navController?.navigate(Routes.AudioEditor.createRoute(song.id))
+            } else {
+                navController?.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
+            }
+        }
     )
 
     Scaffold(

@@ -28,9 +28,9 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.Manifest
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
@@ -65,6 +65,7 @@ import com.sukoon.music.ui.theme.*
 import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
 import com.sukoon.music.util.AppLocaleManager
 import dagger.hilt.android.EntryPointAccessors
+import androidx.core.content.ContextCompat
 
 /**
  * Settings Screen with vertical sectioned list layout.
@@ -137,11 +138,15 @@ fun SettingsScreen(
     var showSleepTimerDialog by remember { mutableStateOf(false) }
     var isSleepTimerActionInProgress by remember { mutableStateOf(false) }
     var showPremiumDialog by rememberSaveable(openPremiumDialog) { mutableStateOf(openPremiumDialog) }
+    var isNotificationPermissionRequestPending by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { granted ->
-        // Permission result handled
+        if (isNotificationPermissionRequestPending) {
+            viewModel.setShowNotificationControls(granted)
+            isNotificationPermissionRequestPending = false
+        }
     }
 
     val accentTokens = accent()
@@ -545,7 +550,20 @@ item(key = "go_premium") {
                 showNotificationControls = userPreferences.showNotificationControls,
                 onDismiss = { showNotificationSettingsDialog = false },
                 onToggleNotificationControls = { enabled ->
-                    viewModel.setShowNotificationControls(enabled)
+                    if (!enabled) {
+                        viewModel.setShowNotificationControls(false)
+                    } else if (
+                        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.POST_NOTIFICATIONS
+                        ) == PackageManager.PERMISSION_GRANTED
+                    ) {
+                        viewModel.setShowNotificationControls(true)
+                    } else {
+                        isNotificationPermissionRequestPending = true
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 }
             )
         }

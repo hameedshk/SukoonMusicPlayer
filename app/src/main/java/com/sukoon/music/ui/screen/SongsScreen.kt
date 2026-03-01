@@ -81,6 +81,7 @@ fun SongsScreen(
     onNavigateToAlbum: (Long) -> Unit = {},
     onNavigateToArtist: (Long) -> Unit = {},
     onNavigateToPremium: () -> Unit = {},
+    onNavigateToAudioEditor: (Long) -> Unit = {},
     navController: NavController? = null,
     premiumManager: PremiumManager? = null,
     homeViewModel: HomeViewModel = hiltViewModel(),
@@ -160,7 +161,11 @@ fun SongsScreen(
         onShowDeleteConfirmation = { song -> songsViewModel.showDeleteConfirmation(song) },
         onShowEditAudio = { song ->
             if (isPremiumState.value) {
-                navController?.navigate("audio_editor/${song.id}")
+                if (navController != null) {
+                    navController.navigate(Routes.AudioEditor.createRoute(song.id))
+                } else {
+                    onNavigateToAudioEditor(song.id)
+                }
             } else {
                 if (navController != null) {
                     navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))

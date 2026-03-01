@@ -31,22 +31,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.sukoon.music.R
 
 /**
- * Request POST_NOTIFICATIONS permission on Android 13+ for foreground service notifications.
- * The media playback notification requires this permission to be displayed.
- */
-fun requestPostNotificationsPermission(activity: Activity?) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        if (activity != null) {
-            val notificationPermission = Manifest.permission.POST_NOTIFICATIONS
-            if (ContextCompat.checkSelfPermission(activity, notificationPermission)
-                    != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(activity, arrayOf(notificationPermission), 1001)
-            }
-        }
-    }
-}
-
-/**
  * Permission handler for audio file access.
  *
  * Handles version-specific permissions:

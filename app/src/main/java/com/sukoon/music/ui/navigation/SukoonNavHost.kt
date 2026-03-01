@@ -86,6 +86,9 @@ fun SukoonNavHost(
                 onNavigateToPremium = {
                     navController.navigate(Routes.Settings.createRoute(openPremiumDialog = true))
                 },
+                onNavigateToAudioEditor = { songId ->
+                    navController.navigate(Routes.AudioEditor.createRoute(songId))
+                },
                 onNavigateToPlaylistDetail = { playlistId ->
                     navController.navigate(Routes.PlaylistDetail.createRoute(playlistId))
                 },

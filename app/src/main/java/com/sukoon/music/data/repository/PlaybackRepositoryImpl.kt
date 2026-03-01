@@ -11,6 +11,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.sukoon.music.data.local.dao.SongAudioSettingsDao
+import com.sukoon.music.data.local.entity.SongAudioSettingsEntity
 import com.google.common.util.concurrent.MoreExecutors
 import com.sukoon.music.data.service.MusicPlaybackService
 import com.sukoon.music.di.ApplicationScope
@@ -50,6 +52,7 @@ class PlaybackRepositoryImpl @Inject constructor(
     private val preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
     private val queueRepository: com.sukoon.music.domain.repository.QueueRepository,
     private val listeningStatsRepository: com.sukoon.music.domain.repository.ListeningStatsRepository,
+    private val songAudioSettingsDao: SongAudioSettingsDao,
     private val sessionController: com.sukoon.music.domain.usecase.SessionController
 ) : PlaybackRepository {
 
@@ -313,12 +316,12 @@ class PlaybackRepositoryImpl @Inject constructor(
                     return@launch
                 }
 
-                val mediaItems = currentQueue.songs.mapNotNull {
+                val mediaItems = mutableListOf<MediaItem>()
+                for (song in currentQueue.songs) {
                     try {
-                        it.toMediaItem()
+                        mediaItems.add(song.toMediaItemWithSettings())
                     } catch (e: Exception) {
-                        DevLogger.e("PlaybackRepository", "Invalid song URI: ${it.title}", e)
-                        null
+                        DevLogger.e("PlaybackRepository", "Invalid song URI: ${song.title}", e)
                     }
                 }
 
@@ -587,7 +590,7 @@ class PlaybackRepositoryImpl @Inject constructor(
         currentSourceName = queueName
         mediaController?.let { controller ->
             try {
-                controller.setMediaItem(song.toMediaItem())
+                controller.setMediaItem(song.toMediaItemWithSettings())
                 controller.prepare()
                 controller.play()
             } catch (e: Exception) {
@@ -615,8 +618,9 @@ class PlaybackRepositoryImpl @Inject constructor(
         mediaController?.let { controller ->
             try {
                 val safeStartIndex = if (songs.isEmpty()) 0 else startIndex.coerceIn(0, songs.lastIndex)
+                val mediaItems = songs.toMediaItemsWithSettings()
                 controller.setMediaItems(
-                    songs.map { it.toMediaItem() },
+                    mediaItems,
                     safeStartIndex,
                     0L
                 )
@@ -649,18 +653,18 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun addToQueue(song: Song) {
-        mediaController?.addMediaItem(song.toMediaItem())
+        mediaController?.addMediaItem(song.toMediaItemWithSettings())
     }
 
     override suspend fun addToQueue(songs: List<Song>) {
-        mediaController?.addMediaItems(songs.map { it.toMediaItem() })
+        mediaController?.addMediaItems(songs.toMediaItemsWithSettings())
     }
 
     override suspend fun playNext(song: Song) {
         mediaController?.let { controller ->
             val currentIndex = controller.currentMediaItemIndex
             val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
-            controller.addMediaItem(insertIndex, song.toMediaItem())
+            controller.addMediaItem(insertIndex, song.toMediaItemWithSettings())
         }
     }
 
@@ -668,7 +672,7 @@ class PlaybackRepositoryImpl @Inject constructor(
         mediaController?.let { controller ->
             val currentIndex = controller.currentMediaItemIndex
             val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
-            controller.addMediaItems(insertIndex, songs.map { it.toMediaItem() })
+            controller.addMediaItems(insertIndex, songs.toMediaItemsWithSettings())
         }
     }
 
@@ -676,7 +680,7 @@ class PlaybackRepositoryImpl @Inject constructor(
         mediaController?.let { controller ->
             val currentIndex = controller.currentMediaItemIndex
             val insertIndex = if (currentIndex == -1) 0 else currentIndex + 1
-            controller.addMediaItems(insertIndex, songs.map { it.toMediaItem() })
+            controller.addMediaItems(insertIndex, songs.toMediaItemsWithSettings())
         }
     }
 
@@ -761,18 +765,44 @@ class PlaybackRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun reapplyCurrentSongSettings(songId: Long) {
+        val controller = mediaController ?: return
+        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+        if (currentSongId != songId) return
+
+        val currentIndex = controller.currentMediaItemIndex
+        if (currentIndex < 0) return
+
+        val currentSong = _playbackState.value.currentSong ?: controller.currentMediaItem?.toSong() ?: return
+        val updatedCurrentItem = currentSong.toMediaItemWithSettings()
+        val currentPosition = controller.currentPosition.coerceAtLeast(0L)
+        val shouldResume = controller.isPlaying
+
+        val mediaItems = mutableListOf<MediaItem>()
+        for (index in 0 until controller.mediaItemCount) {
+            mediaItems.add(if (index == currentIndex) updatedCurrentItem else controller.getMediaItemAt(index))
+        }
+
+        controller.setMediaItems(mediaItems, currentIndex, currentPosition)
+        controller.prepare()
+        if (shouldResume) controller.play()
+        updatePlaybackState()
+    }
+
     // Mapper Extensions
 
     /**
      * Convert Song domain model to Media3 MediaItem.
      */
-    private fun Song.toMediaItem(): MediaItem {
+    private suspend fun Song.toMediaItemWithSettings(): MediaItem {
         // Validate URI is not empty
         if (uri.isBlank()) {
             throw IllegalArgumentException("Song URI cannot be empty for song: $title (ID: $id)")
         }
 
-        return MediaItem.Builder()
+        val settings = songAudioSettingsDao.getSettings(id)
+        val clippingConfig = settings?.toClippingConfigurationOrNull()
+        val builder = MediaItem.Builder()
             .setMediaId(id.toString())
             .setUri(uri)
             .setMediaMetadata(
@@ -783,7 +813,31 @@ class PlaybackRepositoryImpl @Inject constructor(
                     .setArtworkUri(albumArtUri?.let { Uri.parse(it) })
                     .build()
             )
-            .build()
+        clippingConfig?.let(builder::setClippingConfiguration)
+        return builder.build()
+    }
+
+    private suspend fun List<Song>.toMediaItemsWithSettings(): List<MediaItem> {
+        val mediaItems = mutableListOf<MediaItem>()
+        for (song in this) {
+            mediaItems.add(song.toMediaItemWithSettings())
+        }
+        return mediaItems
+    }
+
+    private fun SongAudioSettingsEntity.toClippingConfigurationOrNull(): MediaItem.ClippingConfiguration? {
+        if (!isEnabled) return null
+
+        val startMs = trimStartMs.coerceAtLeast(0L)
+        val endMs = trimEndMs.takeIf { it > startMs }
+        if (startMs <= 0L && endMs == null) return null
+
+        val clippingBuilder = MediaItem.ClippingConfiguration.Builder()
+            .setStartPositionMs(startMs)
+        if (endMs != null) {
+            clippingBuilder.setEndPositionMs(endMs)
+        }
+        return clippingBuilder.build()
     }
 
     /**

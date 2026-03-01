@@ -3,10 +3,12 @@ package com.sukoon.music.repository
 import android.content.Context
 import androidx.media3.common.MediaItem
 import androidx.media3.session.MediaController
+import com.sukoon.music.data.local.dao.SongAudioSettingsDao
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.repository.PlaybackRepositoryImpl
 import com.sukoon.music.domain.model.Song
 import com.sukoon.music.domain.repository.SongRepository
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -25,6 +27,7 @@ class PlaybackRepositoryQueueTest {
     private lateinit var context: Context
     private lateinit var songRepository: SongRepository
     private lateinit var preferencesManager: PreferencesManager
+    private lateinit var songAudioSettingsDao: SongAudioSettingsDao
     private lateinit var repository: PlaybackRepositoryImpl
     private lateinit var mediaController: MediaController
     private lateinit var testScope: TestScope
@@ -34,7 +37,9 @@ class PlaybackRepositoryQueueTest {
         context = mockk(relaxed = true)
         songRepository = mockk(relaxed = true)
         preferencesManager = mockk(relaxed = true)
+        songAudioSettingsDao = mockk(relaxed = true)
         mediaController = mockk(relaxed = true)
+        coEvery { songAudioSettingsDao.getSettings(any()) } returns null
         
         val testDispatcher = UnconfinedTestDispatcher()
         testScope = TestScope(testDispatcher)
@@ -46,6 +51,7 @@ class PlaybackRepositoryQueueTest {
             preferencesManager = preferencesManager,
             queueRepository = mockk(relaxed = true),
             listeningStatsRepository = mockk(relaxed = true),
+            songAudioSettingsDao = songAudioSettingsDao,
             sessionController = mockk(relaxed = true)
         )
 

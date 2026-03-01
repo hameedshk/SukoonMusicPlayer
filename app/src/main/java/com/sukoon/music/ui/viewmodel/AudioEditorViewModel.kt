@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.sukoon.music.domain.model.SongAudioSettings
 import com.sukoon.music.domain.repository.AudioEditorRepository
+import com.sukoon.music.domain.repository.PlaybackRepository
 import com.sukoon.music.util.DevLogger
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -26,6 +28,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AudioEditorViewModel @Inject constructor(
     private val audioEditorRepository: AudioEditorRepository,
+    private val playbackRepository: PlaybackRepository,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -88,8 +91,15 @@ class AudioEditorViewModel @Inject constructor(
                     updatedAt = System.currentTimeMillis()
                 )
                 audioEditorRepository.saveSettings(settingsToSave)
+
+                if (playbackRepository.playbackState.value.currentSong?.id == songId) {
+                    playbackRepository.reapplyCurrentSongSettings(songId)
+                }
+
                 DevLogger.d(TAG, "Saved audio settings for song $songId")
-                onExit()
+                withContext(Dispatchers.Main) {
+                    onExit()
+                }
             } catch (e: Exception) {
                 DevLogger.e(TAG, "Failed to save audio settings", e)
             }
