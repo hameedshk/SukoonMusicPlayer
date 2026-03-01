@@ -875,30 +875,38 @@ class PlaybackRepositoryImpl @Inject constructor(
     }
 
     override suspend fun previewCurrentSongSettings(songId: Long, settings: SongAudioSettings) {
-        val controller = mediaController ?: return
-        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
-        if (currentSongId != songId) return
+        try {
+            val controller = mediaController ?: return
+            val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+            if (currentSongId != songId) return
 
-        val desiredClipping = settings.toClippingConfigurationOrNull()
-        val clippingUnchanged = controller.currentMediaItem.hasEquivalentClipping(desiredClipping)
-        if (!clippingUnchanged) {
-            replaceCurrentItemWithSettings(controller, settings)
-        }
-        sendPerSongSettingsCommand(controller, settings)
-        stateUpdateMutex.withLock {
-            updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+            val desiredClipping = settings.toClippingConfigurationOrNull()
+            val clippingUnchanged = controller.currentMediaItem.hasEquivalentClipping(desiredClipping)
+            if (!clippingUnchanged) {
+                replaceCurrentItemWithSettings(controller, settings)
+            }
+            sendPerSongSettingsCommand(controller, settings)
+            stateUpdateMutex.withLock {
+                updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+            }
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Failed to preview per-song settings", e)
         }
     }
 
     override suspend fun applyCurrentSongSettingsImmediately(songId: Long, settings: SongAudioSettings) {
-        val controller = mediaController ?: return
-        val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
-        if (currentSongId != songId) return
+        try {
+            val controller = mediaController ?: return
+            val currentSongId = controller.currentMediaItem?.mediaId?.toLongOrNull() ?: return
+            if (currentSongId != songId) return
 
-        replaceCurrentItemWithSettings(controller, settings)
-        sendPerSongSettingsCommand(controller, settings)
-        stateUpdateMutex.withLock {
-            updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+            replaceCurrentItemWithSettings(controller, settings)
+            sendPerSongSettingsCommand(controller, settings)
+            stateUpdateMutex.withLock {
+                updatePlaybackState(source = PlaybackUpdateSource.PLAYER_LISTENER)
+            }
+        } catch (e: Exception) {
+            DevLogger.e("PlaybackRepository", "Failed to apply per-song settings immediately", e)
         }
     }
 
@@ -915,7 +923,16 @@ class PlaybackRepositoryImpl @Inject constructor(
             ) ?: return
         if (currentSong.id != settings.songId) return
 
-        val updatedCurrentItem = currentSong.toMediaItemWithSettings(overrideSettings = settings)
+        val updatedCurrentItem = try {
+            currentSong.toMediaItemWithSettings(overrideSettings = settings)
+        } catch (e: Exception) {
+            DevLogger.e(
+                "PlaybackRepository",
+                "Failed to build media item for song ${currentSong.id}",
+                e
+            )
+            return
+        }
         val currentPosition = controller.currentPosition.coerceAtLeast(0L)
         val shouldResume = controller.isPlaying
         val targetPosition = settings.adjustedPositionForClipping(currentPosition)

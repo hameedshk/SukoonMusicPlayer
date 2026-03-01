@@ -11,6 +11,7 @@ import com.sukoon.music.domain.repository.SearchHistoryRepository
 import com.sukoon.music.domain.repository.SongRepository
 import com.sukoon.music.data.analytics.AnalyticsTracker
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.sukoon.music.ui.search.SearchMatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -39,6 +40,11 @@ class SearchViewModel @Inject constructor(
     private val analyticsTracker: AnalyticsTracker,
     val playbackRepository: PlaybackRepository
 ) : ViewModel() {
+    private data class ScoredSong(
+        val song: Song,
+        val score: Int
+    )
+
 
     // --- Input State (Mutable) ---
 
@@ -82,35 +88,66 @@ class SearchViewModel @Inject constructor(
         _sortMode,
         allSongs
     ) { query, likedOnly, sortMode, songs ->
-        // Step 1: Filter by search query
-        val queriedSongs = if (query.isBlank()) {
+        val queryContext = SearchMatcher.createQueryContext(query)
+
+        // Step 1: Match by normalized/token/fuzzy scorer
+        val scoredMatches = if (queryContext.normalizedQuery.isBlank()) {
             emptyList()
         } else {
-            songs.filter { song ->
-                song.title.contains(query, ignoreCase = true) ||
-                song.artist.contains(query, ignoreCase = true) ||
-                song.album.contains(query, ignoreCase = true)
+            songs.mapNotNull { song ->
+                val matchResult = SearchMatcher.scoreSong(
+                    context = queryContext,
+                    title = song.title,
+                    artist = song.artist,
+                    album = song.album
+                )
+                if (matchResult.isMatch) {
+                    ScoredSong(song = song, score = matchResult.score)
+                } else {
+                    null
+                }
             }
         }
 
         // Step 2: Filter by liked status if toggled
-        val filteredSongs = if (likedOnly) {
-            queriedSongs.filter { it.isLiked }
+        val filteredMatches = if (likedOnly) {
+            scoredMatches.filter { it.song.isLiked }
         } else {
-            queriedSongs
+            scoredMatches
         }
 
         // Step 3: Sort based on selected mode
-        when (sortMode) {
-            SortMode.RELEVANCE -> sortByRelevance(filteredSongs, query)
-            SortMode.TITLE -> filteredSongs.sortedBy { it.title.lowercase() }
-            SortMode.ARTIST -> filteredSongs.sortedBy { it.artist.lowercase() }
-            SortMode.DATE_ADDED -> filteredSongs.sortedByDescending { it.dateAdded }
+        val sortedMatches = when (sortMode) {
+            SortMode.RELEVANCE -> filteredMatches.sortedWith(
+                compareByDescending<ScoredSong> { it.score }
+                    .thenBy { it.song.title.lowercase() }
+            )
+            SortMode.TITLE -> filteredMatches.sortedBy { it.song.title.lowercase() }
+            SortMode.ARTIST -> filteredMatches.sortedBy { it.song.artist.lowercase() }
+            SortMode.DATE_ADDED -> filteredMatches.sortedByDescending { it.song.dateAdded }
         }
+
+        sortedMatches.map { it.song }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
+    )
+
+    val topMatchSongId: StateFlow<Long?> = combine(
+        searchResults,
+        _searchQuery,
+        _sortMode
+    ) { results, query, sortMode ->
+        if (query.isBlank() || sortMode != SortMode.RELEVANCE) {
+            null
+        } else {
+            results.firstOrNull()?.id
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = null
     )
 
     // --- User Actions ---
@@ -219,58 +256,4 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    // --- Helper Functions ---
-
-    /**
-     * Sort songs by search relevance.
-     *
-     * Scoring algorithm:
-     * - Exact title match: 1000 points
-     * - Title starts with query: 500 points
-     * - Title contains query: 100 points
-     * - Artist exact match: 800 points
-     * - Artist starts with query: 400 points
-     * - Artist contains query: 80 points
-     * - Album exact match: 600 points
-     * - Album starts with query: 300 points
-     * - Album contains query: 60 points
-     *
-     * Higher score = more relevant = appears first
-     */
-    private fun sortByRelevance(songs: List<Song>, query: String): List<Song> {
-        if (query.isBlank()) return songs
-
-        val lowerQuery = query.lowercase()
-
-        return songs.sortedByDescending { song ->
-            var score = 0
-
-            val lowerTitle = song.title.lowercase()
-            val lowerArtist = song.artist.lowercase()
-            val lowerAlbum = song.album.lowercase()
-
-            // Title scoring
-            when {
-                lowerTitle == lowerQuery -> score += 1000
-                lowerTitle.startsWith(lowerQuery) -> score += 500
-                lowerTitle.contains(lowerQuery) -> score += 100
-            }
-
-            // Artist scoring
-            when {
-                lowerArtist == lowerQuery -> score += 800
-                lowerArtist.startsWith(lowerQuery) -> score += 400
-                lowerArtist.contains(lowerQuery) -> score += 80
-            }
-
-            // Album scoring
-            when {
-                lowerAlbum == lowerQuery -> score += 600
-                lowerAlbum.startsWith(lowerQuery) -> score += 300
-                lowerAlbum.contains(lowerQuery) -> score += 60
-            }
-
-            score
-        }
-    }
 }

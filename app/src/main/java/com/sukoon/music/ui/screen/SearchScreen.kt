@@ -14,6 +14,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.animation.*
@@ -78,6 +79,7 @@ fun SearchScreen(
 ) {
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val searchResults by viewModel.searchResults.collectAsStateWithLifecycle()
+    val topMatchSongId by viewModel.topMatchSongId.collectAsStateWithLifecycle()
     val searchHistory by viewModel.searchHistory.collectAsStateWithLifecycle()
     val showLikedOnly by viewModel.showLikedOnly.collectAsStateWithLifecycle()
     val sortMode by viewModel.sortMode.collectAsStateWithLifecycle()
@@ -259,6 +261,7 @@ fun SearchScreen(
                             SearchResultsContent(
                                 songs = searchResults,
                                 searchQuery = searchQuery,
+                                topMatchSongId = topMatchSongId,
                                 currentSongId = playbackState.currentSong?.id,
                                 isPlayingGlobally = playbackState.isPlaying,
                                 menuHandler = menuHandler,
@@ -561,6 +564,7 @@ private fun getSortModeLabel(mode: SortMode): String {
 private fun SearchResultsContent(
     songs: List<Song>,
     searchQuery: String,
+    topMatchSongId: Long?,
     currentSongId: Long?,
     isPlayingGlobally: Boolean,
     menuHandler: SongMenuHandler,
@@ -587,14 +591,15 @@ private fun SearchResultsContent(
         }
 
         // Song List
-        items(
+        itemsIndexed(
             items = songs,
-            key = { it.id }
-        ) { song ->
+            key = { _, item -> item.id }
+        ) { index, song ->
             val isCurrentSong = song.id == currentSongId
             SearchResultItem(
                 song = song,
                 searchQuery = searchQuery,
+                isTopMatch = index == 0 && topMatchSongId == song.id,
                 isCurrentSong = isCurrentSong,
                 isPlaybackActive = isCurrentSong && isPlayingGlobally,
                 menuHandler = menuHandler,
@@ -609,6 +614,7 @@ private fun SearchResultsContent(
 private fun SearchResultItem(
     song: Song,
     searchQuery: String,
+    isTopMatch: Boolean,
     isCurrentSong: Boolean,
     isPlaybackActive: Boolean,
     menuHandler: SongMenuHandler,
@@ -656,6 +662,21 @@ private fun SearchResultItem(
             Column(
                 modifier = Modifier.weight(1f)
             ) {
+                if (isTopMatch) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = androidx.compose.ui.res.stringResource(com.sukoon.music.R.string.search_top_match),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(modifier = Modifier.weight(1f, fill = false)) {
                         HighlightedText(

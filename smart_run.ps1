@@ -515,3 +515,6 @@ if ($LASTEXITCODE -eq 0) {
 #work on pairing
 #adb forward tcp:5277 tcp:5277
 # ./gradlew assembleDebug
+#adb shell monkey -p com.sukoon.music --throttle 300 -v 1000
+#adb shell monkey -p com.sukoon.music -v 5000 | tee monkey_output.log
+#Select-String -Path monkey_log.txt -Pattern "CRASH","ANR","FATAL EXCEPTION"

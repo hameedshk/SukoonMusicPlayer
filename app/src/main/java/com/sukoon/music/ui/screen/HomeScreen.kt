@@ -376,7 +376,6 @@ fun HomeScreen(
                             onPremiumClick = onNavigateToPremium,
                             onGlobalSearchClick = onNavigateToSearch,
                             onSettingsClick = onNavigateToSettings,
-                            currentTheme = appTheme,
                             sessionState = sessionState
                         )
                     }
