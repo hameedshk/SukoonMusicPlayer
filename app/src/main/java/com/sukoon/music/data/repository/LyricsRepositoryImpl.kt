@@ -7,6 +7,9 @@ import com.sukoon.music.data.local.dao.LyricsDao
 import com.sukoon.music.data.local.entity.LyricsEntity
 import com.sukoon.music.data.lyrics.LrcParser
 import com.sukoon.music.data.metadata.GeminiMetadataCorrector
+import com.sukoon.music.data.metadata.MetadataCorrectionResult
+import com.sukoon.music.data.analytics.AnalyticsTracker
+import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.remote.LyricsApi
 import com.sukoon.music.data.remote.SecondaryLyricsApi
 import com.sukoon.music.data.remote.dto.LyricsResponse
@@ -18,12 +21,14 @@ import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import retrofit2.HttpException
 import java.io.IOException
 import java.io.InterruptedIOException
 import java.net.ConnectException
+import java.security.MessageDigest
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import kotlin.math.abs
@@ -50,13 +55,21 @@ class LyricsRepositoryImpl @Inject constructor(
     private val secondaryLyricsApi: SecondaryLyricsApi,
     private val offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
     private val id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
-    private val geminiMetadataCorrector: GeminiMetadataCorrector
+    private val geminiMetadataCorrector: GeminiMetadataCorrector,
+    private val preferencesManager: PreferencesManager,
+    private val analyticsTracker: AnalyticsTracker
 ) : LyricsRepository {
 
     companion object {
         private const val TAG = "LyricsRepository"
         private const val RETRY_BACKOFF_MS = 350L
         private const val MIN_LYRICS_LENGTH = 8
+        private const val EVENT_LYRICS_FETCH_STARTED = "lyrics_fetch_started"
+        private const val EVENT_LYRICS_STAGE_RESULT = "lyrics_fetch_stage_result"
+        private const val EVENT_LYRICS_FETCH_COMPLETED = "lyrics_fetch_completed"
+        private const val EVENT_GEMINI_METADATA_RESULT = "gemini_metadata_result"
+        private const val EVENT_GEMINI_QUOTA_LIMITED = "gemini_quota_limited"
+        private const val EVENT_LYRICS_NOT_FOUND_DIAGNOSTICS = "lyrics_not_found_diagnostics"
     }
 
     override fun getLyrics(
@@ -70,26 +83,79 @@ class LyricsRepositoryImpl @Inject constructor(
         DevLogger.d(TAG, "lyrics_stage=start trackId=$trackId")
         emit(LyricsState.Loading)
 
+        val startedAtMs = System.currentTimeMillis()
+        val analyticsEnabled = runCatching { preferencesManager.analyticsEnabledFlow.first() }.getOrDefault(false)
+        val trackFingerprint = hashForAnalytics("$trackId|$audioUri|$artist|$title")
+        val stageAttempts = linkedSetOf<String>()
+
+        logLyricsAnalytics(
+            analyticsEnabled,
+            EVENT_LYRICS_FETCH_STARTED,
+            mapOf(
+                "track_hash" to trackFingerprint,
+                "has_artist" to artist.isNotBlank(),
+                "has_album" to !album.isNullOrBlank(),
+                "title_len_bucket" to lengthBucket(title.length)
+            )
+        )
+
+        fun stageResult(stage: String, result: String, source: String? = null, extra: Map<String, Any?> = emptyMap()) {
+            stageAttempts += stage
+            logLyricsAnalytics(
+                enabled = analyticsEnabled,
+                name = EVENT_LYRICS_STAGE_RESULT,
+                params = buildMap {
+                    put("stage", stage)
+                    put("result", result)
+                    source?.let { put("source", it) }
+                    putAll(extra)
+                }
+            )
+        }
+
+        fun completion(finalResult: String, finalSource: LyricsSource?) {
+            val elapsedMs = (System.currentTimeMillis() - startedAtMs).coerceAtLeast(0L)
+            logLyricsAnalytics(
+                enabled = analyticsEnabled,
+                name = EVENT_LYRICS_FETCH_COMPLETED,
+                params = mapOf(
+                    "final_result" to finalResult,
+                    "final_source" to finalSource?.name?.lowercase().orEmpty(),
+                    "attempted_stage_count" to stageAttempts.size,
+                    "duration_ms_bucket" to durationBucket(elapsedMs)
+                )
+            )
+        }
+
         try {
             // 1) Manual cache first
+            stageAttempts += "manual_cache"
             val cached = lyricsDao.getLyricsByTrackId(trackId)
             if (cached?.isManual == true) {
                 DevLogger.d(TAG, "lyrics_stage=manual_hit trackId=$trackId")
                 val lyrics = cached.toDomainModel()
+                stageResult("manual_cache", "hit", source = cached.source.lowercase())
+                completion("success", lyrics.source)
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
+            stageResult("manual_cache", "miss")
 
             // 2) Regular cache
+            stageAttempts += "cache"
             if (cached != null) {
                 DevLogger.d(TAG, "lyrics_stage=cache_hit trackId=$trackId source=${cached.source}")
                 val lyrics = cached.toDomainModel()
+                stageResult("cache", "hit", source = cached.source.lowercase())
+                completion("success", lyrics.source)
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
+            stageResult("cache", "miss")
             DevLogger.d(TAG, "lyrics_stage=cache_miss trackId=$trackId")
 
             // 3) Local .lrc
+            stageAttempts += "local"
             val localLrc = offlineLyricsScanner.findLrcFile(audioUri, title, artist)
             if (!localLrc.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=local_hit trackId=$trackId")
@@ -105,12 +171,16 @@ class LyricsRepositoryImpl @Inject constructor(
                 )
                 val cachedEntity = cacheAutoLyrics(entity)
                 val lyrics = cachedEntity.toDomainModel()
+                stageResult("local", "hit", source = cachedEntity.source.lowercase())
+                completion("success", lyrics.source)
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
+            stageResult("local", "miss")
             DevLogger.d(TAG, "lyrics_stage=local_miss trackId=$trackId")
 
             // 4) Embedded tags
+            stageAttempts += "embedded"
             val (embeddedSynced, embeddedPlain) = id3LyricsExtractor.extractLyrics(audioUri)
             if (!embeddedSynced.isNullOrBlank() || !embeddedPlain.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=embedded_hit trackId=$trackId")
@@ -126,31 +196,39 @@ class LyricsRepositoryImpl @Inject constructor(
                 )
                 val cachedEntity = cacheAutoLyrics(entity)
                 val lyrics = cachedEntity.toDomainModel()
+                stageResult("embedded", "hit", source = cachedEntity.source.lowercase())
+                completion("success", lyrics.source)
                 emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
                 return@flow
             }
+            stageResult("embedded", "miss")
             DevLogger.d(TAG, "lyrics_stage=embedded_miss trackId=$trackId")
 
-            val normalizedArtist = normalize(artist.trim())
-            val normalizedTitle = normalize(title.trim())
+            val normalizedArtist = normalizeArtist(artist.trim())
+            val normalizedTitle = normalizeTrackTitle(title.trim())
             val normalizedAlbum = normalize(album)
             val safeDuration = duration.takeIf { it > 0 }
-            val rawArtist = artist.trim().takeIf { it.isNotBlank() }
+            val rawArtist = artist.trim().takeIf { it.isNotBlank() && !isPlaceholderArtist(it) }
             val rawTitle = title.trim()
 
             if (normalizedTitle.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=invalid_title trackId=$trackId")
+                stageResult("input_validation", "invalid_title")
+                logNotFoundDiagnostics(analyticsEnabled, stageAttempts)
+                completion("not_found", null)
                 emit(LyricsState.NotFound)
                 return@flow
             }
 
             // 5) LRCLIB lookup + search
+            stageAttempts += "lrclib_primary"
             var finalResponse = fetchOnlineLyricsFromLrclib(
                 artistName = normalizedArtist,
                 trackName = normalizedTitle,
                 albumName = normalizedAlbum,
                 duration = safeDuration
             )
+            stageResult("lrclib_primary", if (hasUsableLyrics(finalResponse)) "hit" else "miss")
             var source = LyricsSource.ONLINE
 
             // Coverage fallback: retry LRCLIB with raw metadata when normalized query misses.
@@ -158,22 +236,28 @@ class LyricsRepositoryImpl @Inject constructor(
                 rawTitle.isNotBlank() &&
                 (rawTitle != normalizedTitle || rawArtist != normalizedArtist)
             ) {
+                stageAttempts += "lrclib_raw_retry"
                 finalResponse = fetchOnlineLyricsFromLrclib(
                     artistName = rawArtist,
                     trackName = rawTitle,
                     albumName = album?.trim(),
                     duration = safeDuration
                 )
+                stageResult("lrclib_raw_retry", if (hasUsableLyrics(finalResponse)) "hit" else "miss")
             }
 
             // 6) Gemini-corrected LRCLIB retry
             if (!hasUsableLyrics(finalResponse)) {
-                finalResponse = tryGeminiCorrectedLookup(
+                stageAttempts += "gemini"
+                val geminiLookup = tryGeminiCorrectedLookup(
                     originalArtist = artist,
                     originalTitle = title,
                     originalAlbum = album,
-                    duration = safeDuration
+                    duration = safeDuration,
+                    analyticsEnabled = analyticsEnabled
                 )
+                finalResponse = geminiLookup.response
+                stageResult("gemini", geminiLookup.stageResult, extra = geminiLookup.extraAnalytics)
                 if (hasUsableLyrics(finalResponse)) {
                     source = LyricsSource.ONLINE
                 }
@@ -181,6 +265,7 @@ class LyricsRepositoryImpl @Inject constructor(
 
             // 7) Free fallback provider
             if (!hasUsableLyrics(finalResponse)) {
+                stageAttempts += "secondary"
                 finalResponse = trySecondaryProvider(
                     artistName = normalizedArtist,
                     trackName = normalizedTitle
@@ -191,6 +276,7 @@ class LyricsRepositoryImpl @Inject constructor(
                         trackName = rawTitle
                     )
                 }
+                stageResult("secondary", if (hasUsableLyrics(finalResponse)) "hit" else "miss")
                 if (hasUsableLyrics(finalResponse)) {
                     source = LyricsSource.ONLINE_FALLBACK_FREE
                 }
@@ -198,6 +284,8 @@ class LyricsRepositoryImpl @Inject constructor(
 
             if (!hasUsableLyrics(finalResponse)) {
                 DevLogger.d(TAG, "lyrics_stage=final_not_found trackId=$trackId")
+                logNotFoundDiagnostics(analyticsEnabled, stageAttempts)
+                completion("not_found", null)
                 emit(LyricsState.NotFound)
                 return@flow
             }
@@ -216,9 +304,17 @@ class LyricsRepositoryImpl @Inject constructor(
             DevLogger.d(TAG, "lyrics_stage=online_cached trackId=$trackId source=${cachedEntity.source}")
 
             val lyrics = cachedEntity.toDomainModel()
+            stageResult("online_cache_write", "hit", source = cachedEntity.source.lowercase())
+            completion("success", lyrics.source)
             emit(LyricsState.Success(lyrics, LrcParser.parse(lyrics.syncedLyrics, lyrics.syncOffset)))
         } catch (e: Exception) {
             DevLogger.e(TAG, "lyrics_stage=fatal_error trackId=$trackId", e)
+            stageResult(
+                stage = "fatal",
+                result = "error",
+                extra = mapOf("error_type" to e.javaClass.simpleName.lowercase())
+            )
+            completion("error", null)
             emit(LyricsState.Error("Failed to fetch lyrics: ${e.message}"))
         }
     }.flowOn(Dispatchers.IO)
@@ -393,46 +489,104 @@ class LyricsRepositoryImpl @Inject constructor(
         }
     }
 
+    private data class GeminiLookupResult(
+        val response: LyricsResponse?,
+        val stageResult: String,
+        val extraAnalytics: Map<String, Any?> = emptyMap()
+    )
+
     private suspend fun tryGeminiCorrectedLookup(
         originalArtist: String,
         originalTitle: String,
         originalAlbum: String?,
-        duration: Int?
-    ): LyricsResponse? {
+        duration: Int?,
+        analyticsEnabled: Boolean
+    ): GeminiLookupResult {
         DevLogger.d(TAG, "lyrics_stage=gemini_metadata_correction_start")
 
-        val corrected = geminiMetadataCorrector.correctMetadata(
+        val correctionResult = geminiMetadataCorrector.correctMetadata(
             originalArtist = originalArtist,
             originalTitle = originalTitle,
             originalAlbum = originalAlbum
-        ) ?: run {
-            DevLogger.d(TAG, "lyrics_stage=gemini_metadata_correction_miss")
-            return null
-        }
-
-        val correctedArtist = normalize(corrected.artist)
-        val correctedTitle = normalize(corrected.title)
-        val correctedAlbum = normalize(corrected.album)
-
-        if (correctedTitle.isNullOrBlank()) {
-            DevLogger.d(TAG, "lyrics_stage=gemini_invalid_corrected_title")
-            return null
-        }
-
-        val correctedResponse = fetchOnlineLyricsFromLrclib(
-            artistName = correctedArtist,
-            trackName = correctedTitle,
-            albumName = correctedAlbum,
-            duration = duration
         )
 
-        if (hasUsableLyrics(correctedResponse)) {
-            DevLogger.d(TAG, "lyrics_stage=gemini_retry_hit")
-        } else {
-            DevLogger.d(TAG, "lyrics_stage=gemini_retry_miss")
-        }
+        val correctionType = correctionResultType(correctionResult)
 
-        return correctedResponse
+        logLyricsAnalytics(
+            analyticsEnabled,
+            EVENT_GEMINI_METADATA_RESULT,
+            mapOf(
+                "result_type" to correctionType,
+                "cooldown_active" to (correctionResult is MetadataCorrectionResult.QuotaLimited)
+            )
+        )
+
+        return when (correctionResult) {
+            is MetadataCorrectionResult.Corrected -> {
+                val correctedArtist = normalizeArtist(correctionResult.metadata.artist)
+                val correctedTitle = normalizeTrackTitle(correctionResult.metadata.title)
+                val correctedAlbum = normalize(correctionResult.metadata.album)
+
+                if (correctedTitle.isNullOrBlank()) {
+                    DevLogger.d(TAG, "lyrics_stage=gemini_invalid_corrected_title")
+                    GeminiLookupResult(
+                        response = null,
+                        stageResult = "miss",
+                        extraAnalytics = mapOf("gemini_result_type" to "invalid_corrected_title")
+                    )
+                } else {
+                    val correctedResponse = fetchOnlineLyricsFromLrclib(
+                        artistName = correctedArtist,
+                        trackName = correctedTitle,
+                        albumName = correctedAlbum,
+                        duration = duration
+                    )
+
+                    if (hasUsableLyrics(correctedResponse)) {
+                        DevLogger.d(TAG, "lyrics_stage=gemini_retry_hit")
+                        GeminiLookupResult(
+                            response = correctedResponse,
+                            stageResult = "hit",
+                            extraAnalytics = mapOf("gemini_result_type" to correctionType)
+                        )
+                    } else {
+                        DevLogger.d(TAG, "lyrics_stage=gemini_retry_miss")
+                        GeminiLookupResult(
+                            response = null,
+                            stageResult = "miss",
+                            extraAnalytics = mapOf("gemini_result_type" to correctionType)
+                        )
+                    }
+                }
+            }
+
+            is MetadataCorrectionResult.QuotaLimited -> {
+                logLyricsAnalytics(
+                    analyticsEnabled,
+                    EVENT_GEMINI_QUOTA_LIMITED,
+                    mapOf(
+                        "http_code" to correctionResult.httpCode,
+                        "reason" to correctionResult.reason,
+                        "cooldown_minutes" to ((correctionResult.cooldownUntilMs - System.currentTimeMillis()) / 60000L).coerceAtLeast(0L)
+                    )
+                )
+                DevLogger.d(TAG, "lyrics_stage=gemini_quota_limited")
+                GeminiLookupResult(
+                    response = null,
+                    stageResult = "skipped",
+                    extraAnalytics = mapOf("gemini_result_type" to correctionType)
+                )
+            }
+
+            else -> {
+                DevLogger.d(TAG, "lyrics_stage=gemini_metadata_correction_miss type=$correctionType")
+                GeminiLookupResult(
+                    response = null,
+                    stageResult = "miss",
+                    extraAnalytics = mapOf("gemini_result_type" to correctionType)
+                )
+            }
+        }
     }
 
     private suspend fun trySecondaryProvider(
@@ -487,35 +641,30 @@ class LyricsRepositoryImpl @Inject constructor(
 
         val scored = usableCandidates
             .map { candidate -> candidate to candidateMatchScore(candidate, queryArtist, queryTitle, queryDuration) }
+        val (bestCandidate, bestScore) = scored.maxByOrNull { (_, score) -> score } ?: return null
 
-        scored.forEach { (candidate, score) ->
-            if (score < minimumScoreThreshold(queryArtist)) {
-                DevLogger.d(
-                    TAG,
-                    "lyrics_stage=candidate_rejected_low_confidence artist='${candidate.artistName}' title='${candidate.trackName}' score=$score"
-                )
-            }
-        }
+        val bestTitleNormalized = normalizeForMatch(bestCandidate.trackName)
+        val targetTitleNormalized = normalizeForMatch(queryTitle)
+        val hasTitleContainment = bestTitleNormalized.contains(targetTitleNormalized) ||
+            targetTitleNormalized.contains(bestTitleNormalized)
+        val titleOverlap = tokenOverlapRatio(bestTitleNormalized, targetTitleNormalized)
 
-        val passing = scored
-            .filter { (_, score) -> score >= minimumScoreThreshold(queryArtist) }
-            .maxByOrNull { (_, score) -> score }
-            ?.first
-
-        if (passing != null) {
-            return passing
-        }
-
-        // Coverage-first fallback: use best available candidate even if confidence is low.
-        val fallback = scored.maxByOrNull { (_, score) -> score }?.first
-        if (fallback != null) {
+        // Guardrail: reject obviously wrong candidates when title overlap is extremely low.
+        if (!hasTitleContainment && titleOverlap < 0.34f) {
             DevLogger.d(
                 TAG,
-                "lyrics_stage=search_low_confidence_fallback artist='${fallback.artistName}' title='${fallback.trackName}'"
+                "lyrics_stage=candidate_rejected_low_confidence artist='${bestCandidate.artistName}' title='${bestCandidate.trackName}' score=$bestScore"
             )
-            return fallback
+            return null
         }
-        return usableCandidates.firstOrNull()
+
+        if (bestScore <= 0) {
+            DevLogger.d(
+                TAG,
+                "lyrics_stage=search_low_confidence_fallback artist='${bestCandidate.artistName}' title='${bestCandidate.trackName}'"
+            )
+        }
+        return bestCandidate
     }
 
     private fun candidateMatchScore(
@@ -557,18 +706,16 @@ class LyricsRepositoryImpl @Inject constructor(
         return score
     }
 
-    private fun minimumScoreThreshold(queryArtist: String?): Int {
-        return 0
-    }
-
     private fun buildSearchQueries(artistName: String?, trackName: String): List<String> {
-        val titleClean = normalizeWhitespace(stripFeaturing(trackName))
+        val titleClean = normalizeWhitespace(stripSearchNoise(stripFeaturing(trackName)))
+        val titleNoBrackets = normalizeWhitespace(stripBracketedSegments(titleClean))
         val artistClean = normalizeWhitespace(stripFeaturing(artistName.orEmpty()))
         val candidates = mutableListOf<String>()
 
         if (artistName.isNullOrBlank()) {
             candidates += trackName
             if (titleClean != trackName) candidates += titleClean
+            if (titleNoBrackets.isNotBlank() && titleNoBrackets != titleClean) candidates += titleNoBrackets
         } else {
             candidates += "$artistName $trackName"
             candidates += "$trackName $artistName"
@@ -577,10 +724,17 @@ class LyricsRepositoryImpl @Inject constructor(
                 candidates += "$artistName $titleClean"
                 candidates += titleClean
             }
+            if (titleNoBrackets.isNotBlank() && titleNoBrackets != titleClean) {
+                candidates += "$artistName $titleNoBrackets"
+                candidates += titleNoBrackets
+            }
             if (artistClean.isNotBlank() && artistClean != artistName) {
                 candidates += "$artistClean $trackName"
                 if (titleClean != trackName) {
                     candidates += "$artistClean $titleClean"
+                }
+                if (titleNoBrackets.isNotBlank() && titleNoBrackets != titleClean) {
+                    candidates += "$artistClean $titleNoBrackets"
                 }
             }
         }
@@ -611,10 +765,33 @@ class LyricsRepositoryImpl @Inject constructor(
             .distinct()
     }
 
+    private fun normalizeArtist(artist: String?): String? {
+        val normalized = normalize(artist)
+        if (normalized.isNullOrBlank()) return null
+        return normalized.takeUnless { isPlaceholderArtist(it) }
+    }
+
+    private fun normalizeTrackTitle(title: String?): String? {
+        return normalize(stripSearchNoise(title.orEmpty()))
+    }
+
     private fun stripFeaturing(value: String): String {
         return value
             .replace(Regex("\\b(feat\\.?|ft\\.?|featuring)\\b.*$", RegexOption.IGNORE_CASE), "")
             .trim()
+    }
+
+    private fun stripSearchNoise(value: String): String {
+        return value
+            .replace(Regex("\\b(official|video|audio|lyrics?|hd|4k|8k)\\b", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("\\b(remastered|remaster|version|edit|mix)\\b", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("\\b(full\\s+song|music\\s+video)\\b", RegexOption.IGNORE_CASE), " ")
+            .replace(Regex("\\s+"), " ")
+            .trim()
+    }
+
+    private fun stripBracketedSegments(value: String): String {
+        return value.replace(Regex("\\s*[\\(\\[].*?[\\)\\]]\\s*"), " ").replace(Regex("\\s+"), " ").trim()
     }
 
     private fun normalizeWhitespace(value: String): String {
@@ -654,6 +831,76 @@ class LyricsRepositoryImpl @Inject constructor(
     private fun hasUsableLyrics(response: LyricsResponse?): Boolean {
         if (response == null) return false
         return !response.syncedLyrics.isNullOrBlank() || !response.plainLyrics.isNullOrBlank()
+    }
+
+    private fun isPlaceholderArtist(value: String): Boolean {
+        val normalized = value.trim().lowercase()
+        return normalized.isBlank() ||
+            normalized == "unknown" ||
+            normalized == "<unknown>" ||
+            normalized == "unknown artist" ||
+            normalized == "various artists" ||
+            normalized == "va"
+    }
+
+    private fun logLyricsAnalytics(enabled: Boolean, name: String, params: Map<String, Any?> = emptyMap()) {
+        if (!enabled) return
+        analyticsTracker.logEvent(name = name, params = params)
+    }
+
+    private fun logNotFoundDiagnostics(enabled: Boolean, stageAttempts: Set<String>) {
+        logLyricsAnalytics(
+            enabled = enabled,
+            name = EVENT_LYRICS_NOT_FOUND_DIAGNOSTICS,
+            params = mapOf(
+                "manual_attempted" to stageAttempts.contains("manual_cache"),
+                "cache_attempted" to stageAttempts.contains("cache"),
+                "local_attempted" to stageAttempts.contains("local"),
+                "embedded_attempted" to stageAttempts.contains("embedded"),
+                "lrclib_attempted" to stageAttempts.contains("lrclib_primary"),
+                "lrclib_raw_attempted" to stageAttempts.contains("lrclib_raw_retry"),
+                "gemini_attempted" to stageAttempts.contains("gemini"),
+                "secondary_attempted" to stageAttempts.contains("secondary")
+            )
+        )
+    }
+
+    private fun correctionResultType(result: MetadataCorrectionResult): String {
+        return when {
+            result is MetadataCorrectionResult.Corrected -> "corrected"
+            result is MetadataCorrectionResult.QuotaLimited -> "quota_limited"
+            result == MetadataCorrectionResult.Unchanged -> "unchanged"
+            result == MetadataCorrectionResult.Disabled -> "disabled"
+            result == MetadataCorrectionResult.NotConfigured -> "not_configured"
+            result == MetadataCorrectionResult.NetworkError -> "network_error"
+            else -> "parse_error"
+        }
+    }
+
+    private fun hashForAnalytics(input: String): String {
+        return runCatching {
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hashed = digest.digest(input.toByteArray(Charsets.UTF_8))
+            hashed.joinToString("") { "%02x".format(it) }.take(12)
+        }.getOrDefault(input.hashCode().toString())
+    }
+
+    private fun lengthBucket(length: Int): String {
+        return when {
+            length <= 0 -> "empty"
+            length <= 16 -> "short"
+            length <= 48 -> "medium"
+            else -> "long"
+        }
+    }
+
+    private fun durationBucket(durationMs: Long): String {
+        return when {
+            durationMs < 500 -> "lt_500ms"
+            durationMs < 1500 -> "lt_1500ms"
+            durationMs < 4000 -> "lt_4000ms"
+            else -> "gte_4000ms"
+        }
     }
 
     private suspend fun cacheAutoLyrics(entity: LyricsEntity): LyricsEntity {
@@ -731,12 +978,18 @@ private fun normalize(text: String?): String? {
         // Remove YouTube Music "- Topic" suffix
         .replace(Regex("\\s*-\\s*Topic$", RegexOption.IGNORE_CASE), "")
 
+        // Remove common upload noise in track titles
+        .replace(Regex("\\b(official|video|audio|lyrics?|hd|4k|8k)\\b", RegexOption.IGNORE_CASE), " ")
+        .replace(Regex("\\b(remastered|remaster|version|edit|mix)\\b", RegexOption.IGNORE_CASE), " ")
+        .replace(Regex("\\b(full\\s+song|music\\s+video)\\b", RegexOption.IGNORE_CASE), " ")
+
         // Remove file extensions if present
         .replace(Regex("\\.(mp3|m4a|flac|wav|ogg|aac|wma)$", RegexOption.IGNORE_CASE), "")
 
         // Remove standalone site names in parentheses (words with unusual caps or all caps)
         .replace(Regex("[\\(\\[](?:[A-Z][a-z]*){2,}[\\)\\]]"), "") // PagalWorld, DjMaza
         .replace(Regex("[\\(\\[][A-Z-]{4,}[\\)\\]]"), "") // MR-JATT, SONGS
+        .replace(Regex("\\s*[\\(\\[].*?(official|lyrics?|audio|video|remaster).*?[\\)\\]]", RegexOption.IGNORE_CASE), " ")
 
         // Clean up extra whitespace and multiple spaces
         .replace(Regex("\\s+"), " ")

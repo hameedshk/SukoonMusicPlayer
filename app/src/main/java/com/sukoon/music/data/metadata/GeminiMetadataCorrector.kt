@@ -1,6 +1,5 @@
 package com.sukoon.music.data.metadata
 
-import android.content.Context
 import com.sukoon.music.BuildConfig
 import com.sukoon.music.data.preferences.PreferencesManager
 import com.sukoon.music.data.remote.GeminiApi
@@ -10,6 +9,7 @@ import com.sukoon.music.data.remote.dto.GeminiRequest
 import com.sukoon.music.data.remote.dto.GeminiResponse
 import com.sukoon.music.data.remote.dto.GenerationConfig
 import com.sukoon.music.data.remote.dto.Part
+import com.sukoon.music.domain.model.GeminiQuotaState
 import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -26,31 +26,30 @@ import javax.inject.Inject
  */
 class GeminiMetadataCorrector @Inject constructor(
     private val geminiApi: GeminiApi,
-    private val context: Context,
     private val preferencesManager: PreferencesManager
 ) {
     private val tag = "GeminiMetadataCorrector"
 
-    /**
-     * Attempts to correct metadata using Gemini AI.
-     * Returns null if correction fails or produces invalid output.
-     */
+    companion object {
+        private const val QUOTA_COOLDOWN_MS = 60L * 60L * 1000L
+    }
+
     suspend fun correctMetadata(
         originalArtist: String,
         originalTitle: String,
         originalAlbum: String?
-    ): CorrectedMetadata? {
+    ): MetadataCorrectionResult {
         // PRIVACY: Check if user has opted in to AI metadata correction
         val userPrefs = preferencesManager.userPreferencesFlow.first()
         if (!userPrefs.aiMetadataCorrectionEnabled) {
             DevLogger.d(tag, "AI metadata correction disabled by user")
-            return null
+            return MetadataCorrectionResult.Disabled
         }
 
         // Check if Gemini feature is enabled globally in BuildConfig
         if (!BuildConfig.ENABLE_GEMINI_METADATA_CORRECTION) {
             DevLogger.d(tag, "Gemini metadata correction is disabled via BuildConfig")
-            return null
+            return MetadataCorrectionResult.Disabled
         }
 
         // Get API key from BuildConfig
@@ -59,7 +58,29 @@ class GeminiMetadataCorrector @Inject constructor(
         // Validate API key
         if (apiKey.isNullOrBlank()) {
             DevLogger.d(tag, "Gemini API key not configured in local.properties")
-            return null
+            preferencesManager.setGeminiQuotaStatus(
+                state = GeminiQuotaState.NOT_CONFIGURED,
+                cooldownUntilMs = null
+            )
+            return MetadataCorrectionResult.NotConfigured
+        }
+
+        val now = System.currentTimeMillis()
+        val cooldownUntilMs = userPrefs.geminiQuotaCooldownUntilMs ?: 0L
+        if (userPrefs.geminiQuotaState == GeminiQuotaState.LIMITED && cooldownUntilMs > now) {
+            return MetadataCorrectionResult.QuotaLimited(
+                httpCode = 429,
+                reason = "cooldown_active",
+                cooldownUntilMs = cooldownUntilMs
+            )
+        }
+
+        // Cooldown expired, mark API as available again.
+        if (userPrefs.geminiQuotaState == GeminiQuotaState.LIMITED && cooldownUntilMs in 1 until now) {
+            preferencesManager.setGeminiQuotaStatus(
+                state = GeminiQuotaState.AVAILABLE,
+                cooldownUntilMs = null
+            )
         }
 
         // Build prompt with strict constraints
@@ -71,7 +92,7 @@ class GeminiMetadataCorrector @Inject constructor(
             ),
             generationConfig = GenerationConfig(
                 temperature = 0.1f,
-                maxOutputTokens = 1000,
+                maxOutputTokens = 180,
                 topP = 0.8f
             )
         )
@@ -87,18 +108,56 @@ class GeminiMetadataCorrector @Inject constructor(
                 )
             }
 
-            // Parse and validate response
-            parseAndValidate(response, originalArtist, originalTitle, originalAlbum)
-
+            when (val result = parseAndValidate(response, originalArtist, originalTitle, originalAlbum)) {
+                is MetadataCorrectionResult.Corrected,
+                MetadataCorrectionResult.Unchanged,
+                MetadataCorrectionResult.ParseError -> {
+                    preferencesManager.setGeminiQuotaStatus(
+                        state = GeminiQuotaState.AVAILABLE,
+                        cooldownUntilMs = null
+                    )
+                    result
+                }
+                else -> result
+            }
         } catch (e: HttpException) {
-            DevLogger.e(tag, "Gemini HTTP error: ${e.code()} - ${e.message()}")
-            null
+            val errorBody = runCatching { e.response()?.errorBody()?.string().orEmpty() }.getOrDefault("")
+            val errorBodyLower = errorBody.lowercase()
+            val isQuotaLimited = e.code() == 429 ||
+                errorBodyLower.contains("resource_exhausted") ||
+                errorBodyLower.contains("quota")
+            val isKeyInvalid = e.code() == 401 || e.code() == 403 ||
+                errorBodyLower.contains("api key not valid") ||
+                errorBodyLower.contains("permission denied")
+            if (isQuotaLimited) {
+                val cooldown = System.currentTimeMillis() + QUOTA_COOLDOWN_MS
+                preferencesManager.setGeminiQuotaStatus(
+                    state = GeminiQuotaState.LIMITED,
+                    cooldownUntilMs = cooldown
+                )
+                DevLogger.e(tag, "Gemini quota limited: ${e.code()} - ${e.message()}")
+                MetadataCorrectionResult.QuotaLimited(
+                    httpCode = e.code(),
+                    reason = if (errorBodyLower.contains("resource_exhausted")) "resource_exhausted" else "quota_limited",
+                    cooldownUntilMs = cooldown
+                )
+            } else if (isKeyInvalid) {
+                preferencesManager.setGeminiQuotaStatus(
+                    state = GeminiQuotaState.NOT_CONFIGURED,
+                    cooldownUntilMs = null
+                )
+                DevLogger.e(tag, "Gemini key is invalid or unauthorized: ${e.code()} - ${e.message()}")
+                MetadataCorrectionResult.NotConfigured
+            } else {
+                DevLogger.e(tag, "Gemini HTTP error: ${e.code()} - ${e.message()}")
+                MetadataCorrectionResult.NetworkError
+            }
         } catch (e: IOException) {
             DevLogger.e(tag, "Gemini network error: ${e.message}")
-            null
+            MetadataCorrectionResult.NetworkError
         } catch (e: Exception) {
             DevLogger.e(tag, "Gemini unexpected error: ${e.message}")
-            null
+            MetadataCorrectionResult.ParseError
         }
     }
 
@@ -153,7 +212,7 @@ class GeminiMetadataCorrector @Inject constructor(
         originalArtist: String,
         originalTitle: String,
         originalAlbum: String?
-    ): CorrectedMetadata? {
+    ): MetadataCorrectionResult {
         val text = response.candidates
             ?.firstOrNull()
             ?.content
@@ -163,19 +222,19 @@ class GeminiMetadataCorrector @Inject constructor(
 
         if (text.isNullOrBlank()) {
             DevLogger.d(tag, "Gemini returned empty response")
-            return null
+            return MetadataCorrectionResult.ParseError
         }
 
         // Validation: Check for lyrics generation (forbidden)
         if (text.contains("[0") && text.length > 200) {
             DevLogger.w(tag, "Gemini appears to have generated lyrics - rejecting")
-            return null
+            return MetadataCorrectionResult.ParseError
         }
 
         val parsed = parseFromJson(text) ?: parseFromLabeledText(text)
         if (parsed == null) {
             DevLogger.d(tag, "Gemini response could not be parsed")
-            return null
+            return MetadataCorrectionResult.ParseError
         }
 
         val correctedArtist = parsed.artist.trim()
@@ -184,21 +243,23 @@ class GeminiMetadataCorrector @Inject constructor(
 
         if (correctedArtist.isBlank() || correctedTitle.isBlank()) {
             DevLogger.d(tag, "Gemini response missing required fields")
-            return null
+            return MetadataCorrectionResult.ParseError
         }
 
         if (correctedArtist == originalArtist.trim() &&
             correctedTitle == originalTitle.trim() &&
             correctedAlbum == originalAlbum?.trim()) {
             DevLogger.d(tag, "Gemini returned identical metadata")
-            return null
+            return MetadataCorrectionResult.Unchanged
         }
 
         DevLogger.d(tag, "Metadata corrected: $correctedArtist - $correctedTitle")
-        return CorrectedMetadata(
-            artist = correctedArtist,
-            title = correctedTitle,
-            album = correctedAlbum
+        return MetadataCorrectionResult.Corrected(
+            CorrectedMetadata(
+                artist = correctedArtist,
+                title = correctedTitle,
+                album = correctedAlbum
+            )
         )
     }
 

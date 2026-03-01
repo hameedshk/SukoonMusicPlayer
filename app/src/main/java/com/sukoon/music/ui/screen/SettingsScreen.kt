@@ -46,6 +46,7 @@ import androidx.compose.foundation.verticalScroll
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.AccentProfile
+import com.sukoon.music.domain.model.GeminiQuotaState
 import com.sukoon.music.R
 import com.sukoon.music.data.premium.PremiumManager
 import com.sukoon.music.ui.theme.SukoonMusicPlayerTheme
@@ -69,6 +70,7 @@ import com.sukoon.music.ui.analytics.AnalyticsEntryPoint
 import com.sukoon.music.util.AppLocaleManager
 import dagger.hilt.android.EntryPointAccessors
 import androidx.core.content.ContextCompat
+import kotlin.math.ceil
 
 /**
  * Settings Screen with vertical sectioned list layout.
@@ -259,7 +261,32 @@ fun SettingsScreen(
                         SettingsRowModel(
                             icon = Icons.Default.AutoAwesome,
                             title = stringResource(R.string.settings_screen_ai_metadata_title),
-                            value = stringResource(R.string.settings_screen_ai_metadata_description),
+                            value = run {
+                                val statusText = when {
+                                    !userPreferences.aiMetadataCorrectionEnabled ->
+                                        stringResource(R.string.settings_screen_ai_metadata_status_disabled)
+                                    com.sukoon.music.BuildConfig.GEMINI_API_KEY.isBlank() ||
+                                        userPreferences.geminiQuotaState == GeminiQuotaState.NOT_CONFIGURED ->
+                                        stringResource(R.string.settings_screen_ai_metadata_status_not_configured)
+                                    userPreferences.geminiQuotaState == GeminiQuotaState.LIMITED -> {
+                                        val now = System.currentTimeMillis()
+                                        val cooldownUntil = userPreferences.geminiQuotaCooldownUntilMs ?: 0L
+                                        val remainingMs = (cooldownUntil - now).coerceAtLeast(0L)
+                                        if (remainingMs > 0L) {
+                                            val minutes = ceil(remainingMs / 60000.0).toInt().coerceAtLeast(1)
+                                            stringResource(R.string.settings_screen_ai_metadata_status_limited_minutes, minutes)
+                                        } else {
+                                            stringResource(R.string.settings_screen_ai_metadata_status_available)
+                                        }
+                                    }
+                                    else -> stringResource(R.string.settings_screen_ai_metadata_status_available)
+                                }
+
+                                stringResource(
+                                    R.string.settings_screen_ai_metadata_description_with_status,
+                                    statusText
+                                )
+                            },
                             valuePlacement = ValuePlacement.Below,
                             onClick = null,
                             trailingContent = {

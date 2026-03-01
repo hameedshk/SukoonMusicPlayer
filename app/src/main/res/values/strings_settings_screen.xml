@@ -23,6 +23,11 @@
     <string name="settings_screen_analytics_description">Help improve Sukoon by sharing anonymous analytics</string>
     <string name="settings_screen_ai_metadata_title">AI Metadata Correction (Optional)</string>
     <string name="settings_screen_ai_metadata_description">Sends song artist/title/album to Google Gemini AI to fix typos. Requires internet. You can disable anytime.</string>
+    <string name="settings_screen_ai_metadata_description_with_status">Sends song artist/title/album to Google Gemini AI to fix typos. Requires internet. You can disable anytime.\nStatus: %1$s</string>
+    <string name="settings_screen_ai_metadata_status_available">Available</string>
+    <string name="settings_screen_ai_metadata_status_limited_minutes">Temporarily limited, retry in %1$d min</string>
+    <string name="settings_screen_ai_metadata_status_not_configured">Gemini API key is missing or invalid</string>
+    <string name="settings_screen_ai_metadata_status_disabled">Disabled</string>
     <string name="settings_screen_show_notification_controls_title">Show Notification Controls</string>
     <string name="settings_screen_show_notification_controls_description">Display playback controls in notification</string>
     <string name="settings_screen_audio_buffer_title">Audio Buffer</string>

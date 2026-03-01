@@ -327,10 +327,9 @@ object AppModule {
     @Singleton
     fun provideGeminiMetadataCorrector(
         geminiApi: com.sukoon.music.data.remote.GeminiApi,
-        @ApplicationContext context: Context,
         preferencesManager: com.sukoon.music.data.preferences.PreferencesManager
     ): com.sukoon.music.data.metadata.GeminiMetadataCorrector {
-        return com.sukoon.music.data.metadata.GeminiMetadataCorrector(geminiApi, context, preferencesManager)
+        return com.sukoon.music.data.metadata.GeminiMetadataCorrector(geminiApi, preferencesManager)
     }
 
     @Provides
@@ -342,7 +341,9 @@ object AppModule {
         secondaryLyricsApi: SecondaryLyricsApi,
         offlineLyricsScanner: com.sukoon.music.data.lyrics.OfflineLyricsScanner,
         id3LyricsExtractor: com.sukoon.music.data.lyrics.Id3LyricsExtractor,
-        geminiMetadataCorrector: com.sukoon.music.data.metadata.GeminiMetadataCorrector
+        geminiMetadataCorrector: com.sukoon.music.data.metadata.GeminiMetadataCorrector,
+        preferencesManager: com.sukoon.music.data.preferences.PreferencesManager,
+        analyticsTracker: com.sukoon.music.data.analytics.AnalyticsTracker
     ): com.sukoon.music.domain.repository.LyricsRepository {
         return com.sukoon.music.data.repository.LyricsRepositoryImpl(
             context,
@@ -351,7 +352,9 @@ object AppModule {
             secondaryLyricsApi,
             offlineLyricsScanner,
             id3LyricsExtractor,
-            geminiMetadataCorrector
+            geminiMetadataCorrector,
+            preferencesManager,
+            analyticsTracker
         )
     }
 

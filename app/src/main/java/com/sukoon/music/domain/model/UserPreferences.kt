@@ -24,6 +24,17 @@ data class UserPreferences(
      */
     val aiMetadataCorrectionEnabled: Boolean = false,
 
+    /**
+     * Gemini API status used to surface quota/key issues in Settings.
+     */
+    val geminiQuotaState: GeminiQuotaState = GeminiQuotaState.AVAILABLE,
+
+    /**
+     * Epoch millis until Gemini quota cooldown ends.
+     * Null means no active cooldown.
+     */
+    val geminiQuotaCooldownUntilMs: Long? = null,
+
     // --- Appearance ---
     /**
      * Theme preference.

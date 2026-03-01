@@ -12,6 +12,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.sukoon.music.domain.model.AppTheme
 import com.sukoon.music.domain.model.AudioQuality
 import com.sukoon.music.domain.model.FolderSortMode
+import com.sukoon.music.domain.model.GeminiQuotaState
 import com.sukoon.music.domain.model.UserPreferences
 import com.sukoon.music.util.DevLogger
 import kotlinx.coroutines.flow.Flow
@@ -44,6 +45,8 @@ class PreferencesManager @Inject constructor(
         private val KEY_PRIVATE_SESSION = booleanPreferencesKey("private_session_enabled")
         private val KEY_ANALYTICS_ENABLED = booleanPreferencesKey("analytics_enabled")
         private val KEY_AI_METADATA_CORRECTION_ENABLED = booleanPreferencesKey("ai_metadata_correction_enabled")
+        private val KEY_GEMINI_QUOTA_STATE = stringPreferencesKey("gemini_quota_state")
+        private val KEY_GEMINI_QUOTA_COOLDOWN_UNTIL = stringPreferencesKey("gemini_quota_cooldown_until_ms")
 
         // Appearance
         private val KEY_THEME = stringPreferencesKey("app_theme")
@@ -122,6 +125,8 @@ class PreferencesManager @Inject constructor(
                 isPrivateSessionEnabled = preferences[KEY_PRIVATE_SESSION] ?: false,
                 analyticsEnabled = preferences[KEY_ANALYTICS_ENABLED] ?: true,
                 aiMetadataCorrectionEnabled = preferences[KEY_AI_METADATA_CORRECTION_ENABLED] ?: false,
+                geminiQuotaState = parseGeminiQuotaState(preferences[KEY_GEMINI_QUOTA_STATE]),
+                geminiQuotaCooldownUntilMs = preferences[KEY_GEMINI_QUOTA_COOLDOWN_UNTIL]?.toLongOrNull(),
                 // Appearance
                 theme = parseTheme(preferences[KEY_THEME]),
                 accentProfile = parseAccentProfile(preferences[KEY_ACCENT_PROFILE]),
@@ -207,6 +212,20 @@ class PreferencesManager @Inject constructor(
     suspend fun setAiMetadataCorrectionEnabled(enabled: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[KEY_AI_METADATA_CORRECTION_ENABLED] = enabled
+        }
+    }
+
+    /**
+     * Persist Gemini API status so the user can see when quota is exhausted.
+     */
+    suspend fun setGeminiQuotaStatus(state: GeminiQuotaState, cooldownUntilMs: Long? = null) {
+        context.dataStore.edit { preferences ->
+            preferences[KEY_GEMINI_QUOTA_STATE] = state.name
+            if (cooldownUntilMs != null && cooldownUntilMs > 0L) {
+                preferences[KEY_GEMINI_QUOTA_COOLDOWN_UNTIL] = cooldownUntilMs.toString()
+            } else {
+                preferences.remove(KEY_GEMINI_QUOTA_COOLDOWN_UNTIL)
+            }
         }
     }
 
@@ -587,6 +606,14 @@ class PreferencesManager @Inject constructor(
             themeString?.let { AppTheme.valueOf(it) } ?: AppTheme.SYSTEM
         } catch (e: IllegalArgumentException) {
             AppTheme.SYSTEM
+        }
+    }
+
+    private fun parseGeminiQuotaState(value: String?): GeminiQuotaState {
+        return try {
+            value?.let { GeminiQuotaState.valueOf(it) } ?: GeminiQuotaState.AVAILABLE
+        } catch (_: IllegalArgumentException) {
+            GeminiQuotaState.AVAILABLE
         }
     }
 
