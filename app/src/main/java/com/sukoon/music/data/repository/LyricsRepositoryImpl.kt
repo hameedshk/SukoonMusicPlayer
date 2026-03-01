@@ -56,7 +56,7 @@ class LyricsRepositoryImpl @Inject constructor(
     companion object {
         private const val TAG = "LyricsRepository"
         private const val RETRY_BACKOFF_MS = 350L
-        private const val MIN_LYRICS_LENGTH = 20
+        private const val MIN_LYRICS_LENGTH = 8
     }
 
     override fun getLyrics(
@@ -135,6 +135,8 @@ class LyricsRepositoryImpl @Inject constructor(
             val normalizedTitle = normalize(title.trim())
             val normalizedAlbum = normalize(album)
             val safeDuration = duration.takeIf { it > 0 }
+            val rawArtist = artist.trim().takeIf { it.isNotBlank() }
+            val rawTitle = title.trim()
 
             if (normalizedTitle.isNullOrBlank()) {
                 DevLogger.d(TAG, "lyrics_stage=invalid_title trackId=$trackId")
@@ -150,6 +152,19 @@ class LyricsRepositoryImpl @Inject constructor(
                 duration = safeDuration
             )
             var source = LyricsSource.ONLINE
+
+            // Coverage fallback: retry LRCLIB with raw metadata when normalized query misses.
+            if (!hasUsableLyrics(finalResponse) &&
+                rawTitle.isNotBlank() &&
+                (rawTitle != normalizedTitle || rawArtist != normalizedArtist)
+            ) {
+                finalResponse = fetchOnlineLyricsFromLrclib(
+                    artistName = rawArtist,
+                    trackName = rawTitle,
+                    albumName = album?.trim(),
+                    duration = safeDuration
+                )
+            }
 
             // 6) Gemini-corrected LRCLIB retry
             if (!hasUsableLyrics(finalResponse)) {
@@ -170,6 +185,12 @@ class LyricsRepositoryImpl @Inject constructor(
                     artistName = normalizedArtist,
                     trackName = normalizedTitle
                 )
+                if (!hasUsableLyrics(finalResponse) && rawTitle.isNotBlank()) {
+                    finalResponse = trySecondaryProvider(
+                        artistName = rawArtist,
+                        trackName = rawTitle
+                    )
+                }
                 if (hasUsableLyrics(finalResponse)) {
                     source = LyricsSource.ONLINE_FALLBACK_FREE
                 }
@@ -307,21 +328,23 @@ class LyricsRepositoryImpl @Inject constructor(
             return precise
         }
 
-        val searchQuery = if (!artistName.isNullOrBlank()) "$artistName $trackName" else trackName
-        val searchResults = trySearchLookup(searchQuery)
-        val searchHit = selectBestSearchCandidate(
-            candidates = searchResults,
-            queryArtist = artistName,
-            queryTitle = trackName,
-            queryDuration = duration
-        )
-
-        if (searchHit != null) {
-            DevLogger.d(TAG, "lyrics_stage=remote_search_hit query='$searchQuery'")
-        } else {
-            DevLogger.d(TAG, "lyrics_stage=remote_search_miss query='$searchQuery'")
+        val queries = buildSearchQueries(artistName, trackName)
+        for (query in queries) {
+            val searchResults = trySearchLookup(query)
+            val searchHit = selectBestSearchCandidate(
+                candidates = searchResults,
+                queryArtist = artistName,
+                queryTitle = trackName,
+                queryDuration = duration
+            )
+            if (searchHit != null) {
+                DevLogger.d(TAG, "lyrics_stage=remote_search_hit query='$query'")
+                return searchHit
+            }
         }
-        return searchHit
+
+        DevLogger.d(TAG, "lyrics_stage=remote_search_miss track='$trackName'")
+        return null
     }
 
     private suspend fun tryPreciseLookup(
@@ -421,33 +444,35 @@ class LyricsRepositoryImpl @Inject constructor(
             return null
         }
 
-        return try {
-            DevLogger.d(TAG, "lyrics_stage=secondary_provider_try artist='$artistName' track='$trackName'")
-            val response = secondaryLyricsApi.getLyrics(artist = artistName, title = trackName)
-            val plain = response.lyrics?.trim().takeIf { !it.isNullOrBlank() }
-
-            if (plain.isNullOrBlank() || plain.length < MIN_LYRICS_LENGTH) {
-                DevLogger.d(TAG, "lyrics_stage=secondary_provider_miss")
-                null
-            } else {
-                DevLogger.d(TAG, "lyrics_stage=secondary_provider_hit")
-                LyricsResponse(
-                    trackName = trackName,
-                    artistName = artistName,
-                    plainLyrics = plain,
-                    syncedLyrics = null
+        val variants = buildSecondaryProviderVariants(artistName, trackName)
+        for ((artistVariant, titleVariant) in variants) {
+            try {
+                DevLogger.d(
+                    TAG,
+                    "lyrics_stage=secondary_provider_try artist='$artistVariant' track='$titleVariant'"
                 )
+                val response = secondaryLyricsApi.getLyrics(artist = artistVariant, title = titleVariant)
+                val plain = response.lyrics?.trim().takeIf { !it.isNullOrBlank() }
+
+                if (!plain.isNullOrBlank() && plain.length >= MIN_LYRICS_LENGTH) {
+                    DevLogger.d(TAG, "lyrics_stage=secondary_provider_hit")
+                    return LyricsResponse(
+                        trackName = titleVariant,
+                        artistName = artistVariant,
+                        plainLyrics = plain,
+                        syncedLyrics = null
+                    )
+                }
+            } catch (e: HttpException) {
+                DevLogger.d(TAG, "lyrics_stage=secondary_provider_http code=${e.code()}")
+            } catch (e: IOException) {
+                DevLogger.d(TAG, "lyrics_stage=secondary_provider_io ${e.javaClass.simpleName}")
+            } catch (e: Exception) {
+                DevLogger.e(TAG, "lyrics_stage=secondary_provider_unexpected", e)
             }
-        } catch (e: HttpException) {
-            DevLogger.d(TAG, "lyrics_stage=secondary_provider_http code=${e.code()}")
-            null
-        } catch (e: IOException) {
-            DevLogger.d(TAG, "lyrics_stage=secondary_provider_io ${e.javaClass.simpleName}")
-            null
-        } catch (e: Exception) {
-            DevLogger.e(TAG, "lyrics_stage=secondary_provider_unexpected", e)
-            null
         }
+        DevLogger.d(TAG, "lyrics_stage=secondary_provider_miss")
+        return null
     }
 
     private fun selectBestSearchCandidate(
@@ -456,8 +481,11 @@ class LyricsRepositoryImpl @Inject constructor(
         queryTitle: String,
         queryDuration: Int?
     ): LyricsResponse? {
-        val scored = candidates
-            .filter { hasUsableLyrics(it) && hasMinimumContent(it) }
+        val usableCandidates = candidates
+            .filter { hasUsableLyrics(it) }
+        if (usableCandidates.isEmpty()) return null
+
+        val scored = usableCandidates
             .map { candidate -> candidate to candidateMatchScore(candidate, queryArtist, queryTitle, queryDuration) }
 
         scored.forEach { (candidate, score) ->
@@ -469,10 +497,25 @@ class LyricsRepositoryImpl @Inject constructor(
             }
         }
 
-        return scored
+        val passing = scored
             .filter { (_, score) -> score >= minimumScoreThreshold(queryArtist) }
             .maxByOrNull { (_, score) -> score }
             ?.first
+
+        if (passing != null) {
+            return passing
+        }
+
+        // Coverage-first fallback: use best available candidate even if confidence is low.
+        val fallback = scored.maxByOrNull { (_, score) -> score }?.first
+        if (fallback != null) {
+            DevLogger.d(
+                TAG,
+                "lyrics_stage=search_low_confidence_fallback artist='${fallback.artistName}' title='${fallback.trackName}'"
+            )
+            return fallback
+        }
+        return usableCandidates.firstOrNull()
     }
 
     private fun candidateMatchScore(
@@ -500,8 +543,6 @@ class LyricsRepositoryImpl @Inject constructor(
                 score += 3
             } else if (tokenOverlapRatio(candidateArtist, targetArtist) >= 0.4f) {
                 score += 2
-            } else {
-                score -= 2
             }
         }
 
@@ -517,7 +558,67 @@ class LyricsRepositoryImpl @Inject constructor(
     }
 
     private fun minimumScoreThreshold(queryArtist: String?): Int {
-        return if (queryArtist.isNullOrBlank()) 2 else 3
+        return 0
+    }
+
+    private fun buildSearchQueries(artistName: String?, trackName: String): List<String> {
+        val titleClean = normalizeWhitespace(stripFeaturing(trackName))
+        val artistClean = normalizeWhitespace(stripFeaturing(artistName.orEmpty()))
+        val candidates = mutableListOf<String>()
+
+        if (artistName.isNullOrBlank()) {
+            candidates += trackName
+            if (titleClean != trackName) candidates += titleClean
+        } else {
+            candidates += "$artistName $trackName"
+            candidates += "$trackName $artistName"
+            candidates += trackName
+            if (titleClean != trackName) {
+                candidates += "$artistName $titleClean"
+                candidates += titleClean
+            }
+            if (artistClean.isNotBlank() && artistClean != artistName) {
+                candidates += "$artistClean $trackName"
+                if (titleClean != trackName) {
+                    candidates += "$artistClean $titleClean"
+                }
+            }
+        }
+
+        return candidates
+            .map { normalizeWhitespace(it) }
+            .filter { it.isNotBlank() }
+            .distinct()
+    }
+
+    private fun buildSecondaryProviderVariants(artistName: String, trackName: String): List<Pair<String, String>> {
+        val primaryArtist = normalizeWhitespace(artistName)
+        val cleanArtist = normalizeWhitespace(stripFeaturing(primaryArtist))
+        val splitArtist = normalizeWhitespace(primaryArtist.split(",", "&", " and ").firstOrNull().orEmpty())
+        val primaryTitle = normalizeWhitespace(trackName)
+        val cleanTitle = normalizeWhitespace(stripFeaturing(primaryTitle))
+        val parenRemovedTitle = normalizeWhitespace(primaryTitle.replace(Regex("\\s*[\\(\\[].*?[\\)\\]]\\s*"), " "))
+
+        return listOf(
+            primaryArtist to primaryTitle,
+            cleanArtist to primaryTitle,
+            primaryArtist to cleanTitle,
+            cleanArtist to cleanTitle,
+            splitArtist to cleanTitle,
+            splitArtist to parenRemovedTitle
+        ).map { (a, t) -> normalizeWhitespace(a) to normalizeWhitespace(t) }
+            .filter { (a, t) -> a.isNotBlank() && t.isNotBlank() }
+            .distinct()
+    }
+
+    private fun stripFeaturing(value: String): String {
+        return value
+            .replace(Regex("\\b(feat\\.?|ft\\.?|featuring)\\b.*$", RegexOption.IGNORE_CASE), "")
+            .trim()
+    }
+
+    private fun normalizeWhitespace(value: String): String {
+        return value.replace(Regex("\\s+"), " ").trim()
     }
 
     private fun tokenOverlapRatio(a: String, b: String): Float {
